@@ -1,16 +1,23 @@
 {
-  "name": "fullstacked-demo-2",
+  "name": "@fullstackedorg/editor",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "esbuild build.ts --outfile=.cache/build.js --packages=external --platform=node && node .cache/build.js",
+    "start": "esbuild index.ts --outfile=.cache/index.js --packages=external --platform=node && node .cache/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.1",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.23.0",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^20.11.2",
+    "codemirror": "^6.0.1",
     "esbuild": "^0.19.11",
+    "mime-types": "^2.1.35",
     "sass": "^1.69.7"
   }
 }
