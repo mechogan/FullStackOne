@@ -1,0 +1,4 @@
+.fullstacked-sync
+node_modules
+dist
+backup
