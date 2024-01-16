@@ -6,11 +6,12 @@ if(fs.existsSync("dist"))
     fs.rmSync("dist", { recursive: true });
 
 buildSync({
-    entryPoints: ["src/script.ts"],
-    outfile: "dist/script.js",
-    bundle: true
+    entryPoints: ["src/webview/script.ts"],
+    outfile: "dist/webview/script.js",
+    bundle: true,
+    format: "esm"
 });
 
-fs.cpSync("src/index.html", "dist/index.html");
-fs.cpSync("src/assets", "dist/assets", {recursive: true});
-fs.writeFileSync("dist/style.css", sass.compile("src/style.scss").css);
+fs.cpSync("src/webview/index.html", "dist/webview/index.html");
+fs.cpSync("src/webview/assets", "dist/webview/assets", {recursive: true});
+fs.writeFileSync("dist/webview/style.css", sass.compile("src/webview/style.scss").css);

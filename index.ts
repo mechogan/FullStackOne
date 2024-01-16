@@ -51,7 +51,8 @@ const requestListener = async (req: IncomingMessage, res: ServerResponse) => {
             buildSync({
                 entryPoints: [scriptPath],
                 outfile,
-                bundle: true
+                bundle: true,
+                format: "esm"
             })
             res.writeHead(200, {
                 "content-length": fs.statSync(outfile).size,
@@ -78,8 +79,5 @@ const requestListener = async (req: IncomingMessage, res: ServerResponse) => {
     res.end("Not Found");
 }
 
-const server = http
-    .createServer(requestListener)
-    .listen(8080);
-
+http.createServer(requestListener).listen(8080);
 console.log("http://localhost:8080");
