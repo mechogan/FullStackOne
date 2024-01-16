@@ -1,7 +1,9 @@
 import http, { IncomingMessage, ServerResponse } from "http";
 import fs from "fs";
 import path from "path";
-import mime from "mime-types"
+import mime from "mime";
+
+export const port = 8080;
 
 const dist = "../../dist/webview";
 
@@ -19,7 +21,7 @@ function requestListener(request: IncomingMessage, response: ServerResponse) {
 
     if(maybeFileName && fs.existsSync(maybeFileName)){
         response.writeHead(200, {
-            "Content-Type": mime.lookup(maybeFileName),
+            "Content-Type": mime.getType(maybeFileName),
             "Content-Length": fs.statSync(maybeFileName).size
         } as any)
         const readStream = fs.createReadStream(maybeFileName);
@@ -33,6 +35,6 @@ function requestListener(request: IncomingMessage, response: ServerResponse) {
 
 http
     .createServer(requestListener)
-    .listen(8080);
+    .listen(port);
 
-console.log("http://localhost:8080")
+console.log(`http://localhost:${port}`)
