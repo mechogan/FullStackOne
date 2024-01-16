@@ -22,4 +22,3 @@ const api = {
         return globalFs.rmSync(itemPath, { recursive: true });
     }
 }
-

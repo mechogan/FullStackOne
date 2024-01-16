@@ -1,0 +1,10 @@
+{
+  "name": "@fullstacked/editor-node",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "esbuild index.ts --outfile=.cache/index.js --platform=node --format=esm && node .cache/index.js"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC"
+}
