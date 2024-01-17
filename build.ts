@@ -15,3 +15,11 @@ buildSync({
 fs.cpSync("src/webview/index.html", "dist/webview/index.html");
 fs.cpSync("src/webview/assets", "dist/webview/assets", {recursive: true});
 fs.writeFileSync("dist/webview/style.css", sass.compile("src/webview/style.scss").css);
+
+buildSync({
+    entryPoints: ["src/api/index.ts"],
+    outfile: "dist/api/index.js",
+    bundle: true,
+    globalName: "api",
+    format: "iife"
+});

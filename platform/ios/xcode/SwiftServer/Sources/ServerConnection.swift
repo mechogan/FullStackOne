@@ -12,6 +12,10 @@ class ServerConnection {
     let server: Server
     let connection: NWConnection
     let id: Int
+    var method: String?
+    var pathname: String = ""
+    var contentLength: Int = 0
+    var body: String = ""
     
     init(server: Server, nwConnection: NWConnection) {
         self.server = server;
@@ -45,20 +49,56 @@ class ServerConnection {
     private func setupReceive() {
         connection.receive(minimumIncompleteLength: 1, maximumLength: MTU) { (data, _, isComplete, error) in
             if let data = data, !data.isEmpty {
-                let message = String(data: data, encoding: .utf8)
-                print("connection \(self.id) did receive, data: \(data as NSData) string: \(message ?? "-")")
-                let lines = message?.split(whereSeparator: \.isNewline)
-                let firstHeaderComponents = lines![0].split(whereSeparator: \.isWhitespace)
-                let method = firstHeaderComponents[0]
-                let pathname = firstHeaderComponents[1]
-                self.processRequest(method: String(method), pathname: String(pathname))
+                let message = String(data: data, encoding: .utf8)!
+                
+                print("connection \(self.id) did receive")
+                print("\n\(message)\n")
+                
+                if(self.method == nil) {
+                    self.processHeaders(rawHeaders: message.split(whereSeparator: \.isNewline))
+                }
+                else {
+                    self.body += message
+                }
+                
+                if(self.contentLength == 0 || self.body.count == self.contentLength) {
+                    self.processRequest()
+                    
+                    self.method = nil
+                    self.pathname = ""
+                    self.contentLength = 0
+                    self.body = ""
+                }
             }
+            
             if isComplete {
                 self.connectionDidEnd()
-            } else if let error = error {
+            } 
+            else if let error = error {
                 self.connectionDidFail(error: error)
-            } else {
+            } 
+            else {
                 self.setupReceive()
+            }
+        }
+    }
+    
+    private func processHeaders(rawHeaders: [String.SubSequence]) {
+        let firstHeaderComponents = rawHeaders[0].split(whereSeparator: \.isWhitespace)
+        self.method = String(firstHeaderComponents[0])
+        self.pathname = String(firstHeaderComponents[1])
+        
+        for rawHeader in rawHeaders[1...rawHeaders.count - 1] {
+            let headerComponents = rawHeader.components(separatedBy: ":")
+            if(headerComponents.count != 2) {
+                continue
+            }
+            
+            let headerName = headerComponents[0].trimmingCharacters(in: .whitespaces)
+            let headerValue = headerComponents[1].trimmingCharacters(in: .whitespaces)
+            
+            if(headerName == "Content-Length") {
+                self.contentLength = Int(headerValue) ?? 0
             }
         }
     }
@@ -69,7 +109,7 @@ class ServerConnection {
         dateFormatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss"
         let date = Date()
         let dateString = dateFormatter.string(from: date);
-        return "Date: " + dateString + " GMT\r\n"
+        return "Date: " + dateString + " GMT"
     }
     
     private func getFile(filename: NSString) -> URL? {
@@ -77,34 +117,41 @@ class ServerConnection {
         return fileURL
     }
     
-    private func processRequest(method: String, pathname: String){
-        print(method, pathname)
+    private func processRequest(){
+        // TODO: beautiful guard
+        print("Processing \(self.id) \nmethod: \(self.method ?? "") \npathname: \(self.pathname) \nbody:\n\(self.body)\n")
         
         // remove leading slash
         let cleandPathname = String(pathname.dropFirst());
-        let maybeFilePath = "webview/" + (cleandPathname.count > 0 ? cleandPathname : "index.html")
         
+        var headers = ["HTTP/1.1 200 OK", self.dateHeader()]
+        var data: Data? = nil
+        
+        let maybeFilePath = "webview/" + (cleandPathname.count > 0 ? cleandPathname : "index.html")
         let maybeFileURL = self.getFile(filename: NSString(string: maybeFilePath))
         
-        let data = maybeFileURL != nil
-            ? try! Data(contentsOf: maybeFileURL!)
-            : self.server.processRequestInJavaScript(method: method, pathname: pathname, body: "").data(using: .utf8)!
-        
-        let mimeType = maybeFileURL != nil
-            ? maybeFilePath.mimeType()
-            : "text/plain"
-        
-        if (maybeFileURL != nil) {
-            print("Found", maybeFileURL!.absoluteString, mimeType, String(data.count))
+        if(maybeFileURL != nil) {
+            data = try! Data(contentsOf: maybeFileURL!)
+            headers.append("Content-Type: " + maybeFilePath.mimeType())
+        }
+        else {
+            let jsResponse = self.server.processRequestInJavaScript(pathname: cleandPathname, body: body)
+            data = jsResponse.data.data(using: .utf8)
+            
+            if(jsResponse.isJSON){
+                headers.append("Content-Type: application/json")
+            }
+            else {
+                headers.append("Content-Type: text/plain")
+            }
         }
         
-        let headers = "HTTP/1.1 200 OK\r\n" +
-            self.dateHeader() +
-            "Content-Length: " + String(data.count) + "\r\n" +
-            "Content-Type: " + mimeType + "\r\n" +
-            "\r\n"
-        var response = headers.data(using: .utf8)! as Data
-        response.append(data)
+        headers.append("Content-Length: " + String(data!.count))
+        headers.append("\r\n")
+        
+        var response = headers.joined(separator: "\r\n").data(using: .utf8)! as Data
+        response.append(data!)
+        
         self.send(data: response)
     }
 

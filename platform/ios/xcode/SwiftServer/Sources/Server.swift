@@ -4,6 +4,20 @@ import JavaScriptCore
 
 @available(macOS 11.0, *)
 class Server {
+    private static let jsConsoleLog: @convention (block) (String) -> Void = {message in
+        print(message)
+    }
+    private static let jsReaddir: @convention (block) (String) -> [[String: String]] = { path in
+        let items = try! FileManager.default.contentsOfDirectory(atPath: Bundle.main.resourcePath!)
+        return items.map { item in
+            var isDirectory: ObjCBool = false;
+            let itemPath = Bundle.main.resourcePath! + "/" + item
+            FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
+            print(itemPath + " " + (isDirectory.boolValue ? "1" : "0"))
+            return ["name": item, "isDirectory": (isDirectory.boolValue ? "1" : "")]
+        }
+    }
+    
     let port: NWEndpoint.Port
     let listener: NWListener
     let js: JSContext
@@ -14,6 +28,33 @@ class Server {
         self.port = NWEndpoint.Port(rawValue: port)!
         listener = try! NWListener(using: .tcp, on: self.port)
         js = JSContext()
+        
+        js.setObject(Server.jsConsoleLog, forKeyedSubscript: "_consoleLog" as NSString)
+        js.setObject(Server.jsReaddir, forKeyedSubscript: "_readdir" as NSString)
+        let consoleLogFunc = """
+        var console = {
+            log: function(...args) {
+                var messages = args.map(arg => typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg);
+                _consoleLog(messages.join(", "));
+            }
+        }
+        
+        var fs = {
+            readdirSync: _readdir
+        }
+        """
+        js.evaluateScript(consoleLogFunc)
+        
+        js.exceptionHandler = { (context: JSContext?, exception: JSValue?) in
+            print("JS Error: " + exception!.toString())
+        }
+        
+        guard let fileURL = Bundle.main.url(forResource: "api/index", withExtension: "js") else {
+            return
+        }
+        
+        let script = try! String(contentsOf: fileURL, encoding: .utf8)
+        js.evaluateScript(script)
     }
 
     func start() throws {
@@ -61,7 +102,10 @@ class Server {
         self.connectionsByID.removeAll()
     }
     
-    func processRequestInJavaScript(method: String, pathname: String, body: String) -> String {
-        return self.js.evaluateScript("var foo = \"Hello World from JavaScriptCore\"; foo").toString();
+    func processRequestInJavaScript(pathname: String, body: String) -> (isJSON: Bool, data: String) {
+        let responseBody = self.js.evaluateScript("api.default(\"" + pathname + "\", `" + body + "`)");
+        let isJSON = responseBody?.objectForKeyedSubscript("isJSON").toBool()
+        let data = responseBody?.objectForKeyedSubscript("data").toString()
+        return (isJSON!, data!)
     }
 }
