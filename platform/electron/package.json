@@ -1,0 +1,12 @@
+{
+  "name": "@fullstacked/editor-electron",
+  "version": "1.0.0",
+  "main": ".cache/index.js",
+  "scripts": {
+    "start": "esbuild index.ts --outfile=.cache/index.js --bundle --platform=node --external:electron && electron ."
+  },
+  "dependencies": {
+    "electron": "^28.1.3",
+    "esbuild": "^0.19.11"
+  }
+}
