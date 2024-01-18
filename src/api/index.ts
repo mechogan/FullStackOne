@@ -11,7 +11,7 @@ export const api = {
     },
     fs: {
         readdir(directory: string) {
-            const items = fs.readdirSync(directory, { withFileTypes: true });
+            const items = fs.readdirSync(directory || ".", { withFileTypes: true });
             return items.map(item => ({
                 ...item,
                 isDirectory: typeof item.isDirectory === "function"
@@ -19,14 +19,17 @@ export const api = {
                     : item.isDirectory
             }))
         },
+        mkdir(directory: string) {
+            fs.mkdirSync(directory, { recursive: true })
+        },
         readfile(filename: string) {
             return fs.readFileSync(filename);
         },
         putfile(filename: string, contents: string) {
-            return fs.writeFileSync(filename, contents);
+            fs.writeFileSync(filename, contents);
         },
         deleteItem(itemPath: string) {
-            return fs.rmSync(itemPath, { recursive: true });
+            fs.rmSync(itemPath, { recursive: true });
         }
     }
     

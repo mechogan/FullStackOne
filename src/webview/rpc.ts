@@ -26,7 +26,7 @@ function recurseInProxy(target: Function, pathComponents: string[] = []){
     })
 }
 
-export const rpc = recurseInProxy(fetchCall) as unknown as AwaitAll<typeof api>;
+export const rpc = () => recurseInProxy(fetchCall) as unknown as AwaitAll<typeof api>;
 
 
 type OnlyOnePromise<T> = T extends PromiseLike<any>

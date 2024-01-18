@@ -45,7 +45,15 @@ async function requestListener(request: IncomingMessage, response: ServerRespons
     }
 
     const script = new vm.Script(`api.default("${pathname}", \`${await readBody(request)}\`)`);
-    const { isJSON, data } = script.runInContext(jsContext);
+    const jsResponse = script.runInContext(jsContext);
+
+    if(!jsResponse) {
+        response.writeHead(404);
+        response.end("Not Found");
+        return;
+    }
+
+    const { isJSON, data } = jsResponse;
 
     if(isJSON)
         response.setHeader("Content-Type", "application/json");

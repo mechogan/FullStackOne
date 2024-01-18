@@ -8,12 +8,13 @@ class Server {
         print(message)
     }
     private static let jsReaddir: @convention (block) (String) -> [[String: String]] = { path in
-        let items = try! FileManager.default.contentsOfDirectory(atPath: Bundle.main.resourcePath!)
+        let directory = Bundle.main.resourcePath! + "/" + path
+        print(directory)
+        let items = try! FileManager.default.contentsOfDirectory(atPath: directory)
         return items.map { item in
             var isDirectory: ObjCBool = false;
-            let itemPath = Bundle.main.resourcePath! + "/" + item
+            let itemPath = directory + "/" + item
             FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
-            print(itemPath + " " + (isDirectory.boolValue ? "1" : "0"))
             return ["name": item, "isDirectory": (isDirectory.boolValue ? "1" : "")]
         }
     }

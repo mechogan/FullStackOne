@@ -4,3 +4,4 @@ dist
 backup
 .cache
 .DS_Store
+xcuserdata

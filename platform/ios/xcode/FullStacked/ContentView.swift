@@ -2,17 +2,9 @@ import SwiftUI
 import WebKit
 
 struct ContentView: View {
-    @State private var ports: [Int] = []
-    
     var body: some View {
-        VStack {
-            Button("Run") {
-                ports.append(9000 + ports.count)
-            }
-            ForEach(ports, id: \.self) { port in
-                WebView(port: port)
-            }
-        }
+        WebView(port: 9000)
+            .edgesIgnoringSafeArea(.all)
     }
 }
 
