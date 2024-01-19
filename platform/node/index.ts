@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import mime from "mime";
 import vm from "vm";
+import os from "os";
 
 export const port = 8080;
 
@@ -17,7 +18,8 @@ function readBody(request: IncomingMessage) {
 const dist = "../../dist/webview";
 
 const jsContext = vm.createContext({
-    fs: fs
+    homedir: os.homedir(),
+    fs
 });
 const api = new vm.Script(fs.readFileSync("../../dist/api/index.js").toString());
 api.runInContext(jsContext);

@@ -1,25 +1,38 @@
-import { buildSync } from "esbuild";
+import { build, Plugin } from "esbuild";
 import fs from "fs";
 import * as sass from "sass";
 
 if(fs.existsSync("dist"))
     fs.rmSync("dist", { recursive: true });
 
-buildSync({
-    entryPoints: ["src/webview/script.ts"],
-    outfile: "dist/webview/script.js",
+
+const scssPlugin: Plugin  = {
+    name: 'scss',
+    setup(build) {
+      build.onLoad({ filter: /\.scss$/ }, (args) => ({
+        contents: sass.compile(args.path).css,
+        loader: 'css',
+      }))
+    },
+  }
+
+await build({
+    entryPoints: ["src/webview/index.ts"],
+    outfile: "dist/webview/index.js",
+    loader: {
+        ".svg": "text"
+    },
+    plugins: [scssPlugin],
     bundle: true,
     format: "esm"
 });
 
-fs.cpSync("src/webview/index.html", "dist/webview/index.html");
-fs.cpSync("src/webview/assets", "dist/webview/assets", {recursive: true});
-fs.writeFileSync("dist/webview/style.css", sass.compile("src/webview/style.scss").css);
-
-buildSync({
+await build({
     entryPoints: ["src/api/index.ts"],
     outfile: "dist/api/index.js",
     bundle: true,
     globalName: "api",
     format: "iife"
 });
+
+fs.cpSync("src/webview/index.html", "dist/webview/index.html");

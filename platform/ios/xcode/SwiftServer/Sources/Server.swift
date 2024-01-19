@@ -8,15 +8,17 @@ class Server {
         print(message)
     }
     private static let jsReaddir: @convention (block) (String) -> [[String: String]] = { path in
-        let directory = Bundle.main.resourcePath! + "/" + path
-        print(directory)
-        let items = try! FileManager.default.contentsOfDirectory(atPath: directory)
+        let items = try! FileManager.default.contentsOfDirectory(atPath: path)
         return items.map { item in
             var isDirectory: ObjCBool = false;
-            let itemPath = directory + "/" + item
+            let itemPath = path + "/" + item
             FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
             return ["name": item, "isDirectory": (isDirectory.boolValue ? "1" : "")]
         }
+    }
+    private static let jsReadfile: @convention (block) (String) -> String = { path in
+        let contents = FileManager.default.contents(atPath: path)
+        return String(data: contents!, encoding: .utf8)!
     }
     
     let port: NWEndpoint.Port
@@ -30,8 +32,14 @@ class Server {
         listener = try! NWListener(using: .tcp, on: self.port)
         js = JSContext()
         
+        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
+        let documentsDirectory = paths.first
+        js.setObject(documentsDirectory, forKeyedSubscript: "homedir" as NSString)
+
+        
         js.setObject(Server.jsConsoleLog, forKeyedSubscript: "_consoleLog" as NSString)
         js.setObject(Server.jsReaddir, forKeyedSubscript: "_readdir" as NSString)
+        js.setObject(Server.jsReadfile, forKeyedSubscript: "_readfile" as NSString)
         let consoleLogFunc = """
         var console = {
             log: function(...args) {
@@ -41,7 +49,8 @@ class Server {
         }
         
         var fs = {
-            readdirSync: _readdir
+            readdirSync: _readdir,
+            readFileSync: _readfile
         }
         """
         js.evaluateScript(consoleLogFunc)

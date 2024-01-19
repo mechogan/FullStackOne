@@ -1,6 +1,7 @@
 import type fsType from "fs";
 
 declare var fs: typeof fsType
+declare var homedir: string
 
 export const api = {
     helloWorld(greeting: string) {
@@ -9,9 +10,11 @@ export const api = {
             from: "JS"
         }
     },
+
     fs: {
         readdir(directory: string) {
-            const items = fs.readdirSync(directory || ".", { withFileTypes: true });
+            const path = homedir + "/" + directory;
+            const items = fs.readdirSync(path, { withFileTypes: true });
             return items.map(item => ({
                 ...item,
                 isDirectory: typeof item.isDirectory === "function"
@@ -20,16 +23,26 @@ export const api = {
             }))
         },
         mkdir(directory: string) {
-            fs.mkdirSync(directory, { recursive: true })
+            const path = homedir + "/" + directory;
+            fs.mkdirSync(path, { recursive: true })
         },
         readfile(filename: string) {
-            return fs.readFileSync(filename);
+            const path = homedir + "/" + filename;
+            return fs.readFileSync(path).toString();
         },
         putfile(filename: string, contents: string) {
-            fs.writeFileSync(filename, contents);
+            const path = homedir + "/" + filename;
+            fs.writeFileSync(path, contents);
         },
         deleteItem(itemPath: string) {
-            fs.rmSync(itemPath, { recursive: true });
+            const path = homedir + "/" + itemPath;
+            fs.rmSync(path, { recursive: true });
+        }
+    },
+
+    projects: {
+        list() {
+            return [];
         }
     }
     

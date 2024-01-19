@@ -1,0 +1,51 @@
+@import "./colors";
+@import "./typography";
+@import "./spacing";
+@import "./border";
+
+label {
+    display: block;
+    margin-bottom: spacing(0.5);
+    font-size: $font-size-s;
+    font-weight: $font-weight-bold;
+}
+
+input {
+    background-color: white;
+    border-color: colorOpacity(white, 0.3);
+    font-size: $font-size-m;
+    padding: spacing(0.5);
+    border-radius: $border-radius;
+    border-width: $border-width;
+    outline-offset: 0px;
+    border-style: solid;
+    &:focus {
+        outline: 2px solid $blue;
+    }
+}
+
+button {
+    cursor: pointer;
+    font-size: $font-size-m;
+    font-weight: $font-weight-bold;
+    padding: spacing() spacing(2);
+    border-radius: $border-radius;
+    background-color: $blue;
+    color: white;
+    border: $border-width solid $blue;
+
+    &:active {
+        background-color: $blue-active;
+    }
+
+    &.small {
+        font-size: $font-size-s;
+        padding: spacing(0.5) spacing(1);
+    }
+
+    &.text {
+        color: $blue;
+        border: 0;
+        background: none;
+    }
+}
