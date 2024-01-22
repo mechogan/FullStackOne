@@ -20,6 +20,9 @@ class Server {
         let contents = FileManager.default.contents(atPath: path)
         return String(data: contents!, encoding: .utf8)!
     }
+    private static let jsMkdir: @convention (block) (String) -> Void = { path in
+        try! FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
+    }
     
     let port: NWEndpoint.Port
     let listener: NWListener
@@ -40,6 +43,7 @@ class Server {
         js.setObject(Server.jsConsoleLog, forKeyedSubscript: "_consoleLog" as NSString)
         js.setObject(Server.jsReaddir, forKeyedSubscript: "_readdir" as NSString)
         js.setObject(Server.jsReadfile, forKeyedSubscript: "_readfile" as NSString)
+        js.setObject(Server.jsMkdir, forKeyedSubscript: "_mkdir" as NSString)
         let consoleLogFunc = """
         var console = {
             log: function(...args) {
@@ -50,7 +54,8 @@ class Server {
         
         var fs = {
             readdirSync: _readdir,
-            readFileSync: _readfile
+            readFileSync: _readfile,
+            mkdirSync: _mkdir
         }
         """
         js.evaluateScript(consoleLogFunc)

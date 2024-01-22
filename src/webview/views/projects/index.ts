@@ -9,17 +9,25 @@ export class Projects {
         const container = document.createElement("div");
         container.classList.add("projects")
 
+        const title = document.createElement("h1");
+        title.innerText = "Projects";
+        container.append(title);
+
+        const projectsContainer = document.createElement("div");
+
         const projects = await rpc().projects.list();
 
         projects.forEach(project => {
             const projectPreview = document.createElement("article");
-            container.append(projectPreview);
+            projectsContainer.append(projectPreview);
         });
 
         const newProject = document.createElement("article");
         newProject.innerHTML = Add;
         newProject.addEventListener("click", this.newProjectAction)
-        container.append(newProject);
+        projectsContainer.append(newProject);
+
+        container.append(projectsContainer);
         
         return container;
     }

@@ -60,7 +60,8 @@ async function requestListener(request: IncomingMessage, response: ServerRespons
     if(isJSON)
         response.setHeader("Content-Type", "application/json");
 
-    response.write(data);
+    if(data)
+        response.write(data);
     response.end();
 }
 
