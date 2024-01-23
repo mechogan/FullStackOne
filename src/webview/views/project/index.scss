@@ -1,0 +1,23 @@
+.project {
+    display: grid;
+    grid-template-areas: 'toolbar toolbar toolbar'
+        'file-tree editor editor';
+
+    transition: 0.5s all;
+    grid-template-columns: minmax(300px, 33.3333%) 33.3333% 33.3333%;
+    &.side-panel-closed {
+        grid-template-columns: minmax(0px, 0%) 50% 50%;
+    }
+
+    > div:first-child {
+        grid-area: toolbar;
+        display: flex;
+        align-items: center;
+    }
+    > div:nth-child(2) {
+        grid-area: file-tree;
+    }
+    > div:nth-child(3) {
+        grid-area: editor;
+    }
+}
