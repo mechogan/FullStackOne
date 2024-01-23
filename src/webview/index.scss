@@ -1,6 +1,5 @@
 @import "style/colors";
 @import "style/typography";
-
 @import "style/inputs";
 @import "style/headings";
 
@@ -8,7 +7,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     box-sizing: border-box;
-    display: block;
 }
 
 html,
@@ -19,4 +17,8 @@ body {
     color: white;
     font-size: $font-size-m;
     font-weight: $font-weight-normal;
+}
+
+ul {
+    list-style: none;
 }

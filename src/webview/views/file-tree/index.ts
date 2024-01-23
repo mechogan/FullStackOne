@@ -6,11 +6,17 @@ export class FileTree {
     filters: ((item: ReturnType<typeof api.fs.readdir>[0]) => boolean)[] = [];
     private showHiddenFile = false;
 
+    private baseDirectory: string[] = [];
+
     selectedItem: {
         element: HTMLLIElement,
         path: string[],
         isDirectory: boolean
     } | undefined;
+
+    setBaseDirectory(path: string){
+        this.baseDirectory = path.split("/");
+    }
 
     private async openDirectory(pathComponents: string[]) {
         const ul = document.createElement("ul");
@@ -83,7 +89,7 @@ export class FileTree {
             this.selectedItem = undefined;
         })
 
-        const ulRoot = await this.openDirectory([]);
+        const ulRoot = await this.openDirectory(this.baseDirectory);
         ulRoot.classList.add("file-tree");
 
         const actionsContainer = document.createElement("div");
@@ -111,20 +117,19 @@ export class FileTree {
             newDirectoryLi.append(newDirectoryNameInput);
             selectedUl?.append(newDirectoryLi);
 
-            newDirectoryNameInput.addEventListener("keydown", async e => {
-                const key = e.key;
-                if(key !== "Enter")
-                    return;
-
+            const mkDir = async () => {
                 const newDirectoryName = newDirectoryNameInput.value;
 
                 newDirectoryLi.remove();
+
+                if(!newDirectoryName) 
+                    return;
 
                 const parentDirectoryPathComponents = this.selectedItem
                     ? this.selectedItem.isDirectory
                         ? this.selectedItem.path
                         : this.selectedItem.path.slice(0, -1)
-                    : [];
+                    : this.baseDirectory;
 
                 await rpc().fs.mkdir(parentDirectoryPathComponents.join("/") + "/" + newDirectoryName);
 
@@ -135,7 +140,18 @@ export class FileTree {
                 }
 
                 selectedUl?.replaceWith(updatedChildrenList);
+            }
+
+            newDirectoryNameInput.addEventListener("keydown", async e => {
+                const key = e.key;
+                if(key !== "Enter")
+                    return;
+
+                mkDir();
             });
+            newDirectoryNameInput.addEventListener("blur", () => {
+                mkDir();
+            })
 
             newDirectoryNameInput.focus();
         });

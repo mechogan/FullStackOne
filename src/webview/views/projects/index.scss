@@ -8,17 +8,16 @@
     > div {
         display: grid;
         gap: spacing(2);
-        grid-auto-rows: min-content;
     
-        grid-template-columns: auto auto auto auto;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
         @media (max-width: $break-l) {
-            grid-template-columns: auto auto auto;
+            grid-template-columns: 1fr 1fr 1fr;
         }
         @media (max-width: $break-m) {
-            grid-template-columns: auto auto;
+            grid-template-columns: 1fr 1fr;
         }
         @media (max-width: $break-s) {
-            grid-template-columns: auto;
+            grid-template-columns: 1fr;
         }
     
         > article {
@@ -29,6 +28,12 @@
             justify-content: center;
             color: colorOpacity(white, 0.5);
             aspect-ratio: 16 / 9;
+            position: relative;
+            > button {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+            }
         }
     }
 

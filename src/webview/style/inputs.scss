@@ -41,11 +41,22 @@ button {
     &.small {
         font-size: $font-size-s;
         padding: spacing(0.5) spacing(1);
+        & svg {
+            height: 18px;
+            width: 18px;
+        }
+    }
+
+    &.danger {
+        background-color: $red;
     }
 
     &.text {
         color: $blue;
         border: 0;
         background: none;
+        &.danger {
+            color: $red;
+        }
     }
 }

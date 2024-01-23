@@ -23,6 +23,15 @@ class Server {
     private static let jsMkdir: @convention (block) (String) -> Void = { path in
         try! FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
     }
+    private static let jsRm: @convention (block) (String) -> Void = { path in
+        try! FileManager.default.removeItem(atPath: path)
+    }
+    private static let jsWritefile: @convention (block) (String, String) -> Void = { path, contents in
+        try! contents.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+    private static let jsExists: @convention (block) (String) -> Bool = { path in
+        return FileManager.default.fileExists(atPath: path)
+    }
     
     let port: NWEndpoint.Port
     let listener: NWListener
@@ -39,11 +48,16 @@ class Server {
         let documentsDirectory = paths.first
         js.setObject(documentsDirectory, forKeyedSubscript: "homedir" as NSString)
 
-        
         js.setObject(Server.jsConsoleLog, forKeyedSubscript: "_consoleLog" as NSString)
+        
         js.setObject(Server.jsReaddir, forKeyedSubscript: "_readdir" as NSString)
         js.setObject(Server.jsReadfile, forKeyedSubscript: "_readfile" as NSString)
         js.setObject(Server.jsMkdir, forKeyedSubscript: "_mkdir" as NSString)
+        js.setObject(Server.jsRm, forKeyedSubscript: "_rm" as NSString)
+        js.setObject(Server.jsWritefile, forKeyedSubscript: "_writefile" as NSString)
+        js.setObject(Server.jsExists, forKeyedSubscript: "_exists" as NSString)
+        
+        
         let consoleLogFunc = """
         var console = {
             log: function(...args) {
@@ -55,7 +69,10 @@ class Server {
         var fs = {
             readdirSync: _readdir,
             readFileSync: _readfile,
-            mkdirSync: _mkdir
+            mkdirSync: _mkdir,
+            rmSync: _rm,
+            writeFileSync: _writefile,
+            existsSync: _exists
         }
         """
         js.evaluateScript(consoleLogFunc)

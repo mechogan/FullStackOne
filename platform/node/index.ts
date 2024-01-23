@@ -49,7 +49,7 @@ async function requestListener(request: IncomingMessage, response: ServerRespons
     const script = new vm.Script(`api.default("${pathname}", \`${await readBody(request)}\`)`);
     const jsResponse = script.runInContext(jsContext);
 
-    if(!jsResponse) {
+    if (!jsResponse) {
         response.writeHead(404);
         response.end("Not Found");
         return;
@@ -57,10 +57,10 @@ async function requestListener(request: IncomingMessage, response: ServerRespons
 
     const { isJSON, data } = jsResponse;
 
-    if(isJSON)
+    if (isJSON)
         response.setHeader("Content-Type", "application/json");
 
-    if(data)
+    if (data)
         response.write(data);
     response.end();
 }
