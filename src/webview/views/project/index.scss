@@ -1,21 +1,36 @@
+@import "../../style/spacing";
+
+
 .project {
     display: grid;
-    grid-template-areas: 'toolbar toolbar toolbar'
-        'file-tree editor editor';
+    grid-template-areas: 'toolbar toolbar'
+        'file-tree editor';
 
     transition: 0.5s all;
-    grid-template-columns: minmax(300px, 33.3333%) 33.3333% 33.3333%;
+    grid-template-columns: minmax(300px, 33.3333%) calc(100% - 300px);
     &.side-panel-closed {
-        grid-template-columns: minmax(0px, 0%) 50% 50%;
+        grid-template-columns: minmax(0px, 0%) 100%;
     }
 
     > div:first-child {
         grid-area: toolbar;
         display: flex;
+        justify-content: space-between;
         align-items: center;
+        > div {
+            display: flex;
+            align-items: center;
+            &:first-child {
+                justify-content: flex-start;
+            }
+            &:last-child {
+                justify-content: flex-end;
+            }
+        }
     }
     > div:nth-child(2) {
         grid-area: file-tree;
+        padding-right: spacing();
     }
     > div:nth-child(3) {
         grid-area: editor;

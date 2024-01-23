@@ -33,6 +33,9 @@ button {
     background-color: $blue;
     color: white;
     border: $border-width solid $blue;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:active {
         background-color: $blue-active;

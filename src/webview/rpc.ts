@@ -6,7 +6,7 @@ async function fetchCall(pathComponents: string[], ...args) {
 
     const response = await fetch(url.toString(), {
         method: "POST",
-        body: JSON.stringify(args)
+        body: JSON.stringify(args).replace(/\\/g, "\\\\")
     });
 
     return response.headers.get("content-type") === "application/json"
