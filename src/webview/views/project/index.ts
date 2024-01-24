@@ -5,8 +5,8 @@ import { FileTree } from '../file-tree';
 import arrowLeft from "../../assets/icons/arrow-left.svg";
 import sidePanel from "../../assets/icons/side-panel.svg";
 import type { Project as TypeProject } from "../../../api/projects/types";
-import { rpc } from "../../rpc";
 import Run from "../../assets/icons/run.svg";
+import Close from "../../assets/icons/close.svg";
 
 export class Project {
     backAction: () => void;
@@ -14,35 +14,38 @@ export class Project {
     private container: HTMLDivElement;
     private project: TypeProject;
 
-    editor = new Editor();
     fileTree = new FileTree();
 
-    private currentFile: string | null;
-    private onTextChangeThrottler: ReturnType<typeof setTimeout> | null;
+    private editorsContainer = document.createElement("div");
 
-    async onEditorTextChange(value: string){
-        this.onTextChangeThrottler = null;
-        if(!value) 
-            return;
+    private currentFile: string;
+    private editors: Editor[] = [];
 
-        if (!this.currentFile)
-            this.currentFile = this.project.location + "/new-file.js";
+    constructor(){
+        this.fileTree.onItemSelect = (item => {
+            if(!item || item.isDirectory) 
+                return;
 
-        await rpc().fs.putfile(this.currentFile, value);
+            const joinedPath = item.path.join("/");
+            if(!this.editors.find(({filePath}) => filePath.join("/") === joinedPath)){
+                this.editors.push(new Editor(item.path));
+            }
+
+            this.currentFile = joinedPath;
+
+            this.renderEditors();
+        });
     }
 
     setProject(project: TypeProject) {
-        this.currentFile = null;
+        if(project === this.project)
+            return;
 
         this.project = project;
         this.fileTree.setBaseDirectory(project.location);
-
-        this.editor.onTextChange = (value: string) => {
-            if(this.onTextChangeThrottler)
-                clearTimeout(this.onTextChangeThrottler);
-
-            this.onTextChangeThrottler = setTimeout(() => this.onEditorTextChange(value), 2000);
-        };
+        
+        this.editors = [];
+        this.renderEditors();
     }
 
     private renderToolbar() {
@@ -82,13 +85,49 @@ export class Project {
         return container;
     }
 
+    renderEditors(){
+        Array.from(this.editorsContainer.children).forEach(child => child.remove());
+        
+        const tabsContainer = document.createElement("ul");
+        this.editorsContainer.append(tabsContainer);
+
+        this.editors.forEach(async (editor, index) => {
+            const tab = document.createElement("li");
+            tab.innerText = editor.filePath.at(-1) || "file";
+            tab.addEventListener("click", () => {
+                this.currentFile = editor.filePath.join("/");
+                this.renderEditors();
+            })
+
+            const removeBtn = document.createElement("button");
+            removeBtn.classList.add("text", "small")
+            removeBtn.innerHTML = Close;
+            removeBtn.addEventListener("click", e => {
+                e.stopPropagation();
+                this.editors.splice(index, 1);
+                this.renderEditors();
+            })
+            tab.append(removeBtn);
+
+            tab.append
+
+            tabsContainer.append(tab);
+
+            if(editor.filePath.join("/") === this.currentFile){
+                tab.classList.add("active");
+                this.editorsContainer.append(await editor.render());
+            }
+        });
+
+    }
+
     async render() {
         this.container = document.createElement("div");
         this.container.classList.add("project");
 
         this.container.append(this.renderToolbar());
         this.container.append(await this.fileTree.render());
-        this.container.append(this.editor.render());
+        this.container.append(this.editorsContainer);
 
         return this.container;
     }

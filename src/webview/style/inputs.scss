@@ -61,5 +61,9 @@ button {
         &.danger {
             color: $red;
         }
+
+        &:hover {
+            background-color: colorOpacity(white, 0.05);
+        }
     }
 }

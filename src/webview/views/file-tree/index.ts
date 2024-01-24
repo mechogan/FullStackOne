@@ -11,11 +11,12 @@ export class FileTree {
     private ulRoot: HTMLUListElement;
     private baseDirectory: string[] = [];
 
-    selectedItem: {
+    itemSelected: {
         element: HTMLLIElement,
         path: string[],
         isDirectory: boolean
     } | undefined;
+    onItemSelect: (item: FileTree["itemSelected"]) => void;
 
     setBaseDirectory(path: string) {
         this.baseDirectory = path.split("/");
@@ -45,16 +46,19 @@ export class FileTree {
 
                     const itemPathComponents = [...pathComponents, name];
 
-                    if (this.selectedItem) {
-                        this.selectedItem.element.removeAttribute("aria-selected");
-                        this.selectedItem.element.classList.remove("selected");
+                    if (this.itemSelected) {
+                        this.itemSelected.element.removeAttribute("aria-selected");
+                        this.itemSelected.element.classList.remove("selected");
                     }
 
-                    this.selectedItem = {
+                    this.itemSelected = {
                         element: li,
                         path: itemPathComponents,
                         isDirectory: !!isDirectory
                     };
+
+                    if(this.onItemSelect)
+                        this.onItemSelect(this.itemSelected);
 
                     li.setAttribute("aria-selected", "true");
                     li.classList.add("selected");
@@ -81,10 +85,10 @@ export class FileTree {
     }
 
     private createInputAtSelectedLocation() {
-        let selectedUl = this.selectedItem
-            ? this.selectedItem.isDirectory
-                ? this.selectedItem.element.querySelector(":scope > ul")
-                : this.selectedItem.element.parentElement
+        let selectedUl = this.itemSelected
+            ? this.itemSelected.isDirectory
+                ? this.itemSelected.element.querySelector(":scope > ul")
+                : this.itemSelected.element.parentElement
             : this.ulRoot;
 
         const newLi = document.createElement("li");
@@ -113,10 +117,10 @@ export class FileTree {
             if (!newDirectoryName)
                 return;
 
-            const parentDirectoryPathComponents = this.selectedItem
-                ? this.selectedItem.isDirectory
-                    ? this.selectedItem.path
-                    : this.selectedItem.path.slice(0, -1)
+            const parentDirectoryPathComponents = this.itemSelected
+                ? this.itemSelected.isDirectory
+                    ? this.itemSelected.path
+                    : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
             await rpc().fs.mkdir(parentDirectoryPathComponents.join("/") + "/" + newDirectoryName);
@@ -155,10 +159,10 @@ export class FileTree {
             if (!newFileName)
                 return;
 
-            const parentDirectoryPathComponents = this.selectedItem
-                ? this.selectedItem.isDirectory
-                    ? this.selectedItem.path
-                    : this.selectedItem.path.slice(0, -1)
+            const parentDirectoryPathComponents = this.itemSelected
+                ? this.itemSelected.isDirectory
+                    ? this.itemSelected.path
+                    : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
             await rpc().fs.putfile(parentDirectoryPathComponents.join("/") + "/" + newFileName, "\n");
@@ -190,12 +194,15 @@ export class FileTree {
         const container = document.createElement("div");
         container.classList.add("file-tree-view");
         container.addEventListener("click", () => {
-            if (this.selectedItem) {
-                this.selectedItem.element.removeAttribute("aria-selected");
-                this.selectedItem.element.classList.remove("selected");
+            if (this.itemSelected) {
+                this.itemSelected.element.removeAttribute("aria-selected");
+                this.itemSelected.element.classList.remove("selected");
             }
 
-            this.selectedItem = undefined;
+            this.itemSelected = undefined;
+            
+            if(this.onItemSelect)
+                this.onItemSelect(this.itemSelected);
         })
 
         this.ulRoot = await this.openDirectory(this.baseDirectory);
