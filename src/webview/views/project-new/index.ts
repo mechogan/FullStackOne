@@ -26,7 +26,7 @@ export class ProjectNew {
         container.append(locationLabel);
 
         const fileTree = new FileTree()
-        fileTree.filters.push(({isDirectory}) => !!isDirectory);
+        fileTree.directoryOnly = true;
         container.append(await fileTree.render())
 
         // buttons
@@ -41,10 +41,10 @@ export class ProjectNew {
         const createButton = document.createElement("button");
         createButton.innerText = "Create";
         createButton.addEventListener("click", async () => {
-            const projectBaseDirectory = fileTree.selectedItem
-                ? fileTree.selectedItem.isDirectory
-                    ? fileTree.selectedItem.path
-                    : fileTree.selectedItem.path.slice(0, -1)
+            const projectBaseDirectory = fileTree.itemSelected
+                ? fileTree.itemSelected.isDirectory
+                    ? fileTree.itemSelected.path
+                    : fileTree.itemSelected.path.slice(0, -1)
                 : [];
 
             const location = [...projectBaseDirectory, titleInput.value].join("/");

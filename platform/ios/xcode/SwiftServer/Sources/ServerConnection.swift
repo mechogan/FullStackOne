@@ -55,7 +55,33 @@ class ServerConnection {
                 print("\n\(message)\n")
                 
                 if(self.method == nil) {
-                    self.processHeaders(rawHeaders: message.split(whereSeparator: \.isNewline))
+//                    self.processHeaders(rawHeaders: message.split(whereSeparator: \.isNewline))
+                    var headers = [String]()
+                    var currentLine = [Character]()
+                    var charIndexEndOfHeaders: Int = 0
+                    for char in message {
+                        charIndexEndOfHeaders += 1
+                        currentLine.append(char)
+                        
+                        if(!currentLine[currentLine.count - 1].isNewline){
+                            continue
+                        }
+                        
+                        if(currentLine.count == 1) {
+                            break
+                        }
+                        else {
+                            headers.append(String(currentLine))
+                            currentLine = [Character]()
+                        }
+                    }
+                    
+                    self.processHeaders(rawHeaders: headers)
+                    
+                    if(charIndexEndOfHeaders != message.count) {
+                        let index = message.index(message.startIndex, offsetBy: charIndexEndOfHeaders)
+                        self.body += String(message.suffix(from: index))
+                    }
                 }
                 else {
                     self.body += message
@@ -83,7 +109,7 @@ class ServerConnection {
         }
     }
     
-    private func processHeaders(rawHeaders: [String.SubSequence]) {
+    private func processHeaders(rawHeaders: [String]) {
         let firstHeaderComponents = rawHeaders[0].split(whereSeparator: \.isWhitespace)
         self.method = String(firstHeaderComponents[0])
         self.pathname = String(firstHeaderComponents[1])
@@ -94,8 +120,8 @@ class ServerConnection {
                 continue
             }
             
-            let headerName = headerComponents[0].trimmingCharacters(in: .whitespaces)
-            let headerValue = headerComponents[1].trimmingCharacters(in: .whitespaces)
+            let headerName = headerComponents[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            let headerValue = headerComponents[1].trimmingCharacters(in: .whitespacesAndNewlines)
             
             if(headerName == "Content-Length") {
                 self.contentLength = Int(headerValue) ?? 0

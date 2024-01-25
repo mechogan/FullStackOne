@@ -6,6 +6,8 @@ $red: #FF453A;
 $blue-dark: #1e293b;
 $dark: #15171b;
 
+$black: #282c34;
+
 @function colorOpacity($color, $opacity) {
     @return rgba(red($color), green($color), blue($color), $opacity);
 }

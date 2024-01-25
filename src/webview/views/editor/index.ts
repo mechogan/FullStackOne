@@ -1,7 +1,7 @@
 import { EditorView } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { oneDark } from "@codemirror/theme-one-dark";
-import { javascript } from '@codemirror/lang-javascript';
+import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { rpc } from '../../rpc';
 
 export class Editor {
@@ -9,6 +9,9 @@ export class Editor {
         basicSetup,
         oneDark,
         javascript(),
+        javascriptLanguage.data.of({
+            autocomplete: scopeCompletionSource(globalThis)
+        }),
         EditorView.updateListener.of(this.updateFileContents.bind(this))
     ]
     private parent = document.createElement("div");

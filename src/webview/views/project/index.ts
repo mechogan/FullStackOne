@@ -126,6 +126,7 @@ export class Project {
         this.container.classList.add("project");
 
         this.container.append(this.renderToolbar());
+        this.fileTree.allowDeletion = true;
         this.container.append(await this.fileTree.render());
         this.container.append(this.editorsContainer);
 

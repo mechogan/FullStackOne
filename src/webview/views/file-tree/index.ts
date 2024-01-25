@@ -1,12 +1,15 @@
 import "./index.scss";
 import { rpc } from "../../rpc";
+import AddDirectory from "../../assets/icons/add-directory.svg";
+import AddFile from "../../assets/icons/add-file.svg";
+import Delete from "../../assets/icons/delete.svg";
 import type { api } from "../../../api";
-import AddDirectory from "../../assets/icons/add-directory.svg"
-import AddFile from "../../assets/icons/add-file.svg"
+
+type Item = ReturnType<typeof api.fs.readdir>[0];
 
 export class FileTree {
-    filters: ((item: ReturnType<typeof api.fs.readdir>[0]) => boolean)[] = [];
-    private showHiddenFile = false;
+    allowDeletion = false;
+    directoryOnly = false;
 
     private ulRoot: HTMLUListElement;
     private baseDirectory: string[] = [];
@@ -22,29 +25,50 @@ export class FileTree {
         this.baseDirectory = path.split("/");
     }
 
+    private renderItemSpan(itemPath: string[], isDirectory: boolean, parentLi: HTMLLIElement, expanded = false) {
+        const span = document.createElement("span");
+        span.innerText = `${isDirectory 
+                ? expanded
+                    ? "▼ " 
+                    : "▶ " 
+                : ""}${itemPath.at(-1)}`;
+
+        if (this.allowDeletion) {
+            const deleteButton = document.createElement("button");
+            deleteButton.classList.add("text", "small", "danger");
+            deleteButton.innerHTML = Delete;
+            deleteButton.addEventListener("click", async e => {
+                e.stopPropagation();
+                await rpc().fs.deleteItem(itemPath.join("/"));
+                parentLi.remove();
+            })
+            span.append(deleteButton);
+        }
+
+        return span;
+    }
+
     private async openDirectory(pathComponents: string[]) {
         const ul = document.createElement("ul");
 
         (await rpc().fs.readdir(pathComponents.join("/")))
-            .filter(item => {
-                if (!this.showHiddenFile && item.name.startsWith("."))
+            .filter(({ name, isDirectory }) => {
+                if(name.startsWith("."))
                     return false;
 
-                for (const filter of this.filters) {
-                    if (!filter(item))
-                        return false;
-                }
+                if (this.directoryOnly)
+                    return isDirectory;
 
-                return true;
+                return true
             })
-            .forEach(({ name, isDirectory }) => {
-                const li = document.createElement("li")
-                li.innerText = `${isDirectory ? "▶" : ""} ${name}`;
+            .forEach(({name, isDirectory}) => {
+                const itemPathComponents = [...pathComponents, name];
+
+                const li = document.createElement("li");
+                li.append(this.renderItemSpan(itemPathComponents, !!isDirectory, li));
 
                 li.addEventListener("click", async (e) => {
                     e.stopPropagation();
-
-                    const itemPathComponents = [...pathComponents, name];
 
                     if (this.itemSelected) {
                         this.itemSelected.element.removeAttribute("aria-selected");
@@ -57,15 +81,17 @@ export class FileTree {
                         isDirectory: !!isDirectory
                     };
 
-                    if(this.onItemSelect)
+                    if (this.onItemSelect)
                         this.onItemSelect(this.itemSelected);
 
                     li.setAttribute("aria-selected", "true");
                     li.classList.add("selected");
 
                     if (isDirectory) {
-                        const expand = !(li.getAttribute("aria-expanded") === "true")
-                        li.innerText = `${expand ? "▼ " : "▶ "}${name}`;
+                        Array.from(li.children).forEach(child => child.remove());
+
+                        const expand = !(li.getAttribute("aria-expanded") === "true");
+                        li.append(this.renderItemSpan(itemPathComponents, !!isDirectory, li, expand));
 
                         if (expand) {
                             li.append(await this.openDirectory(itemPathComponents));
@@ -200,8 +226,8 @@ export class FileTree {
             }
 
             this.itemSelected = undefined;
-            
-            if(this.onItemSelect)
+
+            if (this.onItemSelect)
                 this.onItemSelect(this.itemSelected);
         })
 
@@ -227,14 +253,17 @@ export class FileTree {
         });
         actionsContainer.append(newDirectoryButton);
 
-        const newFileButton = document.createElement("button");
-        newFileButton.classList.add("small", "text");
-        newFileButton.innerHTML = AddFile;
-        newFileButton.addEventListener("click", e => {
-            e.stopPropagation();
-            this.touch();
-        });
-        actionsContainer.append(newFileButton);
+        if (!this.directoryOnly) {
+            const newFileButton = document.createElement("button");
+            newFileButton.classList.add("small", "text");
+            newFileButton.innerHTML = AddFile;
+            newFileButton.addEventListener("click", e => {
+                e.stopPropagation();
+                this.touch();
+            });
+            actionsContainer.append(newFileButton);
+        }
+
 
         container.append(actionsContainer);
 
