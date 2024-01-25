@@ -34,14 +34,15 @@ class Server {
     }
     
     let port: NWEndpoint.Port
-    let listener: NWListener
     let js: JSContext
+    
+    var listener: NWListener?
+    private var mustRestart = false;
 
     private var connectionsByID: [Int: ServerConnection] = [:]
 
     init(port: UInt16) {
         self.port = NWEndpoint.Port(rawValue: port)!
-        listener = try! NWListener(using: .tcp, on: self.port)
         js = JSContext()
         
         let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
@@ -88,12 +89,33 @@ class Server {
         let script = try! String(contentsOf: fileURL, encoding: .utf8)
         js.evaluateScript(script)
     }
+    
+    func restart() {
+        if(self.listener == nil) {
+            try! self.start()
+            return
+        }
+        
+        let url = URL(string: "http://localhost:" + String(self.port.rawValue))!
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringCacheData, timeoutInterval: 2)
+        request.httpMethod = "HEAD"
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+            if(error != nil) {
+                self.mustRestart = true;
+                self.stop();
+            }
+        }
+
+        task.resume()
+    }
 
     func start() throws {
+        self.listener = try! NWListener(using: .tcp, on: self.port)
         print("Server starting...")
-        listener.stateUpdateHandler = self.stateDidChange(to:)
-        listener.newConnectionHandler = self.didAccept(nwConnection:)
-        listener.start(queue: .main)
+        self.listener!.stateUpdateHandler = self.stateDidChange(to:)
+        self.listener!.newConnectionHandler = self.didAccept(nwConnection:)
+        self.listener!.start(queue: .main)
     }
 
     func stateDidChange(to newState: NWListener.State) {
@@ -103,6 +125,11 @@ class Server {
         case .failed(let error):
             print("Server failure, error: \(error.localizedDescription)")
             exit(EXIT_FAILURE)
+        case .cancelled:
+            if(self.mustRestart) {
+                self.mustRestart = false;
+                try! self.start();
+            }
         default:
             break
         }
@@ -123,15 +150,20 @@ class Server {
         print("server did close connection \(connection.id)")
     }
 
-    private func stop() {
-        self.listener.stateUpdateHandler = nil
-        self.listener.newConnectionHandler = nil
-        self.listener.cancel()
+    func stop() {
+        if(self.listener != nil) {
+            self.listener!.stateUpdateHandler = nil
+            self.listener!.newConnectionHandler = nil
+            self.listener!.cancel()
+        }
+        
         for connection in self.connectionsByID.values {
             connection.didStopCallback = nil
             connection.stop()
         }
         self.connectionsByID.removeAll()
+        
+        self.listener = nil;
     }
     
     func processRequestInJavaScript(pathname: String, body: String) -> (isJSON: Bool, data: String) {

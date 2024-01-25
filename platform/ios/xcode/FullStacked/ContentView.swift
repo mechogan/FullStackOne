@@ -21,18 +21,26 @@ class FullScreenWKWebView: WKWebView {
 }
 
 struct WebView: UIViewRepresentable {
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        
+    let server: Server
+    
+    init(port: Int) {
+        self.server = Server(port: UInt16(port));
     }
     
-    let port: Int
-    
     func makeUIView(context: Context) -> WKWebView  {
-        let server = Server(port: UInt16(port))
-        try! server.start()
-        let wkwebView = FullScreenWKWebView()
-        let request = URLRequest(url: URL(string: "http://localhost:" + String(port))!)
-        wkwebView.load(request)
-        return wkwebView
+        try! self.server.start()
+        let request = URLRequest(url: URL(string: "http://localhost:" + String(self.server.port.rawValue))!)
+        let wkWebView = FullScreenWKWebView()
+        wkWebView.load(request)
+        return wkWebView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        if(context.environment.scenePhase == .active){
+            self.server.restart()
+        }
+        else if (context.environment.scenePhase == .background) {
+            self.server.stop()
+        }
     }
 }

@@ -55,7 +55,6 @@ class ServerConnection {
                 print("\n\(message)\n")
                 
                 if(self.method == nil) {
-//                    self.processHeaders(rawHeaders: message.split(whereSeparator: \.isNewline))
                     var headers = [String]()
                     var currentLine = [Character]()
                     var charIndexEndOfHeaders: Int = 0
