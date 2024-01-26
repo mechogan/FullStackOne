@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import UniformTypeIdentifiers
+import CryptoKit
 
 @available(macOS 11.0, *)
 @available(iOS 14.0, *)
@@ -16,6 +17,8 @@ class ServerConnection {
     var pathname: String = ""
     var contentLength: Int = 0
     var body: String = ""
+    var wsKey: String?
+    var incomingConnection: IncomingConnection?
     
     init(server: Server, nwConnection: NWConnection) {
         self.server = server;
@@ -49,6 +52,35 @@ class ServerConnection {
     private func setupReceive() {
         connection.receive(minimumIncompleteLength: 1, maximumLength: MTU) { (data, _, isComplete, error) in
             if let data = data, !data.isEmpty {
+                if(self.wsKey != nil){
+                    
+                    let payloadLength = 0b01111111 & data[1]
+                    let mask = data[2...5]
+                    let encodedPayload = data[6...6 + payloadLength - 1]
+                    let decodedPayload = Data(encodedPayload.enumerated().map { (i, byte) in
+                        return byte ^ mask[mask.startIndex + (i % 4)]
+                    })
+                    let message = String(data: decodedPayload, encoding: .utf8)!
+                    print(message)
+                    
+                    
+                    let header: UInt8 = 0b10000001
+                    
+                    var response = Data([
+                        header,
+                        UInt8(decodedPayload.count)
+                    ])
+                    response.append(decodedPayload)
+                    
+                    self.send(data: response);
+                    
+                    
+                    
+                    self.setupReceive()
+                    return;
+                }
+                
+                
                 let message = String(data: data, encoding: .utf8)!
                 
                 print("connection \(self.id) did receive")
@@ -86,7 +118,9 @@ class ServerConnection {
                     self.body += message
                 }
                 
-                if(self.contentLength == 0 || self.body.count == self.contentLength) {
+                if(self.wsKey != nil) {
+                    self.processWebSocket()
+                } else if (self.contentLength == 0 || self.body.count == self.contentLength) {
                     self.processRequest()
                     
                     self.method = nil
@@ -125,16 +159,10 @@ class ServerConnection {
             if(headerName == "Content-Length") {
                 self.contentLength = Int(headerValue) ?? 0
             }
+            else if(headerName == "Sec-WebSocket-Key"){
+                self.wsKey = headerValue
+            }
         }
-    }
-    
-    private func dateHeader() -> String {
-        let dateFormatter : DateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US")
-        dateFormatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss"
-        let date = Date()
-        let dateString = dateFormatter.string(from: date);
-        return "Date: " + dateString + " GMT"
     }
     
     private func getFile(filename: NSString) -> URL? {
@@ -142,14 +170,31 @@ class ServerConnection {
         return fileURL
     }
     
+    private func processWebSocket(){
+        var headers = [
+            "HTTP/1.1 101 Switching Protocols",
+            "Upgrade: websocket",
+            "Connection: upgrade"
+        ]
+        
+        let str = self.wsKey! + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+        let hash = Data(Insecure.SHA1.hash(data: str.data(using: .utf8)!))
+        let encodedString = hash.base64EncodedString()
+        
+        headers.append("Sec-WebSocket-Accept: " + encodedString);
+        headers.append("\r\n")
+        
+        let response = headers.joined(separator: "\r\n").data(using: .utf8)! as Data
+        self.send(data: response)
+    }
+    
     private func processRequest(){
-        // TODO: beautiful guard
         print("Processing \(self.id) \nmethod: \(self.method ?? "") \npathname: \(self.pathname) \nbody:\n\(self.body)\n")
         
         // remove leading slash
         let cleandPathname = String(pathname.dropFirst());
         
-        var headers = ["HTTP/1.1 200 OK", self.dateHeader()]
+        var headers = ["HTTP/1.1 200 OK"]
         var data: Data? = nil
         
         let maybeFilePath = "webview/" + (cleandPathname.count > 0 ? cleandPathname : "index.html")
@@ -157,7 +202,7 @@ class ServerConnection {
         
         if(maybeFileURL != nil) {
             data = try! Data(contentsOf: maybeFileURL!)
-            headers.append("Content-Type: " + maybeFilePath.mimeType())
+            headers.append("Content-Type: " + Request.mimeType(filePath: maybeFilePath))
         }
         else {
             let jsResponse = self.server.processRequestInJavaScript(pathname: cleandPathname, body: body)
@@ -194,7 +239,6 @@ class ServerConnection {
         print("connection \(id) will stop")
     }
 
-
     private func connectionDidFail(error: Error) {
         print("connection \(id) did fail, error: \(error)")
         stop(error: error)
@@ -217,21 +261,75 @@ class ServerConnection {
 
 @available(macOS 11.0, *)
 @available(iOS 14.0, *)
-extension NSString {
-    public func mimeType() -> String {
-        if let mimeType = UTType(filenameExtension: self.pathExtension)?.preferredMIMEType {
-            return mimeType
-        }
-        else {
-            return "application/octet-stream"
-        }
+class IncomingConnection {
+    let serverConnection: ServerConnection
+    let pathname: String
+    let headers: Dictionary<String, String>
+    
+    init(
+        serverConnection: ServerConnection,
+        pathname: String,
+        headers: Dictionary<String, String>
+    ) {
+        self.serverConnection = serverConnection
+        self.pathname = pathname
+        self.headers = headers
+    }
+    
+    func upgradeToRequest(method: String) -> Request {
+        return Request(incomingConnection: self, method: method)
+    }
+    
+    func upgradeToWebSocket() -> WebSocket {
+        return WebSocket(incomingConnection: self)
+    }
+    
+    func receivedData(){ }
+}
+
+@available(macOS 11.0, *)
+@available(iOS 14.0, *)
+class WebSocket: IncomingConnection {
+    var currentFrame = Date()
+    
+    init(incomingConnection: IncomingConnection) {
+        super.init(
+            serverConnection: incomingConnection.serverConnection,
+            pathname: incomingConnection.pathname,
+            headers: incomingConnection.headers
+        )
+    }
+    
+    override func receivedData() {
+        
     }
 }
 
 @available(macOS 11.0, *)
 @available(iOS 14.0, *)
-extension String {
-    public func mimeType() -> String {
-        return (self as NSString).mimeType()
+class Request: IncomingConnection {
+    let method: String
+    var body: String = "";
+    
+    init(incomingConnection: IncomingConnection, method: String) {
+        self.method = method
+        super.init(
+            serverConnection: incomingConnection.serverConnection,
+            pathname: incomingConnection.pathname,
+            headers: incomingConnection.headers
+        )
+    }
+    
+    override func receivedData() {
+        
+    }
+    
+    static func mimeType(filePath: String) -> String {
+        if let mimeType = UTType(filenameExtension: (filePath as NSString).pathExtension)?.preferredMIMEType {
+            return mimeType
+        }
+        else {
+            return "application/octet-stream"
+        }
     }
 }
