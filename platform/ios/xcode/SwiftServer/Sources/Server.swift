@@ -34,6 +34,7 @@ class Server {
     }
     
     let port: NWEndpoint.Port
+    let assetDir: String
     let js: JSContext
     
     var listener: NWListener?
@@ -41,8 +42,9 @@ class Server {
 
     private var connectionsByID: [Int: ServerConnection] = [:]
 
-    init(port: UInt16) {
+    init(port: UInt16, assetDir: String) {
         self.port = NWEndpoint.Port(rawValue: port)!
+        self.assetDir = assetDir
         js = JSContext()
         
         let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
@@ -112,7 +114,7 @@ class Server {
 
     func start() throws {
         self.listener = try! NWListener(using: .tcp, on: self.port)
-        print("Server starting...")
+        print("Server starting on port \(self.port)...")
         self.listener!.stateUpdateHandler = self.stateDidChange(to:)
         self.listener!.newConnectionHandler = self.didAccept(nwConnection:)
         self.listener!.start(queue: .main)
@@ -127,6 +129,7 @@ class Server {
             exit(EXIT_FAILURE)
         case .cancelled:
             if(self.mustRestart) {
+                print("Server restartinig")
                 self.mustRestart = false;
                 try! self.start();
             }

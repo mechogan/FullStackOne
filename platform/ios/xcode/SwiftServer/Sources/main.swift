@@ -6,7 +6,7 @@ let portArg = CommandLine.arguments.count > 1
 let port = portArg!
 print("Starting as server on port: \(port)")
 if #available(macOS 11.0, *) {
-    let server = Server(port: port)
+    let server = Server(port: port, assetDir: "")
     try! server.start()
 }
 RunLoop.current.run()

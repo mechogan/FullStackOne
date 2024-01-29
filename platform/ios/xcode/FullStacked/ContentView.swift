@@ -24,7 +24,8 @@ struct WebView: UIViewRepresentable {
     let server: Server
     
     init(port: Int) {
-        self.server = Server(port: UInt16(port));
+        let webviewDir = Bundle.main.bundlePath + "/webview"
+        self.server = Server(port: UInt16(port), assetDir: webviewDir);
     }
     
     func makeUIView(context: Context) -> WKWebView  {
@@ -40,6 +41,14 @@ struct WebView: UIViewRepresentable {
             self.server.restart()
         }
         else if (context.environment.scenePhase == .background) {
+            
+            // preview calls with scenePhase .background
+            //...
+            let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] ?? "0"
+            if(isPreview == "1") {
+                return;
+            }
+            
             self.server.stop()
         }
     }
