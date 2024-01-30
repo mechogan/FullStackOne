@@ -1,7 +1,8 @@
 import "./index.scss";
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { oneDark } from "@codemirror/theme-one-dark";
+import {indentWithTab} from "@codemirror/commands"
 import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { rpc } from '../../rpc';
 
@@ -10,6 +11,7 @@ export class Editor {
         basicSetup,
         oneDark,
         javascript(),
+        keymap.of([indentWithTab]),
         javascriptLanguage.data.of({
             autocomplete: scopeCompletionSource(globalThis)
         }),

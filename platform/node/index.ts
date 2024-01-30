@@ -5,6 +5,7 @@ import mime from "mime";
 import vm from "vm";
 import os from "os";
 import * as ws from "ws";
+import esbuild from "esbuild";
 
 export const port = 8080;
 
@@ -28,6 +29,12 @@ const jsContext = vm.createContext({
         log: console.log
     },
     run: (workdir: string, entrypoint: string) => {
+        const bundle = esbuild.buildSync({
+            entryPoints: [path.join(homedir, workdir, entrypoint)],
+            bundle: true,
+            write: false
+        });
+
         const ctx = vm.createContext({
             console: {
                 log: (...args: any[]) => {
@@ -35,7 +42,8 @@ const jsContext = vm.createContext({
                 }
             }
         });
-        const script = new vm.Script(fs.readFileSync(path.join(homedir, workdir, entrypoint)).toString());
+
+        const script = new vm.Script(bundle.outputFiles?.at(0)?.text ?? "");
         script.runInContext(ctx);
     }
 });

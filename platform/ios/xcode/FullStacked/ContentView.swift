@@ -35,7 +35,12 @@ let logToWebView: @convention (block) (String) -> Void = {message in
 let run: @convention (block) (String, String) -> Void = { workdir, entrypoint in
     let js = JavaScript(workdir: workdir)
     js.context["console"]?["_log"] = logToWebView
-    let script = String(data: FileManager.default.contents(atPath: homedir + "/" + workdir + "/" + entrypoint)!, encoding: .utf8)!
+    
+    let entrypoint = homedir + "/" + workdir + "/" + entrypoint
+    
+    let str = UnsafeMutablePointer<Int8>(mutating: (entrypoint as NSString).utf8String)
+    let script = String.init(cString: build(str)!, encoding: .utf8)!
+    
     js.run(script: script)
 }
 

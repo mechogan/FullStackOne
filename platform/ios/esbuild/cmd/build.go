@@ -7,12 +7,12 @@ import (
 )
 
 //export build
-func build(in *C.char) *C.char {
-	result := api.Transform(C.GoString(in), api.TransformOptions{
-		MinifyWhitespace:  true,
-		MinifyIdentifiers: true,
-		MinifySyntax:      true,
+func build(entryPoint *C.char) *C.char {
+	result := api.Build(api.BuildOptions{
+		EntryPoints: []string{C.GoString(entryPoint)},
+		Bundle:      true,
+		Write:       false,
 	})
 
-	return C.CString(string(result.Code[:]))
+	return C.CString(string(result.OutputFiles[0].Contents[:]))
 }
