@@ -4,8 +4,11 @@ import path from "path";
 import mime from "mime";
 import vm from "vm";
 import os from "os";
+import * as ws from "ws";
 
 export const port = 8080;
+
+const activeConnections = new Set<ws.WebSocket>();
 
 function readBody(request: IncomingMessage) {
     return new Promise((resolve) => {
@@ -17,10 +20,26 @@ function readBody(request: IncomingMessage) {
 
 const dist = "../../dist/webview";
 
+const homedir = os.homedir();
 const jsContext = vm.createContext({
-    homedir: os.homedir(),
-    fs
+    workdir: homedir,
+    fs,
+    console: {
+        log: console.log
+    },
+    run: (workdir: string, entrypoint: string) => {
+        const ctx = vm.createContext({
+            console: {
+                log: (...args: any[]) => {
+                    activeConnections.forEach(conn => conn.send(JSON.stringify(args)))
+                }
+            }
+        });
+        const script = new vm.Script(fs.readFileSync(path.join(homedir, workdir, entrypoint)).toString());
+        script.runInContext(ctx);
+    }
 });
+
 const api = new vm.Script(fs.readFileSync("../../dist/api/index.js").toString());
 api.runInContext(jsContext);
 
@@ -65,8 +84,22 @@ async function requestListener(request: IncomingMessage, response: ServerRespons
     response.end();
 }
 
-http
+const server = http
     .createServer(requestListener)
     .listen(port);
+
+const wss = new ws.WebSocketServer({ server });
+
+wss.on("connection", conn => {
+    activeConnections.add(conn);
+
+    conn.on("error", console.error);
+
+    conn.on("message", data => {
+        // TODO
+    });
+
+    conn.on("close", () => activeConnections.delete(conn));
+});
 
 console.log(`http://localhost:${port}`)

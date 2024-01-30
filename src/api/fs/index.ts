@@ -1,9 +1,9 @@
 import type fsType from "fs";
 
 declare var fs: typeof fsType
-declare var homedir: string
+declare var workdir: string
 
-const realPath = (itemPath: string) => homedir + "/" + itemPath;
+const realPath = (itemPath: string) => workdir + "/" + itemPath;
 
 export default {
     exists(itemPath: string) {

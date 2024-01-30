@@ -2,7 +2,8 @@
   "name": "@fullstacked/editor-node",
   "version": "1.0.0",
   "scripts": {
-    "start": "esbuild index.ts --outfile=.cache/index.js --platform=node --format=esm --bundle && node .cache/index.js"
+    "build": "esbuild build.ts --outfile=.cache/build.js --packages=external && node .cache/build.js",
+    "start": "npm run build && node .cache/index.js"
   },
   "type": "module",
   "dependencies": {

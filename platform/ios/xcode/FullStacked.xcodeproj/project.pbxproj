@@ -11,6 +11,7 @@
 		9C3089312B571C3800C179A6 /* ServerConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C30892F2B571C3800C179A6 /* ServerConnection.swift */; };
 		9C3089342B571C5600C179A6 /* esbuild.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C3089332B571C5600C179A6 /* esbuild.a */; };
 		9C3089362B571C9600C179A6 /* webview in Resources */ = {isa = PBXBuildFile; fileRef = 9C3089352B571C9600C179A6 /* webview */; };
+		9C81314F2B68434A0084B092 /* JavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C81314E2B68434A0084B092 /* JavaScript.swift */; };
 		9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */; };
 		9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* ContentView.swift */; };
 		9CA03E542B5715AC002D2D9F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
@@ -24,6 +25,7 @@
 		9C3089322B571C5600C179A6 /* esbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esbuild.h; path = ../../../esbuild/out/esbuild.h; sourceTree = "<group>"; };
 		9C3089332B571C5600C179A6 /* esbuild.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = esbuild.a; path = ../../../esbuild/out/esbuild.a; sourceTree = "<group>"; };
 		9C3089352B571C9600C179A6 /* webview */ = {isa = PBXFileReference; lastKnownFileType = folder; name = webview; path = ../../../../dist/webview; sourceTree = "<group>"; };
+		9C81314E2B68434A0084B092 /* JavaScript.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = JavaScript.swift; path = SwiftServer/Sources/JavaScript.swift; sourceTree = SOURCE_ROOT; };
 		9CA03E4C2B5715AA002D2D9F /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullStackedApp.swift; sourceTree = "<group>"; };
 		9CA03E512B5715AA002D2D9F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -50,6 +52,7 @@
 		9C30892B2B571BE000C179A6 /* SwiftServer */ = {
 			isa = PBXGroup;
 			children = (
+				9C81314E2B68434A0084B092 /* JavaScript.swift */,
 				9C30892E2B571C3800C179A6 /* Server.swift */,
 				9C30892F2B571C3800C179A6 /* ServerConnection.swift */,
 			);
@@ -180,6 +183,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9C3089312B571C3800C179A6 /* ServerConnection.swift in Sources */,
+				9C81314F2B68434A0084B092 /* JavaScript.swift in Sources */,
 				9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */,
 				9C3089302B571C3800C179A6 /* Server.swift in Sources */,
 				9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */,

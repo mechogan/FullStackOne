@@ -1,3 +1,4 @@
+import "./index.scss";
 import { EditorView } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -45,6 +46,7 @@ export class Editor {
     }
 
     async render() {
-        return this.parent
+        this.parent.classList.add("editor");
+        return this.parent;
     }
 }

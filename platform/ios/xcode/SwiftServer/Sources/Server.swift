@@ -4,92 +4,38 @@ import JavaScriptCore
 
 @available(macOS 11.0, *)
 class Server {
-    private static let jsConsoleLog: @convention (block) (String) -> Void = {message in
-        print(message)
-    }
-    private static let jsReaddir: @convention (block) (String) -> [[String: String]] = { path in
-        let items = try! FileManager.default.contentsOfDirectory(atPath: path)
-        return items.map { item in
-            var isDirectory: ObjCBool = false;
-            let itemPath = path + "/" + item
-            FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
-            return ["name": item, "isDirectory": (isDirectory.boolValue ? "1" : "")]
-        }
-    }
-    private static let jsReadfile: @convention (block) (String) -> String = { path in
-        let contents = FileManager.default.contents(atPath: path)
-        return String(data: contents!, encoding: .utf8)!
-    }
-    private static let jsMkdir: @convention (block) (String) -> Void = { path in
-        try! FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
-    }
-    private static let jsRm: @convention (block) (String) -> Void = { path in
-        try! FileManager.default.removeItem(atPath: path)
-    }
-    private static let jsWritefile: @convention (block) (String, String) -> Void = { path, contents in
-        try! contents.write(toFile: path, atomically: true, encoding: .utf8)
-    }
-    private static let jsExists: @convention (block) (String) -> Bool = { path in
-        return FileManager.default.fileExists(atPath: path)
-    }
-    
     let port: NWEndpoint.Port
-    let assetDir: String
-    let js: JSContext
+    let assetdir: String
+    let js: JavaScript
     
     var listener: NWListener?
     private var mustRestart = false;
 
     private var connectionsByID: [Int: ServerConnection] = [:]
 
-    init(port: UInt16, assetDir: String) {
+    init(port: UInt16, workdir: String, assetdir: String) {
         self.port = NWEndpoint.Port(rawValue: port)!
-        self.assetDir = assetDir
-        js = JSContext()
+        self.assetdir = assetdir
+        self.js = JavaScript(workdir: workdir)
         
-        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
-        let documentsDirectory = paths.first
-        js.setObject(documentsDirectory, forKeyedSubscript: "homedir" as NSString)
-
-        js.setObject(Server.jsConsoleLog, forKeyedSubscript: "_consoleLog" as NSString)
-        
-        js.setObject(Server.jsReaddir, forKeyedSubscript: "_readdir" as NSString)
-        js.setObject(Server.jsReadfile, forKeyedSubscript: "_readfile" as NSString)
-        js.setObject(Server.jsMkdir, forKeyedSubscript: "_mkdir" as NSString)
-        js.setObject(Server.jsRm, forKeyedSubscript: "_rm" as NSString)
-        js.setObject(Server.jsWritefile, forKeyedSubscript: "_writefile" as NSString)
-        js.setObject(Server.jsExists, forKeyedSubscript: "_exists" as NSString)
-        
-        
-        let consoleLogFunc = """
-        var console = {
-            log: function(...args) {
-                var messages = args.map(arg => typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg);
-                _consoleLog(messages.join(", "));
-            }
-        }
-        
-        var fs = {
-            readdirSync: _readdir,
-            readFileSync: _readfile,
-            mkdirSync: _mkdir,
-            rmSync: _rm,
-            writeFileSync: _writefile,
-            existsSync: _exists
-        }
-        """
-        js.evaluateScript(consoleLogFunc)
-        
-        js.exceptionHandler = { (context: JSContext?, exception: JSValue?) in
-            print("JS Error: " + exception!.toString())
-        }
-        
-        guard let fileURL = Bundle.main.url(forResource: "api/index", withExtension: "js") else {
+        guard let entrypoint = Bundle.main.url(forResource: "api/index", withExtension: "js") else {
             return
         }
         
-        let script = try! String(contentsOf: fileURL, encoding: .utf8)
-        js.evaluateScript(script)
+        let script = try! String(contentsOf: entrypoint, encoding: .utf8)
+        self.js.run(script: script)
+    }
+    
+    func getWebSocketConnections() -> [WebSocket] {
+        var activeWebSockets: [WebSocket] = []
+        
+        for connection in self.connectionsByID {
+            if connection.value.request is WebSocket {
+                activeWebSockets.append(connection.value.request as! WebSocket)
+            }
+        }
+        
+        return activeWebSockets
     }
     
     func restart() {
@@ -167,12 +113,5 @@ class Server {
         self.connectionsByID.removeAll()
         
         self.listener = nil;
-    }
-    
-    func processRequestInJavaScript(pathname: String, body: String) -> (isJSON: Bool, data: String) {
-        let responseBody = self.js.evaluateScript("api.default(\"" + pathname + "\", `" + body + "`)");
-        let isJSON = responseBody?.objectForKeyedSubscript("isJSON").toBool()
-        let data = responseBody?.objectForKeyedSubscript("data").toString()
-        return (isJSON!, data!)
     }
 }

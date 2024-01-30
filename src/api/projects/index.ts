@@ -3,6 +3,8 @@ import { CONFIG_TYPE } from "../config/types";
 import fs from "../fs";
 import { Project } from "./types";
 
+declare var run: (workdir: string, entrypoint: string) => void;
+
 const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
 
 export default {
@@ -24,5 +26,8 @@ export default {
         projects.splice(indexOf, 1);
         config.save(CONFIG_TYPE.PROJECTS, projects);
         fs.deleteItem(project.location);
+    },
+    run(project: Project){
+        run(project.location, "index.js");
     }
 }

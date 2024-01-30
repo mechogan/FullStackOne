@@ -13,11 +13,6 @@ class ServerConnection {
     let server: Server
     let connection: NWConnection
     let id: Int
-    var method: String?
-    var pathname: String = ""
-    var contentLength: Int = 0
-    var body: String = ""
-    var wsKey: String?
     var request: Request?
     
     init(server: Server, nwConnection: NWConnection) {
@@ -234,7 +229,7 @@ class Request {
         var headers = ["HTTP/1.1 200 OK"]
         var data: Data? = nil
         
-        let filePath = self.serverConnection.server.assetDir + "/" + (cleandPathname.count > 0 ? cleandPathname : "index.html")
+        let filePath = self.serverConnection.server.assetdir + "/" + (cleandPathname.count > 0 ? cleandPathname : "index.html")
         let maybeFile = self.getFile(filePath: filePath)
         
         if(maybeFile != nil) {
@@ -242,7 +237,7 @@ class Request {
             data = maybeFile
         }
         else {
-            let jsResponse = self.serverConnection.server.processRequestInJavaScript(pathname: cleandPathname, body: String(data: self.body, encoding: .utf8)!)
+            let jsResponse = self.serverConnection.server.js.processRequest(pathname: cleandPathname, body: String(data: self.body, encoding: .utf8)!)
             data = jsResponse.data.data(using: .utf8)
             
             if(jsResponse.isJSON){
@@ -312,6 +307,47 @@ class WebSocket: Request {
         self.serverConnection.send(data: response)
     }
     
+    func send(data: Data){
+        let header: UInt8 = 0b10000001
+        
+        var response = Data([
+            header
+        ])
+        
+        if (data.count < 126) {
+            response.append(UInt8(data.count))
+        }
+        else if(data.count < 65535) {
+            response.append(UInt8(126))
+            let highByte = UInt8((data.count >> 8) & 0xFF)
+            let lowByte  = UInt8( data.count       & 0xFF)
+            response.append(highByte)
+            response.append(lowByte)
+        }
+        else {
+            let bytes = [
+                data.count >> 56 & 0xFF,
+                data.count >> 48 & 0xFF,
+                data.count >> 40 & 0xFF,
+                data.count >> 32 & 0xFF,
+                data.count >> 24 & 0xFF,
+                data.count >> 16 & 0xFF,
+                data.count >>  8 & 0xFF,
+                data.count       & 0xFF
+            ]
+            
+            
+            response.append(127)
+            for byte in bytes {
+                response.append(UInt8(byte))
+            }
+        }
+        
+        response.append(data)
+        
+        self.serverConnection.send(data: response);
+    }
+    
     override func processRequest() {
         guard let mask = self.currentFrameMask else {
             return
@@ -322,45 +358,9 @@ class WebSocket: Request {
         })
         let message = String(data: decodedPayload, encoding: .utf8)!
         
+        // TODO: Process in JS and return value
+        
         print(message)
-        let header: UInt8 = 0b10000001
-        
-        var response = Data([
-            header
-        ])
-        
-        if (decodedPayload.count < 126) {
-            response.append(UInt8(decodedPayload.count))
-        }
-        else if(decodedPayload.count < 65535) {
-            response.append(UInt8(126))
-            let highByte = UInt8((decodedPayload.count >> 8) & 0xFF)
-            let lowByte  = UInt8( decodedPayload.count       & 0xFF)
-            response.append(highByte)
-            response.append(lowByte)
-        }
-        else {
-            let bytes = [
-                decodedPayload.count >> 56 & 0xFF,
-                decodedPayload.count >> 48 & 0xFF,
-                decodedPayload.count >> 40 & 0xFF,
-                decodedPayload.count >> 32 & 0xFF,
-                decodedPayload.count >> 24 & 0xFF,
-                decodedPayload.count >> 16 & 0xFF,
-                decodedPayload.count >>  8 & 0xFF,
-                decodedPayload.count       & 0xFF
-            ]
-            
-            
-            response.append(127)
-            for byte in bytes {
-                response.append(UInt8(byte))
-            }
-        }
-        
-        response.append(decodedPayload)
-        
-        self.serverConnection.send(data: response);
         
         self.currentFrameData = Data()
         self.currentFrameLength = nil

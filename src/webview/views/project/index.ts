@@ -7,6 +7,9 @@ import sidePanel from "../../assets/icons/side-panel.svg";
 import type { Project as TypeProject } from "../../../api/projects/types";
 import Run from "../../assets/icons/run.svg";
 import Close from "../../assets/icons/close.svg";
+import { rpc } from "../../rpc";
+import { Console } from "../console";
+import ConsoleIcon from "../../assets/icons/console.svg";
 
 export class Project {
     backAction: () => void;
@@ -15,6 +18,7 @@ export class Project {
     private project: TypeProject;
 
     fileTree = new FileTree();
+    console = new Console();
 
     private editorsContainer = document.createElement("div");
 
@@ -74,9 +78,20 @@ export class Project {
 
         const rightSide = document.createElement("div");
 
+        const consoleToggle = document.createElement("button");
+        consoleToggle.classList.add("text");
+        consoleToggle.innerHTML = ConsoleIcon;
+        consoleToggle.addEventListener("click", () => {
+            this.container.classList.toggle("bottom-panel-opened");
+        });
+        rightSide.append(consoleToggle);
+
         const runButton = document.createElement("button");
         runButton.classList.add("text");
         runButton.innerHTML = Run;
+        runButton.addEventListener("click", () => {
+            rpc().projects.run(this.project);
+        });
         rightSide.append(runButton);
 
         container.append(leftSide);
@@ -109,8 +124,6 @@ export class Project {
             })
             tab.append(removeBtn);
 
-            tab.append
-
             tabsContainer.append(tab);
 
             if(editor.filePath.join("/") === this.currentFile){
@@ -129,6 +142,7 @@ export class Project {
         this.fileTree.allowDeletion = true;
         this.container.append(await this.fileTree.render());
         this.container.append(this.editorsContainer);
+        this.container.append(this.console.render());
 
         return this.container;
     }
