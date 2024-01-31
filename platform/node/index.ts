@@ -5,7 +5,13 @@ import mime from "mime";
 import vm from "vm";
 import os from "os";
 import * as ws from "ws";
-import esbuild from "esbuild";
+import type esbuildType from "esbuild";
+
+declare var esbuild: typeof esbuildType;
+
+try {
+    import("esbuild").then(esbuild => global.esbuild = esbuild);
+} catch { }
 
 export const port = 8080;
 
