@@ -13,13 +13,18 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@codemirror/lang-html": "^6.4.8",
     "@codemirror/lang-javascript": "^6.2.1",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-markdown": "^6.2.4",
+    "@codemirror/lang-sass": "^6.0.2",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.23.0",
     "@types/node": "^20.11.2",
     "@types/ws": "^8.5.10",
     "codemirror": "^6.0.1",
     "esbuild": "^0.19.11",
+    "eslint-linter-browserify": "^8.56.0",
     "sass": "^1.69.7",
     "ws": "^8.16.0",
     "xterm": "^5.3.0"

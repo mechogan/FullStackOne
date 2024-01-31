@@ -1,4 +1,3 @@
-// import { port } from "../node"
 import { app, BrowserWindow } from "electron"
 import { pkgAndSubpathForCurrentPlatform } from "../../lib/esbuild/lib/npm/node-platform";
 //@ts-ignore
@@ -7,13 +6,15 @@ import https from "https";
 import fs from "fs";
 import tar from "tar";
 import path from "path";
-import { port } from "../node"
+import { mainServer } from "../node"
 
 const createWindow = async () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
   });
+
+  mainWindow.loadURL(`http://localhost:${mainServer.port}`)
 
   const outdir = "esbuild"
   fs.mkdirSync(outdir, { recursive: true });
@@ -64,8 +65,6 @@ const createWindow = async () => {
 
   process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
   global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
-
-  mainWindow.loadURL(`http://localhost:${port}`)
 }
 
 app.whenReady().then(() => {

@@ -4,6 +4,8 @@ import JavaScriptCore
 
 @available(macOS 11.0, *)
 class Server {
+    static var currentPort = 9000
+
     let port: NWEndpoint.Port
     let assetdir: String
     let js: JavaScript
@@ -13,8 +15,10 @@ class Server {
 
     private var connectionsByID: [Int: ServerConnection] = [:]
 
-    init(port: UInt16, workdir: String, assetdir: String) {
-        self.port = NWEndpoint.Port(rawValue: port)!
+    init(workdir: String, assetdir: String) {
+        self.port = NWEndpoint.Port(rawValue: UInt16(Server.currentPort))!
+        Server.currentPort += 1;
+        
         self.assetdir = assetdir
         self.js = JavaScript(workdir: workdir)
         

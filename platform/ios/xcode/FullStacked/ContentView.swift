@@ -1,25 +1,6 @@
 import SwiftUI
 import WebKit
 
-struct ContentView: View {
-    var body: some View {
-        WebView()
-            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            .edgesIgnoringSafeArea(.all)
-            .ignoresSafeArea()
-    }
-}
-
-#Preview {
-    ContentView()
-}
-
-class FullScreenWKWebView: WKWebView {
-    override var safeAreaInsets: UIEdgeInsets {
-        return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
-    }
-}
-
 let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
 let homedir = paths.first!
 
@@ -46,15 +27,34 @@ let run: @convention (block) (String, String) -> Void = { workdir, entrypoint in
 
 let assetdir = Bundle.main.bundlePath + "/webview"
 
-let server = Server(port: UInt16(9000), workdir: homedir, assetdir: assetdir)
+let server = Server(workdir: homedir, assetdir: assetdir)
 
-
-
-struct WebView: UIViewRepresentable {
-    init() {
+struct ContentView: View {
+    
+    
+    init(){
         server.js.context["run"] = run
     }
     
+    var body: some View {
+        WebView()
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            .edgesIgnoringSafeArea(.all)
+            .ignoresSafeArea()
+    }
+}
+
+#Preview {
+    ContentView()
+}
+
+class FullScreenWKWebView: WKWebView {
+    override var safeAreaInsets: UIEdgeInsets {
+        return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
+    }
+}
+
+struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView  {
         try! server.start()
         let request = URLRequest(url: URL(string: "http://localhost:" + String(server.port.rawValue))!)
