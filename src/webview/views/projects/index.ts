@@ -1,8 +1,10 @@
 import "./index.scss";
-import { rpc } from "../../rpc";
+// @ts-ignore
 import Add from "../../assets/icons/add.svg";
-import type { Project } from "../../../api/projects/types";
+// @ts-ignore
 import Delete from "../../assets/icons/delete.svg";
+import { rpc } from "../../rpc";
+import type { Project } from "../../../api/projects/types";
 
 export class Projects {
     newProjectAction: () => void;

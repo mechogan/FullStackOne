@@ -1,8 +1,9 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import fs from "../fs";
+import { fs as globalFS} from "../";
 import { Project } from "./types";
 
+declare var fs: typeof globalFS;
 declare var run: (workdir: string, entrypoint: string) => void;
 
 const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
@@ -25,7 +26,7 @@ export default {
         const indexOf = projects.findIndex(({location}) => location === project.location);
         projects.splice(indexOf, 1);
         config.save(CONFIG_TYPE.PROJECTS, projects);
-        fs.deleteItem(project.location);
+        fs.rm(project.location);
     },
     run(project: Project){
         run(project.location, "index.js");

@@ -1,8 +1,11 @@
 import "./index.scss";
-import { rpc } from "../../rpc";
+//@ts-ignore
 import AddDirectory from "../../assets/icons/add-directory.svg";
+//@ts-ignore
 import AddFile from "../../assets/icons/add-file.svg";
+//@ts-ignore
 import Delete from "../../assets/icons/delete.svg";
+import { rpc } from "../../rpc";
 import type { api } from "../../../api";
 
 type Item = ReturnType<typeof api.fs.readdir>[0];
@@ -39,7 +42,7 @@ export class FileTree {
             deleteButton.innerHTML = Delete;
             deleteButton.addEventListener("click", async e => {
                 e.stopPropagation();
-                await rpc().fs.deleteItem(itemPath.join("/"));
+                await rpc().fs.rm(itemPath.join("/"));
                 parentLi.remove();
             })
             span.append(deleteButton);
@@ -191,7 +194,7 @@ export class FileTree {
                     : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
-            await rpc().fs.putfile(parentDirectoryPathComponents.join("/") + "/" + newFileName, "\n");
+            await rpc().fs.putfileUTF8(parentDirectoryPathComponents.join("/") + "/" + newFileName, "\n");
 
             const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
 

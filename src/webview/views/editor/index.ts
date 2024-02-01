@@ -26,7 +26,7 @@ export class Editor {
 
     private async loadFileContents() {
         this.editor = new EditorView({
-            doc: await rpc().fs.readfile(this.filePath.join("/")),
+            doc: await rpc().fs.readfileUTF8(this.filePath.join("/")),
             extensions: this.extensions.concat(await this.loadLanguageExtensions()),
             parent: this.parent
         });
@@ -37,10 +37,15 @@ export class Editor {
         if (this.updateThrottler)
             clearTimeout(this.updateThrottler);
 
-        this.updateThrottler = setTimeout(() => {
+        this.updateThrottler = setTimeout(async () => {
             this.updateThrottler = null;
             const contents = this.editor.state.doc.toString();
-            rpc().fs.putfile(this.filePath.join("/"), contents);
+
+            const exists = await rpc().fs.exists(this.filePath.join("/"))
+            if(!exists)
+                return;
+
+            rpc().fs.putfileUTF8(this.filePath.join("/"), contents);
         }, 2000);
     }
 

@@ -1,15 +1,20 @@
 
 import "./index.scss";
+//@ts-ignore
+import arrowLeft from "../../assets/icons/arrow-left.svg";
+//@ts-ignore
+import sidePanel from "../../assets/icons/side-panel.svg";
+//@ts-ignore
+import ConsoleIcon from "../../assets/icons/console.svg";
+//@ts-ignore
+import Run from "../../assets/icons/run.svg";
+//@ts-ignore
+import Close from "../../assets/icons/close.svg";
 import { Editor } from '../editor';
 import { FileTree } from '../file-tree';
-import arrowLeft from "../../assets/icons/arrow-left.svg";
-import sidePanel from "../../assets/icons/side-panel.svg";
 import type { Project as TypeProject } from "../../../api/projects/types";
-import Run from "../../assets/icons/run.svg";
-import Close from "../../assets/icons/close.svg";
 import { rpc } from "../../rpc";
 import { Console } from "../console";
-import ConsoleIcon from "../../assets/icons/console.svg";
 
 export class Project {
     backAction: () => void;

@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron"
+import { app, BrowserWindow, protocol } from "electron"
 import { pkgAndSubpathForCurrentPlatform } from "../../lib/esbuild/lib/npm/node-platform";
 //@ts-ignore
 import esbuildVersion from "../../lib/esbuild/version.txt";
@@ -6,7 +6,10 @@ import https from "https";
 import fs from "fs";
 import tar from "tar";
 import path from "path";
-import { mainServer } from "../node"
+import { fileURLToPath } from "url";
+import mime from "mime";
+
+const assetdir = "../../dist/webview";
 
 const createWindow = async () => {
   const mainWindow = new BrowserWindow({
@@ -14,60 +17,93 @@ const createWindow = async () => {
     height: 600,
   });
 
-  mainWindow.loadURL(`http://localhost:${mainServer.port}`)
+  mainWindow.loadURL("http://main")
 
-  const outdir = "esbuild"
-  fs.mkdirSync(outdir, { recursive: true });
+  // const outdir = "esbuild"
+  // fs.mkdirSync(outdir, { recursive: true });
 
-  const esbuildResponse = await fetch(`https://registry.npmjs.org/esbuild/${esbuildVersion}`);
-  const esbuildPackage = await esbuildResponse.json();
-  const esbuildtarballUrl = esbuildPackage.dist.tarball;
-  const esbuildTarball = "esbuild.tgz";
-  const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
+  // const esbuildResponse = await fetch(`https://registry.npmjs.org/esbuild/${esbuildVersion}`);
+  // const esbuildPackage = await esbuildResponse.json();
+  // const esbuildtarballUrl = esbuildPackage.dist.tarball;
+  // const esbuildTarball = "esbuild.tgz";
+  // const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
 
-  await new Promise(resolve => {
-    https.get(esbuildtarballUrl, (res) => {
-      res.pipe(esbuildWiteStream);
-      esbuildWiteStream.on("close", resolve)
-    });
-  });
+  // await new Promise(resolve => {
+  //   https.get(esbuildtarballUrl, (res) => {
+  //     res.pipe(esbuildWiteStream);
+  //     esbuildWiteStream.on("close", resolve)
+  //   });
+  // });
 
-  const esbuildOutdir = path.join(outdir, "esbuild");
-  fs.mkdirSync(esbuildOutdir, { recursive: true });
-  await tar.extract({
-    file: esbuildTarball,
-    strip: 1,
-    C: esbuildOutdir
-  });
+  // const esbuildOutdir = path.join(outdir, "esbuild");
+  // fs.mkdirSync(esbuildOutdir, { recursive: true });
+  // await tar.extract({
+  //   file: esbuildTarball,
+  //   strip: 1,
+  //   C: esbuildOutdir
+  // });
 
 
-  const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
-  const npmResponse = await fetch(`https://registry.npmjs.org/${pkg}/${esbuildVersion}`);
-  const latestEsbuild = await npmResponse.json();
-  const tarballUrl = latestEsbuild.dist.tarball;
-  const tarball = "esbuild.tgz";
-  const writeStream = fs.createWriteStream(tarball);
+  // const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
+  // const npmResponse = await fetch(`https://registry.npmjs.org/${pkg}/${esbuildVersion}`);
+  // const latestEsbuild = await npmResponse.json();
+  // const tarballUrl = latestEsbuild.dist.tarball;
+  // const tarball = "esbuild.tgz";
+  // const writeStream = fs.createWriteStream(tarball);
 
-  await new Promise(resolve => {
-    https.get(tarballUrl, (res) => {
-      res.pipe(writeStream);
-      writeStream.on("close", resolve)
-    });
-  });
+  // await new Promise(resolve => {
+  //   https.get(tarballUrl, (res) => {
+  //     res.pipe(writeStream);
+  //     writeStream.on("close", resolve)
+  //   });
+  // });
 
-  const esbuildBinOutdir = path.join(outdir, pkg);
-  fs.mkdirSync(esbuildBinOutdir, { recursive: true });
-  await tar.extract({
-    file: tarball,
-    strip: 1,
-    C: esbuildBinOutdir
-  });
+  // const esbuildBinOutdir = path.join(outdir, pkg);
+  // fs.mkdirSync(esbuildBinOutdir, { recursive: true });
+  // await tar.extract({
+  //   file: tarball,
+  //   strip: 1,
+  //   C: esbuildBinOutdir
+  // });
 
-  process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
-  global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
+  // process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
+  // global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
 }
 
 app.whenReady().then(() => {
+
+  protocol.handle('http', req => {
+    const url = new URL(req.url);
+    console.log(url.host)
+    let filePath = url.pathname;
+    
+    if (filePath?.endsWith("/"))
+        filePath = filePath.slice(0, -1);
+
+    if (filePath.startsWith("/"))
+        filePath = filePath.slice(1);
+
+    const maybeFileName = filePath !== undefined
+        ? path.resolve(assetdir, filePath || "index.html")
+        : null;
+
+    console.log(maybeFileName)
+
+    if(maybeFileName && fs.existsSync(maybeFileName)) {
+        return new Response(fs.readFileSync(maybeFileName), {
+            headers: {
+                "Content-Type": mime.getType(maybeFileName) as string,
+                "Content-Length": fs.statSync(maybeFileName).size.toString()
+            }
+        })
+    }
+
+
+    return new Response('Not Found', {
+        status: 404
+    })
+  })
+
   createWindow()
 
   app.on('activate', () => {

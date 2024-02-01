@@ -1,6 +1,9 @@
-import fs from "../fs";
+
 import { Project } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
+import { fs as globalFS} from "../";
+
+declare var fs: typeof globalFS;
 
 const configdir = ".config/fullstacked";
 
@@ -15,12 +18,12 @@ export default {
     load<T extends CONFIG_TYPE>(type: T) : DATA_TYPE[T] | null {
         const configFile = configdir + "/" + type + ".json";
         if(fs.exists(configFile))
-            return JSON.parse(fs.readfile(configFile));
+            return JSON.parse(fs.readfileUTF8(configFile));
 
         return null;
     },
     save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configFile = configdir + "/" + type + ".json";
-        fs.putfile(configFile, JSON.stringify(data, null, 2));
+        fs.putfileUTF8(configFile, JSON.stringify(data, null, 2));
     }
 }
