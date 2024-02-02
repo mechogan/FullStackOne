@@ -4,7 +4,7 @@ import { fs as globalFS} from "../";
 import { Project } from "./types";
 
 declare var fs: typeof globalFS;
-declare var run: (workdir: string, entrypoint: string) => void;
+declare var run: (projectdir: string) => void;
 
 const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
 
@@ -29,6 +29,6 @@ export default {
         fs.rm(project.location);
     },
     run(project: Project){
-        run(project.location, "index.js");
+        run(project.location);
     }
 }

@@ -79,7 +79,9 @@ export default (requestId: string): Response => {
     if(pathname === "")
         pathname = "index.html";
 
-    const maybeFileName = assetdir + "/" + pathname
+    const maybeFileName = assetdir 
+        ? assetdir + "/" + pathname
+        : pathname;
 
     if (fs.exists(maybeFileName, true)) {
         response = {
