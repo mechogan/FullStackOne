@@ -72,7 +72,7 @@ class JavaScript {
         let realpathForAsset = { (path: String) -> String in
             return self.privileged
                 ? path
-                : rootdir + "/" + path
+                : realpath(path)
         }
         
         let readdir: @convention (block) (String) -> [[String: String]] = { directory in

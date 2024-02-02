@@ -14,7 +14,7 @@ declare var requests: {
 export declare var fs: {
     exists(itemPath: string, forAsset?: boolean): boolean
 
-    readfile(filename: string, forAsset?: boolean): number[]
+    readfile(filename: string, forAsset?: boolean): number[] | Uint8Array
     readfileUTF8(filename: string): string
 
     readdir(directory: string): { name: string, isDirectory: boolean }[]
@@ -61,7 +61,7 @@ const notFound = {
     mimeType: "text/plain"
 }
 
-type Response = {
+export type Response = {
     mimeType: string,
     data?: number[] | Uint8Array
 }

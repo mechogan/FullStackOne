@@ -1,47 +1,65 @@
-import fs from "fs";
-import path from "path";
-import vm from "vm";
+import http from "http";
+import { IncomingMessage, ServerResponse } from "http";
+import { JavaScript } from "./javascript";
 import os from "os";
-import type esbuildType from "esbuild";
-import { Server } from "./Server";
+import path from "path";
 
-declare var esbuild: typeof esbuildType;
+const dist = path.resolve(process.cwd(), "..", "..", "dist");
 
-try {
-    import("esbuild").then(esbuild => global.esbuild = esbuild);
-} catch { }
+const js = new JavaScript(
+    os.homedir(),
+    path.join(dist, "webview"),
+    path.join(dist, "api", "index.js")
+);
+js.privileged = true;
 
-const homedir = os.homedir();
-export const mainServer = new Server(homedir, "../../dist/webview",  "../../dist/api/index.js");
-
-mainServer.js.ctx.run = (workdir: string, entrypoint: string) => {
-    const server = new Server(path.join(homedir, workdir), path.join(homedir, workdir));
-
-    const logToWebView = (...args: any[]) => {
-        mainServer.activeWebSocket.forEach(conn => conn.send(JSON.stringify(args)))
+const readBody = (request: IncomingMessage) => new Promise<Uint8Array>(resolve => {
+    const contentLengthStr = request.headers["content-length"] || "0";
+    const contentLength = parseInt(contentLengthStr);
+    if(!contentLength){
+        resolve(new Uint8Array());
+        return;
     }
 
-    server.start();
-
-    logToWebView(`http://localhost:${server.port}`);
-
-    const bundle = esbuild.buildSync({
-        entryPoints: [path.join(homedir, workdir, entrypoint)],
-        bundle: true,
-        write: false
-    });
-
-    const ctx = vm.createContext({
-        console: {
-            log: (...args: any[]) => {
-                mainServer.activeWebSocket.forEach(conn => conn.send(JSON.stringify(args)))
-            }
+    const body = new Uint8Array(contentLength);
+    let i = 0;
+    request.on("data", (chunk: Buffer) => {
+        for(let j = 0; j < chunk.byteLength; j++){
+            body[j + i] = chunk[j]
         }
+        i += chunk.length
+    });
+    request.on("end", () => resolve(body));
+});
+
+const requestHandler = async (request: IncomingMessage, response: ServerResponse) => {
+    const headers = {};
+    Object.entries(request.headers).map(([name, value]) => {
+        headers[name] = value;
     })
 
-    const script = new vm.Script(bundle.outputFiles?.at(0)?.text ?? "");
-    script.runInContext(ctx);
+    const pathname = request.url as string;
+
+    const body = await readBody(request);
+
+    const jsResponse = js.processRequest(headers, pathname, body);
+
+    const responseHeaders = jsResponse.data 
+        ? {
+            ["Content-Type"]: jsResponse.mimeType,
+            ["Content-Length"]: (jsResponse.data?.length || 0).toString()
+        }
+        : undefined
+
+    response.writeHead(200, responseHeaders);
+    if(jsResponse.data)
+        response.write(jsResponse.data);
+    response.end();
 }
 
-mainServer.start();
-console.log(`http://localhost:${mainServer.port}`);
+const port = 8080;
+http
+    .createServer(requestHandler)
+    .listen(port)
+
+console.log(`http://localhost:${port}`);
