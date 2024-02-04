@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 
 esbuild.buildSync({
-    entryPoints: ["index.ts"],
+    entryPoints: ["src/index.ts"],
     outfile: ".cache/index.js",
     platform: "node",
     format: "esm",

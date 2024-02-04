@@ -6,7 +6,7 @@ import https from "https";
 import fs from "fs";
 import tar from "tar";
 import path from "path";
-import { JavaScript } from "../node/javascript";
+import { JavaScript } from "../node/src/javascript";
 import os from "os";
 
 const dist = path.resolve(process.cwd(), "..", "..", "dist");

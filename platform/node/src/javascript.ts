@@ -1,7 +1,6 @@
-; import vm from "vm"
+import vm from "vm"
 import fs from "fs";
-import type { fs as fsType } from "../../src/api";
-import type { Response } from "../../src/api/index"
+import type { fs as fsType, Response } from "../../../src/api"
 
 export class JavaScript {
     private requestId = 0
@@ -9,17 +8,18 @@ export class JavaScript {
 
     privileged = false
 
-    constructor(fsdir: string, assetdir: string, entrypoint: string) {
+    constructor(fsdir: string, assetdir: string, entrypointContents: string) {
         this.bindFs(fsdir);
+        this.bindConsole();
 
         this.ctx.requests = {};
         this.ctx.assetdir = assetdir;
         
-        const script = new vm.Script(fs.readFileSync(entrypoint, {encoding: "utf-8"}));
+        const script = new vm.Script(entrypointContents);
         script.runInContext(this.ctx);
     }
 
-    processRequest(headers: {[headerName: string]: string}, pathname: string, body: Uint8Array) {
+    processRequest(headers: {[headerName: string]: string}, pathname: string, body: Uint8Array) {        
         const requestId = this.requestId
         this.requestId += 1;
         
@@ -60,8 +60,8 @@ export class JavaScript {
             readfile(filename, forAsset) {
                 return new Uint8Array(fs.readFileSync(forAsset ? realpathForAsset(filename) : realpath(filename)));
             },
-            readfileUTF8(filename) {
-                return fs.readFileSync(realpath(filename), { encoding: "utf-8" });
+            readfileUTF8(filename, forAsset) {
+                return fs.readFileSync(forAsset ? realpathForAsset(filename) : realpath(filename), { encoding: "utf-8" });
             },
             rm(itemPath) {
                 fs.rmSync(realpath(itemPath), { recursive: true });
@@ -69,5 +69,11 @@ export class JavaScript {
         }
 
         this.ctx.fs = ctxFs;
+    }
+
+    private bindConsole(){
+        this.ctx.console = {
+            log: console.log
+        }
     }
 }

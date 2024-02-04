@@ -2,7 +2,7 @@
   "name": "@fullstackedorg/editor",
   "version": "1.0.0",
   "scripts": {
-    "build": "esbuild build.ts --outfile=.cache/build.js --platform=node && node .cache/build.js",
+    "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
     "start": "npm run build && npm start -w platform/node"
   },
   "workspaces": [
