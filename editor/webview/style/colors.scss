@@ -1,0 +1,13 @@
+$blue: rgb(0, 122, 255);
+$blue-active: rgb(25, 108, 197);
+
+$red: #FF453A;
+
+$blue-dark: #1e293b;
+$dark: #15171b;
+
+$black: #282c34;
+
+@function colorOpacity($color, $opacity) {
+    @return rgba(red($color), green($color), blue($color), $opacity);
+}
