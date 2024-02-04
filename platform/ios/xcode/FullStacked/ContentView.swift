@@ -1,90 +1,87 @@
 import SwiftUI
 import WebKit
 import JavaScriptCore
-//
-//let logToWebView: @convention (block) (String) -> Void = {message in
-//    var data = message.data(using: .utf8)!
-//    data.append(0x0D) // CR
-//    data.append(0x0A) // LF
-//    server.getWebSocketConnections().forEach { websocket in
-//        websocket.send(data: data)
-//    }
-//}
-//
-//let run: @convention (block) (String, String) -> Void = { workdir, entrypoint in
-//    let projectdir = homedir + "/" + workdir
-//    
-//    let server = Server(workdir: projectdir, assetdir: projectdir)
-//    
-//    RunningServers.instance?.addRunningServer(server: server)
-//    
-//    let js = JavaScript(workdir: workdir)
-//    js.context["console"]?["_log"] = logToWebView
-//    
-//    let entrypoint = projectdir + "/" + entrypoint
-//    
-//    let str = UnsafeMutablePointer<Int8>(mutating: (entrypoint as NSString).utf8String)
-//    let script = String.init(cString: build(str)!, encoding: .utf8)!
-//    
-//    js.run(script: script)
-//}
-//
-//let assetdir = Bundle.main.bundlePath + "/webview"
-//
-//let server = Server(workdir: Bundle.main.bundlePath + "/webview", assetdir: assetdir)
-//
-//struct RunningServer: Identifiable {
-//    var id: Int
-//    var server: Server
-//}
-//
-//class RunningServers: ObservableObject {
-//    @Published var servers = [RunningServer]()
-//    static var instance: RunningServers?
-//    
-//    init(){
-//        RunningServers.instance = self
-//    }
-//    
-//    func addRunningServer(server: Server){
-//        self.servers.append(RunningServer(id: self.servers.count, server: server))
-//    }
-//    
-//    func removeRunningServer(runningServer: RunningServer) {
-//        runningServer.server.stop()
-//        
-//        self.servers.removeAll { activeRunningServer in
-//            return activeRunningServer.id == runningServer.id
-//        }
-//    }
-//}
+
+struct Project: Identifiable {
+    var id: Int
+    var js: JavaScript
+}
+
+class RunningProject: ObservableObject {
+    @Published var project: Project?
+    static var instance: RunningProject?
+    static var id = 1
+    
+    init(){
+        RunningProject.instance = self
+    }
+    
+    func setRunningProject(js: JavaScript){
+        self.project = Project(id: RunningProject.id, js: js)
+        RunningProject.id += 1;
+    }
+}
 
 struct ContentView: View {
-//    @ObservedObject var runningServers: RunningServers = RunningServers()
+    @ObservedObject private var runningProject = RunningProject()
+    let mainjs: JavaScript;
     
-//    init(){
-//        server.js.context["run"] = run
-//    }
+    init(){
+        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
+        let documentDir = paths.first!
+        
+        let assetdir = Bundle.main.bundlePath + "/dist/webview"
+        
+        let entrypointContents = FileManager.default.contents(atPath: Bundle.main.bundlePath + "/dist/api/index.js")!
+        
+        self.mainjs = JavaScript(
+            fsdir: documentDir,
+            assetdir: assetdir,
+            entrypointContents: String(data: entrypointContents, encoding: .utf8)!
+        )
+        self.mainjs.privileged = true
+        
+        self.mainjs.ctx["jsDirectory"] = Bundle.main.bundlePath + "/js"
+        
+        let resolvePath: @convention (block) (String) -> String = { entrypoint in
+            return documentDir + "/" + entrypoint
+        }
+        self.mainjs.ctx["resolvePath"] = resolvePath
+        
+        let run: @convention (block) (String, String, String) -> Void = { projectdir, assetdir, entrypoint in
+            let entrypointPath = documentDir + "/" + entrypoint
+            let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypointPath as NSString).utf8String)
+            let entrypointContents = String.init(cString: buildAPI(entrypointPtr)!, encoding: .utf8)!
+            RunningProject.instance?.setRunningProject(js: JavaScript(
+                fsdir: documentDir + "/" + projectdir,
+                assetdir: assetdir,
+                entrypointContents: entrypointContents
+            ))
+        }
+        self.mainjs.ctx["run"] = run
+    }
+
     
     var body: some View {
         ZStack {
-            WebView()
+            WebView(js: self.mainjs)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
                 .ignoresSafeArea()
-//            ForEach(self.runningServers.servers) {runningServer in
-//                VStack {
-//                    Button("Close") {
-//                        self.runningServers.removeRunningServer(runningServer: runningServer)
-//                    }
-//                        .buttonStyle(.borderedProminent)
-//                    WebView(runningServer: runningServer.server)
-//                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-//                        .edgesIgnoringSafeArea(.all)
-//                        .ignoresSafeArea()
-//                }
-//                .background(Color.black)
-//            }
+            if self.runningProject.project != nil {
+                VStack {
+                    Button("Close") {
+                        self.runningProject.project = nil
+                    }
+                        .buttonStyle(.borderedProminent)
+                    WebView(js: self.runningProject.project!.js)
+                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                        .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()
+                }
+                .background(Color.black)
+            }
+                
         }
     }
 }
@@ -100,27 +97,19 @@ class FullScreenWKWebView: WKWebView {
 }
 
 struct WebView: UIViewRepresentable {
+    let js: JavaScript;
+    
+    init(js: JavaScript) {
+        self.js = js
+    }
+    
     func makeUIView(context: Context) -> WKWebView  {
         let wkConfig = WKWebViewConfiguration()
-        
-        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
-        let directoryDir = paths.first!
-        
-        let assetdir = Bundle.main.bundlePath + "/webview"
-        let js = JavaScript(
-            fsdir: directoryDir,
-            assetdir: assetdir,
-            entrypoint: Bundle.main.bundlePath + "/api/index.js"
-        )
-        js.privileged = true
-        
-        wkConfig.setURLSchemeHandler(RequestHandler(js: js),  forURLScheme: "fs")
+        wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         let wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
         
-        let webviewEntrypoint = assetdir + "/index.html"
-        let webviewEntrypointData = FileManager.default.contents(atPath: webviewEntrypoint)!
-        let webviewEntrypointHTMLString = String(data: webviewEntrypointData, encoding: .utf8)!
-        wkWebView.loadHTMLString(webviewEntrypointHTMLString, baseURL: URL(string: "fs://localhost"))
+        let request = URLRequest(url: URL(string: "fs://localhost")!)
+        wkWebView.load(request)
         return wkWebView
     }
     

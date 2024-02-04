@@ -7,7 +7,7 @@ class JavaScript {
     
     var privileged = false
     
-    init(fsdir: String, assetdir: String, entrypoint: String) {
+    init(fsdir: String, assetdir: String, entrypointContents: String) {
         self.bindConsoleLog()
         self.bindFs(rootdir: fsdir)
         
@@ -26,7 +26,7 @@ class JavaScript {
         }
         
         // start with entrypoint
-        self.ctx.evaluateScript(JavaScript.readfileUTF8(filename: entrypoint))
+        self.ctx.evaluateScript(entrypointContents)
     }
     
     func processRequest(headers: [String : String], pathname: String, body: Data?) -> (mimeType: String, data: Data?) {
@@ -81,8 +81,8 @@ class JavaScript {
         let readfile: @convention (block) (String, Bool) -> [UInt8] = { filename, forAsset in
             return JavaScript.readfile(filename: forAsset ? realpathForAsset(filename) : realpath(filename))
         }
-        let readfileUTF8: @convention (block) (String) -> String = { filename in
-            return JavaScript.readfileUTF8(filename: realpath(filename))
+        let readfileUTF8: @convention (block) (String, Bool) -> String = { filename, forAsset in
+            return JavaScript.readfileUTF8(filename: forAsset ? realpathForAsset(filename) : realpath(filename))
         }
         let mkdir: @convention (block) (String) -> Void = {directory in
             JavaScript.mkdir(directory: realpath(directory))

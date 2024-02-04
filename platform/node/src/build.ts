@@ -1,8 +1,8 @@
-import { buildSync } from "esbuild";
+import esbuild from "esbuild";
 import path from "path";
 
 export function buildWebview(entryPoint: string, outdir: string) {
-    buildSync({
+    esbuild.buildSync({
         entryPoints: [entryPoint],
         outfile: path.join(outdir, "index.js"),
         bundle: true,
@@ -11,7 +11,7 @@ export function buildWebview(entryPoint: string, outdir: string) {
 }
 
 export function buildAPI(entryPoint: string) {
-    const result = buildSync({
+    const result = esbuild.buildSync({
         entryPoints: [entryPoint],
         bundle: true,
         globalName: "api",

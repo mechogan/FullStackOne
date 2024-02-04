@@ -21,13 +21,12 @@ const launchInstance = (js: JavaScript) => {
     open(`http://localhost:${port}`);
 }
 
-js.ctx.webviewBase = path.resolve(process.cwd(), "..", "..", "src", "js", "webview.js");
-js.ctx.apiBase = path.resolve(process.cwd(), "..", "..", "src", "js", "api.js");
+js.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
 js.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint);
 js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     launchInstance(new JavaScript(
         path.join(home, projectdir),
-        "",
+        assetdir,
         buildAPI(path.join(home, entrypoint)) as string
     ));
 }

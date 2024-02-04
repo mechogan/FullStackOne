@@ -45,13 +45,14 @@ buildSync({
 
 global.fs = {
     readfileUTF8: (file: string) => fs.readFileSync(file, { encoding: "utf-8" }),
-    putfileUTF8: (file: string, contents: string) => fs.writeFileSync(file, contents)
+    putfileUTF8: (file: string, contents: string) => fs.writeFileSync(file, contents),
+    exists: (itemPath: string) => fs.existsSync(itemPath),
+    mkdir: (itemPath: string) => fs.mkdirSync(itemPath, { recursive: true })
 }
-global.webviewBase = "src/js/webview.js";
-global.apiBase = "src/js/api.js";
+global.jsDirectory = "src/js";
 global.resolvePath = (entrypoint: string) => entrypoint
 
-const entrypointWebview = mingleWebview("../editor/webview/index.ts");
+const entrypointWebview = mingleWebview("../../editor/webview/index.ts");
 buildWebview(entrypointWebview, "dist/webview");
 fs.rmSync(entrypointWebview);
 
@@ -65,7 +66,7 @@ scssFiles.forEach(scssFile => {
 fs.cpSync("editor/webview/index.html", "dist/webview/index.html");
 fs.cpSync("editor/webview/assets", "dist/webview/assets", { recursive: true });
 
-const entrypointAPI = mingleAPI("../editor/api/index.ts");
+const entrypointAPI = mingleAPI("../../editor/api/index.ts");
 const api = buildAPI(entrypointAPI);
 fs.rmSync(entrypointAPI);
 fs.mkdirSync("dist/api", { recursive: true });

@@ -107,7 +107,7 @@ app.whenReady().then(() => {
 
     protocol.handle('http', handle);
 
-    createWindow()
+    createWindow();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0)
