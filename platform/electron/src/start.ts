@@ -17,7 +17,7 @@ mainjs.privileged = true;
 
 let appID = 1;
 mainjs.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
-mainjs.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint);
+mainjs.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
 mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     const hostname = `app-${appID}`;
     appID++;

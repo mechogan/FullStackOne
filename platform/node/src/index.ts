@@ -22,7 +22,7 @@ const launchInstance = (js: JavaScript) => {
 }
 
 js.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
-js.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint);
+js.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
 js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     launchInstance(new JavaScript(
         path.join(home, projectdir),
