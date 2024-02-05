@@ -141,7 +141,8 @@ class JavaScript {
         try! FileManager.default.removeItem(atPath: path)
     }
     private static func putfile(filename: String, data: [UInt8]) -> Void {
-        try! Data(data).write(to: URL(string: filename)!)
+        print(filename)
+        try! Data(data).write(to: URL(fileURLWithPath: filename))
     }
     private static func putfileUTF8(filename: String, data: String) -> Void {
         try! data.write(toFile: filename, atomically: true, encoding: .utf8)

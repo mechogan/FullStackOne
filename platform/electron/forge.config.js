@@ -2,17 +2,8 @@ module.exports = {
   packagerConfig: {
     // asar: true,
     ignore: [
-      ".cache/build.mjs",
-      "esbuild",
-      "out",
-      ".gitignore",
-      "build.ts",
-      "esbuild.tgz",
-      "forge.config.js",
-      "index.ts"
     ],
     extraResource: [
-      "../../dist"
     ]
   },
   rebuildConfig: {},

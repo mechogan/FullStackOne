@@ -216,6 +216,32 @@ export class FileTree {
         input.focus();
     }
 
+    private async addFile(file: File) {
+        const parentDirectoryPathComponents = this.itemSelected
+            ? this.itemSelected.isDirectory
+                ? this.itemSelected.path
+                : this.itemSelected.path.slice(0, -1)
+            : this.baseDirectory;
+
+        const filePath = parentDirectoryPathComponents.join("/") + "/" + file.name;
+
+        rpc().fs.putfile(filePath, Array.from(new Uint8Array(await file.arrayBuffer())));
+
+        const ul = this.itemSelected
+            ? this.itemSelected.isDirectory
+                ? this.itemSelected.element
+                : this.itemSelected.element.parentElement
+            : this.ulRoot
+        
+        const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
+
+        if (ul === this.ulRoot) {
+            updatedChildrenList.classList.add("file-tree");
+        }
+
+        ul?.replaceWith(updatedChildrenList);
+    }
+
     async render() {
         const container = document.createElement("div");
         container.classList.add("file-tree-view");
@@ -262,6 +288,27 @@ export class FileTree {
                 this.touch();
             });
             actionsContainer.append(newFileButton);
+
+
+            const inputFile = document.createElement("input");
+            inputFile.type = "file";
+            inputFile.multiple = false;
+            actionsContainer.append(inputFile);
+            inputFile.addEventListener("change", () => {
+                if(!inputFile.files?.[0])
+                    return;
+
+                this.addFile(inputFile.files[0]);
+            })
+
+            const uploadFileButton = document.createElement("button");
+            uploadFileButton.classList.add("small", "text");
+            uploadFileButton.innerHTML = await (await fetch("/assets/icons/upload.svg")).text();
+            uploadFileButton.addEventListener("click", e => {
+                e.stopPropagation();
+                inputFile.click();
+            });
+            actionsContainer.append(uploadFileButton);
         }
 
 

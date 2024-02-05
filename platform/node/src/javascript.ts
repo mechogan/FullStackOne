@@ -45,7 +45,9 @@ export class JavaScript {
                 fs.mkdirSync(realpath(directory), { recursive: true });
             },
             putfile(filename, contents) {
-                fs.writeFileSync(realpath(filename), new Uint8Array(contents));
+                const uint8arr = new Uint8Array(contents.length);
+                contents.forEach((num, i) => uint8arr[i] = num % 256);
+                fs.writeFileSync(realpath(filename), uint8arr);
             },
             putfileUTF8(filename, contents) {
                 fs.writeFileSync(realpath(filename), contents);
