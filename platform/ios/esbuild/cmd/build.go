@@ -8,12 +8,13 @@ import (
 
 //export buildWebview
 func buildWebview(entryPoint *C.char, OutDir *C.char) {
-	// api.Build({
-    //     EntryPoints: []string{C.GoString(entryPoint)},
-    //     outfile: path.join(outdir, "index.js"),
-    //     Bundle: true,
-    //     Format: "esm"
-    // });
+	api.Build(api.BuildOptions{
+        EntryPoints: []string{C.GoString(entryPoint)},
+        Outfile: C.GoString(OutDir)+"/index.js",
+        Bundle: true,
+        Format: api.FormatESModule,
+        Write: true,
+    });
 }
 
 //export buildAPI

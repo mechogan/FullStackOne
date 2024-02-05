@@ -6,7 +6,8 @@ export function buildWebview(entryPoint: string, outdir: string) {
         entryPoints: [entryPoint],
         outfile: path.join(outdir, "index.js"),
         bundle: true,
-        format: "esm"
+        format: "esm",
+        write: true
     });
 }
 

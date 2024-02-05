@@ -2,7 +2,7 @@ import { app, protocol, BrowserWindow } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { buildAPI } from "../../node/src/build";
+import { buildAPI, buildWebview } from "../../node/src/build";
 import { JavaScript } from "../../node/src/javascript";
 
 const dist = path.resolve(process.cwd(), "..", "..", "dist");
@@ -28,6 +28,7 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     );
     createWindow(hostname);
 }
+mainjs.ctx.buildWebview = buildWebview;
 
 const apps: { [hostname: string] : JavaScript } = {
     "main": mainjs

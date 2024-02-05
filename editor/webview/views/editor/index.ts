@@ -71,8 +71,6 @@ export class Editor {
             );
 
             if (filename.endsWith("js") || filename.endsWith("jsx")) {
-                const eslint = await import("eslint-linter-browserify");
-                extensions.push(linter(jsLang.esLint(new eslint.Linter())));
                 extensions.push(
                     jsLang.javascriptLanguage.data.of({
                         autocomplete: jsLang.scopeCompletionSource(globalThis)

@@ -3,14 +3,15 @@ import type { fs as globalFS} from "../../../src/api";
 
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import { mingleAPI } from "./mingle";
+import { mingleAPI, mingleWebview } from "./mingle";
 import { Project } from "./types";
 
 declare var fs: typeof globalFS;
 declare var run: (projectdir: string, assetdir: string, entrypointData: string) => void;
+declare var resolvePath: (entrypoint: string) => string;
+declare var buildWebview: (entrypoint: string, outdir: string) => void;
 
 const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
-
 
 export default {
     list,
@@ -33,8 +34,15 @@ export default {
         fs.rm(project.location);
     },
     run(project: Project){
-        const entrypoint = mingleAPI(project.location + "/index.js");
-        run(project.location, "", entrypoint);
-        fs.rm(entrypoint);
+        const maybeWebviewJS = project.location + "/webview/index.js";
+        if(fs.exists(maybeWebviewJS)){
+            const entrypointWebview = mingleWebview(maybeWebviewJS);
+            buildWebview(resolvePath(entrypointWebview), resolvePath(project.location + "/.build/webview"));
+            fs.rm(entrypointWebview);
+        }
+
+        const entrypointAPI = mingleAPI(project.location + "/index.js");
+        run(project.location, "", entrypointAPI);
+        fs.rm(entrypointAPI);
     }
 }

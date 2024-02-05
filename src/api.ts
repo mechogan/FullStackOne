@@ -6,7 +6,7 @@ declare var requests: {
             [headerName: string]: string
         },
         pathname: string,
-        body: number[]
+        body: number[] | Uint8Array
     }
 }
 
@@ -71,9 +71,19 @@ export default (requestId: string): Response => {
     if(pathname === "")
         pathname = "index.html";
 
-    const maybeFileName = assetdir 
+    let maybeFileName = assetdir 
         ? assetdir + "/" + pathname
         : pathname;
+
+
+    // we'll check for a built file
+    if(maybeFileName.endsWith(".js")) {
+        const maybeBuiltJSFile = ".build/" + maybeFileName;
+        if (fs.exists(maybeBuiltJSFile)) {
+            maybeFileName = maybeBuiltJSFile
+        }
+    }
+
 
     if (fs.exists(maybeFileName, true)) {
         response = {
@@ -88,7 +98,8 @@ export default (requestId: string): Response => {
     const method = methodPath.reduce((api, key) => api ? api[key] : undefined, methods) as any;
 
     if(method) {
-        let responseBody = method(...JSON.parse(UInt8ToStr(body)));
+        const args = body && body.length ? JSON.parse(UInt8ToStr(body)) : [];
+        let responseBody = method(...args);
 
         const isJSON = typeof responseBody !== "string";
 

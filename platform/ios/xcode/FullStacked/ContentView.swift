@@ -59,6 +59,13 @@ struct ContentView: View {
             ))
         }
         self.mainjs.ctx["run"] = run
+        
+        let buildWebviewSwift: @convention (block) (String, String) -> Void = { entrypoint, outdir in
+            let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypoint as NSString).utf8String)
+            let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (outdir as NSString).utf8String)
+            buildWebview(entrypointPtr, outdirPtr)
+        }
+        self.mainjs.ctx["buildWebview"] = buildWebviewSwift
     }
 
     
@@ -107,6 +114,9 @@ struct WebView: UIViewRepresentable {
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         let wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        if #available(iOS 16.4, *) {
+            wkWebView.isInspectable = true
+        }
         
         let request = URLRequest(url: URL(string: "fs://localhost")!)
         wkWebView.load(request)

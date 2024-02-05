@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import createInstance from "./createInstance";
 import open from "open";
-import { buildAPI } from "./build";
+import { buildAPI, buildWebview } from "./build";
 import fs from "fs";
 
 const home = os.homedir();
@@ -30,5 +30,6 @@ js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
         buildAPI(path.join(home, entrypoint)) as string
     ));
 }
+js.ctx.buildWebview = buildWebview;
 
 launchInstance(js);
