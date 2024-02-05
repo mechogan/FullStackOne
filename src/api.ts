@@ -75,7 +75,6 @@ export default (requestId: string): Response => {
         ? assetdir + "/" + pathname
         : pathname;
 
-
     // we'll check for a built file
     if(maybeFileName.endsWith(".js")) {
         const maybeBuiltJSFile = ".build/" + maybeFileName;
@@ -83,7 +82,6 @@ export default (requestId: string): Response => {
             maybeFileName = maybeBuiltJSFile
         }
     }
-
 
     if (fs.exists(maybeFileName, true)) {
         response = {

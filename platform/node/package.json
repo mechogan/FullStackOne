@@ -7,7 +7,7 @@
   },
   "type": "module",
   "dependencies": {
-    "esbuild": "^0.19.11"
+    "esbuild": "^0.20.0"
   },
   "devDependencies": {
     "mime": "^4.0.1"
