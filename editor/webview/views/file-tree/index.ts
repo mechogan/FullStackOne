@@ -294,6 +294,7 @@ export class FileTree {
             inputFile.type = "file";
             inputFile.multiple = false;
             actionsContainer.append(inputFile);
+            inputFile.addEventListener("click", e => e.stopPropagation());
             inputFile.addEventListener("change", () => {
                 if(!inputFile.files?.[0])
                     return;
