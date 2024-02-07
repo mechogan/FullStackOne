@@ -1,4 +1,5 @@
 import mime from "mime";
+import { UTF8ToStr, strToUTF8 } from "./utf8";
 
 declare var requests: {
     [requestId: string]: {
@@ -30,26 +31,8 @@ let methods = {
     fs
 }
 
-const strToUint8 = (str: string) => {
-    if(!str) return [];
-
-    const uint8arr = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) {
-        uint8arr[i] = str.charCodeAt(i)
-    }
-    return uint8arr;
-}
-
-const UInt8ToStr = (arr: Uint8Array | number[]) => {
-    let str = "";
-    for (let i = 0; i < arr.length; i++) {
-        str += String.fromCharCode(arr[i])
-    }
-    return str;
-}
-
 const notFound = {
-    data: strToUint8("Not Found"),
+    data: strToUTF8("Not Found"),
     mimeType: "text/plain"
 }
 
@@ -60,23 +43,24 @@ export type Response = {
 
 export default (requestId: string): Response => {
     let { headers, pathname, body } = requests[requestId];
+
     let response: Response = notFound;
-    
+
     if (pathname?.endsWith("/"))
         pathname = pathname.slice(0, -1);
 
-    if(pathname?.startsWith("/"))
+    if (pathname?.startsWith("/"))
         pathname = pathname.slice(1);
 
-    if(pathname === "")
+    if (pathname === "")
         pathname = "index.html";
 
-    let maybeFileName = assetdir 
+    let maybeFileName = assetdir
         ? assetdir + "/" + pathname
         : pathname;
 
     // we'll check for a built file
-    if(maybeFileName.endsWith(".js")) {
+    if (maybeFileName.endsWith(".js")) {
         const maybeBuiltJSFile = ".build/" + maybeFileName;
         if (fs.exists(maybeBuiltJSFile)) {
             maybeFileName = maybeBuiltJSFile
@@ -85,7 +69,7 @@ export default (requestId: string): Response => {
 
     if (fs.exists(maybeFileName, true)) {
         response = {
-            mimeType: 
+            mimeType:
                 mime.getType(maybeFileName) ||
                 "text/plain",
             data: fs.readfile(maybeFileName, true)
@@ -95,21 +79,21 @@ export default (requestId: string): Response => {
     const methodPath = pathname.split("/");
     const method = methodPath.reduce((api, key) => api ? api[key] : undefined, methods) as any;
 
-    if(method) {
-        const args = body && body.length ? JSON.parse(UInt8ToStr(body)) : [];
+    if (method) {
+        const args = body && body.length ? JSON.parse(UTF8ToStr(body)) : [];
         let responseBody = method(...args);
 
         const isJSON = typeof responseBody !== "string";
 
         response.mimeType = isJSON ? "application/json" : "text/plain"
-        if(responseBody) {
-            response.data = strToUint8(isJSON ? JSON.stringify(responseBody) : responseBody)
+        if (responseBody) {
+            response.data = strToUTF8(isJSON ? JSON.stringify(responseBody) : responseBody)
         }
         else {
             delete response.data
         }
     }
-    
+
     delete requests[requestId];
 
     return response;

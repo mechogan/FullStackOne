@@ -30,7 +30,7 @@ await Promise.all(compilePromises);
 
 
 buildSync({
-    entryPoints: ["src/api.ts"],
+    entryPoints: ["src/api/index.ts"],
     bundle: true,
     format: "esm",
     outfile: "src/js/api.js"
