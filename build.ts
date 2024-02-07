@@ -4,19 +4,21 @@ import * as sass from "sass";
 import { buildAPI, buildWebview } from "./platform/node/src/build";
 import { buildSync } from "esbuild";
 import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
+import { scan } from "./editor/api/projects/scan";
 
 if (fs.existsSync("dist"))
     fs.rmSync("dist", { recursive: true })
 
-const scanRecursive = (item: fs.Dirent) => {
-    const itemPath = path.join(item.path, item.name)
-    if (item.isFile()) return itemPath;
-    return scan(itemPath)
+global.fs = {
+    readdir: (directory: string) =>  fs.readdirSync(directory, { withFileTypes: true })
+        .map(item => ({name: item.name, isDirectory: item.isDirectory()})),
+    readfileUTF8: (file: string) => fs.readFileSync(file, { encoding: "utf-8" }),
+    putfileUTF8: (file: string, contents: string) => fs.writeFileSync(file, contents),
+    exists: (itemPath: string) => fs.existsSync(itemPath),
+    mkdir: (itemPath: string) => fs.mkdirSync(itemPath, { recursive: true })
 }
-
-const scan = (directory: string): string[] => {
-    return fs.readdirSync(directory, { withFileTypes: true }).map(scanRecursive).flat()
-}
+global.jsDirectory = "src/js";
+global.resolvePath = (entrypoint: string) => entrypoint
 
 const scssFiles = scan("editor/webview").filter(filePath => filePath.endsWith(".scss"));
 
@@ -42,15 +44,6 @@ buildSync({
     format: "esm",
     outfile: "src/js/webview.js"
 })
-
-global.fs = {
-    readfileUTF8: (file: string) => fs.readFileSync(file, { encoding: "utf-8" }),
-    putfileUTF8: (file: string, contents: string) => fs.writeFileSync(file, contents),
-    exists: (itemPath: string) => fs.existsSync(itemPath),
-    mkdir: (itemPath: string) => fs.mkdirSync(itemPath, { recursive: true })
-}
-global.jsDirectory = "src/js";
-global.resolvePath = (entrypoint: string) => entrypoint
 
 const entrypointWebview = mingleWebview("../../editor/webview/index.ts");
 buildWebview(entrypointWebview, "dist/webview");

@@ -17,7 +17,13 @@ export class Project {
     private container: HTMLDivElement;
     private project: TypeProject;
 
-    fileTree = new FileTree();
+    fileTree: {
+        instance: FileTree,
+        element: Awaited<ReturnType<FileTree["render"]>> | null
+    } = {
+        instance: new FileTree(),
+        element: null
+    };
     console = new Console();
 
     private editorsContainer = document.createElement("div");
@@ -26,7 +32,7 @@ export class Project {
     private editors: Editor[] = [];
 
     constructor(){
-        this.fileTree.onItemSelect = (item => {
+        this.fileTree.instance.onItemSelect = (item => {
             if(!item || item.isDirectory) 
                 return;
 
@@ -46,7 +52,7 @@ export class Project {
             return;
 
         this.project = project;
-        this.fileTree.setBaseDirectory(project.location);
+        this.fileTree.instance.setBaseDirectory(project.location);
         
         this.editors = [];
         this.renderEditors();
@@ -78,13 +84,24 @@ export class Project {
 
         const rightSide = document.createElement("div");
 
-        const consoleToggle = document.createElement("button");
-        consoleToggle.classList.add("text");
-        consoleToggle.innerHTML = await (await fetch("/assets/icons/console.svg")).text();
-        consoleToggle.addEventListener("click", () => {
-            this.container.classList.toggle("bottom-panel-opened");
+        const shareButton = document.createElement("button");
+        shareButton.classList.add("text");
+        shareButton.innerHTML = await (await fetch("/assets/icons/share.svg")).text();
+        shareButton.addEventListener("click", async () => {
+            await rpc().projects.zip(this.project);
+            const refreshedFileTree = await this.fileTree.instance.render();
+            this.fileTree.element?.replaceWith(refreshedFileTree);
+            this.fileTree.element = refreshedFileTree;
         });
-        rightSide.append(consoleToggle);
+        rightSide.append(shareButton);
+
+        // const consoleToggle = document.createElement("button");
+        // consoleToggle.classList.add("text");
+        // consoleToggle.innerHTML = await (await fetch("/assets/icons/console.svg")).text();
+        // consoleToggle.addEventListener("click", () => {
+        //     this.container.classList.toggle("bottom-panel-opened");
+        // });
+        // rightSide.append(consoleToggle);
 
         const runButton = document.createElement("button");
         runButton.classList.add("text");
@@ -139,8 +156,9 @@ export class Project {
         this.container.classList.add("project");
 
         this.container.append(await this.renderToolbar());
-        this.fileTree.allowDeletion = true;
-        this.container.append(await this.fileTree.render());
+        this.fileTree.instance.allowDeletion = true;
+        this.fileTree.element = await this.fileTree.instance.render()
+        this.container.append(this.fileTree.element);
         this.container.append(this.editorsContainer);
         this.container.append(this.console.render());
 

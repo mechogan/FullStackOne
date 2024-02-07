@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 import JavaScriptCore
+import ZIPFoundation
 
 struct Project: Identifiable {
     var id: Int
@@ -61,11 +62,45 @@ struct ContentView: View {
         self.mainjs.ctx["run"] = run
         
         let buildWebviewSwift: @convention (block) (String, String) -> Void = { entrypoint, outdir in
-            let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypoint as NSString).utf8String)
-            let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (outdir as NSString).utf8String)
+            let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
+            let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outdir) as NSString).utf8String)
             buildWebview(entrypointPtr, outdirPtr)
         }
         self.mainjs.ctx["buildWebview"] = buildWebviewSwift
+        
+        
+        let zip: @convention (block) (String, [String], String) -> Void = { projectdir, items, to in
+            let coordinator = NSFileCoordinator()
+            let realpathProjectdir = URL(fileURLWithPath: resolvePath(projectdir))
+            let realpathTo = resolvePath(to);
+            
+            if FileManager.default.fileExists(atPath: realpathTo) {
+                try! FileManager.default.removeItem(atPath: realpathTo)
+            }
+            
+            let realpathToURL = URL(fileURLWithPath: realpathTo);
+            let archive = try! Archive(url: realpathToURL, accessMode: .create)
+            
+            for item in items {
+                let itemURL = URL(fileURLWithPath: resolvePath(projectdir + "/" + item))
+                try! archive.addEntry(with: item, fileURL: itemURL)
+            }
+            
+            let filesAppURL = URL(string: "shareddocuments://" + realpathTo)!
+            UIApplication.shared.open(filesAppURL)
+        }
+        self.mainjs.ctx["zip"] = zip
+        
+        let unzip: @convention (block) (String, [UInt8]) -> Void = { to, zipData in
+            let data = Data(zipData)
+            let tmpURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("zip")
+            try! data.write(to: tmpURL)
+            try! FileManager.default.unzipItem(at: tmpURL, to: URL(fileURLWithPath: resolvePath(to)))
+            try! FileManager.default.removeItem(at: tmpURL)
+        }
+        self.mainjs.ctx["unzip"] = unzip
     }
 
     

@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import { buildAPI, buildWebview } from "../../node/src/build";
 import { JavaScript } from "../../node/src/javascript";
+import editorContext from "../../node/src/editorContext";
 
 const dist = path.resolve(process.cwd(), "..", "..", "dist");
 
@@ -15,9 +16,9 @@ const mainjs = new JavaScript(
 );
 mainjs.privileged = true;
 
+editorContext(home, mainjs.ctx);
+
 let appID = 1;
-mainjs.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
-mainjs.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
 mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     const hostname = `app-${appID}`;
     appID++;
@@ -28,7 +29,6 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     );
     createWindow(hostname);
 }
-mainjs.ctx.buildWebview = buildWebview;
 
 const apps: { [hostname: string] : JavaScript } = {
     "main": mainjs

@@ -5,6 +5,8 @@ import createInstance from "./createInstance";
 import open from "open";
 import { buildAPI, buildWebview } from "./build";
 import fs from "fs";
+import AdmZip from "adm-zip";
+import editorContext from "./editorContext";
 
 const home = os.homedir();
 const dist = path.resolve(process.cwd(), "..", "..", "dist");
@@ -21,8 +23,8 @@ const launchInstance = (js: JavaScript) => {
     open(`http://localhost:${port}`);
 }
 
-js.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
-js.ctx.resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
+editorContext(home, js.ctx);
+
 js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     launchInstance(new JavaScript(
         path.join(home, projectdir),
@@ -30,6 +32,5 @@ js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
         buildAPI(path.join(home, entrypoint)) as string
     ));
 }
-js.ctx.buildWebview = buildWebview;
 
 launchInstance(js);
