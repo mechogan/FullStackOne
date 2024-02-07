@@ -83,6 +83,10 @@ export default (requestId: string): Response => {
         const args = body && body.length ? JSON.parse(UTF8ToStr(body)) : [];
         let responseBody = method(...args);
 
+        if(ArrayBuffer.isView(responseBody)){
+            responseBody = Array.from(responseBody as Uint8Array);
+        }
+
         const isJSON = typeof responseBody !== "string";
 
         response.mimeType = isJSON ? "application/json" : "text/plain"

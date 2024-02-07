@@ -1,4 +1,21 @@
+@import "../../style/colors";
+@import "../../style/spacing";
+
 .editor {
     height: 100%;
     overflow: auto;
+
+    .img-container {
+        background-color: $black;
+        padding: spacing();
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    }
 }

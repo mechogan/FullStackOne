@@ -11,6 +11,34 @@ import type api from "../../../api";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
+enum UTF8_Ext {
+    JAVASCRIPT = ".js",
+    JAVASCRIPT_X = ".jsx",
+    JAVASCRIPT_M = ".mjs",
+    JAVASCRIPT_C = ".cjs",
+    TYPESCRIPT = ".ts",
+    TYPESCRIPT_X = ".tsx",
+    SVG = ".svg",
+    TEXT = ".txt",
+    MARKDOWN = ".md",
+    YML = ".yml",
+    YAML = ".yaml",
+    HTML = ".html",
+    CSS = ".css",
+    JSON = ".json",
+    SASS = ".sass",
+    SCSS = ".scss"
+}
+
+enum IMAGE_Ext {
+    PNG = ".png",
+    JPG = ".jpg",
+    JPEG = ".jpeg",
+    GIF = ".gif",
+    WEBP = ".webp",
+    BMP = ".bmp"
+}
+
 export class Editor {
     private extensions = [
         basicSetup,
@@ -29,11 +57,27 @@ export class Editor {
     }
 
     private async loadFileContents() {
-        this.editor = new EditorView({
-            doc: await rpc().fs.readfileUTF8(this.filePath.join("/")),
-            extensions: this.extensions.concat(await this.loadLanguageExtensions()),
-            parent: this.parent
-        });
+        if(Object.values(UTF8_Ext).find(ext => this.filePath.at(-1)?.endsWith(ext))){
+            this.editor = new EditorView({
+                doc: await rpc().fs.readfileUTF8(this.filePath.join("/")),
+                extensions: this.extensions.concat(await this.loadLanguageExtensions()),
+                parent: this.parent
+            });
+        }
+        else if (Object.values(IMAGE_Ext).find(ext => this.filePath.at(-1)?.endsWith(ext))) {
+            const imageContainer = document.createElement("div");
+            imageContainer.classList.add("img-container");
+
+            const img = document.createElement("img");
+            const imageData = new Uint8Array(await rpc().fs.readfile(this.filePath.join("/")));
+            const imageBlob = new Blob([imageData]);
+            img.src = window.URL.createObjectURL(imageBlob);
+            imageContainer.append(img);
+            setTimeout(() => window.URL.revokeObjectURL(img.src), 1000);
+            
+
+            this.parent.append(imageContainer);
+        }
     }
 
     private updateThrottler: ReturnType<typeof setTimeout> | null;
@@ -57,43 +101,45 @@ export class Editor {
         const filename = this.filePath.at(-1) as string;
         const extensions: Extension[] = [];
 
-        if (filename.endsWith("js")
-            || filename.endsWith(".jsx")
-            || filename.endsWith(".ts")
-            || filename.endsWith(".tsx")
+        if (filename.endsWith(UTF8_Ext.JAVASCRIPT)
+            || filename.endsWith(UTF8_Ext.JAVASCRIPT_X)
+            || filename.endsWith(UTF8_Ext.JAVASCRIPT_M)
+            || filename.endsWith(UTF8_Ext.JAVASCRIPT_C)
+            || filename.endsWith(UTF8_Ext.TYPESCRIPT)
+            || filename.endsWith(UTF8_Ext.TYPESCRIPT_X)
         ) {
             const jsLang = await import("@codemirror/lang-javascript");
             extensions.push(
                 jsLang.javascript({
-                    typescript: filename.endsWith(".ts") || filename.endsWith(".tsx"),
+                    typescript: filename.endsWith(UTF8_Ext.TYPESCRIPT) || filename.endsWith(UTF8_Ext.TYPESCRIPT_X),
                     jsx: filename.endsWith("x")
                 })
             );
 
-            if (filename.endsWith("js") || filename.endsWith("jsx")) {
+            if (filename.endsWith(UTF8_Ext.JAVASCRIPT)
+                || filename.endsWith(UTF8_Ext.JAVASCRIPT_X)
+                || filename.endsWith(UTF8_Ext.JAVASCRIPT_M)
+                || filename.endsWith(UTF8_Ext.JAVASCRIPT_C)
+            ) {
                 extensions.push(
                     jsLang.javascriptLanguage.data.of({
                         autocomplete: jsLang.scopeCompletionSource(globalThis)
                     })
                 )
             }
-
-            if (filename.endsWith("js")) {
-
-            }
-        } else if (filename.endsWith(".html")) {
+        } else if (filename.endsWith(UTF8_Ext.HTML)) {
             extensions.push((await import("@codemirror/lang-html")).html());
-        } else if (filename.endsWith(".css")) {
+        } else if (filename.endsWith(UTF8_Ext.CSS)) {
             extensions.push((await import("@codemirror/lang-css")).css());
-        } else if (filename.endsWith(".json")) {
+        } else if (filename.endsWith(UTF8_Ext.JSON)) {
             const jsonLang = await import("@codemirror/lang-json");
             extensions.push(jsonLang.json());
             extensions.push(linter(jsonLang.jsonParseLinter()));
-        } else if (filename.endsWith(".sass") || filename.endsWith(".scss")) {
+        } else if (filename.endsWith(UTF8_Ext.SASS) || filename.endsWith(UTF8_Ext.SCSS)) {
             extensions.push((await import("@codemirror/lang-sass")).sass({
-                indented: filename.endsWith(".scss")
+                indented: filename.endsWith(UTF8_Ext.SCSS)
             }));
-        } else if (filename.endsWith(".md")) {
+        } else if (filename.endsWith(UTF8_Ext.MARKDOWN)) {
             extensions.push((await import("@codemirror/lang-markdown")).markdown())
         }
 
