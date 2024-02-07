@@ -304,7 +304,7 @@ export class FileTree {
 
             const uploadFileButton = document.createElement("button");
             uploadFileButton.classList.add("small", "text");
-            uploadFileButton.innerHTML = await (await fetch("/assets/icons/upload.svg")).text();
+            uploadFileButton.innerHTML = await (await fetch("/assets/icons/download.svg")).text();
             uploadFileButton.addEventListener("click", e => {
                 e.stopPropagation();
                 inputFile.click();

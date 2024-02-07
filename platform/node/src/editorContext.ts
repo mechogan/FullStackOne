@@ -2,6 +2,7 @@ import { Context } from "vm";
 import path from "path";
 import AdmZip from "adm-zip";
 import { buildWebview } from "./build";
+import open from "open";
 
 export default function(home: string, jsContext: Context) {
     const resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
