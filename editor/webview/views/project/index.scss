@@ -56,7 +56,8 @@
             margin: 0;
             white-space: nowrap;
             width: 100%;
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: hidden;
             li {
                 border: $border-width solid $black;
                 border-top-right-radius: $border-radius;
