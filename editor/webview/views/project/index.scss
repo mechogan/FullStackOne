@@ -2,30 +2,28 @@
 @import "../../style/border";
 @import "../../style/colors";
 
+$top-bar-height: 45px;
+$left-sidebar-width: 270px;
+$tabs-height: 29px;
+$transition: 0.3s all;
 
 .project {
-    display: grid;
-    grid-template-areas: 'toolbar toolbar'
-        'file-tree editor'
-        'console console';
-
-    transition: 0.5s all;
     height: 100dvh;
-    grid-template-columns: minmax(300px, 33.3333%) calc(100% - 300px);
-    grid-template-rows: 45px calc(100% - 45px) 0%;
-    &.side-panel-closed {
-        grid-template-columns: minmax(0px, 0%) 100%;
-    }
-    &.bottom-panel-opened {
-        grid-template-rows: 45px calc(80% - 45px) 20%;
-    }
 
-    > div:first-child {
-        grid-area: toolbar;
+    > .top-bar {
+        position: fixed;
+        height: $top-bar-height;
+        top: 0;
+        left: 0;
+
+        background-color: $blue-dark;
         display: flex;
         justify-content: space-between;
         align-items: center;
         width: 100vw;
+
+        z-index: 1;
+
         > div {
             display: flex;
             align-items: center;
@@ -43,45 +41,69 @@
             }
         }
     }
-    > div:nth-child(2) {
-        grid-area: file-tree;
-        padding-right: spacing();
+    > .left-sidebar {
+        position: fixed;
+        top: $top-bar-height;
+        left: 0;
+        width: $left-sidebar-width;
+        height: calc(100% - $top-bar-height);
+        z-index: 1;
+        background-color: $blue-dark;
+
+        transition: $transition
     }
-    > div:nth-child(3) {
-        grid-area: editor;
-        display: flex;
-        flex-direction: column;
-        > ul:first-child {
-            padding: 0;
-            margin: 0;
-            white-space: nowrap;
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-            li {
-                border: $border-width solid $black;
-                border-top-right-radius: $border-radius;
-                border-top-left-radius: $border-radius;
-                border-collapse: collapse;
-                display: inline-flex;
-                align-items: center;
-                padding-left: spacing(1);
-                border-bottom: 0;
-                cursor: pointer;
-                color: colorOpacity(white, 0.6);
-                background-color: colorOpacity($black, 0.4);
-                &:not(:first-child){
-                    border-left: 0;
-                }
-                &.active {
-                    color: white;
-                    background-color: $black;
-                }
+    > .tabs-container {
+        position: fixed;
+        left: $left-sidebar-width;
+        top: $top-bar-height;
+        height: $tabs-height;
+        width: calc(100% - $left-sidebar-width);
+        z-index: 1;
+        background-color: $black;
+
+        border-top-left-radius: 10px;
+        border-bottom: 1px solid colorOpacity(white, 0.2);
+
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        li {
+            display: inline-flex;
+            align-items: center;
+            padding-left: spacing(1);
+            border-bottom: 0;
+            cursor: pointer;
+            color: colorOpacity(white, 0.6);
+            border-right: 1px solid colorOpacity(white, 0.15);
+            &.active {
+                color: white;
             }
         }
+
+        transition: $transition
     }
-    > div:nth-child(4) {
-        grid-area: console;
-        overflow: hidden;
+    > .editor-container {
+        position: relative;
+        top: $top-bar-height + $tabs-height;
+        left: $left-sidebar-width;
+        min-height: calc(100% - ($top-bar-height + $tabs-height));
+        width: calc(100% - $left-sidebar-width);
+        background-color: $black;
+
+        transition: $transition;
+    }
+
+    &.side-panel-closed {
+        > .left-sidebar {
+            width: 0px;
+        }
+
+        > .editor-container,
+        > .tabs-container { 
+            left: 0;
+            width: 100%;
+        }
     }
 }

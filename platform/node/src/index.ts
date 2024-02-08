@@ -3,9 +3,8 @@ import os from "os";
 import path from "path";
 import createInstance from "./createInstance";
 import open from "open";
-import { buildAPI, buildWebview } from "./build";
+import { buildAPI } from "./build";
 import fs from "fs";
-import AdmZip from "adm-zip";
 import editorContext from "./editorContext";
 
 const home = os.homedir();
@@ -24,6 +23,11 @@ const launchInstance = (js: JavaScript) => {
 }
 
 editorContext(home, js.ctx);
+
+const originalZip = js.ctx.zip;
+js.ctx.zip = (projectdir: string, items: string[], to: string) => {
+   open(originalZip(projectdir, items, to));
+}
 
 js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     launchInstance(new JavaScript(

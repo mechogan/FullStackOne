@@ -26,6 +26,7 @@ export class Project {
     };
     console = new Console();
 
+    private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
 
     private currentFile: string;
@@ -60,6 +61,7 @@ export class Project {
 
     private async renderToolbar() {
         const container = document.createElement("div");
+        container.classList.add("top-bar")
 
         const leftSide = document.createElement("div");
 
@@ -121,7 +123,7 @@ export class Project {
         Array.from(this.editorsContainer.children).forEach(child => child.remove());
         
         const tabsContainer = document.createElement("ul");
-        this.editorsContainer.append(tabsContainer);
+        tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
             const tab = document.createElement("li");
@@ -149,6 +151,9 @@ export class Project {
             }
         });
 
+        this.tabsContainer.replaceWith(tabsContainer);
+        this.tabsContainer = tabsContainer;
+
     }
 
     async render() {
@@ -156,11 +161,21 @@ export class Project {
         this.container.classList.add("project");
 
         this.container.append(await this.renderToolbar());
+
+        const fileTreeContainer = document.createElement("div");
+        fileTreeContainer.classList.add("left-sidebar")
         this.fileTree.instance.allowDeletion = true;
         this.fileTree.element = await this.fileTree.instance.render()
-        this.container.append(this.fileTree.element);
+        fileTreeContainer.append(this.fileTree.element);
+        this.container.append(fileTreeContainer);
+
+        this.tabsContainer.classList.add("tabs-container");
+        this.container.append(this.tabsContainer);
+
+        this.editorsContainer.classList.add("editor-container");
         this.container.append(this.editorsContainer);
-        this.container.append(this.console.render());
+
+        // this.container.append(this.console.render());
 
         return this.container;
     }

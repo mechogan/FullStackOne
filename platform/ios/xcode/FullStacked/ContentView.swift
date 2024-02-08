@@ -23,8 +23,20 @@ class RunningProject: ObservableObject {
     }
 }
 
+extension Color {
+    init(hex: Int, opacity: Double = 1.0) {
+        let red = Double((hex & 0xff0000) >> 16) / 255.0
+        let green = Double((hex & 0xff00) >> 8) / 255.0
+        let blue = Double((hex & 0xff) >> 0) / 255.0
+        self.init(.sRGB, red: red, green: green, blue: blue, opacity: opacity)
+    }
+}
+
 struct ContentView: View {
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
+    @Environment(\.openWindow) private var openWindow
     @ObservedObject private var runningProject = RunningProject()
+    @State private var otherWindow: Int? = nil
     let mainjs: JavaScript;
     
     init(){
@@ -70,8 +82,6 @@ struct ContentView: View {
         
         
         let zip: @convention (block) (String, [String], String) -> Void = { projectdir, items, to in
-            let coordinator = NSFileCoordinator()
-            let realpathProjectdir = URL(fileURLWithPath: resolvePath(projectdir))
             let realpathTo = resolvePath(to);
             
             if FileManager.default.fileExists(atPath: realpathTo) {
@@ -110,12 +120,37 @@ struct ContentView: View {
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
                 .ignoresSafeArea()
-            if self.runningProject.project != nil {
+                .overlay(alignment: .top) {
+                    Color(hex: 0x1e293b)
+                        .ignoresSafeArea(edges: .top)
+                        .frame(height: 0)
+                }
+            if self.runningProject.project != nil && self.otherWindow != self.runningProject.project?.id {
                 VStack {
-                    Button("Close") {
-                        self.runningProject.project = nil
+                    HStack {
+                        
+                        Button {
+                            self.runningProject.project = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .keyboardShortcut("w", modifiers: .command)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(EdgeInsets(top: 5, leading: 10, bottom: 3, trailing: 10))
+                        
+                        if self.supportsMultipleWindows {
+                            Button {
+                                openWindow(id: "running-app")
+                                self.otherWindow = self.runningProject.project?.id
+                            } label : {
+                                Image(systemName: "rectangle.split.2x1.fill")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(EdgeInsets(top: 5, leading: 10, bottom: 3, trailing: 10))
+                        }
+                        
                     }
-                        .buttonStyle(.borderedProminent)
+            
                     WebView(js: self.runningProject.project!.js)
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.all)
@@ -140,22 +175,23 @@ class FullScreenWKWebView: WKWebView {
 
 struct WebView: UIViewRepresentable {
     let js: JavaScript;
+    var wkWebView: WKWebView?;
     
     init(js: JavaScript) {
         self.js = js
+        
+        let wkConfig = WKWebViewConfiguration()
+        wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
+        self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        if #available(iOS 16.4, *) {
+            self.wkWebView!.isInspectable = true
+        }
     }
     
     func makeUIView(context: Context) -> WKWebView  {
-        let wkConfig = WKWebViewConfiguration()
-        wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
-        let wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
-        if #available(iOS 16.4, *) {
-            wkWebView.isInspectable = true
-        }
-        
         let request = URLRequest(url: URL(string: "fs://localhost")!)
-        wkWebView.load(request)
-        return wkWebView
+        self.wkWebView!.load(request)
+        return self.wkWebView!
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {

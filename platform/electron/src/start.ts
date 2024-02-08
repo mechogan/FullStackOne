@@ -1,4 +1,4 @@
-import { app, protocol, BrowserWindow } from "electron";
+import { app, protocol, BrowserWindow, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -18,6 +18,11 @@ mainjs.privileged = true;
 
 editorContext(home, mainjs.ctx);
 
+const originalZip = mainjs.ctx.zip;
+mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
+   shell.openPath(originalZip(projectdir, items, to));
+}
+
 let appID = 1;
 mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     const hostname = `app-${appID}`;
@@ -30,7 +35,7 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
     createWindow(hostname);
 }
 
-const apps: { [hostname: string] : JavaScript } = {
+const apps: { [hostname: string]: JavaScript } = {
     "main": mainjs
 }
 const handle = async (request: Request) => {
@@ -54,7 +59,7 @@ const handle = async (request: Request) => {
         : null;
 
     return new Response(responseBody, {
-        headers: responseBody 
+        headers: responseBody
             ? {
                 ["Content-Type"]: jsResponse.mimeType,
                 ["Content-Length"]: (jsResponse.data?.length || 0).toString()
@@ -127,7 +132,7 @@ const createWindow = async (hostname: string) => {
 createWindow("main");
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0){
+    if (BrowserWindow.getAllWindows().length === 0) {
         createWindow("main");
     }
 });

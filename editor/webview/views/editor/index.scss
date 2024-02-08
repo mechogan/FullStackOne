@@ -2,9 +2,6 @@
 @import "../../style/spacing";
 
 .editor {
-    height: 100%;
-    overflow: auto;
-
     .img-container {
         background-color: $black;
         padding: spacing();
