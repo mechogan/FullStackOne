@@ -27,8 +27,24 @@ export declare var fs: {
 }
 declare var assetdir: string
 
+declare var fetch: {
+    data: (url: string,
+        options: {
+            method: "GET" | "POST" | "PUT" | "DELTE",
+            headers: Record<string, string>,
+            body: Uint8Array | number[]
+        }) => Promise<{headers: Record<string, string>, body: Uint8Array | number[]}>,
+    UTF8: (url: string,
+        options: {
+            method: "GET" | "POST" | "PUT" | "DELTE",
+            headers: Record<string, string>,
+            body: Uint8Array | number[]
+        }) => Promise<{headers: Record<string, string>, body: string}>
+}
+
 let methods = {
-    fs
+    fs,
+    // fetch
 }
 
 const notFound = {
@@ -41,9 +57,11 @@ export type Response = {
     data?: number[] | Uint8Array
 }
 
-export default (requestId: string): Response => {
-    let { headers, pathname, body } = requests[requestId];
-
+export default async (
+    headers: Record<string, string>, 
+    pathname: string, 
+    body: Uint8Array | number[]
+): Promise<Response> => {
     let response: Response = notFound;
 
     if (pathname?.endsWith("/"))
@@ -81,7 +99,12 @@ export default (requestId: string): Response => {
 
     if (method) {
         const args = body && body.length ? JSON.parse(UTF8ToStr(body)) : [];
+
         let responseBody = method(...args);
+
+        while(responseBody instanceof Promise) {
+            responseBody = await responseBody
+        }
 
         if(ArrayBuffer.isView(responseBody)){
             responseBody = Array.from(responseBody as Uint8Array);
@@ -97,8 +120,6 @@ export default (requestId: string): Response => {
             delete response.data
         }
     }
-
-    delete requests[requestId];
 
     return response;
 }

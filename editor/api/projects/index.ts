@@ -13,6 +13,7 @@ declare var buildWebview: (entrypoint: string, outdir: string) => void;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: number[] | Uint8Array) => void;
 
+
 const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
 const create = (project: Omit<Project, "createdDate">) => {
     const projects = list();

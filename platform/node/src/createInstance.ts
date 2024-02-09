@@ -44,17 +44,17 @@ const requestHandler = async (request: IncomingMessage, response: ServerResponse
 
     const body = await readBody(request);
 
-    const jsResponse = js.processRequest(headers, pathname, body);
+    js.processRequest(headers, pathname, body, jsResponse => {
+        const responseHeaders = jsResponse.data 
+            ? {
+                ["Content-Type"]: jsResponse.mimeType,
+                ["Content-Length"]: (jsResponse.data?.length || 0).toString()
+            }
+            : undefined
 
-    const responseHeaders = jsResponse.data 
-        ? {
-            ["Content-Type"]: jsResponse.mimeType,
-            ["Content-Length"]: (jsResponse.data?.length || 0).toString()
-        }
-        : undefined
-
-    response.writeHead(200, responseHeaders);
-    if(jsResponse.data)
-        response.write(jsResponse.data);
-    response.end();
+        response.writeHead(200, responseHeaders);
+        if(jsResponse.data)
+            response.write(jsResponse.data);
+        response.end();
+    });
 }

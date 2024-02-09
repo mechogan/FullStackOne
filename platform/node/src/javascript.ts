@@ -11,26 +11,39 @@ export class JavaScript {
     constructor(fsdir: string, assetdir: string, entrypointContents: string) {
         this.bindFs(fsdir);
         this.bindConsole();
+        this.bindFetch();
 
         this.ctx.requests = {};
         this.ctx.assetdir = assetdir;
-        
+
         const script = new vm.Script(entrypointContents);
         script.runInContext(this.ctx);
     }
 
-    processRequest(headers: {[headerName: string]: string}, pathname: string, body: Uint8Array) {        
+    processRequest(
+        headers: { [headerName: string]: string }, 
+        pathname: string, 
+        body: Uint8Array,
+        onCompletion: (jsResponse: Response) => void
+    ) {
         const requestId = this.requestId
         this.requestId += 1;
-        
-        this.ctx.requests[requestId] = {
+
+        this.ctx.requests[requestId] = [
             headers,
             pathname,
             body
+        ]
+
+        const script = new vm.Script(`api.default(...requests[${requestId}]);`);
+        const cleanup = new vm.Script(`delete requests[${requestId}];`);
+
+        const respond = (jsResponse: Response) => {
+            onCompletion(jsResponse);
+            cleanup.runInContext(this.ctx);
         }
-        
-        const script = new vm.Script(`api.default("${requestId}")`);
-        return script.runInContext(this.ctx) as Response;
+
+        script.runInContext(this.ctx).then(respond);
     }
 
     private bindFs(rootdir: string) {
@@ -73,9 +86,25 @@ export class JavaScript {
         this.ctx.fs = ctxFs;
     }
 
-    private bindConsole(){
+    private bindConsole() {
         this.ctx.console = {
             log: console.log
         }
+    }
+
+    private bindFetch() {
+        this.ctx.fetch = async (url: string,
+            options: {
+                method?: "GET" | "POST" | "PUT" | "DELTE",
+                headers?: Record<string, string>,
+                body?: Uint8Array | number[]
+            }) => {
+                const response = await fetch(url, {
+                    method: options?.method || "GET",
+                    headers: options?.headers || {},
+                    body: options?.body ? Buffer.from(options?.body) : undefined
+                });
+                return response.arrayBuffer();
+            };
     }
 }

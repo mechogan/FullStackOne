@@ -29,25 +29,24 @@ class JavaScript {
         self.ctx.evaluateScript(entrypointContents)
     }
     
-    func processRequest(headers: [String : String], pathname: String, body: Data?) -> (mimeType: String, data: Data?) {
-        let requestId = String(self.requestId);
-        self.requestId += 1;
-        
-        let jsRequest = JSValue(newObjectIn: self.ctx)!
-        jsRequest["headers"] = headers
-        jsRequest["pathname"] = pathname
-        jsRequest["body"] = body != nil ? Array(body!) : nil
-        
-        self.ctx["requests"]?[requestId] = jsRequest
-        
-        let jsReponse = self.ctx.evaluateScript("api.default(\"\(requestId)\")")!
-        let mimeType = jsReponse["mimeType"]!.toString()!
-        
-        let data = jsReponse.hasProperty("data")
-            ? Data(jsReponse["data"]!.toArray()! as! [UInt8])
-            : nil
-        
-        return (mimeType, data)
+    func processRequest(
+        headers: [String : String],
+        pathname: String,
+        body: Data?,
+        onCompletion: @escaping (_ jsResponse: JSValue) -> Void
+    ) -> Void {
+        // source: https://stackoverflow.com/a/75690743
+        let onFulfilled: @convention (block) (JSValue) -> Void = {
+            onCompletion($0)
+        }
+        let onRejected: @convention (block) (JSValue) -> Void = {
+            print($0)
+        }
+        let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
+
+        let payload = body != nil ? Array(body!) : nil
+        self.ctx["api"]?["default"]?.call(withArguments: [headers, pathname, payload as Any])
+            .invokeMethod("then", withArguments: promiseArgs)
     }
     
     private func bindConsoleLog() {
@@ -160,6 +159,22 @@ extension JSContext {
     subscript(_ key: String) -> Any? {
         get { return objectForKeyedSubscript(key) }
         set { setObject(newValue, forKeyedSubscript: key as NSString) }
+    }
+    
+    func callAsyncFunction(key: String, withArguments: [Any] = []) async throws -> JSValue {
+        try await withCheckedThrowingContinuation { continuation in
+            let onFulfilled: @convention(block) (JSValue) -> Void = {
+                continuation.resume(returning: $0)
+            }
+            let onRejected: @convention(block) (JSValue) -> Void = {
+                let error = NSError(domain: key, code: 0, userInfo: [NSLocalizedDescriptionKey : "\($0)"])
+                continuation.resume(throwing: error)
+            }
+            let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
+            
+            let promise = self.objectForKeyedSubscript(key).call(withArguments: withArguments)
+            promise?.invokeMethod("then", withArguments: promiseArgs)
+        }
     }
 }
 

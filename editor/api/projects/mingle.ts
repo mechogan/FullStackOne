@@ -24,7 +24,7 @@ import("${resolvePath(entryPoint)}");`;
 export const mingleAPI = (entryPoint: string) => {
     const mergedContent = 
 `${fs.readfileUTF8(jsDirectory + "/api.js", true)}
-methods = require("${resolvePath(entryPoint)}").default;`;
+methods = Object.assign(methods, require("${resolvePath(entryPoint)}")?.default ?? {});`;
 
     mkCacheDir();
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;

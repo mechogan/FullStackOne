@@ -20,7 +20,7 @@ editorContext(home, mainjs.ctx);
 
 const originalZip = mainjs.ctx.zip;
 mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
-   shell.openPath(originalZip(projectdir, items, to));
+    shell.openPath(originalZip(projectdir, items, to));
 }
 
 let appID = 1;
@@ -52,19 +52,23 @@ const handle = async (request: Request) => {
 
     const js = apps[hostname];
 
-    const jsResponse = js.processRequest(headers, pathname, body);
+    return new Promise<Response>(resolve => {
+        js.processRequest(headers, pathname, body, jsResponse => {
+            const responseBody = jsResponse.data
+                ? (jsResponse.data as Uint8Array).buffer
+                : null;
 
-    const responseBody = jsResponse.data
-        ? (jsResponse.data as Uint8Array).buffer
-        : null;
+            const response = new Response(responseBody, {
+                headers: responseBody
+                    ? {
+                        ["Content-Type"]: jsResponse.mimeType,
+                        ["Content-Length"]: (jsResponse.data?.length || 0).toString()
+                    }
+                    : undefined
+            });
 
-    return new Response(responseBody, {
-        headers: responseBody
-            ? {
-                ["Content-Type"]: jsResponse.mimeType,
-                ["Content-Length"]: (jsResponse.data?.length || 0).toString()
-            }
-            : undefined
+            resolve(response);
+        })
     });
 }
 protocol.handle('http', handle);

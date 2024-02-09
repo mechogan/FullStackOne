@@ -213,28 +213,38 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
         let pathname = String(request.url!.pathComponents.joined(separator: "/").dropFirst())
         let body = request.httpBody
         
-        let jsResponse = self.js.processRequest(headers: headers, pathname: pathname, body: body)
-        
-        
-        let responseBody = jsResponse.data != nil
-            ? jsResponse.data!
-            : nil
-        
-        let response = HTTPURLResponse(
-            url: request.url!,
-            statusCode: 200,
-            httpVersion: "HTTP/1.1",
-            headerFields: responseBody != nil
-                ? [
-                    "Content-Type": jsResponse.mimeType,
-                    "Content-Length": String(responseBody!.count)
-                ]
-            : nil
-        )!
-        
-        urlSchemeTask.didReceive(response)
-        urlSchemeTask.didReceive(responseBody == nil ? Data() : responseBody!)
-        urlSchemeTask.didFinish()
+        self.js.processRequest(
+            headers: headers,
+            pathname: pathname,
+            body: body,
+            onCompletion: {jsResponse in
+                let mimeType = jsResponse["mimeType"]!.toString()!
+                
+                let data = jsResponse.hasProperty("data")
+                    ? Data(jsResponse["data"]!.toArray()! as! [UInt8])
+                    : nil
+                
+                let responseBody = data != nil
+                    ? data!
+                    : nil
+                
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: "HTTP/1.1",
+                    headerFields: responseBody != nil
+                        ? [
+                            "Content-Type": mimeType,
+                            "Content-Length": String(responseBody!.count)
+                        ]
+                    : nil
+                )!
+                
+                urlSchemeTask.didReceive(response)
+                urlSchemeTask.didReceive(responseBody == nil ? Data() : responseBody!)
+                urlSchemeTask.didFinish()
+            }
+        )
     }
     
     func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
