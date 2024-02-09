@@ -42,7 +42,7 @@ export default {
         const maybeWebviewJS = project.location + "/webview/index.js";
         if (fs.exists(maybeWebviewJS)) {
             const entrypointWebview = mingleWebview(maybeWebviewJS);
-            buildWebview(entrypointWebview, ".build/webview");
+            buildWebview(entrypointWebview, project.location + "/.build/webview");
             fs.rm(entrypointWebview);
         }
 

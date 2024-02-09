@@ -1,6 +1,6 @@
 import vm from "vm"
 import fs from "fs";
-import type { fs as fsType, Response } from "../../../src/api"
+import { fs as fsType, Response, fetch as fetchType } from "../../../src/api"
 
 export class JavaScript {
     private requestId = 0
@@ -93,18 +93,37 @@ export class JavaScript {
     }
 
     private bindFetch() {
-        this.ctx.fetch = async (url: string,
+        const fetchSimplified =  (url: string,
             options: {
                 method?: "GET" | "POST" | "PUT" | "DELTE",
                 headers?: Record<string, string>,
                 body?: Uint8Array | number[]
-            }) => {
-                const response = await fetch(url, {
-                    method: options?.method || "GET",
-                    headers: options?.headers || {},
-                    body: options?.body ? Buffer.from(options?.body) : undefined
-                });
-                return response.arrayBuffer();
-            };
+            }) => fetch(url, {
+                method: options?.method || "GET",
+                headers: options?.headers || {},
+                body: options?.body ? Buffer.from(options?.body) : undefined
+            });
+        const convertHeadersToObj = (headers: Headers) => {
+            let headersObj: Record<string, string> = {};
+            headers.forEach((headerValue, headerName) => headersObj[headerName] = headerValue);
+            return headersObj;
+        }
+        const fetchObj: typeof fetchType = {
+            async data(url, options) {
+                const response = await fetchSimplified(url, options);
+                return {
+                    headers: convertHeadersToObj(response.headers),
+                    body: new Uint8Array(await response.arrayBuffer())
+                }
+            },
+            async UTF8(url, options) {
+                const response = await fetchSimplified(url, options);
+                return {
+                    headers: convertHeadersToObj(response.headers),
+                    body: await response.text()
+                }
+            },
+        }
+        this.ctx.fetch = fetchObj;
     }
 }

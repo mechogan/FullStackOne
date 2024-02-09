@@ -59,7 +59,7 @@ scssFiles.forEach(scssFile => {
 fs.cpSync("editor/webview/index.html", "dist/webview/index.html");
 fs.cpSync("editor/webview/assets", "dist/webview/assets", { recursive: true });
 
-const entrypointAPI = mingleAPI("../../editor/api/index.ts");
+const entrypointAPI = mingleAPI(path.resolve("editor/api/index.ts"));
 const api = buildAPI(entrypointAPI);
 fs.rmSync(entrypointAPI);
 fs.mkdirSync("dist/api", { recursive: true });

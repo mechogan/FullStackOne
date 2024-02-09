@@ -22,9 +22,11 @@ import("${resolvePath(entryPoint)}");`;
 }
 
 export const mingleAPI = (entryPoint: string) => {
-    const mergedContent = 
-`${fs.readfileUTF8(jsDirectory + "/api.js", true)}
-methods = Object.assign(methods, require("${resolvePath(entryPoint)}")?.default ?? {});`;
+    let mergedContent = `${fs.readfileUTF8(jsDirectory + "/api.js", true)}`
+
+    if(fs.exists(resolvePath(entryPoint), true)){
+        mergedContent += `methods = Object.assign(methods, require("${resolvePath(entryPoint)}")?.default ?? {});`;
+    }
 
     mkCacheDir();
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;

@@ -27,24 +27,20 @@ export declare var fs: {
 }
 declare var assetdir: string
 
-declare var fetch: {
-    data: (url: string,
-        options: {
-            method: "GET" | "POST" | "PUT" | "DELTE",
-            headers: Record<string, string>,
-            body: Uint8Array | number[]
-        }) => Promise<{headers: Record<string, string>, body: Uint8Array | number[]}>,
-    UTF8: (url: string,
-        options: {
-            method: "GET" | "POST" | "PUT" | "DELTE",
-            headers: Record<string, string>,
-            body: Uint8Array | number[]
-        }) => Promise<{headers: Record<string, string>, body: string}>
+type fetch<T> = (url: string,
+    options: {
+        method: "GET" | "POST" | "PUT" | "DELTE",
+        headers: Record<string, string>,
+        body: Uint8Array | number[]
+    }) => Promise<{headers: Record<string, string>, body: T}>
+export declare var fetch: {
+    data: fetch<Uint8Array | number[]>,
+    UTF8: fetch<string>
 }
 
 let methods = {
     fs,
-    // fetch
+    fetch
 }
 
 const notFound = {
@@ -102,7 +98,7 @@ export default async (
 
         let responseBody = method(...args);
 
-        while(responseBody instanceof Promise) {
+        while(typeof responseBody?.then === 'function') {
             responseBody = await responseBody
         }
 
