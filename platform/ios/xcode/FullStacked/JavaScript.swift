@@ -10,6 +10,7 @@ class JavaScript {
     init(fsdir: String, assetdir: String, entrypointContents: String) {
         self.bindConsoleLog()
         self.bindFs(rootdir: fsdir)
+        self.bindFetch()
         
         // global request object
         let requests = JSValue(newObjectIn: self.ctx)!
@@ -43,7 +44,7 @@ class JavaScript {
             print($0)
         }
         let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
-
+        
         let payload = body != nil ? Array(body!) : nil
         self.ctx["api"]?["default"]?.call(withArguments: [headers, pathname, payload as Any])
             .invokeMethod("then", withArguments: promiseArgs)
@@ -59,7 +60,12 @@ class JavaScript {
         }
         """
         self.ctx.evaluateScript(patch)
-        self.ctx["console"]?["_log"] = JavaScript.consoleLog
+        
+        let consoleLog: @convention (block) ([String]) -> Void = { message in
+            print(message)
+        }
+        
+        self.ctx["console"]?["_log"] = consoleLog
     }
     
     private func bindFs(rootdir: String) {
@@ -74,29 +80,37 @@ class JavaScript {
                 : realpath(path)
         }
         
-        let readdir: @convention (block) (String) -> [[String: String]] = { directory in
-            return JavaScript.readdir(directory: realpath(directory))
+        let readdir: @convention (block) (String) -> [[String: Any]] = { directory in
+            let items = try! FileManager.default.contentsOfDirectory(atPath: realpath(directory))
+            return items.map { item in
+                var isDirectory: ObjCBool = false;
+                let itemPath = directory + "/" + item
+                FileManager.default.fileExists(atPath: realpath(itemPath), isDirectory: &isDirectory)
+                return ["name": item, "isDirectory": isDirectory.boolValue]
+            }
         }
         let readfile: @convention (block) (String, Bool) -> [UInt8] = { filename, forAsset in
-            return JavaScript.readfile(filename: forAsset ? realpathForAsset(filename) : realpath(filename))
+            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
+            return Array(contents)
         }
         let readfileUTF8: @convention (block) (String, Bool) -> String = { filename, forAsset in
-            return JavaScript.readfileUTF8(filename: forAsset ? realpathForAsset(filename) : realpath(filename))
+            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
+            return String(data: contents, encoding: .utf8)!
         }
         let mkdir: @convention (block) (String) -> Void = {directory in
-            JavaScript.mkdir(directory: realpath(directory))
+            try! FileManager.default.createDirectory(atPath: realpath(directory), withIntermediateDirectories: true)
         }
         let rm: @convention (block) (String) -> Void = { path in
-            JavaScript.rm(path: realpath(path))
+            try! FileManager.default.removeItem(atPath: realpath(path))
         }
         let putfile: @convention (block) (String, [UInt8]) -> Void = { filename, data in
-            JavaScript.putfile(filename: realpath(filename), data: data)
+            try! Data(data).write(to: URL(fileURLWithPath: realpath(filename)))
         }
         let putfileUTF8: @convention (block) (String, String) -> Void = { filename, data in
-            JavaScript.putfileUTF8(filename: realpath(filename), data: data)
+            try! data.write(toFile: realpath(filename), atomically: true, encoding: .utf8)
         }
         let exists: @convention (block) (String, Bool) -> Bool = { path, forAsset in
-            return JavaScript.exists(path: forAsset ? realpathForAsset(path) : realpath(path))
+            return FileManager.default.fileExists(atPath: forAsset ? realpathForAsset(path) : realpath(path))
         }
         
         let fs = JSValue(newObjectIn: self.ctx)!
@@ -111,43 +125,77 @@ class JavaScript {
         self.ctx["fs"] = fs
     }
     
-    private static let consoleLog: @convention (block) ([String]) -> Void = { message in
-        print(message)
-    }
-    
-    private static func readdir(directory: String) -> [[String: String]] {
-        let items = try! FileManager.default.contentsOfDirectory(atPath: directory)
-        return items.map { item in
-            var isDirectory: ObjCBool = false;
-            let itemPath = directory + "/" + item
-            FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
-            return ["name": item, "isDirectory": (isDirectory.boolValue ? "1" : "")]
+    private func bindFetch() {
+        let fetchCallbackData: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
+        { urlStr, onCompletion, headers, method, body  in
+            let url = URL(string: urlStr)!
+            var request = URLRequest(url: url)
+
+            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
+            
+            if (headers != nil) {
+                for (headerName, headerValue) in headers! {
+                    request.setValue(headerValue, forHTTPHeaderField: headerName)
+                }
+            }
+            
+            if (body != nil) {
+                request.httpBody = Data(body!)
+            }
+            
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
+                onCompletion.call(withArguments: [headers, Array(data!)])
+            }
+            task.resume()
         }
-    }
-    
-    private static func readfile(filename: String) -> [UInt8] {
-        let contents = FileManager.default.contents(atPath: filename)!
-        return Array(contents)
-    }
-    private static func readfileUTF8(filename: String) -> String {
-        let contents = FileManager.default.contents(atPath: filename)!
-        return String(data: contents, encoding: .utf8)!
-    }
-    private static func mkdir(directory: String) -> Void {
-        try! FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-    }
-    private static func rm(path: String) -> Void  {
-        try! FileManager.default.removeItem(atPath: path)
-    }
-    private static func putfile(filename: String, data: [UInt8]) -> Void {
-        print(filename)
-        try! Data(data).write(to: URL(fileURLWithPath: filename))
-    }
-    private static func putfileUTF8(filename: String, data: String) -> Void {
-        try! data.write(toFile: filename, atomically: true, encoding: .utf8)
-    }
-    private static func exists(path: String) -> Bool {
-        return FileManager.default.fileExists(atPath: path)
+        
+        let fetchCallbackUTF8: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
+        { urlStr, onCompletion, headers, method, body  in
+            let url = URL(string: urlStr)!
+            var request = URLRequest(url: url)
+
+            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
+            
+            if (headers != nil) {
+                for (headerName, headerValue) in headers! {
+                    request.setValue(headerValue, forHTTPHeaderField: headerName)
+                }
+            }
+            
+            if (body != nil) {
+                request.httpBody = Data(body!)
+            }
+            
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
+                let body = String(data: data!, encoding: .utf8)!
+                onCompletion.call(withArguments: [headers, body])
+            }
+            task.resume()
+        }
+        
+        let fetchCallback = JSValue(newObjectIn: self.ctx)!
+        fetchCallback["data"] = fetchCallbackData
+        fetchCallback["UTF8"] = fetchCallbackUTF8
+        
+        self.ctx["fetchCallback"] = fetchCallback
+        
+        let patch = """
+        var fetch = {
+            data: (url, options) => {
+                return new Promise(resolve => {
+                    fetchCallback.data(url, (headers, data) => resolve({ headers, body: data }), options?.headers, options?.method, options?.body)
+                })
+            },
+            UTF8: (url, options) => {
+                return new Promise(resolve => {
+                    fetchCallback.UTF8(url, (headers, UTF8) => resolve({ headers, body: UTF8 }), options?.headers, options?.method, options?.body)
+                })
+            }
+        }
+        """
+        self.ctx.evaluateScript(patch)
     }
 }
 
@@ -159,22 +207,6 @@ extension JSContext {
     subscript(_ key: String) -> Any? {
         get { return objectForKeyedSubscript(key) }
         set { setObject(newValue, forKeyedSubscript: key as NSString) }
-    }
-    
-    func callAsyncFunction(key: String, withArguments: [Any] = []) async throws -> JSValue {
-        try await withCheckedThrowingContinuation { continuation in
-            let onFulfilled: @convention(block) (JSValue) -> Void = {
-                continuation.resume(returning: $0)
-            }
-            let onRejected: @convention(block) (JSValue) -> Void = {
-                let error = NSError(domain: key, code: 0, userInfo: [NSLocalizedDescriptionKey : "\($0)"])
-                continuation.resume(throwing: error)
-            }
-            let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
-            
-            let promise = self.objectForKeyedSubscript(key).call(withArguments: withArguments)
-            promise?.invokeMethod("then", withArguments: promiseArgs)
-        }
     }
 }
 

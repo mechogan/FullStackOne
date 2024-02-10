@@ -1,5 +1,6 @@
 import esbuild from "esbuild";
 import path from "path";
+import fs from "fs";
 
 export function buildWebview(entryPoint: string, outdir: string) {
     esbuild.buildSync({
@@ -17,7 +18,8 @@ export function buildAPI(entryPoint: string) {
         bundle: true,
         globalName: "api",
         format: "iife",
-        write: false
+        write: false,
+        keepNames: true
     });
     return result.outputFiles?.at(0)?.text;
 }

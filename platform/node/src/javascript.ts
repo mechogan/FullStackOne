@@ -93,33 +93,45 @@ export class JavaScript {
     }
 
     private bindFetch() {
-        const fetchSimplified =  (url: string,
-            options: {
-                method?: "GET" | "POST" | "PUT" | "DELTE",
-                headers?: Record<string, string>,
-                body?: Uint8Array | number[]
-            }) => fetch(url, {
-                method: options?.method || "GET",
-                headers: options?.headers || {},
-                body: options?.body ? Buffer.from(options?.body) : undefined
-            });
         const convertHeadersToObj = (headers: Headers) => {
             let headersObj: Record<string, string> = {};
             headers.forEach((headerValue, headerName) => headersObj[headerName] = headerValue);
             return headersObj;
         }
+
         const fetchObj: typeof fetchType = {
-            async data(url, options) {
-                const response = await fetchSimplified(url, options);
+            async data(url: string, options: {
+                    headers?: Record<string, string>, 
+                    method?: "GET" | "POST" | "PUT" | "DELTE", 
+                    body?: Uint8Array | number[]
+                }) {
+                    
+                const response = await fetch(url, {
+                    method: options?.method || "GET",
+                    headers: options?.headers || {},
+                    body: options?.body ? Buffer.from(options?.body) : undefined
+                })
+
+                const headers = convertHeadersToObj(response.headers)
                 return {
-                    headers: convertHeadersToObj(response.headers),
+                    headers,
                     body: new Uint8Array(await response.arrayBuffer())
                 }
             },
-            async UTF8(url, options) {
-                const response = await fetchSimplified(url, options);
+            async UTF8(url: string, options: {
+                    headers?: Record<string, string>, 
+                    method?: "GET" | "POST" | "PUT" | "DELTE", 
+                    body?: Uint8Array | number[]
+                }) {
+                const response = await fetch(url, {
+                    method: options?.method || "GET",
+                    headers: options?.headers || {},
+                    body: options?.body ? Buffer.from(options?.body) : undefined
+                })
+
+                const headers = convertHeadersToObj(response.headers)
                 return {
-                    headers: convertHeadersToObj(response.headers),
+                    headers,
                     body: await response.text()
                 }
             },

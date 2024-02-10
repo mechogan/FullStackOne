@@ -1,16 +1,6 @@
 import mime from "mime";
 import { UTF8ToStr, strToUTF8 } from "./utf8";
 
-declare var requests: {
-    [requestId: string]: {
-        headers: {
-            [headerName: string]: string
-        },
-        pathname: string,
-        body: number[] | Uint8Array
-    }
-}
-
 export declare var fs: {
     exists(itemPath: string, forAsset?: boolean): boolean
 
@@ -27,11 +17,10 @@ export declare var fs: {
 }
 declare var assetdir: string
 
-type fetch<T> = (url: string,
-    options: {
-        method: "GET" | "POST" | "PUT" | "DELTE",
-        headers: Record<string, string>,
-        body: Uint8Array | number[]
+type fetch<T> = (url: string, options: {
+        headers?: Record<string, string>, 
+        method?: "GET" | "POST" | "PUT" | "DELTE", 
+        body?: Uint8Array | number[]
     }) => Promise<{headers: Record<string, string>, body: T}>
 export declare var fetch: {
     data: fetch<Uint8Array | number[]>,
