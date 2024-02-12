@@ -116,7 +116,9 @@ export class Editor {
 
     async updateFile(){
         this.updateThrottler = null;
-        const contents = this.editor.state.doc.toString();
+        const contents = this.editor?.state?.doc?.toString();
+        if(!contents)
+            return;
 
         const exists = await rpc().fs.exists(this.filePath.join("/"))
         if(!exists)

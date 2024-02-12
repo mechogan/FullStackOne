@@ -18,7 +18,7 @@ global.fs = {
     mkdir: (itemPath: string) => fs.mkdirSync(itemPath, { recursive: true })
 }
 global.jsDirectory = "src/js";
-global.resolvePath = (entrypoint: string) => entrypoint
+global.resolvePath = (entrypoint: string) => entrypoint.split("\\").join("/")
 
 const scssFiles = scan("editor/webview").filter(filePath => filePath.endsWith(".scss"));
 
