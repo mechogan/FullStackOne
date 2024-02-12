@@ -1,5 +1,6 @@
 import http, { IncomingMessage, ServerResponse } from "http";
 import { JavaScript } from "./javascript";
+import { WebSocketServer, WebSocket } from "ws";
 
 let port = 9000;
 
@@ -7,10 +8,20 @@ export default (js: JavaScript) => {
     const listenningPort = port;
     port += 1;
 
-    http
+    const server = http
         .createServer((req, res) => requestHandler(req, res, js))
         .listen(listenningPort)
-        
+
+    const wss = new WebSocketServer({ server });
+    const webSockets = new Set<WebSocket>();
+    wss.on('connection', ws => {
+        webSockets.add(ws);
+        ws.on("close", () => webSockets.delete(ws));
+    });
+    js.push = (messageType, message) => {
+        webSockets.forEach(ws => ws.send(JSON.stringify({ messageType, message })));
+    }
+
     return listenningPort;
 }
 
@@ -18,7 +29,7 @@ export default (js: JavaScript) => {
 const readBody = (request: IncomingMessage) => new Promise<Uint8Array>(resolve => {
     const contentLengthStr = request.headers["content-length"] || "0";
     const contentLength = parseInt(contentLengthStr);
-    if(!contentLength){
+    if (!contentLength) {
         resolve(new Uint8Array());
         return;
     }
@@ -26,7 +37,7 @@ const readBody = (request: IncomingMessage) => new Promise<Uint8Array>(resolve =
     const body = new Uint8Array(contentLength);
     let i = 0;
     request.on("data", (chunk: Buffer) => {
-        for(let j = 0; j < chunk.byteLength; j++){
+        for (let j = 0; j < chunk.byteLength; j++) {
             body[j + i] = chunk[j]
         }
         i += chunk.length
@@ -45,7 +56,7 @@ const requestHandler = async (request: IncomingMessage, response: ServerResponse
     const body = await readBody(request);
 
     js.processRequest(headers, pathname, body, jsResponse => {
-        const responseHeaders = jsResponse.data 
+        const responseHeaders = jsResponse.data
             ? {
                 ["Content-Type"]: jsResponse.mimeType,
                 ["Content-Length"]: (jsResponse.data?.length || 0).toString()
@@ -53,7 +64,7 @@ const requestHandler = async (request: IncomingMessage, response: ServerResponse
             : undefined
 
         response.writeHead(200, responseHeaders);
-        if(jsResponse.data)
+        if (jsResponse.data)
             response.write(jsResponse.data);
         response.end();
     });

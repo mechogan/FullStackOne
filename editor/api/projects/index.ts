@@ -8,8 +8,8 @@ import { scan } from "./scan";
 import { Project } from "./types";
 
 declare var fs: typeof globalFS;
-declare var run: (projectdir: string, assetdir: string, entrypointData: string) => void;
-declare var buildWebview: (entrypoint: string, outdir: string) => void;
+declare var run: (projectdir: string, assetdir: string, entrypointData: string, hasErrors: boolean) => void;
+declare var buildWebview: (entrypoint: string, outdir: string) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: number[] | Uint8Array) => void;
 
@@ -40,14 +40,15 @@ export default {
     delete: deleteProject,
     run(project: Project) {
         const maybeWebviewJS = project.location + "/webview/index.js";
+        let hasErrors = false;
         if (fs.exists(maybeWebviewJS)) {
             const entrypointWebview = mingleWebview(maybeWebviewJS);
-            buildWebview(entrypointWebview, project.location + "/.build/webview");
+            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build/webview");
             fs.rm(entrypointWebview);
         }
 
         const entrypointAPI = mingleAPI(project.location + "/index.js");
-        run(project.location, "", entrypointAPI);
+        run(project.location, "", entrypointAPI, hasErrors);
         fs.rm(entrypointAPI);
     },
     zip(project: Project) {

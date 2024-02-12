@@ -4,10 +4,15 @@ import JavaScriptCore
 class JavaScript {
     private var requestId = 0
     let ctx = JSContext()!
+    var push: ((String, String) -> Void)? = nil
     
     var privileged = false
     
-    init(fsdir: String, assetdir: String, entrypointContents: String) {
+    init(
+        fsdir: String,
+        assetdir: String,
+        entrypointContents: String
+    ) {
         self.bindConsoleLog()
         self.bindFs(rootdir: fsdir)
         self.bindFetch()
@@ -16,6 +21,8 @@ class JavaScript {
         let requests = JSValue(newObjectIn: self.ctx)!
         self.ctx["requests"] = requests
         
+        // platform
+        self.ctx["platform"] = "iOS"
         
         // assetdir
         self.ctx["assetdir"] = assetdir

@@ -16,6 +16,7 @@ export declare var fs: {
     rm(itemPath: string): void
 }
 declare var assetdir: string
+declare var platform: string
 
 type fetch<T> = (url: string, options: {
         headers?: Record<string, string>, 
@@ -29,7 +30,8 @@ export declare var fetch: {
 
 let methods = {
     fs,
-    fetch
+    fetch,
+    platform
 }
 
 const notFound = {
@@ -85,7 +87,7 @@ export default async (
     if (method) {
         const args = body && body.length ? JSON.parse(UTF8ToStr(body)) : [];
 
-        let responseBody = method(...args);
+        let responseBody = typeof method === "function" ? method(...args) : method;
 
         while(typeof responseBody?.then === 'function') {
             responseBody = await responseBody

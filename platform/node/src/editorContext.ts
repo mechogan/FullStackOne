@@ -1,15 +1,24 @@
-import { Context } from "vm";
 import path from "path";
 import AdmZip from "adm-zip";
 import { buildWebview } from "./build";
+import { JavaScript } from "./javascript";
 
-export default function(home: string, jsContext: Context) {
+export default function(home: string, js: JavaScript) {
     const resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
 
-    jsContext.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
-    jsContext.resolvePath = resolvePath;
-    jsContext.buildWebview = (entryPoint: string, outdir: string) => buildWebview(resolvePath(entryPoint), resolvePath(outdir));
-    jsContext.zip = (projectdir: string, items: string[], to: string) => {
+    js.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
+    js.ctx.resolvePath = resolvePath;
+    js.ctx.buildWebview = (entryPoint: string, outdir: string) => {
+        const maybeErrors = buildWebview(resolvePath(entryPoint), resolvePath(outdir));
+        
+        if(maybeErrors?.errors){
+            js.push("buildError", JSON.stringify(maybeErrors.errors));
+            return false;
+        }
+
+        return true;
+    };
+    js.ctx.zip = (projectdir: string, items: string[], to: string) => {
         var zip = new AdmZip();
         items.forEach(item => {
             const itemPathComponents = item.split("/");
@@ -23,7 +32,7 @@ export default function(home: string, jsContext: Context) {
         zip.writeZip(out);
         return out.split("/").slice(0, -1).join("/");
     }
-    jsContext.unzip = (to: string, zipData: number[] | Uint8Array) => {
+    js.ctx.unzip = (to: string, zipData: number[] | Uint8Array) => {
         const zip = new AdmZip(Buffer.from(zipData))
         zip.extractAllTo(resolvePath(to));
     }

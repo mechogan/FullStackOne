@@ -12,11 +12,12 @@ const home = os.homedir();
 const mainjs = new JavaScript(
     home,
     path.join(dist, "webview"),
-    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" })
+    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" }),
+    "electron"
 );
 mainjs.privileged = true;
 
-editorContext(home, mainjs.ctx);
+editorContext(home, mainjs);
 
 const originalZip = mainjs.ctx.zip;
 mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
@@ -24,15 +25,30 @@ mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
 }
 
 let appID = 1;
-mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
+mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasErrors: boolean) => {
+    const apiScript = buildAPI(path.join(home, entrypoint));
+
+    if(typeof apiScript != 'string' && apiScript?.errors) {
+        hasErrors = true;
+        mainjs.push("buildError", JSON.stringify(apiScript.errors));
+    }
+
+    if(hasErrors)
+        return;
+
     const hostname = `app-${appID}`;
     appID++;
     apps[hostname] = new JavaScript(
         path.join(home, projectdir),
         assetdir,
-        buildAPI(path.join(home, entrypoint)) as string
+        apiScript as string,
+        "electron"
     );
-    createWindow(hostname);
+
+    createWindow(hostname).then(appWindow => {
+        apps[hostname].push = message =>
+            appWindow.webContents.executeJavaScript(`window.push(\`${message.replace(/\\/g, "\\\\")}\`)`);
+    });
 }
 
 const apps: { [hostname: string]: JavaScript } = {
@@ -75,12 +91,14 @@ protocol.handle('http', handle);
 
 
 const createWindow = async (hostname: string) => {
-    const mainWindow = new BrowserWindow({
+    const appWindow = new BrowserWindow({
         width: 800,
         height: 600,
     });
 
-    mainWindow.loadURL(`http://${hostname}`);
+    appWindow.loadURL(`http://${hostname}`);
+
+    return appWindow;
 
     // const outdir = "esbuild"
     // fs.mkdirSync(outdir, { recursive: true });
@@ -133,7 +151,12 @@ const createWindow = async (hostname: string) => {
     // global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
 }
 
-createWindow("main");
+createWindow("main").then(appWindow => {
+    mainjs.push = (messageType: string, message: string) => {
+        appWindow.webContents.executeJavaScript(`window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`);
+    }
+});
+
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

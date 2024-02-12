@@ -5,15 +5,22 @@ import { fs as fsType, Response, fetch as fetchType } from "../../../src/api"
 export class JavaScript {
     private requestId = 0
     ctx = vm.createContext();
+    push: (messageType: string, data: string) => void;
 
     privileged = false
 
-    constructor(fsdir: string, assetdir: string, entrypointContents: string) {
+    constructor(
+        fsdir: string, 
+        assetdir: string, 
+        entrypointContents: string,
+        platform: string
+    ) {
         this.bindFs(fsdir);
         this.bindConsole();
         this.bindFetch();
 
         this.ctx.requests = {};
+        this.ctx.platform = platform;
         this.ctx.assetdir = assetdir;
 
         const script = new vm.Script(entrypointContents);

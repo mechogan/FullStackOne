@@ -13,7 +13,8 @@ const dist = path.resolve(process.cwd(), "..", "..", "dist");
 const js = new JavaScript(
     home,
     path.join(dist, "webview"),
-    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" })
+    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" }),
+    "node"
 );
 js.privileged = true;
 
@@ -22,18 +23,29 @@ const launchInstance = (js: JavaScript) => {
     open(`http://localhost:${port}`);
 }
 
-editorContext(home, js.ctx);
+editorContext(home, js);
 
 const originalZip = js.ctx.zip;
 js.ctx.zip = (projectdir: string, items: string[], to: string) => {
    open(originalZip(projectdir, items, to));
 }
 
-js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string) => {
+js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasErrors: boolean) => {
+    const apiScript = buildAPI(path.join(home, entrypoint));
+
+    if(typeof apiScript != 'string' && apiScript?.errors) {
+        hasErrors = true;
+        js.push("buildError", JSON.stringify(apiScript.errors));
+    }
+
+    if(hasErrors)
+        return;
+
     launchInstance(new JavaScript(
         path.join(home, projectdir),
         assetdir,
-        buildAPI(path.join(home, entrypoint)) as string
+        apiScript as string,
+        "node"
     ));
 }
 

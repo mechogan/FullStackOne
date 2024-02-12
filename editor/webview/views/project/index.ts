@@ -2,7 +2,7 @@ import "./index.css";
 
 import { Editor } from '../editor';
 import { FileTree } from '../file-tree';
-import { Console } from "../console";
+// import { Console } from "../console";
 
 
 import type { Project as TypeProject } from "../../../api/projects/types";
@@ -21,10 +21,10 @@ export class Project {
         instance: FileTree,
         element: Awaited<ReturnType<FileTree["render"]>> | null
     } = {
-        instance: new FileTree(),
-        element: null
-    };
-    console = new Console();
+            instance: new FileTree(),
+            element: null
+        };
+    // console = new Console();
 
     private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
@@ -32,13 +32,13 @@ export class Project {
     private currentFile: string;
     private editors: Editor[] = [];
 
-    constructor(){
+    constructor() {
         this.fileTree.instance.onItemSelect = (item => {
-            if(!item || item.isDirectory) 
+            if (!item || item.isDirectory)
                 return;
 
             const joinedPath = item.path.join("/");
-            if(!this.editors.find(({filePath}) => filePath.join("/") === joinedPath)){
+            if (!this.editors.find(({ filePath }) => filePath.join("/") === joinedPath)) {
                 this.editors.push(new Editor(item.path));
             }
 
@@ -46,15 +46,45 @@ export class Project {
 
             this.renderEditors();
         });
+
+
+        (window as any).onPush["buildError"] = (message: string) => {
+            const errors = JSON.parse(message);
+
+            console.log(message);
+            console.log(errors)
+
+            errors.forEach(error => {
+                const file = error.location?.file || error.Location?.File;
+
+                let fileName = this.project.location + file.split(this.project.location).pop();
+                let editor = this.editors.find(({ filePath }) => filePath.join("/") === fileName);
+                if(!editor) {
+                    editor = new Editor(fileName.split("/"));
+                    this.editors.push(editor);
+                }
+
+                editor.addBuildError({
+                    line: error.location?.line || error.Location?.Line, 
+                    col: error.location?.column || error.Location?.Column, 
+                    length: error.location?.length || error.Location?.Length, 
+                    message: error.text || error.Text
+                });
+
+                this.currentFile = fileName;
+            });
+
+            this.renderEditors();
+        }
     }
 
     setProject(project: TypeProject) {
-        if(project === this.project)
+        if (project === this.project)
             return;
 
         this.project = project;
         this.fileTree.instance.setBaseDirectory(project.location);
-        
+
         this.editors = [];
         this.renderEditors();
     }
@@ -108,7 +138,12 @@ export class Project {
         const runButton = document.createElement("button");
         runButton.classList.add("text");
         runButton.innerHTML = await (await fetch("/assets/icons/run.svg")).text();
-        runButton.addEventListener("click", () => {
+        runButton.addEventListener("click", async () => {
+            await Promise.all(this.editors.map(editor => {
+                editor.clearBuildErrors();
+                return editor.updateFile();
+            }));
+            this.renderEditors();
             rpc().projects.run(this.project);
         });
         rightSide.append(runButton);
@@ -119,14 +154,17 @@ export class Project {
         return container;
     }
 
-    renderEditors(){
+    renderEditors() {
         Array.from(this.editorsContainer.children).forEach(child => child.remove());
-        
+
         const tabsContainer = document.createElement("ul");
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
             const tab = document.createElement("li");
+            if(editor.hasBuildErrors()){
+                tab.classList.add("has-errors")
+            }
             tab.innerText = editor.filePath.at(-1) || "file";
             tab.addEventListener("click", () => {
                 this.currentFile = editor.filePath.join("/");
@@ -136,8 +174,9 @@ export class Project {
             const removeBtn = document.createElement("button");
             removeBtn.classList.add("text", "small")
             removeBtn.innerHTML = await (await fetch("/assets/icons/close.svg")).text();
-            removeBtn.addEventListener("click", e => {
+            removeBtn.addEventListener("click", async e => {
                 e.stopPropagation();
+                await editor.updateFile();
                 this.editors.splice(index, 1);
                 this.renderEditors();
             })
@@ -145,7 +184,7 @@ export class Project {
 
             tabsContainer.append(tab);
 
-            if(editor.filePath.join("/") === this.currentFile){
+            if (editor.filePath.join("/") === this.currentFile) {
                 tab.classList.add("active");
                 this.editorsContainer.append(await editor.render());
             }

@@ -12,12 +12,12 @@ async function fetchCall(pathComponents: string[], ...args) {
         : response.text();
 }
 
-function recurseInProxy(target: Function, pathComponents: string[] = []){
+function recurseInProxy(target: Function, pathComponents: string[] = []) {
     return new Proxy(target, {
         apply: (target, _, argArray) => {
             return target(pathComponents, ...argArray);
         },
-        get: (_, p) =>  {
+        get: (_, p) => {
             pathComponents.push(p as string);
             return recurseInProxy(target, pathComponents);
         }
@@ -34,8 +34,32 @@ type OnlyOnePromise<T> = T extends PromiseLike<any>
     : Promise<T>;
 
 type AwaitAll<T> = {
-    [K in keyof T]:  T[K] extends ((...args: any) => any)
-        ? (...args: T[K] extends ((...args: infer P) => any) ? P : never[]) =>
-            OnlyOnePromise<(T[K] extends ((...args: any) => any) ? ReturnType<T[K]> : any)>
-        : AwaitAll<T[K]>
+    [K in keyof T]: T[K] extends ((...args: any) => any)
+    ? (...args: T[K] extends ((...args: infer P) => any) ? P : never[]) =>
+        OnlyOnePromise<(T[K] extends ((...args: any) => any) ? ReturnType<T[K]> : any)>
+    : AwaitAll<T[K]>
+};
+
+(window as any).onPush = {} as { [messageType: string]: (message: string) => void };
+
+(window as any).push = (messageType: string, message: string) => {
+    console.log(messageType, message);
+    const callback = (window as any).onPush[messageType];
+    if (!callback)
+        throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;
+
+    callback(message);
+}
+
+
+// use a websocket for nodejs
+const platform = await (rpc() as any).platform();
+if (platform === "node") {
+    const url = (window.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+        window.location.host
+    const ws = new WebSocket(url);
+    ws.onmessage = ({ data }) => {
+        const { messageType, message } = JSON.parse(data);
+        (window as any).push(messageType, message);
+    }
 }

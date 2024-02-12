@@ -3,7 +3,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands"
-import { linter } from "@codemirror/lint";
+import { linter, lintGutter, setDiagnostics, Diagnostic } from "@codemirror/lint";
 import { Extension } from "@codemirror/state";
 
 import type typeRPC from "../../../../src/webview";
@@ -48,12 +48,47 @@ export class Editor {
     ]
     private parent = document.createElement("div");
     private editor: EditorView;
+    private errors: {
+        line: number,
+        col: number,
+        length: number,
+        message: string
+    }[] = [];
     filePath: string[];
 
     constructor(filePath: string[]) {
         this.filePath = filePath;
 
-        this.loadFileContents();
+        this.loadFileContents().then(() => this.esbuildErrorLint());
+    }
+
+    addBuildError(error: Editor["errors"][0]){
+        this.errors.push(error);
+        this.esbuildErrorLint();
+    }
+    hasBuildErrors(){
+        return this.errors.length > 0;
+    }
+    clearBuildErrors() {
+        this.errors = [];
+        this.esbuildErrorLint();
+    }
+
+    private esbuildErrorLint() {
+        if(!this.editor)
+            return;
+
+        console.log(this.errors);
+        const diagnostics: Diagnostic[] = this.errors.map(error => {
+            const from = this.editor.state.doc.line(error.line).from + error.col
+            return {
+                from,
+                to: from + error.length,
+                severity: "error",
+                message: error.message
+            }
+        })
+        this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics))
     }
 
     private async loadFileContents() {
@@ -75,9 +110,19 @@ export class Editor {
             imageContainer.append(img);
             setTimeout(() => window.URL.revokeObjectURL(img.src), 1000);
             
-
             this.parent.append(imageContainer);
         }
+    }
+
+    async updateFile(){
+        this.updateThrottler = null;
+        const contents = this.editor.state.doc.toString();
+
+        const exists = await rpc().fs.exists(this.filePath.join("/"))
+        if(!exists)
+            return;
+
+        rpc().fs.putfileUTF8(this.filePath.join("/"), contents);
     }
 
     private updateThrottler: ReturnType<typeof setTimeout> | null;
@@ -85,16 +130,7 @@ export class Editor {
         if (this.updateThrottler)
             clearTimeout(this.updateThrottler);
 
-        this.updateThrottler = setTimeout(async () => {
-            this.updateThrottler = null;
-            const contents = this.editor.state.doc.toString();
-
-            const exists = await rpc().fs.exists(this.filePath.join("/"))
-            if(!exists)
-                return;
-
-            rpc().fs.putfileUTF8(this.filePath.join("/"), contents);
-        }, 2000);
+        this.updateThrottler = setTimeout(this.updateFileContents.bind(this), 2000);
     }
 
     private async loadLanguageExtensions() {
@@ -113,7 +149,8 @@ export class Editor {
                 jsLang.javascript({
                     typescript: filename.endsWith(UTF8_Ext.TYPESCRIPT) || filename.endsWith(UTF8_Ext.TYPESCRIPT_X),
                     jsx: filename.endsWith("x")
-                })
+                }),
+                lintGutter()
             );
 
             if (filename.endsWith(UTF8_Ext.JAVASCRIPT)

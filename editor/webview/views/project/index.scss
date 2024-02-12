@@ -77,8 +77,15 @@ $transition: 0.3s all;
             cursor: pointer;
             color: colorOpacity(white, 0.6);
             border-right: 1px solid colorOpacity(white, 0.15);
+            height: 100%;
+            &.has-errors {
+                border-bottom: 2px solid colorOpacity($red, 0.7);
+            }
             &.active {
                 color: white;
+                &.has-errors {
+                    border-bottom: 4px solid $red;
+                }
             }
         }
 

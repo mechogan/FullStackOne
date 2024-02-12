@@ -37,6 +37,7 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @ObservedObject private var runningProject = RunningProject()
     @State private var otherWindow: Int? = nil
+    static var instance: ContentView? = nil
     let mainjs: JavaScript;
     
     init(){
@@ -61,10 +62,26 @@ struct ContentView: View {
         }
         self.mainjs.ctx["resolvePath"] = resolvePath
         
-        let run: @convention (block) (String, String, String) -> Void = { projectdir, assetdir, entrypoint in
+        let run: @convention (block) (String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, hasErrors in
             let entrypointPath = documentDir + "/" + entrypoint
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypointPath as NSString).utf8String)
-            let entrypointContents = String.init(cString: buildAPI(entrypointPtr)!, encoding: .utf8)!
+            
+            var errorsPtr = UnsafeMutablePointer<Int8>(nil)
+        
+            let apiScriptPtr = buildAPI(entrypointPtr, &errorsPtr)
+            
+            if(errorsPtr != nil) {
+                let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
+                ContentView.instance?.mainjs.push?("buildError", errorsJSONStr)
+                return
+            }
+            
+            if(hasErrors){
+                return
+            }
+            
+            
+            let entrypointContents = String.init(cString: apiScriptPtr!, encoding: .utf8)!
             RunningProject.instance?.setRunningProject(js: JavaScript(
                 fsdir: documentDir + "/" + projectdir,
                 assetdir: assetdir,
@@ -73,10 +90,21 @@ struct ContentView: View {
         }
         self.mainjs.ctx["run"] = run
         
-        let buildWebviewSwift: @convention (block) (String, String) -> Void = { entrypoint, outdir in
+        let buildWebviewSwift: @convention (block) (String, String) -> Bool = { entrypoint, outdir in
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
             let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outdir) as NSString).utf8String)
-            buildWebview(entrypointPtr, outdirPtr)
+            
+            var errorsPtr = UnsafeMutablePointer<Int8>(nil)
+        
+            buildWebview(entrypointPtr, outdirPtr, &errorsPtr)
+            
+            if(errorsPtr != nil) {
+                let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
+                ContentView.instance?.mainjs.push?("buildError", errorsJSONStr)
+                return false
+            }
+            
+            return true
         }
         self.mainjs.ctx["buildWebview"] = buildWebviewSwift
         
@@ -111,6 +139,9 @@ struct ContentView: View {
             try! FileManager.default.removeItem(at: tmpURL)
         }
         self.mainjs.ctx["unzip"] = unzip
+        
+        
+        ContentView.instance = self
     }
 
     
@@ -182,7 +213,7 @@ struct WebView: UIViewRepresentable {
         
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
-        self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        self.wkWebView  = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
         if #available(iOS 16.4, *) {
             self.wkWebView!.isInspectable = true
         }
@@ -195,7 +226,9 @@ struct WebView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
-
+        self.js.push = { messageType, message in
+            uiView.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+        }
     }
 }
 
