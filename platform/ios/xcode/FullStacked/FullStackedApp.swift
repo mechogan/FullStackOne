@@ -15,6 +15,8 @@ struct FullStackedApp: App {
 
 
 struct WindowView: View {
+    @State private var jsConsole: Bool = false
+    @ObservedObject private var runningProject = RunningProject.instance!
     let webview: WebView
     
     init(js: JavaScript) {
@@ -22,17 +24,43 @@ struct WindowView: View {
     }
     
     var body: some View {
-        Button {
-            self.webview.wkWebView?.reload()
-        } label: {
-            Image(systemName: "arrow.clockwise")
+        VStack {
+            HStack {
+                
+                Button {
+                    self.webview.wkWebView?.reload()
+                    RunningProject.instance!.jsLogs = ""
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+                
+                Button {
+                    jsConsole = !jsConsole
+                } label: {
+                    Image(systemName: "square.topthird.inset.filled")
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+                
+            }
+            
+            ScrollView {
+                Text(self.runningProject.jsLogs)
+                    .lineLimit(.max)
+                    .font(.system(size: 10, design: .monospaced))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
+            }
+            .frame(maxWidth: .infinity, maxHeight: jsConsole ? 200 : 0)
+            
+            
+            self.webview
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
         }
-        .keyboardShortcut("r", modifiers: .command)
-        .opacity(0.0)
-        .frame(width: 0.0, height: 0.0)
-        self.webview
-            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            .edgesIgnoringSafeArea(.all)
-            .ignoresSafeArea()
     }
 }

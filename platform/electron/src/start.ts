@@ -10,6 +10,7 @@ const dist = path.resolve(process.cwd(), "..", "..", "dist");
 
 const home = os.homedir();
 const mainjs = new JavaScript(
+    console.log,
     home,
     path.join(dist, "webview"),
     fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" }),
@@ -39,6 +40,7 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasE
     const hostname = `app-${appID}`;
     appID++;
     apps[hostname] = new JavaScript(
+        (...args) => mainjs.push("log", JSON.stringify(args)),
         path.join(home, projectdir),
         assetdir,
         apiScript as string,

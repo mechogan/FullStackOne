@@ -2,7 +2,7 @@ import "./index.css";
 
 import { Editor } from '../editor';
 import { FileTree } from '../file-tree';
-// import { Console } from "../console";
+import { Console } from "../console";
 
 
 import type { Project as TypeProject } from "../../../api/projects/types";
@@ -24,7 +24,7 @@ export class Project {
             instance: new FileTree(),
             element: null
         };
-    // console = new Console();
+    console = new Console();
 
     private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
@@ -51,9 +51,6 @@ export class Project {
         (window as any).onPush["buildError"] = (message: string) => {
             const errors = JSON.parse(message);
 
-            console.log(message);
-            console.log(errors)
-
             errors.forEach(error => {
                 const file = error.location?.file || error.Location?.File;
 
@@ -75,6 +72,32 @@ export class Project {
             });
 
             this.renderEditors();
+        }
+
+        const openConsole = () => {
+            this.console.fitAddon.fit();
+            this.container.classList.add("console-opened");
+            setTimeout(() => { this.console.fitAddon.fit() }, 350);
+        }
+
+        const writeParagraph = (contents: string) => {
+            contents.split("\n").forEach(ln => this.console.term.writeln(ln));
+        }
+
+        (window as any).onPush["log"] = (message: string) => {
+            const logs = JSON.parse(message);
+            if(logs.length){
+                openConsole();
+            }
+            const str = logs.map(log => typeof log === "string" ? log : JSON.stringify(log, null, 2)).join("  ")
+            writeParagraph(str);
+        }
+        (window as any).onPush["error"] = (message: string) => {
+            openConsole();
+            const error: {message: string, name: string, stack: string} = JSON.parse(message);
+            writeParagraph(error.message)
+            writeParagraph(error.name)
+            writeParagraph(error.stack)
         }
     }
 
@@ -106,6 +129,7 @@ export class Project {
         fileTreeToggle.classList.add("text");
         fileTreeToggle.addEventListener("click", () => {
             this.container.classList.toggle("side-panel-closed");
+            setTimeout(() => {this.console.fitAddon.fit()}, 350)
         })
         leftSide.append(fileTreeToggle);
 
@@ -127,14 +151,6 @@ export class Project {
         });
         rightSide.append(shareButton);
 
-        // const consoleToggle = document.createElement("button");
-        // consoleToggle.classList.add("text");
-        // consoleToggle.innerHTML = await (await fetch("/assets/icons/console.svg")).text();
-        // consoleToggle.addEventListener("click", () => {
-        //     this.container.classList.toggle("bottom-panel-opened");
-        // });
-        // rightSide.append(consoleToggle);
-
         const runButton = document.createElement("button");
         runButton.classList.add("text");
         runButton.innerHTML = await (await fetch("/assets/icons/run.svg")).text();
@@ -144,6 +160,7 @@ export class Project {
                 return editor.updateFile();
             }));
             this.renderEditors();
+            this.console.term.clear();
             rpc().projects.run(this.project);
         });
         rightSide.append(runButton);
@@ -195,6 +212,22 @@ export class Project {
 
     }
 
+    async renderConsole(){
+        const consoleContainer = document.createElement("div");
+        consoleContainer.classList.add("console");
+        consoleContainer.append(this.console.render());
+
+        const toggleConsoleButton = document.createElement("button");
+        toggleConsoleButton.classList.add("text");
+        toggleConsoleButton.innerHTML = await (await fetch("assets/icons/caret-down.svg")).text();
+        toggleConsoleButton.addEventListener("click", () => {
+            this.container.classList.toggle("console-opened");
+            setTimeout(() => { this.console.fitAddon.fit() }, 350)
+        })
+        consoleContainer.append(toggleConsoleButton);
+        return consoleContainer
+    }
+
     async render() {
         this.container = document.createElement("div");
         this.container.classList.add("project");
@@ -214,7 +247,7 @@ export class Project {
         this.editorsContainer.classList.add("editor-container");
         this.container.append(this.editorsContainer);
 
-        // this.container.append(this.console.render());
+        this.container.append(await this.renderConsole());
 
         return this.container;
     }

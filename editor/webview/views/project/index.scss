@@ -5,6 +5,7 @@
 $top-bar-height: 45px;
 $left-sidebar-width: 270px;
 $tabs-height: 29px;
+$console-height: 300px;
 $transition: 0.3s all;
 
 .project {
@@ -102,15 +103,48 @@ $transition: 0.3s all;
         transition: $transition;
     }
 
+    .console {
+        position: fixed;
+        bottom: 0;
+        left: $left-sidebar-width;
+        width: calc(100% - $left-sidebar-width);
+        height: 0;
+
+        button {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            transform: rotate(180deg);
+        }
+
+        transition: $transition;
+    }
+
     &.side-panel-closed {
         > .left-sidebar {
             width: 0px;
         }
 
         > .editor-container,
-        > .tabs-container { 
+        > .tabs-container,
+        > .console { 
             left: 0;
             width: 100%;
         }
     }
+
+    &.console-opened {
+        > .console {
+            height: $console-height;
+
+            button {
+                transform: rotate(0);
+            }
+        }
+        > .editor-container {
+            padding-bottom: $console-height;
+        }
+    }
+
+    
 }

@@ -43,7 +43,6 @@ type AwaitAll<T> = {
 (window as any).onPush = {} as { [messageType: string]: (message: string) => void };
 
 (window as any).push = (messageType: string, message: string) => {
-    console.log(messageType, message);
     const callback = (window as any).onPush[messageType];
     if (!callback)
         throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;

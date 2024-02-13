@@ -1,15 +1,24 @@
-import "xterm/css/xterm.css";
-import { Terminal } from "xterm";
+import "./index.css";
+import "@xterm/xterm/css/xterm.css";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
 
 export class Console {
-    render() {
-        const container = document.createElement("div");
+    private container = document.createElement("div");
+    term = new Terminal();
+    fitAddon = new FitAddon();
 
-        // const ws = new WebSocket("ws://" + window.location.host);
-        const term = new Terminal();
-        term.open(container);
-        // ws.onmessage = message => term.write(message.data)
-        
-        return container;
+    constructor(){
+        this.term.open(this.container);
+        this.term.loadAddon(this.fitAddon);
+
+        window.addEventListener("resize", () => this.fitAddon.fit());
+        window.addEventListener("focus", () => setTimeout(() => this.fitAddon.fit(), 350));
+    }
+
+    render() {
+        this.term.clear();
+        this.container.classList.add("console-container");
+        return this.container;
     }
 }

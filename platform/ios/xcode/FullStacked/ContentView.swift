@@ -10,6 +10,7 @@ struct Project: Identifiable {
 
 class RunningProject: ObservableObject {
     @Published var project: Project?
+    @Published var jsLogs: String = ""
     static var instance: RunningProject?
     static var id = 1
     
@@ -18,6 +19,7 @@ class RunningProject: ObservableObject {
     }
     
     func setRunningProject(js: JavaScript){
+        self.jsLogs = "";
         self.project = Project(id: RunningProject.id, js: js)
         RunningProject.id += 1;
     }
@@ -37,6 +39,7 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @ObservedObject private var runningProject = RunningProject()
     @State private var otherWindow: Int? = nil
+    @State private var jsConsole: Bool = false
     static var instance: ContentView? = nil
     let mainjs: JavaScript;
     
@@ -49,6 +52,7 @@ struct ContentView: View {
         let entrypointContents = FileManager.default.contents(atPath: Bundle.main.bundlePath + "/dist/api/index.js")!
         
         self.mainjs = JavaScript(
+            logFn: { messages in print(messages) },
             fsdir: documentDir,
             assetdir: assetdir,
             entrypointContents: String(data: entrypointContents, encoding: .utf8)!
@@ -83,6 +87,7 @@ struct ContentView: View {
             
             let entrypointContents = String.init(cString: apiScriptPtr!, encoding: .utf8)!
             RunningProject.instance?.setRunningProject(js: JavaScript(
+                logFn: {messages in ContentView.instance?.mainjs.push?("log", messages) },
                 fsdir: documentDir + "/" + projectdir,
                 assetdir: assetdir,
                 entrypointContents: entrypointContents
@@ -167,7 +172,15 @@ struct ContentView: View {
                         }
                         .keyboardShortcut("w", modifiers: .command)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(EdgeInsets(top: 5, leading: 10, bottom: 3, trailing: 10))
+                        .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+                        
+                        Button {
+                            jsConsole = !jsConsole
+                        } label: {
+                            Image(systemName: "square.topthird.inset.filled")
+                        }
+                        .frame(maxWidth: .infinity, alignment: self.supportsMultipleWindows ? .center : .trailing)
+                        .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
                         
                         if self.supportsMultipleWindows {
                             Button {
@@ -177,10 +190,20 @@ struct ContentView: View {
                                 Image(systemName: "rectangle.split.2x1.fill")
                             }
                             .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(EdgeInsets(top: 5, leading: 10, bottom: 3, trailing: 10))
+                            .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
                         }
                         
                     }
+                    
+                    ScrollView {
+                        Text(self.runningProject.jsLogs)
+                            .lineLimit(.max)
+                            .font(.system(size: 10, design: .monospaced))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                            .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: jsConsole ? 200 : 0)
+                    
             
                     WebView(js: self.runningProject.project!.js)
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
@@ -204,6 +227,38 @@ class FullScreenWKWebView: WKWebView {
     }
 }
 
+class LoggingMessageHandler: NSObject, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        RunningProject.instance?.jsLogs = (message.body as! String) + "\n" + RunningProject.instance!.jsLogs
+    }
+}
+
+// source: https://stackoverflow.com/a/61489361
+let overrideConsole = """
+    function log(type, args) {
+      window.webkit.messageHandlers.logging.postMessage(
+        `${type ? type + ": " : ""}${Object.values(args)
+          .map(v => typeof(v) === "undefined" ? "undefined" : typeof(v) === "object" ? JSON.stringify(v, null, 2) : v.toString())
+          .map(v => v.substring(0, 3000)) // Limit msg to 3000 chars
+          .join(", ")}`
+      )
+    }
+
+    let originalLog = console.log
+    let originalWarn = console.warn
+    let originalError = console.error
+    let originalDebug = console.debug
+
+    console.log = function() { log("", arguments); originalLog.apply(null, arguments) }
+    console.warn = function() { log("warn", arguments); originalWarn.apply(null, arguments) }
+    console.error = function() { log("Error", arguments); originalError.apply(null, arguments) }
+    console.debug = function() { log("debug", arguments); originalDebug.apply(null, arguments) }
+
+    window.addEventListener("error", function(e) {
+       log("Uncaught", [`${e.message} at ${e.filename}:${e.lineno}:${e.colno}`])
+    })
+"""
+
 struct WebView: UIViewRepresentable {
     let js: JavaScript;
     var wkWebView: WKWebView?;
@@ -211,8 +266,14 @@ struct WebView: UIViewRepresentable {
     init(js: JavaScript) {
         self.js = js
         
+        let userContentController = WKUserContentController()
+        userContentController.add(LoggingMessageHandler(), name: "logging")
+        userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+
+        
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
+        wkConfig.userContentController = userContentController
         self.wkWebView  = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
         if #available(iOS 16.4, *) {
             self.wkWebView!.isInspectable = true
@@ -227,7 +288,9 @@ struct WebView: UIViewRepresentable {
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
         self.js.push = { messageType, message in
-            uiView.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+            DispatchQueue.main.async {
+                uiView.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+            }
         }
     }
 }

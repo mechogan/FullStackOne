@@ -9,11 +9,12 @@ class JavaScript {
     var privileged = false
     
     init(
+        logFn: @escaping (String) -> Void,
         fsdir: String,
         assetdir: String,
         entrypointContents: String
     ) {
-        self.bindConsoleLog()
+        self.bindConsoleLog(logFn)
         self.bindFs(rootdir: fsdir)
         self.bindFetch()
         
@@ -27,10 +28,9 @@ class JavaScript {
         // assetdir
         self.ctx["assetdir"] = assetdir
         
-        
         // errors
         self.ctx.exceptionHandler = { (context: JSContext?, exception: JSValue?) in
-            print("JS Error: " + exception!.toString())
+            logFn("[\"Error: " + exception!.toString() + "\"]")
         }
         
         // start with entrypoint
@@ -57,19 +57,18 @@ class JavaScript {
             .invokeMethod("then", withArguments: promiseArgs)
     }
     
-    private func bindConsoleLog() {
+    private func bindConsoleLog(_ logFn: @escaping (String) -> Void) {
         let patch = """
         var console = {
             log: function(...args) {
-                var messages = args.map(arg => typeof arg !== "string" ? JSON.stringify(arg, null, 2) : arg);
-                console._log(messages);
+                console._log(JSON.stringify(args));
             }
         }
         """
         self.ctx.evaluateScript(patch)
         
-        let consoleLog: @convention (block) ([String]) -> Void = { message in
-            print(message)
+        let consoleLog: @convention (block) (String) -> Void = { args in
+            logFn(args)
         }
         
         self.ctx["console"]?["_log"] = consoleLog

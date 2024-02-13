@@ -10,13 +10,14 @@ export class JavaScript {
     privileged = false
 
     constructor(
+        logFn: (...args) => void,
         fsdir: string, 
         assetdir: string, 
         entrypointContents: string,
         platform: string
     ) {
         this.bindFs(fsdir);
-        this.bindConsole();
+        this.bindConsole(logFn);
         this.bindFetch();
 
         this.ctx.requests = {};
@@ -93,9 +94,9 @@ export class JavaScript {
         this.ctx.fs = ctxFs;
     }
 
-    private bindConsole() {
+    private bindConsole(logFn: (...args) => void) {
         this.ctx.console = {
-            log: console.log
+            log: logFn
         }
     }
 

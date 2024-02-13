@@ -78,7 +78,6 @@ export class Editor {
         if(!this.editor)
             return;
 
-        console.log(this.errors);
         const diagnostics: Diagnostic[] = this.errors.map(error => {
             const from = this.editor.state.doc.line(error.line).from + error.col
             return {
