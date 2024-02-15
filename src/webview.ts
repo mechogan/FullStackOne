@@ -1,3 +1,5 @@
+import { SourceMapConsumer } from "source-map-js"
+
 async function fetchCall(pathComponents: string[], ...args) {
     const url = new URL(window.location.origin);
     url.pathname = pathComponents.join("/");
@@ -61,4 +63,6 @@ if (platform === "node") {
         const { messageType, message } = JSON.parse(data);
         (window as any).push(messageType, message);
     }
-}
+} 
+
+(window as any).sourceMapConsumer = SourceMapConsumer;

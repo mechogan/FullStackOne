@@ -28,7 +28,7 @@ struct WindowView: View {
             HStack {
                 
                 Button {
-                    self.webview.wkWebView?.reload()
+                    self.webview.wkWebView.reload()
                     RunningProject.instance!.jsLogs = ""
                 } label: {
                     Image(systemName: "arrow.clockwise")
@@ -53,8 +53,10 @@ struct WindowView: View {
                     .font(.system(size: 10, design: .monospaced))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
+                    .rotationEffect(.degrees(180.0))
             }
             .frame(maxWidth: .infinity, maxHeight: jsConsole ? 200 : 0)
+            .rotationEffect(.degrees(180.0))
             
             
             self.webview

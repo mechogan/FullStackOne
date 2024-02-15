@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9C2FB2642B7C7F180010EB72 /* Demo.zip in Resources */ = {isa = PBXBuildFile; fileRef = 9C2FB2632B7C7F180010EB72 /* Demo.zip */; };
 		9C3089342B571C5600C179A6 /* esbuild.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C3089332B571C5600C179A6 /* esbuild.a */; };
 		9C3911512B6B54C800C4E3EF /* JavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3911502B6B54C800C4E3EF /* JavaScript.swift */; };
 		9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		9C2FB2632B7C7F180010EB72 /* Demo.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = Demo.zip; path = ../../../../Demo.zip; sourceTree = "<group>"; };
 		9C3089322B571C5600C179A6 /* esbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esbuild.h; path = ../../../esbuild/out/esbuild.h; sourceTree = "<group>"; };
 		9C3089332B571C5600C179A6 /* esbuild.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = esbuild.a; path = ../../../esbuild/out/esbuild.a; sourceTree = "<group>"; };
 		9C3911502B6B54C800C4E3EF /* JavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JavaScript.swift; sourceTree = "<group>"; };
@@ -28,7 +30,6 @@
 		9CA03E532B5715AC002D2D9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9CA03E562B5715AC002D2D9F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		9CA03E652B57168A002D2D9F /* esbuild-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "esbuild-Bridging-Header.h"; sourceTree = "<group>"; };
-		9CA03E682B57187F002D2D9F /* SwiftServer */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SwiftServer; sourceTree = "<group>"; };
 		9CC24A292B6FF73D00641AFC /* dist */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dist; path = ../../../../dist; sourceTree = "<group>"; };
 		9CE2142E2B5E17AA00B3F646 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9CE5E40D2B6FEEC600EDE034 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; name = js; path = ../../../../src/js; sourceTree = "<group>"; };
@@ -50,7 +51,6 @@
 		9CA03E432B5715A9002D2D9F = {
 			isa = PBXGroup;
 			children = (
-				9CA03E682B57187F002D2D9F /* SwiftServer */,
 				9CA03E4E2B5715AA002D2D9F /* FullStacked */,
 				9CA03E4D2B5715AA002D2D9F /* Products */,
 			);
@@ -76,6 +76,7 @@
 				9CA03E532B5715AC002D2D9F /* Assets.xcassets */,
 				9CA03E552B5715AC002D2D9F /* Preview Content */,
 				9C3911502B6B54C800C4E3EF /* JavaScript.swift */,
+				9C2FB2632B7C7F180010EB72 /* Demo.zip */,
 			);
 			path = FullStacked;
 			sourceTree = "<group>";
@@ -162,6 +163,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9C2FB2642B7C7F180010EB72 /* Demo.zip in Resources */,
 				9CC24A2A2B6FF73D00641AFC /* dist in Resources */,
 				9CE5E40E2B6FEEC600EDE034 /* js in Resources */,
 				9CA03E572B5715AC002D2D9F /* Preview Assets.xcassets in Resources */,
@@ -310,13 +312,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"FullStacked/Preview Content\"";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/FullStacked/esbuild\"";
 				INFOPLIST_FILE = FullStacked/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -328,8 +331,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = test.test.test.test.FullStacked;
+				MARKETING_VERSION = 0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/FullStacked/esbuild/esbuild-Bridging-Header.h";
@@ -344,13 +347,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"FullStacked/Preview Content\"";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/FullStacked/esbuild\"";
 				INFOPLIST_FILE = FullStacked/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -362,8 +366,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = test.test.test.test.FullStacked;
+				MARKETING_VERSION = 0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/FullStacked/esbuild/esbuild-Bridging-Header.h";

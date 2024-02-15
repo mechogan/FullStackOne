@@ -1,21 +1,29 @@
 
 import type { fs as globalFS} from "../../../src/api";
+import projects from "../projects";
 
 import { Project } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
 
 declare var fs: typeof globalFS;
+declare var demoZIP: string;
 
 const configdir = ".config/fullstacked";
 
-if(!fs.exists(configdir))
-    fs.mkdir(configdir);
+
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[]
 }
 
 export default {
+    init(){
+        if (fs.exists(configdir))
+            return;
+
+        fs.mkdir(configdir);
+        projects.import({title: "Demo", location: "Demo"}, fs.readfile(demoZIP, true));
+    },
     load<T extends CONFIG_TYPE>(type: T) : DATA_TYPE[T] | null {
         const configFile = configdir + "/" + type + ".json";
         if(fs.exists(configFile))

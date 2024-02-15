@@ -113,8 +113,13 @@ export class Editor {
         }
     }
 
+    private updateThrottler: ReturnType<typeof setTimeout> | null;
     async updateFile(){
+        if (this.updateThrottler)
+            clearTimeout(this.updateThrottler);
+
         this.updateThrottler = null;
+
         const contents = this.editor?.state?.doc?.toString();
         if(!contents)
             return;
@@ -126,12 +131,8 @@ export class Editor {
         rpc().fs.putfileUTF8(this.filePath.join("/"), contents);
     }
 
-    private updateThrottler: ReturnType<typeof setTimeout> | null;
     private updateFileContents() {
-        if (this.updateThrottler)
-            clearTimeout(this.updateThrottler);
-
-        this.updateThrottler = setTimeout(this.updateFileContents.bind(this), 2000);
+        this.updateThrottler = setTimeout(this.updateFile.bind(this), 2000);
     }
 
     private async loadLanguageExtensions() {

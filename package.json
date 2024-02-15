@@ -29,6 +29,7 @@
     "eslint-linter-browserify": "^8.56.0",
     "open": "^10.0.3",
     "sass": "^1.69.7",
+    "source-map": "^0.7.4",
     "ws": "^8.16.0",
     "xterm": "^5.3.0"
   }

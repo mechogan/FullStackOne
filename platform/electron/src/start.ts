@@ -2,23 +2,36 @@ import { app, protocol, BrowserWindow, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { buildAPI, buildWebview } from "../../node/src/build";
+import { buildAPI } from "../../node/src/build";
 import { JavaScript } from "../../node/src/javascript";
 import editorContext from "../../node/src/editorContext";
+import { loadEsbuild } from "./esbuild";
 
-const dist = path.resolve(process.cwd(), "..", "..", "dist");
+const dist = path.resolve(__dirname, "..", "dist");
 
 const home = os.homedir();
 const mainjs = new JavaScript(
     console.log,
     home,
     path.join(dist, "webview"),
-    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" }),
+    fs.readFileSync(path.resolve(__dirname, "..", "dist", "api", "index.js"), { encoding: "utf-8" }),
     "electron"
 );
 mainjs.privileged = true;
 
-editorContext(home, mainjs);
+editorContext(home, mainjs, path.resolve(__dirname, "..", "js"));
+
+mainjs.ctx.checkEsbuildInstall = async () => {
+    if(global.esbuild)
+        return true;
+
+    try {
+        await loadEsbuild();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 
 const originalZip = mainjs.ctx.zip;
 mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
@@ -47,7 +60,7 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasE
         "electron"
     );
 
-    createWindow(hostname).then(appWindow => {
+    createWindow(hostname, projectdir).then(appWindow => {
         apps[hostname].push = message =>
             appWindow.webContents.executeJavaScript(`window.push(\`${message.replace(/\\/g, "\\\\")}\`)`);
     });
@@ -92,68 +105,19 @@ const handle = async (request: Request) => {
 protocol.handle('http', handle);
 
 
-const createWindow = async (hostname: string) => {
+const createWindow = async (hostname: string, title: string) => {
     const appWindow = new BrowserWindow({
         width: 800,
         height: 600,
+        title
     });
 
     appWindow.loadURL(`http://${hostname}`);
 
     return appWindow;
-
-    // const outdir = "esbuild"
-    // fs.mkdirSync(outdir, { recursive: true });
-
-    // const esbuildResponse = await fetch(`https://registry.npmjs.org/esbuild/${esbuildVersion}`);
-    // const esbuildPackage = await esbuildResponse.json();
-    // const esbuildtarballUrl = esbuildPackage.dist.tarball;
-    // const esbuildTarball = "esbuild.tgz";
-    // const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
-
-    // await new Promise(resolve => {
-    //   https.get(esbuildtarballUrl, (res) => {
-    //     res.pipe(esbuildWiteStream);
-    //     esbuildWiteStream.on("close", resolve)
-    //   });
-    // });
-
-    // const esbuildOutdir = path.join(outdir, "esbuild");
-    // fs.mkdirSync(esbuildOutdir, { recursive: true });
-    // await tar.extract({
-    //   file: esbuildTarball,
-    //   strip: 1,
-    //   C: esbuildOutdir
-    // });
-
-
-    // const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
-    // const npmResponse = await fetch(`https://registry.npmjs.org/${pkg}/${esbuildVersion}`);
-    // const latestEsbuild = await npmResponse.json();
-    // const tarballUrl = latestEsbuild.dist.tarball;
-    // const tarball = "esbuild.tgz";
-    // const writeStream = fs.createWriteStream(tarball);
-
-    // await new Promise(resolve => {
-    //   https.get(tarballUrl, (res) => {
-    //     res.pipe(writeStream);
-    //     writeStream.on("close", resolve)
-    //   });
-    // });
-
-    // const esbuildBinOutdir = path.join(outdir, pkg);
-    // fs.mkdirSync(esbuildBinOutdir, { recursive: true });
-    // await tar.extract({
-    //   file: tarball,
-    //   strip: 1,
-    //   C: esbuildBinOutdir
-    // });
-
-    // process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
-    // global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
 }
 
-createWindow("main").then(appWindow => {
+createWindow("main", "FullStacked").then(appWindow => {
     mainjs.push = (messageType: string, message: string) => {
         appWindow.webContents.executeJavaScript(`window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`);
     }
@@ -162,6 +126,6 @@ createWindow("main").then(appWindow => {
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow("main");
+        createWindow("main", "FullStacked");
     }
 });

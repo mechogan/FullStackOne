@@ -61,6 +61,8 @@ struct ContentView: View {
         
         self.mainjs.ctx["jsDirectory"] = Bundle.main.bundlePath + "/js"
         
+        self.mainjs.ctx["demoZIP"] = Bundle.main.bundlePath + "/Demo.zip"
+        
         let resolvePath: @convention (block) (String) -> String = { entrypoint in
             return documentDir + "/" + entrypoint
         }
@@ -152,6 +154,11 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            Color(hex: 0x1e293b)
+                .ignoresSafeArea()
+            Image(uiImage: UIImage(named: "dist/webview/assets/dev-icon.png")!)
+                .resizable()
+                .frame(width: 100, height: 100, alignment: .center)
             WebView(js: self.mainjs)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
@@ -164,7 +171,6 @@ struct ContentView: View {
             if self.runningProject.project != nil && self.otherWindow != self.runningProject.project?.id {
                 VStack {
                     HStack {
-                        
                         Button {
                             self.runningProject.project = nil
                         } label: {
@@ -201,8 +207,10 @@ struct ContentView: View {
                             .font(.system(size: 10, design: .monospaced))
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                             .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
+                            .rotationEffect(.degrees(180.0))
                     }
                     .frame(maxWidth: .infinity, maxHeight: jsConsole ? 200 : 0)
+                    .rotationEffect(.degrees(180.0))
                     
             
                     WebView(js: self.runningProject.project!.js)
@@ -212,7 +220,6 @@ struct ContentView: View {
                 }
                 .background(Color.black)
             }
-                
         }
     }
 }
@@ -221,6 +228,23 @@ struct ContentView: View {
     ContentView()
 }
 
+
+class OpenLinkDelegate: NSObject, WKNavigationDelegate {
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.navigationType == .linkActivated  {
+            if let url = navigationAction.request.url, "localhost" != url.host, UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            } else {
+                decisionHandler(.allow)
+            }
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+
+}
 class FullScreenWKWebView: WKWebView {
     override var safeAreaInsets: UIEdgeInsets {
         return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
@@ -229,7 +253,7 @@ class FullScreenWKWebView: WKWebView {
 
 class LoggingMessageHandler: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        RunningProject.instance?.jsLogs = (message.body as! String) + "\n" + RunningProject.instance!.jsLogs
+        RunningProject.instance?.jsLogs += "\n\n" + (message.body as! String)
     }
 }
 
@@ -254,6 +278,45 @@ let overrideConsole = """
     console.error = function() { log("Error", arguments); originalError.apply(null, arguments) }
     console.debug = function() { log("debug", arguments); originalDebug.apply(null, arguments) }
 
+    const sourceMaps = {};
+
+    async function getSourceMap(file){
+        if(!sourceMaps[file]){
+            sourceMaps[file] = new window.sourceMapConsumer(await (await fetch(file + ".map")).json())
+        }
+        return sourceMaps[file];
+    }
+
+    async function sourceMapStack(stack) {
+        const lines = stack.split("\\n");
+        const mappedLines = [];
+        for (const line of lines) {
+            const [fn, location] = line.split("@");
+            const [file, ln, col] = location.slice("fs://localhost/".length).split(":");
+
+            const sourceMap = await getSourceMap(file);
+            const mappedPosition = sourceMap.originalPositionFor({
+              line: parseInt(ln),
+              column: parseInt(col)
+            })
+
+            const name = mappedPosition.name
+                ? mappedPosition.name + "@"
+                : fn
+                    ? fn + "@"
+                    : "";
+            const originalFile = mappedPosition.source.split("/").filter(part => part !== "..").join("/");
+
+            mappedLines.push(name + originalFile + ":" + mappedPosition.line + ":" + mappedPosition.column);
+        }
+        return mappedLines.join("\\n");
+    }
+
+    window.addEventListener("unhandledrejection", (e) => {
+        sourceMapStack(e.reason.stack).then(mappedStack => {
+            log("Unhandled Rejection", [`${e.reason.message} at ${mappedStack}`])
+        })
+    });
     window.addEventListener("error", function(e) {
        log("Uncaught", [`${e.message} at ${e.filename}:${e.lineno}:${e.colno}`])
     })
@@ -261,7 +324,8 @@ let overrideConsole = """
 
 struct WebView: UIViewRepresentable {
     let js: JavaScript;
-    var wkWebView: WKWebView?;
+    let navigationDelegate = OpenLinkDelegate();
+    let wkWebView: WKWebView;
     
     init(js: JavaScript) {
         self.js = js
@@ -270,20 +334,21 @@ struct WebView: UIViewRepresentable {
         userContentController.add(LoggingMessageHandler(), name: "logging")
         userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
-        
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         wkConfig.userContentController = userContentController
-        self.wkWebView  = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        self.wkWebView.isOpaque = false
+        self.wkWebView.navigationDelegate = self.navigationDelegate
         if #available(iOS 16.4, *) {
-            self.wkWebView!.isInspectable = true
+            self.wkWebView.isInspectable = true
         }
     }
     
     func makeUIView(context: Context) -> WKWebView  {
         let request = URLRequest(url: URL(string: "fs://localhost")!)
-        self.wkWebView!.load(request)
-        return self.wkWebView!
+        self.wkWebView.load(request)
+        return self.wkWebView
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {

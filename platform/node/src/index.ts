@@ -6,6 +6,9 @@ import open from "open";
 import { buildAPI } from "./build";
 import fs from "fs";
 import editorContext from "./editorContext";
+import esbuild from "esbuild";
+
+global.esbuild = esbuild;
 
 const home = os.homedir();
 const dist = path.resolve(process.cwd(), "..", "..", "dist");
@@ -24,7 +27,11 @@ const launchInstance = (js: JavaScript) => {
     open(`http://localhost:${port}`);
 }
 
-editorContext(home, js);
+editorContext(home, js, path.resolve(process.cwd(), "..", "..", "src", "js"));
+
+js.ctx.checkEsbuildInstall = async () => true;
+
+js.ctx.demoZIP = path.resolve(process.cwd(), "..", "..", "Demo.zip");
 
 const originalZip = js.ctx.zip;
 js.ctx.zip = (projectdir: string, items: string[], to: string) => {
@@ -56,17 +63,18 @@ js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasError
 launchInstance(js);
 
 process.on("uncaughtException", e => {
-    console.log("ici1");
     js.push("error", JSON.stringify({
         name: e.name,
         stack: e.stack,
         message: e.message
-    }))
+    }));
+    console.error(e);
 })
 process.on("unhandledRejection", (e: any) => {
     js.push("error", JSON.stringify({
         name: e.name,
         stack: e.stack,
         message: e.message
-    }))
+    }));
+    console.error(e);
 })

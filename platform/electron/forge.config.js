@@ -1,6 +1,8 @@
 module.exports = {
   packagerConfig: {
-    // asar: true,
+    name: "FullStacked",
+    icon: "icons/icon",
+    asar: true,
     ignore: [
     ],
     extraResource: [

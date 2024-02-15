@@ -7,6 +7,7 @@
     "build": "esbuild build.ts --outfile=.cache/build.mjs --packages=external && node .cache/build.mjs",
     "start": "npm run build && electron-forge start",
     "package": "electron-forge package",
+    "premake": "npm run build",
     "make": "electron-forge make"
   },
   "dependencies": {

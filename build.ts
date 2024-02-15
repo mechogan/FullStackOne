@@ -5,6 +5,7 @@ import { buildAPI, buildWebview } from "./platform/node/src/build";
 import { buildSync } from "esbuild";
 import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
 import { scan } from "./editor/api/projects/scan";
+import esbuild from "esbuild";
 
 if (fs.existsSync("dist"))
     fs.rmSync("dist", { recursive: true })
@@ -19,6 +20,7 @@ global.fs = {
 }
 global.jsDirectory = "src/js";
 global.resolvePath = (entrypoint: string) => entrypoint.split("\\").join("/")
+global.esbuild = esbuild
 
 const scssFiles = scan("editor/webview").filter(filePath => filePath.endsWith(".scss"));
 

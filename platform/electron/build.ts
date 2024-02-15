@@ -1,4 +1,6 @@
 import esbuild from "esbuild";
+import fs from "fs";
+import path from "path";
 
 esbuild.buildSync({
     entryPoints: ["src/index.ts"],
@@ -10,3 +12,6 @@ esbuild.buildSync({
     },
     external: ["esbuild", "electron"]
 });
+
+fs.cpSync(path.resolve("..", "..", "dist"), "dist", { recursive: true });
+fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });

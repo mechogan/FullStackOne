@@ -1,0 +1,26 @@
+@import "../../style/typography";
+@import "../../style/spacing";
+@import "../../style/colors";
+
+.esbuild-install {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    img {
+        height: 100px;
+        width: 100px;
+    }
+
+    ol {
+        font-size: $font-size-s;
+        font-weight: bold;
+        color: colorOpacity(white, 0.5);
+
+        li {
+            margin-bottom: spacing();
+        }
+    }
+}

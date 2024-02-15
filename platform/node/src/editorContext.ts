@@ -3,10 +3,10 @@ import AdmZip from "adm-zip";
 import { buildWebview } from "./build";
 import { JavaScript } from "./javascript";
 
-export default function(home: string, js: JavaScript) {
+export default function(home: string, js: JavaScript, jsDir: string) {
     const resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
 
-    js.ctx.jsDirectory = path.resolve(process.cwd(), "..", "..", "src", "js");
+    js.ctx.jsDirectory = jsDir;
     js.ctx.resolvePath = resolvePath;
     js.ctx.buildWebview = (entryPoint: string, outdir: string) => {
         const maybeErrors = buildWebview(resolvePath(entryPoint), resolvePath(outdir));

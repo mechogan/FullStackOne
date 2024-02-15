@@ -5,6 +5,7 @@ class JavaScript {
     private var requestId = 0
     let ctx = JSContext()!
     var push: ((String, String) -> Void)? = nil
+    let logFn: (String) -> Void
     
     var privileged = false
     
@@ -14,7 +15,9 @@ class JavaScript {
         assetdir: String,
         entrypointContents: String
     ) {
-        self.bindConsoleLog(logFn)
+        self.logFn = logFn;
+        
+        self.bindConsoleLog()
         self.bindFs(rootdir: fsdir)
         self.bindFetch()
         
@@ -30,7 +33,7 @@ class JavaScript {
         
         // errors
         self.ctx.exceptionHandler = { (context: JSContext?, exception: JSValue?) in
-            logFn("[\"Error: " + exception!.toString() + "\"]")
+            self.logFn("[\"Error: " + exception!.toString() + "\"]")
         }
         
         // start with entrypoint
@@ -57,7 +60,7 @@ class JavaScript {
             .invokeMethod("then", withArguments: promiseArgs)
     }
     
-    private func bindConsoleLog(_ logFn: @escaping (String) -> Void) {
+    private func bindConsoleLog() {
         let patch = """
         var console = {
             log: function(...args) {
@@ -68,7 +71,7 @@ class JavaScript {
         self.ctx.evaluateScript(patch)
         
         let consoleLog: @convention (block) (String) -> Void = { args in
-            logFn(args)
+            self.logFn(args)
         }
         
         self.ctx["console"]?["_log"] = consoleLog
@@ -174,6 +177,11 @@ class JavaScript {
             }
             
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                if error != nil {
+                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
+                    onCompletion.call(withArguments: [[:], ""])
+                    return
+                }
                 let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
                 let body = String(data: data!, encoding: .utf8)!
                 onCompletion.call(withArguments: [headers, body])
