@@ -21,6 +21,10 @@
 
         li {
             margin-bottom: spacing();
+            span {
+                margin-left: spacing(0.5);
+                font-weight: normal;
+            }
         }
     }
 }

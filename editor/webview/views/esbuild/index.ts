@@ -1,12 +1,32 @@
 import "./index.css";
 
+import type typeRPC from "../../../../src/webview";
+import type api from "../../../api";
+
+declare var rpc: typeof typeRPC<typeof api>;
+
 export class EsbuildInstall {
     onComplete: () => void;
+    stepsList: HTMLOListElement = document.createElement("ol");
 
     constructor() {
-        (window as any).onPush["esbuildInstall"] = () => {
+        (window as any).onPush["esbuildInstall"] = (message: string) => {
+            const { step, progress } = JSON.parse(message);
+            const li = this.stepsList.children[step];
+            let span = li.querySelector("span");
+            if(!span) {
+                span = document.createElement("span");
+                li.append(span);
+            }
+            span.innerText = Math.floor(progress * 100).toString() + "%";
 
+            if(step === this.stepsList.children.length - 1 && progress === 1)
+                this.onComplete();
         }
+    }
+
+    install(){
+        rpc().esbuild.install();
     }
 
     render() {
@@ -17,7 +37,6 @@ export class EsbuildInstall {
         image.src = "assets/dev-icon.png";
         container.append(image);
 
-        const stepsList = document.createElement("ol");
         const steps = [
             "Downloading esbuild package",
             "Extracting esbuild package",
@@ -27,9 +46,9 @@ export class EsbuildInstall {
         steps.forEach(step => {
             const li = document.createElement("li");
             li.innerText = step;
-            stepsList.append(li);
+            this.stepsList.append(li);
         });
-        container.append(stepsList);
+        container.append(this.stepsList);
 
         return container;
     }

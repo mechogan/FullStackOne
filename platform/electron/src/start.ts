@@ -5,7 +5,7 @@ import os from "os";
 import { buildAPI } from "../../node/src/build";
 import { JavaScript } from "../../node/src/javascript";
 import editorContext from "../../node/src/editorContext";
-import { loadEsbuild } from "./esbuild";
+import { installEsbuild, loadEsbuild } from "./esbuild";
 
 const dist = path.resolve(__dirname, "..", "dist");
 
@@ -21,6 +21,8 @@ mainjs.privileged = true;
 
 editorContext(home, mainjs, path.resolve(__dirname, "..", "js"));
 
+mainjs.ctx.demoZIP = path.resolve(process.resourcesPath, "Demo.zip");
+
 mainjs.ctx.checkEsbuildInstall = async () => {
     if(global.esbuild)
         return true;
@@ -31,6 +33,9 @@ mainjs.ctx.checkEsbuildInstall = async () => {
     } catch (e) {
         return false;
     }
+}
+mainjs.ctx.installEsbuild = async () => {
+    installEsbuild(mainjs);
 }
 
 const originalZip = mainjs.ctx.zip;

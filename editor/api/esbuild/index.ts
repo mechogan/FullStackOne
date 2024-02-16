@@ -1,5 +1,7 @@
 declare var checkEsbuildInstall: () => boolean
+declare var installEsbuild: () => void
 
 export default {
-    checkInstall: () => checkEsbuildInstall()
+    checkInstall: () => checkEsbuildInstall(),
+    install: () => installEsbuild()
 }

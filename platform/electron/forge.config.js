@@ -6,6 +6,7 @@ module.exports = {
     ignore: [
     ],
     extraResource: [
+      "../../Demo.zip"
     ]
   },
   rebuildConfig: {},

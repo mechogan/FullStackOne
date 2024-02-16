@@ -56,6 +56,7 @@ if(!esbuildInstall) {
     const esbuildInstall = new EsbuildInstall();
     esbuildInstall.onComplete = app
     main.append(esbuildInstall.render());
+    esbuildInstall.install();
 } else {
     await app();
 }
