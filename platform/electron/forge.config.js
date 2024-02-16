@@ -13,7 +13,14 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: "FullStacked",
+        author: "FullStacked Org.",
+        description: "Build and run full-stack JavaScript web apps anywhere.",
+        iconUrl: 'https://files.fullstacked.org/icon.ico',
+        setupIcon: 'icons/icon.ico',
+        icon: "icons/icon.ico",
+      },
     },
     {
       name: '@electron-forge/maker-zip',

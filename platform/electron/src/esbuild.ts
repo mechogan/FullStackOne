@@ -6,6 +6,12 @@ import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/no
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
 import { JavaScript } from "../../node/src/javascript";
+import url from "url";
+
+declare module process {
+    var resourcesPath: string
+    var env: any
+}
 
 const outdir = path.resolve(process.resourcesPath, "esbuild");
 if (!fs.existsSync(outdir))
@@ -24,7 +30,7 @@ export const loadEsbuild = async () => {
     if (global.esbuild) return;
 
     process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
-    global.esbuild = await import(path.resolve(esbuildOutdir, "lib", "main.js"));
+    global.esbuild = await import(url.pathToFileURL(path.resolve(esbuildOutdir, "lib", "main.js")).toString());
 }
 
 export const installEsbuild = async (js: JavaScript) => {
