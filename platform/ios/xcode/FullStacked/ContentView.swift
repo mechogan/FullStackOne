@@ -147,6 +147,10 @@ struct ContentView: View {
         }
         self.mainjs.ctx["unzip"] = unzip
         
+        let checkEsbuild: @convention (block) () -> Bool = { 
+            return true
+        }
+        self.mainjs.ctx["checkEsbuildInstall"] = checkEsbuild
         
         ContentView.instance = self
     }
