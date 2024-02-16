@@ -13,10 +13,8 @@ declare var rpc: typeof typeRPC<typeof api>;
 const main = document.querySelector("main") as HTMLElement;
 const clearView = () => Array.from(main.children).forEach(e => e.remove());
 
-const [_, esbuildInstall] = await Promise.all([
-    rpc().config.init(),
-    rpc().esbuild.checkInstall()
-]);
+await rpc().config.init();
+const esbuildInstall = await rpc().esbuild.checkInstall()
 
 const app = async () => {
     const projectsView = new Projects();

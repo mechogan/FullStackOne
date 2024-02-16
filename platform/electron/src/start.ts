@@ -5,7 +5,9 @@ import os from "os";
 import { buildAPI } from "../../node/src/build";
 import { JavaScript } from "../../node/src/javascript";
 import editorContext from "../../node/src/editorContext";
-import { installEsbuild, loadEsbuild } from "./esbuild";
+import { getVersion, installEsbuild, loadEsbuild } from "./esbuild";
+// @ts-ignore
+import esbuildVersion from "../../../lib/esbuild/version.txt";
 
 const dist = path.resolve(__dirname, "..", "dist");
 
@@ -24,7 +26,10 @@ editorContext(home, mainjs, path.resolve(__dirname, "..", "js"));
 mainjs.ctx.demoZIP = path.resolve(process.resourcesPath, "Demo.zip");
 
 mainjs.ctx.checkEsbuildInstall = async () => {
-    return false;
+    const version = getVersion();
+    if(version && version !== esbuildVersion)
+        return false;
+
     if(global.esbuild)
         return true;
 

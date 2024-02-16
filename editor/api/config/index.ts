@@ -20,7 +20,7 @@ export default {
             return;
 
         fs.mkdir(configdir);
-        projects.import({title: "Demo", location: "Demo"}, fs.readfile(demoZIP, true));
+        projects.import({title: "Demo", location: configdir + "/Demo"}, fs.readfile(demoZIP, true));
     },
     load<T extends CONFIG_TYPE>(type: T) : DATA_TYPE[T] | null {
         const configFile = configdir + "/" + type + ".json";

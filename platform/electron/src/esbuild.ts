@@ -9,18 +9,20 @@ import { JavaScript } from "../../node/src/javascript";
 import url from "url";
 import os from "os";
 
-declare module process {
-    var resourcesPath: string
-    var env: any
-}
-
-const outdir = path.resolve(os.homedir(), "esbuild");
-if (!fs.existsSync(outdir))
-    fs.mkdirSync(outdir, { recursive: true });
+const outdir = path.resolve(os.homedir(), ".config", "fullstacked", "esbuild");
 const esbuildOutdir = path.join(outdir, "esbuild");
 
 const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
 const esbuildBinOutdir = path.join(outdir, pkg);
+
+const versionFile = path.resolve(outdir, "version.txt");
+
+export const getVersion = () => {
+    if(fs.existsSync(versionFile))
+        return fs.readFileSync(versionFile).toString();
+    
+    return null;
+}
 
 export const loadEsbuild = async () => {
     // dont download in dev
@@ -35,10 +37,13 @@ export const loadEsbuild = async () => {
 }
 
 export const installEsbuild = async (js: JavaScript) => {
+    if (!fs.existsSync(outdir))
+        fs.mkdirSync(outdir, { recursive: true });
+
     const esbuildResponse = await fetch(`https://registry.npmjs.org/esbuild/${esbuildVersion}`);
     const esbuildPackage = await esbuildResponse.json();
     const esbuildtarballUrl = esbuildPackage.dist.tarball;
-    const esbuildTarball = path.join(os.homedir(), "esbuild.tgz");
+    const esbuildTarball = path.join(outdir, "esbuild.tgz");
     const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
 
     await new Promise(resolve => {
@@ -89,12 +94,13 @@ export const installEsbuild = async (js: JavaScript) => {
                 resolve()
         });
     });
+    fs.rmSync(esbuildTarball);
 
 
     const npmResponse = await fetch(`https://registry.npmjs.org/${pkg}/${esbuildVersion}`);
     const latestEsbuild = await npmResponse.json();
     const tarballUrl = latestEsbuild.dist.tarball;
-    const tarball = path.join(os.homedir(), "esbuild-bin.tgz");
+    const tarball = path.join(outdir, "esbuild-bin.tgz");
     const writeStream = fs.createWriteStream(tarball);
 
     await new Promise(resolve => {
@@ -142,6 +148,8 @@ export const installEsbuild = async (js: JavaScript) => {
                 resolve();
         });
     });
+    fs.rmSync(tarball);
 
+    fs.writeFileSync(versionFile, esbuildVersion);
     await loadEsbuild();
 }
