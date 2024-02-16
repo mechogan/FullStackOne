@@ -1,5 +1,7 @@
 {
-  "name": "@fullstacked/editor-electron",
+  "name": "FullStacked",
+  "author": "FullStacked Org.",
+  "description": "Build and run full-stack JS web apps anywhere.",
   "version": "1.0.0",
   "main": ".cache/index.js",
   "license": "MIT",

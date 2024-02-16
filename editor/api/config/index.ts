@@ -10,8 +10,6 @@ declare var demoZIP: string;
 
 const configdir = ".config/fullstacked";
 
-
-
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[]
 }

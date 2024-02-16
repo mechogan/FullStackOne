@@ -1,6 +1,5 @@
 module.exports = {
   packagerConfig: {
-    name: "FullStacked",
     icon: "icons/icon",
     asar: true,
     ignore: [
@@ -14,9 +13,6 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: "FullStacked",
-        author: "FullStacked Org.",
-        description: "Build and run full-stack JavaScript web apps anywhere.",
         iconUrl: 'https://files.fullstacked.org/icon.ico',
         setupIcon: 'icons/icon.ico',
         icon: "icons/icon.ico",
@@ -28,7 +24,11 @@ module.exports = {
     },
     {
       name: '@electron-forge/maker-deb',
-      config: {},
+      config: {
+        options: {
+          icon: 'icons/icon.png'
+        }
+      },
     },
     {
       name: '@electron-forge/maker-rpm',

@@ -7,13 +7,14 @@ import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/no
 import esbuildVersion from "../../../lib/esbuild/version.txt";
 import { JavaScript } from "../../node/src/javascript";
 import url from "url";
+import os from "os";
 
 declare module process {
     var resourcesPath: string
     var env: any
 }
 
-const outdir = path.resolve(process.resourcesPath, "esbuild");
+const outdir = path.resolve(os.homedir(), "esbuild");
 if (!fs.existsSync(outdir))
     fs.mkdirSync(outdir, { recursive: true });
 const esbuildOutdir = path.join(outdir, "esbuild");
@@ -37,10 +38,10 @@ export const installEsbuild = async (js: JavaScript) => {
     const esbuildResponse = await fetch(`https://registry.npmjs.org/esbuild/${esbuildVersion}`);
     const esbuildPackage = await esbuildResponse.json();
     const esbuildtarballUrl = esbuildPackage.dist.tarball;
-    const esbuildTarball = path.join(process.resourcesPath, "esbuild.tgz");
+    const esbuildTarball = path.join(os.homedir(), "esbuild.tgz");
     const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
 
-    await new Promise<void>(resolve => {
+    await new Promise(resolve => {
         https.get(esbuildtarballUrl, (res) => {
             const size = parseInt(res.headers["content-length"] ?? "0");
             let received = 0;
@@ -55,15 +56,18 @@ export const installEsbuild = async (js: JavaScript) => {
                 }));
 
                 if (progress === 1)
-                    esbuildWiteStream.end("", resolve);
+                    esbuildWiteStream.close(resolve);
             });
         });
     });
 
     const esbuildOutdir = path.join(outdir, "esbuild");
+    console.log(esbuildTarball, fs.existsSync(esbuildTarball))
+    console.log(esbuildOutdir, fs.existsSync(esbuildOutdir))
     fs.mkdirSync(esbuildOutdir, { recursive: true });
     const size = fs.statSync(esbuildTarball).size;
     const esbuildTarReadStream = fs.createReadStream(esbuildTarball);
+    console.log(esbuildOutdir, fs.existsSync(esbuildOutdir))
     const untarWriteStream = tar.x({
         strip: 1,
         C: esbuildOutdir
@@ -90,10 +94,10 @@ export const installEsbuild = async (js: JavaScript) => {
     const npmResponse = await fetch(`https://registry.npmjs.org/${pkg}/${esbuildVersion}`);
     const latestEsbuild = await npmResponse.json();
     const tarballUrl = latestEsbuild.dist.tarball;
-    const tarball = path.join(process.resourcesPath, "esbuild-bin.tgz");
+    const tarball = path.join(os.homedir(), "esbuild-bin.tgz");
     const writeStream = fs.createWriteStream(tarball);
 
-    await new Promise<void>(resolve => {
+    await new Promise(resolve => {
         https.get(tarballUrl, (res) => {
             const size = parseInt(res.headers["content-length"] ?? "0");
             let received = 0;
@@ -108,7 +112,7 @@ export const installEsbuild = async (js: JavaScript) => {
                 }));
 
                 if (progress === 1)
-                    writeStream.end("", resolve);
+                    writeStream.close(resolve);
             });
         });
     });

@@ -24,6 +24,7 @@ editorContext(home, mainjs, path.resolve(__dirname, "..", "js"));
 mainjs.ctx.demoZIP = path.resolve(process.resourcesPath, "Demo.zip");
 
 mainjs.ctx.checkEsbuildInstall = async () => {
+    return false;
     if(global.esbuild)
         return true;
 
@@ -114,7 +115,8 @@ const createWindow = async (hostname: string, title: string) => {
     const appWindow = new BrowserWindow({
         width: 800,
         height: 600,
-        title
+        title,
+        icon: 'icons/icon.png'
     });
 
     appWindow.loadURL(`http://${hostname}`);
