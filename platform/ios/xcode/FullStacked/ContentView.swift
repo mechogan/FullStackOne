@@ -361,6 +361,7 @@ struct WebView: UIViewRepresentable {
                 uiView.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
             }
         }
+        uiView.navigationDelegate = self.navigationDelegate
     }
 }
 
