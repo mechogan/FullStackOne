@@ -32,7 +32,11 @@ module.exports = {
     },
     {
       name: '@electron-forge/maker-rpm',
-      config: {},
+      config: {
+        options: {
+          icon: 'icons/icon.png'
+        }
+      },
     },
   ],
   plugins: [],
