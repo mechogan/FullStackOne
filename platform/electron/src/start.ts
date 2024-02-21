@@ -9,14 +9,14 @@ import { getVersion, installEsbuild, loadEsbuild } from "./esbuild";
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
 
-const dist = path.resolve(__dirname, "..", "dist");
+const editorDiretory = path.resolve(__dirname, "..", "editor");
 
 const home = os.homedir();
 const mainjs = new JavaScript(
     console.log,
     home,
-    path.join(dist, "webview"),
-    fs.readFileSync(path.resolve(__dirname, "..", "dist", "api", "index.js"), { encoding: "utf-8" }),
+    path.join(editorDiretory, "webview"),
+    fs.readFileSync(path.resolve(editorDiretory, "api", "index.js"), { encoding: "utf-8" }),
     "electron"
 );
 mainjs.privileged = true;
