@@ -7,8 +7,8 @@ import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 
-if (fs.existsSync("dist"))
-    fs.rmSync("dist", { recursive: true })
+if (fs.existsSync("editor/build"))
+    fs.rmSync("editor/build", { recursive: true })
 
 global.fs = {
     readdir: (directory: string) =>  fs.readdirSync(directory, { withFileTypes: true })
@@ -48,7 +48,7 @@ buildSync({
 })
 
 const entrypointWebview = mingleWebview("../../editor/webview/index.ts");
-buildWebview(entrypointWebview, "dist/webview");
+buildWebview(entrypointWebview, "editor/build/webview");
 fs.rmSync(entrypointWebview);
 
 // cleanup
@@ -58,11 +58,11 @@ scssFiles.forEach(scssFile => {
         fs.rmSync(cssFile);
 });
 
-fs.cpSync("editor/webview/index.html", "dist/webview/index.html");
-fs.cpSync("editor/webview/assets", "dist/webview/assets", { recursive: true });
+fs.cpSync("editor/webview/index.html", "editor/build/webview/index.html");
+fs.cpSync("editor/webview/assets", "editor/build/webview/assets", { recursive: true });
 
 const entrypointAPI = mingleAPI(path.resolve("editor/api/index.ts"));
 const api = buildAPI(entrypointAPI);
 fs.rmSync(entrypointAPI);
-fs.mkdirSync("dist/api", { recursive: true });
-fs.writeFileSync("dist/api/index.js", api as string);
+fs.mkdirSync("editor/build/api", { recursive: true });
+fs.writeFileSync("editor/build/api/index.js", api as string);

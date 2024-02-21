@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { JavaScript } from "./javascript";
 import os from "os";
 import path from "path";
@@ -7,17 +9,19 @@ import { buildAPI } from "./build";
 import fs from "fs";
 import editorContext from "./editorContext";
 import esbuild from "esbuild";
+import { fileURLToPath } from "url";
 
 global.esbuild = esbuild;
 
 const home = os.homedir();
-const dist = path.resolve(process.cwd(), "..", "..", "dist");
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const editorDirectory = path.resolve(__dirname, "editor");
 
 const js = new JavaScript(
     console.log,
     home,
-    path.join(dist, "webview"),
-    fs.readFileSync(path.join(dist, "api", "index.js"), { encoding: "utf-8" }),
+    path.join(editorDirectory, "webview"),
+    fs.readFileSync(path.join(editorDirectory, "api", "index.js"), { encoding: "utf-8" }),
     "node"
 );
 js.privileged = true;
@@ -27,15 +31,16 @@ const launchInstance = (js: JavaScript) => {
     open(`http://localhost:${port}`);
 }
 
-editorContext(home, js, path.resolve(process.cwd(), "..", "..", "src", "js"));
+editorContext(home, js, path.resolve(__dirname, "js"));
 
 js.ctx.checkEsbuildInstall = async () => true;
 
-js.ctx.demoZIP = path.resolve(process.cwd(), "..", "..", "Demo.zip");
+js.ctx.demoZIP = path.resolve(__dirname, "Demo.zip");
 
 const originalZip = js.ctx.zip;
 js.ctx.zip = (projectdir: string, items: string[], to: string) => {
-   open(originalZip(projectdir, items, to));
+   originalZip(projectdir, items, to);
+   js.push("download", to);
 }
 
 js.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasErrors: boolean) => {

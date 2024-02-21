@@ -39,15 +39,15 @@ export default {
     create,
     delete: deleteProject,
     run(project: Project) {
-        const maybeWebviewJS = project.location + "/webview/index.js";
+        const maybeWebviewJS = project.location + "/index.js";
         let hasErrors = false;
         if (fs.exists(maybeWebviewJS)) {
             const entrypointWebview = mingleWebview(maybeWebviewJS);
-            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build/webview");
+            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build");
             fs.rm(entrypointWebview);
         }
 
-        const entrypointAPI = mingleAPI(project.location + "/index.js");
+        const entrypointAPI = mingleAPI(project.location + "/api/index.js");
         run(project.location, "", entrypointAPI, hasErrors);
         fs.rm(entrypointAPI);
     },
@@ -58,7 +58,12 @@ export default {
             fs.rm(out);
         }
 
-        const items = scan(project.location).map(item => item.slice(project.location.length + 1));
+        const items = scan(project.location)
+            // filter out data items and build items
+            .filter(item => !item.startsWith(project.location + "/data") && !item.startsWith(project.location + "/.build"))
+            // convert to relative path to project.location
+            .map(item => item.slice(project.location.length + 1));
+            
         zip(project.location, items, out);
     },
     import(project: Omit<Project, "createdDate">, zipData: number[] | Uint8Array) {

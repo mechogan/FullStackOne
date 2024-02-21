@@ -1,6 +1,5 @@
 import mime from "mime";
 import { UTF8ToStr, strToUTF8 } from "./utf8";
-import { off } from "process";
 
 export declare var fs: {
     exists(itemPath: string, forAsset?: boolean): boolean

@@ -1,6 +1,6 @@
 {
-  "name": "@fullstackedorg/editor",
-  "version": "1.0.0",
+  "name": "fullstacked-editor",
+  "version": "0.0.0",
   "scripts": {
     "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
     "start": "npm run build && npm start -w platform/node"
@@ -9,7 +9,7 @@
     "platform/node",
     "platform/electron"
   ],
-  "author": "cplepage",
+  "author": "FullStacked Org.",
   "license": "MIT",
   "type": "module",
   "dependencies": {

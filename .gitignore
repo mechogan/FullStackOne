@@ -1,7 +1,3 @@
-.fullstacked-sync
 node_modules
-dist
-backup
 .cache
 .DS_Store
-xcuserdata

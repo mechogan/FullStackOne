@@ -47,9 +47,9 @@ struct ContentView: View {
         let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
         let documentDir = paths.first!
         
-        let assetdir = Bundle.main.bundlePath + "/dist/webview"
+        let assetdir = Bundle.main.bundlePath + "/build/webview"
         
-        let entrypointContents = FileManager.default.contents(atPath: Bundle.main.bundlePath + "/dist/api/index.js")!
+        let entrypointContents = FileManager.default.contents(atPath: Bundle.main.bundlePath + "/build/api/index.js")!
         
         self.mainjs = JavaScript(
             logFn: { messages in print(messages) },
@@ -160,7 +160,7 @@ struct ContentView: View {
         ZStack {
             Color(hex: 0x1e293b)
                 .ignoresSafeArea()
-            Image(uiImage: UIImage(named: "dist/webview/assets/dev-icon.png")!)
+            Image(uiImage: UIImage(named: "build/webview/assets/dev-icon.png")!)
                 .resizable()
                 .frame(width: 100, height: 100, alignment: .center)
             WebView(js: self.mainjs)
