@@ -3,4 +3,4 @@ out
 esbuild
 *.tgz
 js
-dist
+editor
