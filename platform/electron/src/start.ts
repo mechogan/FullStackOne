@@ -46,7 +46,10 @@ mainjs.ctx.installEsbuild = async () => {
 
 const originalZip = mainjs.ctx.zip;
 mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
-    shell.openPath(originalZip(projectdir, items, to));
+    let outdir = originalZip(projectdir, items, to);
+    if(os.platform() === "win32")
+        outdir = outdir.split("/").join("\\")
+    shell.openPath(outdir);
 }
 
 let appID = 1;
