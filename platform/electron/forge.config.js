@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 module.exports = {
   packagerConfig: {
     icon: "icons/icon",
@@ -6,7 +8,16 @@ module.exports = {
     ],
     extraResource: [
       "../../Demo.zip"
-    ]
+    ],
+    osxSign: {
+      identity: process.env.APPLE_ID
+    },
+    osxNotarize: {
+      tool: 'notarytool',
+      appleApiKey: process.env.APPLE_API_KEY,
+      appleApiKeyId: process.env.APPLE_API_KEY_ID,
+      appleApiIssuer: process.env.APPLE_API_ISSUER
+    }
   },
   rebuildConfig: {},
   makers: [

@@ -406,9 +406,11 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
                     : nil
                 )!
                 
-                urlSchemeTask.didReceive(response)
-                urlSchemeTask.didReceive(responseBody == nil ? Data() : responseBody!)
-                urlSchemeTask.didFinish()
+                DispatchQueue.main.async {
+                    urlSchemeTask.didReceive(response)
+                    urlSchemeTask.didReceive(responseBody == nil ? Data() : responseBody!)
+                    urlSchemeTask.didFinish()
+                }
             }
         )
     }

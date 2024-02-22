@@ -153,8 +153,16 @@ class JavaScript {
             }
             
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                if error != nil {
+                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
+                    onCompletion.call(withArguments: [[:], ""])
+                    return
+                }
+                
                 let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
-                onCompletion.call(withArguments: [headers, Array(data!)])
+                DispatchQueue.main.async {
+                    onCompletion.call(withArguments: [headers, Array(data!)])
+                }
             }
             task.resume()
         }
@@ -182,9 +190,12 @@ class JavaScript {
                     onCompletion.call(withArguments: [[:], ""])
                     return
                 }
+                
                 let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
                 let body = String(data: data!, encoding: .utf8)!
-                onCompletion.call(withArguments: [headers, body])
+                DispatchQueue.main.async {
+                    onCompletion.call(withArguments: [headers, body])
+                }
             }
             task.resume()
         }
