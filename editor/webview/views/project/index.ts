@@ -64,7 +64,15 @@ export class Project {
                 const message = error.text || error.Text
 
                 if(message.startsWith("Could not resolve")){
-                    const dependency = message.match(/\".*\"/)?.at(0)?.slice(1, -1).split("/").shift();
+                    const moduleName: string[] = message.match(/\".*\"/)?.at(0)?.slice(1, -1).split("/");
+
+                    if(moduleName.at(0)?.startsWith("."))
+                        return;
+
+                    const dependency = moduleName.at(0)?.startsWith("@")
+                        ? moduleName.slice(0, 2).join("/")
+                        : moduleName.at(0);
+
                     if(dependency)
                         rpc().npm.install(`${this.project.location}/node_modules`, dependency);
                 }
