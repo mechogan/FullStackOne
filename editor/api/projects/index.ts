@@ -59,8 +59,12 @@ export default {
         }
 
         const items = scan(project.location)
-            // filter out data items and build items
-            .filter(item => !item.startsWith(project.location + "/data") && !item.startsWith(project.location + "/.build"))
+            .filter(item => 
+                // filter
+                !item.startsWith(project.location + "/data")  // data
+                && !item.startsWith(project.location + "/.build") // build
+                && !item.startsWith(project.location + "/node_modules") // node_modules
+            )
             // convert to relative path to project.location
             .map(item => item.slice(project.location.length + 1));
             

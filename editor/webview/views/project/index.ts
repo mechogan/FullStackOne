@@ -61,11 +61,19 @@ export class Project {
                     this.editors.push(editor);
                 }
 
+                const message = error.text || error.Text
+
+                if(message.startsWith("Could not resolve")){
+                    const dependency = message.match(/\".*\"/)?.at(0)?.slice(1, -1).split("/").shift();
+                    if(dependency)
+                        rpc().npm.install(`${this.project.location}/node_modules`, dependency);
+                }
+
                 editor.addBuildError({
                     line: error.location?.line || error.Location?.Line, 
                     col: error.location?.column || error.Location?.Column, 
                     length: error.location?.length || error.Location?.Length, 
-                    message: error.text || error.Text
+                    message
                 });
 
                 this.currentFile = fileName;

@@ -18,7 +18,7 @@ export declare var fs: {
 declare var assetdir: string
 declare var platform: string
 
-type fetch<T> = (url: string, options: {
+type fetch<T> = (url: string, options?: {
     headers?: Record<string, string>,
     method?: "GET" | "POST" | "PUT" | "DELTE",
     body?: Uint8Array | number[]

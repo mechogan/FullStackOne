@@ -2,6 +2,7 @@ import SwiftUI
 import WebKit
 import JavaScriptCore
 import ZIPFoundation
+import SWCompression
 
 struct Project: Identifiable {
     var id: Int
@@ -146,6 +147,25 @@ struct ContentView: View {
             try! FileManager.default.removeItem(at: tmpURL)
         }
         self.mainjs.ctx["unzip"] = unzip
+        
+        let untar: @convention (block) (String, [UInt8]) -> Void = { to, tarData in
+            let data = Data(tarData)
+            let decompressedData = try! GzipArchive.unarchive(archive: data)
+            let tarEntries = try! TarContainer.open(container: decompressedData)
+            tarEntries.forEach { tarEntry in
+                let nameComponents = tarEntry.info.name.split(separator: "/").dropFirst()
+                let directoryComponents = nameComponents.dropLast();
+                
+                let directory = directoryComponents.count > 0
+                    ? resolvePath(to + "/" + String(directoryComponents.joined(separator: "/")))
+                    : resolvePath(to)
+                try! FileManager.default.createDirectory(at: URL(fileURLWithPath: directory), withIntermediateDirectories: true)
+                
+                let filename = resolvePath(to + "/" + String(nameComponents.joined(separator: "/")))
+                try! tarEntry.data?.write(to: URL(fileURLWithPath: filename))
+            }
+        }
+        self.mainjs.ctx["untar"] = untar
         
         let checkEsbuild: @convention (block) () -> Bool = { 
             return true
