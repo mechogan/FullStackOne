@@ -9,7 +9,7 @@ import (
 )
 
 //export buildWebview
-func buildWebview(entryPoint *C.char, OutDir *C.char, errors **C.char) {
+func buildWebview(entryPoint *C.char, OutDir *C.char, NodePath *C.char, errors **C.char) {
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{C.GoString(entryPoint)},
 		Outfile:     C.GoString(OutDir) + "/index.js",
@@ -17,6 +17,7 @@ func buildWebview(entryPoint *C.char, OutDir *C.char, errors **C.char) {
 		Bundle:      true,
 		Format:      api.FormatESModule,
 		Write:       true,
+		NodePaths:   []string{C.GoString(NodePath)},
 	})
 
 	if len(result.Errors) > 0 {

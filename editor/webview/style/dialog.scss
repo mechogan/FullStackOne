@@ -1,0 +1,23 @@
+@import "./colors";
+@import "./spacing";
+@import "./border";
+
+.dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-height: 100%;
+    width: 100%;
+    z-index: 10;
+    background-color: colorOpacity($black, 0.7);
+    padding: spacing(3) spacing();
+
+    > div {
+        background-color: $blue-dark;
+        padding: spacing(2);
+        margin: 0 auto;
+        width: 100%;
+        max-width: 500px;
+        border-radius: $border-radius-l;
+    }
+}

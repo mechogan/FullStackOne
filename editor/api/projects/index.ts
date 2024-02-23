@@ -3,13 +3,14 @@ import type { fs as globalFS } from "../../../src/api";
 
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
+import { nodeModulesDir } from "../npm/install";
 import { mingleAPI, mingleWebview } from "./mingle";
 import { scan } from "./scan";
 import { Project } from "./types";
 
 declare var fs: typeof globalFS;
 declare var run: (projectdir: string, assetdir: string, entrypointData: string, hasErrors: boolean) => void;
-declare var buildWebview: (entrypoint: string, outdir: string) => boolean;
+declare var buildWebview: (entryPoint: string, outdir: string, nodeModulesDir: string) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: number[] | Uint8Array) => void;
 
@@ -43,7 +44,7 @@ export default {
         let hasErrors = false;
         if (fs.exists(maybeWebviewJS)) {
             const entrypointWebview = mingleWebview(maybeWebviewJS);
-            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build");
+            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build", nodeModulesDir);
             fs.rm(entrypointWebview);
         }
 

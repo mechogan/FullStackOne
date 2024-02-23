@@ -98,13 +98,14 @@ struct ContentView: View {
         }
         self.mainjs.ctx["run"] = run
         
-        let buildWebviewSwift: @convention (block) (String, String) -> Bool = { entrypoint, outdir in
+        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outdir, nodeModulesDirectory in
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
             let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outdir) as NSString).utf8String)
+            let nodeModulesDirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(nodeModulesDirectory) as NSString).utf8String)
             
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
-            buildWebview(entrypointPtr, outdirPtr, &errorsPtr)
+            buildWebview(entrypointPtr, outdirPtr, nodeModulesDirPtr, &errorsPtr)
             
             if(errorsPtr != nil) {
                 let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!

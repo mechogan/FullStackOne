@@ -10,8 +10,8 @@ export default function(home: string, js: JavaScript, jsDir: string) {
 
     js.ctx.jsDirectory = jsDir;
     js.ctx.resolvePath = resolvePath;
-    js.ctx.buildWebview = (entryPoint: string, outdir: string) => {
-        const maybeErrors = buildWebview(resolvePath(entryPoint), resolvePath(outdir));
+    js.ctx.buildWebview = (entryPoint: string, outdir: string, nodeModulesDir: string) => {
+        const maybeErrors = buildWebview(resolvePath(entryPoint), resolvePath(outdir), resolvePath(nodeModulesDir));
         
         if(maybeErrors?.errors){
             js.push("buildError", JSON.stringify(maybeErrors.errors));
@@ -39,10 +39,13 @@ export default function(home: string, js: JavaScript, jsDir: string) {
         zip.extractAllTo(resolvePath(to));
     }
     js.ctx.untar = (outdir: string, data: Uint8Array | number[]) => {
-        const untarWriteStream = tar.x({
-            strip: 1,
-            C: resolvePath(outdir)
+        return new Promise<void>(resolve => {
+            const untarWriteStream = tar.x({
+                strip: 1,
+                C: resolvePath(outdir)
+            });
+            untarWriteStream.write(data);
+            untarWriteStream.on("drain", resolve)
         })
-        untarWriteStream.write(data);
     }
 }

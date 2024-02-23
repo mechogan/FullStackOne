@@ -51,30 +51,42 @@ export class Project {
         (window as any).onPush["buildError"] = (message: string) => {
             const errors = JSON.parse(message);
 
+            const packagesMissing = new Map<string, Set<string>>();
             errors.forEach(error => {
                 const file = error.location?.file || error.Location?.File;
 
-                let fileName = this.project.location + file.split(this.project.location).pop();
-                let editor = this.editors.find(({ filePath }) => filePath.join("/") === fileName);
-                if(!editor) {
-                    editor = new Editor(fileName.split("/"));
-                    this.editors.push(editor);
-                }
+                const filename = file.split(this.project.location).pop();
+                let filePath = this.project.location + filename;
 
                 const message = error.text || error.Text
 
                 if(message.startsWith("Could not resolve")){
                     const moduleName: string[] = message.match(/\".*\"/)?.at(0)?.slice(1, -1).split("/");
 
-                    if(moduleName.at(0)?.startsWith("."))
+                    if(!moduleName.at(0)?.startsWith(".")){
+                        const dependency = moduleName.at(0)?.startsWith("@")
+                            ? moduleName.slice(0, 2).join("/")
+                            : moduleName.at(0);
+
+                        if(dependency){
+                            let fileRequiringPackage = packagesMissing.get(dependency);
+                            if(!fileRequiringPackage)
+                                fileRequiringPackage = new Set();
+                            fileRequiringPackage.add(filename.includes("node_modules")
+                                ? "node_modules" + filename.split("node_modules").pop()
+                                : filename.slice(1));
+                            packagesMissing.set(dependency, fileRequiringPackage);
+                        }
+
                         return;
+                    }                    
+                }
 
-                    const dependency = moduleName.at(0)?.startsWith("@")
-                        ? moduleName.slice(0, 2).join("/")
-                        : moduleName.at(0);
 
-                    if(dependency)
-                        rpc().npm.install(`${this.project.location}/node_modules`, dependency);
+                let editor = this.editors.find(activeEditor => activeEditor.filePath.join("/") === filePath);
+                if(!editor) {
+                    editor = new Editor(filePath.split("/"));
+                    this.editors.push(editor);
                 }
 
                 editor.addBuildError({
@@ -84,10 +96,14 @@ export class Project {
                     message
                 });
 
-                this.currentFile = fileName;
+                this.currentFile = filename;
             });
 
             this.renderEditors();
+
+            if(packagesMissing.size > 0) {
+                this.installPackages(packagesMissing);
+            }
         }
 
         (window as any).onPush["download"] = async (message: string) => {
@@ -145,6 +161,64 @@ export class Project {
         this.renderEditors();
     }
 
+    private installPackages(packagesToInstall: Map<string, Set<string>>) {
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
+
+        const container = document.createElement("div");
+        container.innerHTML = `<h1>Dependencies</h1>`
+
+        const packagesContainer = document.createElement("dl");
+        const installPromises: Promise<void>[] = [];
+        for(const [packageName, filesRequiringPackage] of packagesToInstall.entries()) {
+            const dt = document.createElement("dt");
+            dt.innerText = packageName;
+            const dd = document.createElement("dd");
+            const ul = document.createElement("ul");
+            for(const file of filesRequiringPackage) {
+                const li = document.createElement("li");
+                li.innerText = file;
+                ul.append(li);
+            }
+            dd.append(ul);
+
+            const status = document.createElement("div");
+            status.innerText = "installing...";
+            container.append(status);
+
+            const installPromise = new Promise<void>(resolve => {
+                rpc().npm.install(packageName)
+                    .then(() => {
+                        status.innerText = "installed";
+                        resolve();
+                    })
+            });
+            installPromises.push(installPromise);
+
+            packagesContainer.append(dt, dd, status);
+        }
+
+        container.append(packagesContainer);
+        dialog.append(container);
+        this.container.append(dialog);
+
+        Promise.all(installPromises)
+            .then(() => {
+                dialog.remove();
+                this.runProject();
+            })
+    }
+
+    private async runProject() {
+        await Promise.all(this.editors.map(editor => {
+            editor.clearBuildErrors();
+            return editor.updateFile();
+        }));
+        this.renderEditors();
+        this.console.term.clear();
+        rpc().projects.run(this.project);
+    }
+
     private async renderToolbar() {
         const container = document.createElement("div");
         container.classList.add("top-bar")
@@ -187,15 +261,7 @@ export class Project {
         const runButton = document.createElement("button");
         runButton.classList.add("text");
         runButton.innerHTML = await (await fetch("/assets/icons/run.svg")).text();
-        runButton.addEventListener("click", async () => {
-            await Promise.all(this.editors.map(editor => {
-                editor.clearBuildErrors();
-                return editor.updateFile();
-            }));
-            this.renderEditors();
-            this.console.term.clear();
-            rpc().projects.run(this.project);
-        });
+        runButton.addEventListener("click", this.runProject.bind(this));
         rightSide.append(runButton);
 
         container.append(leftSide);

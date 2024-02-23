@@ -8,7 +8,7 @@ import { CONFIG_TYPE } from "./types";
 declare var fs: typeof globalFS;
 declare var demoZIP: string;
 
-const configdir = ".config/fullstacked";
+export const configdir = ".config/fullstacked";
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[]

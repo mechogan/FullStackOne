@@ -1,7 +1,7 @@
 import type esbuildType from "esbuild";
 import path from "path";
 
-export function buildWebview(entryPoint: string, outdir: string) {
+export function buildWebview(entryPoint: string, outdir: string, nodePath?: string) {
     if (!global.esbuild)
         return { errors: "Cannot find esbuild module" }
 
@@ -13,7 +13,8 @@ export function buildWebview(entryPoint: string, outdir: string) {
             format: "esm",
             sourcemap: "inline",
             write: true,
-            logLevel: "silent"
+            logLevel: "silent",
+            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors }

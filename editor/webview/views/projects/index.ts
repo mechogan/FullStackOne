@@ -41,9 +41,22 @@ export class Projects {
         this.container = document.createElement("div");
         this.container.classList.add("projects")
 
+        const topContainer = document.createElement('div');
+        topContainer.style.cssText = `display: flex; justify-content:space-between; align-items: flex-start`;
+
         const title = document.createElement("h1");
         title.innerText = "Projects";
-        this.container.append(title);
+        topContainer.append(title);
+
+        const deleteNodeModules = document.createElement("button");
+        deleteNodeModules.innerText = "Delete Packages";
+        deleteNodeModules.classList.add("danger")
+        deleteNodeModules.addEventListener("click", () => {
+            rpc().fs.rm(".config/fullstacked/node_modules");
+        })
+        topContainer.append(deleteNodeModules);
+
+        this.container.append(topContainer)
 
         const projectsContainer = document.createElement("div");
 
