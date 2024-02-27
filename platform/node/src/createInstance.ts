@@ -20,7 +20,7 @@ export default (js: JavaScript) => {
     });
     js.push = (messageType, message) => {
         webSockets.forEach((ws) =>
-            ws.send(JSON.stringify({ messageType, message })),
+            ws.send(JSON.stringify({ messageType, message }))
         );
     };
 
@@ -50,7 +50,7 @@ const readBody = (request: IncomingMessage) =>
 const requestHandler = async (
     request: IncomingMessage,
     response: ServerResponse,
-    js: JavaScript,
+    js: JavaScript
 ) => {
     const headers = {};
     Object.entries(request.headers).map(([name, value]) => {
@@ -65,7 +65,7 @@ const requestHandler = async (
         const responseHeaders = jsResponse.data
             ? {
                   ["Content-Type"]: jsResponse.mimeType,
-                  ["Content-Length"]: (jsResponse.data?.length || 0).toString(),
+                  ["Content-Length"]: (jsResponse.data?.length || 0).toString()
               }
             : undefined;
 

@@ -16,7 +16,8 @@
     "license": "MIT",
     "type": "module",
     "prettier": {
-        "tabWidth": 4
+        "tabWidth": 4,
+        "trailingComma": "none"
     },
     "dependencies": {
         "@codemirror/lang-html": "^6.4.8",

@@ -22,9 +22,9 @@ const js = new JavaScript(
     home,
     path.join(editorDirectory, "webview"),
     fs.readFileSync(path.join(editorDirectory, "api", "index.js"), {
-        encoding: "utf-8",
+        encoding: "utf-8"
     }),
-    "node",
+    "node"
 );
 js.privileged = true;
 
@@ -50,7 +50,7 @@ js.ctx.run = (
     projectdir: string,
     assetdir: string,
     entrypoint: string,
-    hasErrors: boolean,
+    hasErrors: boolean
 ) => {
     const apiScript = buildAPI(path.join(home, entrypoint));
 
@@ -66,7 +66,7 @@ js.ctx.run = (
         path.join(home, projectdir),
         assetdir,
         apiScript as string,
-        "node",
+        "node"
     );
 
     launchInstance(appJS);
@@ -80,8 +80,8 @@ process.on("uncaughtException", (e) => {
         JSON.stringify({
             name: e.name,
             stack: e.stack,
-            message: e.message,
-        }),
+            message: e.message
+        })
     );
     console.error(e);
 });
@@ -91,8 +91,8 @@ process.on("unhandledRejection", (e: any) => {
         JSON.stringify({
             name: e.name,
             stack: e.stack,
-            message: e.message,
-        }),
+            message: e.message
+        })
     );
     console.error(e);
 });

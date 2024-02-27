@@ -2,10 +2,10 @@ import child_process from "child_process";
 import puppeteer from "puppeteer";
 import { PROJECTS_TITLE } from "./editor/webview/views/projects/constants";
 
-// typecheck 
+// typecheck
 child_process.execSync("npm run typecheck", {
     stdio: "inherit"
-})
+});
 
 const throwError = (message: string) => {
     const error = Error(message);
@@ -19,7 +19,7 @@ await import("./build");
 // test node build
 child_process.execSync("npm run build", {
     cwd: "platform/node",
-    stdio: "inherit",
+    stdio: "inherit"
 });
 
 // test functionalities with node
@@ -28,7 +28,7 @@ await import(process.cwd() + "/platform/node/index.js");
 
 // Launch the browser
 const browser = await puppeteer.launch({
-    headless: false,
+    headless: false
 });
 const page = await browser.newPage();
 await page.goto("http://localhost:9000");

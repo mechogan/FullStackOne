@@ -51,7 +51,7 @@ export class Projects {
         const projectsContainer = document.createElement("div");
 
         const projects = (await rpc().projects.list()).sort(
-            (projectA, projectB) => projectB.createdDate - projectA.createdDate,
+            (projectA, projectB) => projectB.createdDate - projectA.createdDate
         );
 
         for (const project of projects) {

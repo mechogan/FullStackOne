@@ -64,12 +64,12 @@ export class ProjectNew {
             const location = [...projectBaseDirectory, title].join("/");
             const project = {
                 location,
-                title,
+                title
             };
 
             const importedProject = await rpc().projects.import(
                 project,
-                Array.from(new Uint8Array(await zipFile.arrayBuffer())),
+                Array.from(new Uint8Array(await zipFile.arrayBuffer()))
             );
             this.didCreateProjectAction(importedProject);
         });
@@ -95,12 +95,12 @@ export class ProjectNew {
                 : [];
 
             const location = [...projectBaseDirectory, titleInput.value].join(
-                "/",
+                "/"
             );
 
             const project = await rpc().projects.create({
                 title: titleInput.value,
-                location,
+                location
             });
             this.didCreateProjectAction(project);
         });

@@ -21,7 +21,7 @@ export class Project {
         element: Awaited<ReturnType<FileTree["render"]>> | null;
     } = {
         instance: new FileTree(),
-        element: null,
+        element: null
     };
     console = new Console();
 
@@ -38,7 +38,7 @@ export class Project {
             const joinedPath = item.path.join("/");
             if (
                 !this.editors.find(
-                    ({ filePath }) => filePath.join("/") === joinedPath,
+                    ({ filePath }) => filePath.join("/") === joinedPath
                 )
             ) {
                 this.editors.push(new Editor(item.path));
@@ -59,7 +59,7 @@ export class Project {
                     this.project.location +
                     file.split(this.project.location).pop();
                 let editor = this.editors.find(
-                    ({ filePath }) => filePath.join("/") === fileName,
+                    ({ filePath }) => filePath.join("/") === fileName
                 );
                 if (!editor) {
                     editor = new Editor(fileName.split("/"));
@@ -70,7 +70,7 @@ export class Project {
                     line: error.location?.line || error.Location?.Line,
                     col: error.location?.column || error.Location?.Column,
                     length: error.location?.length || error.Location?.Length,
-                    message: error.text || error.Text,
+                    message: error.text || error.Text
                 });
 
                 this.currentFile = fileName;
@@ -88,7 +88,7 @@ export class Project {
             element.setAttribute("href", url);
             element.setAttribute(
                 "download",
-                message.split("/").pop() ?? "unnamed.zip",
+                message.split("/").pop() ?? "unnamed.zip"
             );
             element.style.display = "none";
 
@@ -118,9 +118,7 @@ export class Project {
             }
             const str = logs
                 .map((log) =>
-                    typeof log === "string"
-                        ? log
-                        : JSON.stringify(log, null, 2),
+                    typeof log === "string" ? log : JSON.stringify(log, null, 2)
                 )
                 .join("  ");
             writeParagraph(str);
@@ -201,7 +199,7 @@ export class Project {
                 this.editors.map((editor) => {
                     editor.clearBuildErrors();
                     return editor.updateFile();
-                }),
+                })
             );
             this.renderEditors();
             this.console.term.clear();
@@ -217,7 +215,7 @@ export class Project {
 
     renderEditors() {
         Array.from(this.editorsContainer.children).forEach((child) =>
-            child.remove(),
+            child.remove()
         );
 
         const tabsContainer = document.createElement("ul");
