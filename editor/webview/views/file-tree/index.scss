@@ -55,7 +55,7 @@ $item-height: 31px;
         }
         &.selected {
             &::before {
-                content: '';
+                content: "";
                 height: $item-height;
                 width: 100%;
                 background-color: $blue;

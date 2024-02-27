@@ -1,17 +1,17 @@
 @function spacing($multiplier: 1) {
-  @return 10 * $multiplier * 1px;
+    @return 10 * $multiplier * 1px;
 }
 
 @mixin full-width() {
-  margin: 0 auto;
-  max-width: 800px;
-  width: 100%;
-  padding: spacing(3) spacing(2);
+    margin: 0 auto;
+    max-width: 800px;
+    width: 100%;
+    padding: spacing(3) spacing(2);
 }
 
 @mixin full-width-xl() {
-  margin: 0 auto;
-  max-width: 1400px;
-  width: 100%;
-  padding: spacing(3) spacing(2);
+    margin: 0 auto;
+    max-width: 1400px;
+    width: 100%;
+    padding: spacing(3) spacing(2);
 }

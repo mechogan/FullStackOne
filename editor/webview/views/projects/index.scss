@@ -1,6 +1,6 @@
 @import "../../style/colors";
 @import "../../style/spacing";
-@import  "../../style/breakpoints";
+@import "../../style/breakpoints";
 
 .projects {
     @include full-width-xl();
@@ -8,7 +8,7 @@
     > div {
         display: grid;
         gap: spacing(2);
-    
+
         grid-template-columns: 1fr 1fr 1fr 1fr;
         @media (max-width: $break-l) {
             grid-template-columns: 1fr 1fr 1fr;
@@ -19,7 +19,7 @@
         @media (max-width: $break-s) {
             grid-template-columns: 1fr;
         }
-    
+
         > article {
             cursor: pointer;
             background-color: colorOpacity(white, 0.1);
@@ -36,6 +36,4 @@
             }
         }
     }
-
-    
 }

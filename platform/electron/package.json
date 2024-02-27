@@ -1,31 +1,31 @@
 {
-  "name": "FullStacked",
-  "author": "FullStacked Org.",
-  "description": "Build and run full-stack JS web apps anywhere.",
-  "version": "0.1.0",
-  "main": ".cache/index.js",
-  "license": "MIT",
-  "scripts": {
-    "build": "esbuild build.ts --outfile=.cache/build.mjs --packages=external && node .cache/build.mjs",
-    "start": "npm run build && electron-forge start",
-    "package": "electron-forge package",
-    "premake": "npm run build",
-    "make": "electron-forge make"
-  },
-  "dependencies": {
-    "electron-squirrel-startup": "^1.0.0"
-  },
-  "devDependencies": {
-    "@electron-forge/cli": "^7.2.0",
-    "@electron-forge/maker-deb": "^7.2.0",
-    "@electron-forge/maker-rpm": "^7.2.0",
-    "@electron-forge/maker-squirrel": "^7.2.0",
-    "@electron-forge/maker-zip": "^7.2.0",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
-    "@types/tar": "^6.1.11",
-    "dotenv": "^16.4.5",
-    "electron": "28.2.3",
-    "esbuild": "^0.20.0",
-    "tar": "^6.2.0"
-  }
+    "name": "FullStacked",
+    "author": "FullStacked Org.",
+    "description": "Build and run full-stack JS web apps anywhere.",
+    "version": "0.1.0",
+    "main": ".cache/index.js",
+    "license": "MIT",
+    "scripts": {
+        "build": "esbuild build.ts --outfile=.cache/build.mjs --packages=external && node .cache/build.mjs",
+        "start": "npm run build && electron-forge start",
+        "package": "electron-forge package",
+        "premake": "npm run build",
+        "make": "electron-forge make"
+    },
+    "dependencies": {
+        "electron-squirrel-startup": "^1.0.0"
+    },
+    "devDependencies": {
+        "@electron-forge/cli": "^7.2.0",
+        "@electron-forge/maker-deb": "^7.2.0",
+        "@electron-forge/maker-rpm": "^7.2.0",
+        "@electron-forge/maker-squirrel": "^7.2.0",
+        "@electron-forge/maker-zip": "^7.2.0",
+        "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
+        "@types/tar": "^6.1.11",
+        "dotenv": "^16.4.5",
+        "electron": "28.2.3",
+        "esbuild": "^0.20.0",
+        "tar": "^6.2.0"
+    }
 }

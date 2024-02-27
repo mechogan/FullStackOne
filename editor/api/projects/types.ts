@@ -1,5 +1,5 @@
 export type Project = {
-    title: string,
-    createdDate: number,
-    location: string
-}
+    title: string;
+    createdDate: number;
+    location: string;
+};
