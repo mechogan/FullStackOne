@@ -1,0 +1,7 @@
+lib
+build
+dist
+node_modules
+out
+platform/ios
+platform/**/editor

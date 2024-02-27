@@ -1,3 +1,3 @@
 export enum CONFIG_TYPE {
-    PROJECTS = "projects"
+    PROJECTS = "projects",
 }

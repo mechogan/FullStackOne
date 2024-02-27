@@ -14,24 +14,24 @@ export class EsbuildInstall {
             const { step, progress } = JSON.parse(message);
             const li = this.stepsList.children[step];
             let span = li.querySelector("span");
-            if(!span) {
+            if (!span) {
                 span = document.createElement("span");
                 li.append(span);
             }
             span.innerText = Math.floor(progress * 100).toString() + "%";
 
-            if(step === this.stepsList.children.length - 1 && progress === 1)
+            if (step === this.stepsList.children.length - 1 && progress === 1)
                 this.onComplete();
-        }
+        };
     }
 
-    install(){
+    install() {
         rpc().esbuild.install();
     }
 
     render() {
         const container = document.createElement("div");
-        container.classList.add("esbuild-install")
+        container.classList.add("esbuild-install");
 
         const image = document.createElement("img");
         image.src = "assets/dev-icon.png";
@@ -41,9 +41,9 @@ export class EsbuildInstall {
             "Downloading esbuild package",
             "Extracting esbuild package",
             "Downloading esbuild binary",
-            "Extracting esbuild binary"
-        ]
-        steps.forEach(step => {
+            "Extracting esbuild binary",
+        ];
+        steps.forEach((step) => {
             const li = document.createElement("li");
             li.innerText = step;
             this.stepsList.append(li);

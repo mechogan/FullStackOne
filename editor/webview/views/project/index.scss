@@ -51,7 +51,7 @@ $transition: 0.3s all;
         z-index: 1;
         background-color: $blue-dark;
 
-        transition: $transition
+        transition: $transition;
     }
     > .tabs-container {
         position: fixed;
@@ -90,7 +90,7 @@ $transition: 0.3s all;
             }
         }
 
-        transition: $transition
+        transition: $transition;
     }
     > .editor-container {
         position: relative;
@@ -127,7 +127,7 @@ $transition: 0.3s all;
 
         > .editor-container,
         > .tabs-container,
-        > .console { 
+        > .console {
             left: 0;
             width: 100%;
         }
@@ -145,6 +145,4 @@ $transition: 0.3s all;
             padding-bottom: $console-height;
         }
     }
-
-    
 }
