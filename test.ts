@@ -22,9 +22,8 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 await page.goto("http://localhost:9000");
 await page.waitForSelector("h1");
-const projectsTitle = await page.evaluate(() => {
-    return document.querySelector("h1")?.textContent;
-});
+const getHeadingText = () => document.querySelector("h1")?.textContent;
+const projectsTitle = await page.evaluate(getHeadingText);
 if (projectsTitle !== PROJECTS_TITLE) {
     throw Error(
         `Projects title does not math. Expected [${PROJECTS_TITLE}] Found [${projectsTitle}]`,
