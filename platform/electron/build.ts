@@ -8,10 +8,12 @@ esbuild.buildSync({
     platform: "node",
     bundle: true,
     loader: {
-        ".txt": "text"
+        ".txt": "text",
     },
-    external: ["esbuild", "electron"]
+    external: ["esbuild", "electron"],
 });
 
-fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", { recursive: true });
+fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", {
+    recursive: true,
+});
 fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });

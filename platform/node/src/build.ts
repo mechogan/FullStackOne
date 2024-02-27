@@ -2,8 +2,7 @@ import type esbuildType from "esbuild";
 import path from "path";
 
 export function buildWebview(entryPoint: string, outdir: string) {
-    if (!global.esbuild)
-        return { errors: "Cannot find esbuild module" }
+    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     try {
         global.esbuild.buildSync({
@@ -13,16 +12,15 @@ export function buildWebview(entryPoint: string, outdir: string) {
             format: "esm",
             sourcemap: "inline",
             write: true,
-            logLevel: "silent"
+            logLevel: "silent",
         });
     } catch (e) {
-        return { errors: e.errors }
+        return { errors: e.errors };
     }
 }
 
 export function buildAPI(entryPoint: string) {
-    if (!global.esbuild)
-        return { errors: "Cannot find esbuild module" }
+    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     let result: esbuildType.BuildResult;
     try {
@@ -32,12 +30,11 @@ export function buildAPI(entryPoint: string) {
             globalName: "api",
             format: "iife",
             write: false,
-            logLevel: "silent"
+            logLevel: "silent",
         });
     } catch (e) {
-        return { errors: e.errors }
+        return { errors: e.errors };
     }
-
 
     return result?.outputFiles?.at(0)?.text;
 }

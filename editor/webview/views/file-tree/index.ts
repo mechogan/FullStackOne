@@ -14,39 +14,46 @@ export class FileTree {
     private ulRoot: HTMLUListElement;
     private baseDirectory: string[] = [];
 
-    itemSelected: {
-        element: HTMLLIElement,
-        path: string[],
-        isDirectory: boolean
-    } | undefined;
+    itemSelected:
+        | {
+              element: HTMLLIElement;
+              path: string[];
+              isDirectory: boolean;
+          }
+        | undefined;
     onItemSelect: (item: FileTree["itemSelected"]) => void;
 
     setBaseDirectory(path: string) {
         this.baseDirectory = path.split("/");
     }
 
-    private async renderItemSpan(itemPath: string[], isDirectory: boolean, parentLi: HTMLLIElement, expanded = false) {
+    private async renderItemSpan(
+        itemPath: string[],
+        isDirectory: boolean,
+        parentLi: HTMLLIElement,
+        expanded = false,
+    ) {
         const span = document.createElement("span");
-        span.innerText = `${isDirectory
-            ? expanded
-                ? "▼ "
-                : "▶ "
-            : ""}${itemPath.at(-1)}`;
+        span.innerText = `${
+            isDirectory ? (expanded ? "▼ " : "▶ ") : ""
+        }${itemPath.at(-1)}`;
 
         if (this.allowDeletion) {
             const deleteButton = document.createElement("button");
             deleteButton.classList.add("text", "small", "danger");
-            deleteButton.innerHTML = await (await fetch("/assets/icons/delete.svg")).text();
-            deleteButton.addEventListener("click", async e => {
+            deleteButton.innerHTML = await (
+                await fetch("/assets/icons/delete.svg")
+            ).text();
+            deleteButton.addEventListener("click", async (e) => {
                 e.stopPropagation();
-                
-                if(this.itemSelected?.element === parentLi){
+
+                if (this.itemSelected?.element === parentLi) {
                     this.itemSelected = undefined;
                 }
 
                 await rpc().fs.rm(itemPath.join("/"));
                 parentLi.remove();
-            })
+            });
             span.append(deleteButton);
         }
 
@@ -56,22 +63,27 @@ export class FileTree {
     private async openDirectory(pathComponents: string[]) {
         const ul = document.createElement("ul");
 
-        const items = (await rpc().fs.readdir(pathComponents.join("/")))
-            .filter(({ name, isDirectory }) => {
-                if (name.startsWith("."))
-                    return false;
+        const items = (await rpc().fs.readdir(pathComponents.join("/"))).filter(
+            ({ name, isDirectory }) => {
+                if (name.startsWith(".")) return false;
 
-                if (this.directoryOnly)
-                    return isDirectory;
+                if (this.directoryOnly) return isDirectory;
 
-                return true
-            });
+                return true;
+            },
+        );
 
         for (const { name, isDirectory } of items) {
             const itemPathComponents = [...pathComponents, name];
 
             const li = document.createElement("li");
-            li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li));
+            li.append(
+                await this.renderItemSpan(
+                    itemPathComponents,
+                    !!isDirectory,
+                    li,
+                ),
+            );
 
             li.addEventListener("click", async (e) => {
                 e.stopPropagation();
@@ -84,31 +96,38 @@ export class FileTree {
                 this.itemSelected = {
                     element: li,
                     path: itemPathComponents,
-                    isDirectory: !!isDirectory
+                    isDirectory: !!isDirectory,
                 };
 
-                if (this.onItemSelect)
-                    this.onItemSelect(this.itemSelected);
+                if (this.onItemSelect) this.onItemSelect(this.itemSelected);
 
                 li.setAttribute("aria-selected", "true");
                 li.classList.add("selected");
 
                 if (isDirectory) {
-                    Array.from(li.children).forEach(child => child.remove());
+                    Array.from(li.children).forEach((child) => child.remove());
 
-                    const expand = !(li.getAttribute("aria-expanded") === "true");
-                    li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li, expand));
+                    const expand = !(
+                        li.getAttribute("aria-expanded") === "true"
+                    );
+                    li.append(
+                        await this.renderItemSpan(
+                            itemPathComponents,
+                            !!isDirectory,
+                            li,
+                            expand,
+                        ),
+                    );
 
                     if (expand) {
                         li.append(await this.openDirectory(itemPathComponents));
-                    }
-                    else {
+                    } else {
                         li.querySelector("ul")?.remove();
                     }
 
                     li.setAttribute("aria-expanded", expand.toString());
                 }
-            })
+            });
 
             ul.append(li);
         }
@@ -139,15 +158,14 @@ export class FileTree {
     private mkdir() {
         const { ul, li, input } = this.createInputAtSelectedLocation();
 
-        li.prepend("▶ ")
+        li.prepend("▶ ");
 
         const mkDir = async () => {
             const newDirectoryName = input.value;
 
             li.remove();
 
-            if (!newDirectoryName)
-                return;
+            if (!newDirectoryName) return;
 
             const parentDirectoryPathComponents = this.itemSelected
                 ? this.itemSelected.isDirectory
@@ -155,9 +173,15 @@ export class FileTree {
                     : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
-            await rpc().fs.mkdir(parentDirectoryPathComponents.join("/") + "/" + newDirectoryName);
+            await rpc().fs.mkdir(
+                parentDirectoryPathComponents.join("/") +
+                    "/" +
+                    newDirectoryName,
+            );
 
-            const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
+            const updatedChildrenList = await this.openDirectory(
+                parentDirectoryPathComponents,
+            );
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
@@ -165,18 +189,17 @@ export class FileTree {
             }
 
             ul?.replaceWith(updatedChildrenList);
-        }
+        };
 
-        input.addEventListener("keydown", async e => {
+        input.addEventListener("keydown", async (e) => {
             const key = e.key;
-            if (key !== "Enter")
-                return;
+            if (key !== "Enter") return;
 
             mkDir();
         });
         input.addEventListener("blur", () => {
             mkDir();
-        })
+        });
 
         input.focus();
     }
@@ -189,8 +212,7 @@ export class FileTree {
 
             li.remove();
 
-            if (!newFileName)
-                return;
+            if (!newFileName) return;
 
             const parentDirectoryPathComponents = this.itemSelected
                 ? this.itemSelected.isDirectory
@@ -198,9 +220,14 @@ export class FileTree {
                     : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
-            await rpc().fs.putfileUTF8(parentDirectoryPathComponents.join("/") + "/" + newFileName, " ");
+            await rpc().fs.putfileUTF8(
+                parentDirectoryPathComponents.join("/") + "/" + newFileName,
+                " ",
+            );
 
-            const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
+            const updatedChildrenList = await this.openDirectory(
+                parentDirectoryPathComponents,
+            );
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
@@ -208,18 +235,17 @@ export class FileTree {
             }
 
             ul?.replaceWith(updatedChildrenList);
-        }
+        };
 
-        input.addEventListener("keydown", async e => {
+        input.addEventListener("keydown", async (e) => {
             const key = e.key;
-            if (key !== "Enter")
-                return;
+            if (key !== "Enter") return;
 
             touch();
         });
         input.addEventListener("blur", () => {
             touch();
-        })
+        });
 
         input.focus();
     }
@@ -231,17 +257,23 @@ export class FileTree {
                 : this.itemSelected.path.slice(0, -1)
             : this.baseDirectory;
 
-        const filePath = parentDirectoryPathComponents.join("/") + "/" + file.name;
+        const filePath =
+            parentDirectoryPathComponents.join("/") + "/" + file.name;
 
-        rpc().fs.putfile(filePath, Array.from(new Uint8Array(await file.arrayBuffer())));
+        rpc().fs.putfile(
+            filePath,
+            Array.from(new Uint8Array(await file.arrayBuffer())),
+        );
 
         const ul = this.itemSelected
             ? this.itemSelected.isDirectory
                 ? this.itemSelected.element
                 : this.itemSelected.element.parentElement
-            : this.ulRoot
+            : this.ulRoot;
 
-        const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
+        const updatedChildrenList = await this.openDirectory(
+            parentDirectoryPathComponents,
+        );
 
         if (ul === this.ulRoot) {
             updatedChildrenList.classList.add("file-tree");
@@ -263,9 +295,8 @@ export class FileTree {
 
             this.itemSelected = undefined;
 
-            if (this.onItemSelect)
-                this.onItemSelect(this.itemSelected);
-        })
+            if (this.onItemSelect) this.onItemSelect(this.itemSelected);
+        });
 
         this.ulRoot = await this.openDirectory(this.baseDirectory);
         this.ulRoot.classList.add("file-tree");
@@ -282,8 +313,10 @@ export class FileTree {
 
         const newDirectoryButton = document.createElement("button");
         newDirectoryButton.classList.add("small", "text");
-        newDirectoryButton.innerHTML = await (await fetch("/assets/icons/add-directory.svg")).text();
-        newDirectoryButton.addEventListener("click", e => {
+        newDirectoryButton.innerHTML = await (
+            await fetch("/assets/icons/add-directory.svg")
+        ).text();
+        newDirectoryButton.addEventListener("click", (e) => {
             e.stopPropagation();
             this.mkdir();
         });
@@ -292,40 +325,41 @@ export class FileTree {
         if (!this.directoryOnly) {
             const newFileButton = document.createElement("button");
             newFileButton.classList.add("small", "text");
-            newFileButton.innerHTML = await (await fetch("/assets/icons/add-file.svg")).text();
-            newFileButton.addEventListener("click", e => {
+            newFileButton.innerHTML = await (
+                await fetch("/assets/icons/add-file.svg")
+            ).text();
+            newFileButton.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.touch();
             });
             actionsContainer.append(newFileButton);
 
-
             const inputFile = document.createElement("input");
             inputFile.type = "file";
             inputFile.multiple = false;
             actionsContainer.append(inputFile);
-            inputFile.addEventListener("click", e => e.stopPropagation());
+            inputFile.addEventListener("click", (e) => e.stopPropagation());
             inputFile.addEventListener("change", () => {
-                if (!inputFile.files?.[0])
-                    return;
+                if (!inputFile.files?.[0]) return;
 
                 this.addFile(inputFile.files[0]);
-            })
+            });
 
             const uploadFileButton = document.createElement("button");
             uploadFileButton.classList.add("small", "text");
-            uploadFileButton.innerHTML = await (await fetch("/assets/icons/download.svg")).text();
-            uploadFileButton.addEventListener("click", e => {
+            uploadFileButton.innerHTML = await (
+                await fetch("/assets/icons/download.svg")
+            ).text();
+            uploadFileButton.addEventListener("click", (e) => {
                 e.stopPropagation();
                 inputFile.click();
             });
             actionsContainer.append(uploadFileButton);
         }
 
-
         container.append(actionsContainer);
 
-        container.append(this.ulRoot)
+        container.append(this.ulRoot);
 
         return container;
     }
