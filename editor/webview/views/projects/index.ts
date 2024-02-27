@@ -3,6 +3,7 @@ import "./index.css";
 import type { Project } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
+import { PROJECTS_TITLE } from "./constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -44,7 +45,7 @@ export class Projects {
         this.container.classList.add("projects");
 
         const title = document.createElement("h1");
-        title.innerText = "Projects";
+        title.innerText = PROJECTS_TITLE;
         this.container.append(title);
 
         const projectsContainer = document.createElement("div");
