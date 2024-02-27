@@ -27,11 +27,11 @@ export class FileTree {
 
     private async renderItemSpan(itemPath: string[], isDirectory: boolean, parentLi: HTMLLIElement, expanded = false) {
         const span = document.createElement("span");
-        span.innerText = `${isDirectory 
-                ? expanded
-                    ? "▼ " 
-                    : "▶ " 
-                : ""}${itemPath.at(-1)}`;
+        span.innerText = `${isDirectory
+            ? expanded
+                ? "▼ "
+                : "▶ "
+            : ""}${itemPath.at(-1)}`;
 
         if (this.allowDeletion) {
             const deleteButton = document.createElement("button");
@@ -39,6 +39,11 @@ export class FileTree {
             deleteButton.innerHTML = await (await fetch("/assets/icons/delete.svg")).text();
             deleteButton.addEventListener("click", async e => {
                 e.stopPropagation();
+                
+                if(this.itemSelected?.element === parentLi){
+                    this.itemSelected = undefined;
+                }
+
                 await rpc().fs.rm(itemPath.join("/"));
                 parentLi.remove();
             })
@@ -53,58 +58,59 @@ export class FileTree {
 
         const items = (await rpc().fs.readdir(pathComponents.join("/")))
             .filter(({ name, isDirectory }) => {
-                if(name.startsWith("."))
+                if (name.startsWith("."))
                     return false;
 
                 if (this.directoryOnly)
                     return isDirectory;
 
                 return true
-            })
-        for(const {name, isDirectory} of items) {
+            });
+
+        for (const { name, isDirectory } of items) {
             const itemPathComponents = [...pathComponents, name];
 
-                const li = document.createElement("li");
-                li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li));
+            const li = document.createElement("li");
+            li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li));
 
-                li.addEventListener("click", async (e) => {
-                    e.stopPropagation();
+            li.addEventListener("click", async (e) => {
+                e.stopPropagation();
 
-                    if (this.itemSelected) {
-                        this.itemSelected.element.removeAttribute("aria-selected");
-                        this.itemSelected.element.classList.remove("selected");
+                if (this.itemSelected) {
+                    this.itemSelected.element.removeAttribute("aria-selected");
+                    this.itemSelected.element.classList.remove("selected");
+                }
+
+                this.itemSelected = {
+                    element: li,
+                    path: itemPathComponents,
+                    isDirectory: !!isDirectory
+                };
+
+                if (this.onItemSelect)
+                    this.onItemSelect(this.itemSelected);
+
+                li.setAttribute("aria-selected", "true");
+                li.classList.add("selected");
+
+                if (isDirectory) {
+                    Array.from(li.children).forEach(child => child.remove());
+
+                    const expand = !(li.getAttribute("aria-expanded") === "true");
+                    li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li, expand));
+
+                    if (expand) {
+                        li.append(await this.openDirectory(itemPathComponents));
+                    }
+                    else {
+                        li.querySelector("ul")?.remove();
                     }
 
-                    this.itemSelected = {
-                        element: li,
-                        path: itemPathComponents,
-                        isDirectory: !!isDirectory
-                    };
+                    li.setAttribute("aria-expanded", expand.toString());
+                }
+            })
 
-                    if (this.onItemSelect)
-                        this.onItemSelect(this.itemSelected);
-
-                    li.setAttribute("aria-selected", "true");
-                    li.classList.add("selected");
-
-                    if (isDirectory) {
-                        Array.from(li.children).forEach(child => child.remove());
-
-                        const expand = !(li.getAttribute("aria-expanded") === "true");
-                        li.append(await this.renderItemSpan(itemPathComponents, !!isDirectory, li, expand));
-
-                        if (expand) {
-                            li.append(await this.openDirectory(itemPathComponents));
-                        }
-                        else {
-                            li.querySelector("ul")?.remove();
-                        }
-
-                        li.setAttribute("aria-expanded", expand.toString());
-                    }
-                })
-
-                ul.append(li);
+            ul.append(li);
         }
 
         return ul;
@@ -155,6 +161,7 @@ export class FileTree {
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
+                this.ulRoot = updatedChildrenList;
             }
 
             ul?.replaceWith(updatedChildrenList);
@@ -191,12 +198,13 @@ export class FileTree {
                     : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
-            await rpc().fs.putfileUTF8(parentDirectoryPathComponents.join("/") + "/" + newFileName, "\n");
+            await rpc().fs.putfileUTF8(parentDirectoryPathComponents.join("/") + "/" + newFileName, " ");
 
             const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
+                this.ulRoot = updatedChildrenList;
             }
 
             ul?.replaceWith(updatedChildrenList);
@@ -232,7 +240,7 @@ export class FileTree {
                 ? this.itemSelected.element
                 : this.itemSelected.element.parentElement
             : this.ulRoot
-        
+
         const updatedChildrenList = await this.openDirectory(parentDirectoryPathComponents);
 
         if (ul === this.ulRoot) {
@@ -243,6 +251,8 @@ export class FileTree {
     }
 
     async render() {
+        this.itemSelected = undefined;
+
         const container = document.createElement("div");
         container.classList.add("file-tree-view");
         container.addEventListener("click", () => {
@@ -296,7 +306,7 @@ export class FileTree {
             actionsContainer.append(inputFile);
             inputFile.addEventListener("click", e => e.stopPropagation());
             inputFile.addEventListener("change", () => {
-                if(!inputFile.files?.[0])
+                if (!inputFile.files?.[0])
                     return;
 
                 this.addFile(inputFile.files[0]);
