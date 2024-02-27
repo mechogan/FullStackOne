@@ -5,6 +5,7 @@
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build && npm start -w platform/node",
         "prettier": "prettier . --write",
+        "typecheck": "tsc --noEmit && npm run typecheck -w platform/electron ",
         "test": "esbuild test.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
     "workspaces": [
@@ -37,6 +38,7 @@
         "puppeteer": "^22.3.0",
         "sass": "^1.71.0",
         "source-map": "^0.7.4",
+        "typescript": "^5.3.3",
         "ws": "^8.16.0",
         "xterm": "^5.3.0"
     }

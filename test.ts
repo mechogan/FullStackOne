@@ -2,6 +2,17 @@ import child_process from "child_process";
 import puppeteer from "puppeteer";
 import { PROJECTS_TITLE } from "./editor/webview/views/projects/constants";
 
+// typecheck 
+child_process.execSync("npm run typecheck", {
+    stdio: "inherit"
+})
+
+const throwError = (message: string) => {
+    const error = Error(message);
+    console.error(error);
+    process.exit(1);
+};
+
 // test build
 await import("./build");
 
@@ -25,9 +36,8 @@ await page.waitForSelector("h1");
 const getHeadingText = () => document.querySelector("h1")?.textContent;
 const projectsTitle = await page.evaluate(getHeadingText);
 if (projectsTitle !== PROJECTS_TITLE) {
-    throw Error(
-        `Projects title does not math. Expected [${PROJECTS_TITLE}] Found [${projectsTitle}]`,
-    );
+    const errorMsg = `Projects title does not math. Expected [${PROJECTS_TITLE}] Found [${projectsTitle}]`;
+    throwError(errorMsg);
 }
 
 process.exit(0);
