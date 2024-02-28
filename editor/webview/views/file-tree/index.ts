@@ -2,6 +2,7 @@ import "./index.css";
 
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
+import { NEW_FILE_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -318,6 +319,7 @@ export class FileTree {
 
         if (!this.directoryOnly) {
             const newFileButton = document.createElement("button");
+            newFileButton.id = NEW_FILE_ID;
             newFileButton.classList.add("small", "text");
             newFileButton.innerHTML = await (
                 await fetch("/assets/icons/add-file.svg")
