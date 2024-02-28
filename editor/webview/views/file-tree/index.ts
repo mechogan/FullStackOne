@@ -257,7 +257,7 @@ export class FileTree {
 
         rpc().fs.putfile(
             filePath,
-            Array.from(new Uint8Array(await file.arrayBuffer()))
+            new Uint8Array(await file.arrayBuffer())
         );
 
         const ul = this.itemSelected
@@ -272,6 +272,7 @@ export class FileTree {
 
         if (ul === this.ulRoot) {
             updatedChildrenList.classList.add("file-tree");
+            this.ulRoot = updatedChildrenList;
         }
 
         ul?.replaceWith(updatedChildrenList);

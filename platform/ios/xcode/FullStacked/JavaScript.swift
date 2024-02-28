@@ -55,7 +55,7 @@ class JavaScript {
         }
         let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
         
-        let payload = body != nil ? Array(body!) : nil
+        let payload = body != nil ? body!.toUint8Array(ctx: self.ctx) : nil
         self.ctx["api"]?["default"]?.call(withArguments: [headers, pathname, payload as Any])
             .invokeMethod("then", withArguments: promiseArgs)
     }
@@ -98,9 +98,9 @@ class JavaScript {
                 return ["name": item, "isDirectory": isDirectory.boolValue]
             }
         }
-        let readfile: @convention (block) (String, Bool) -> [UInt8] = { filename, forAsset in
+        let readfile: @convention (block) (String, Bool) -> JSValue? = { [self] filename, forAsset in
             let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
-            return Array(contents)
+            return contents.toUint8Array(ctx: self.ctx)
         }
         let readfileUTF8: @convention (block) (String, Bool) -> String = { filename, forAsset in
             let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
@@ -161,7 +161,13 @@ class JavaScript {
                 
                 let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
                 DispatchQueue.main.async {
-                    onCompletion.call(withArguments: [headers, Array(data!)])
+                    if(data == nil){
+                        onCompletion.call(withArguments: [headers])
+                        return;
+                    }
+                    
+                    let uint8array = data?.toUint8Array(ctx: self.ctx);
+                    onCompletion.call(withArguments: [headers, uint8array!])
                 }
             }
             task.resume()
@@ -243,5 +249,34 @@ extension JSValue {
     subscript(_ key: String) -> Any? {
         get { return objectForKeyedSubscript(key) }
         set { setObject(newValue, forKeyedSubscript: key) }
+    }
+}
+
+extension Data {
+    func toUint8Array(ctx: JSContext) -> JSValue? {
+        // source: https://gist.github.com/hyperandroid/52f8198347d61c3fa62c75c72c31deb6
+        let ptr: UnsafeMutableBufferPointer<UInt8> = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: self.count)
+        try! self.withUnsafeBytes<UInt8> { (contentsPtr: UnsafeRawBufferPointer) -> Void in
+            let _ = ptr.initialize(from: UnsafeRawBufferPointer(contentsPtr))
+        }
+        var exception : JSValueRef?
+        let deallocator: JSTypedArrayBytesDeallocator = { ptr, deallocatorContext in
+            ptr?.deallocate()
+        }
+        let arrayBufferRef = JSObjectMakeTypedArrayWithBytesNoCopy(
+            ctx.jsGlobalContextRef,
+            kJSTypedArrayTypeUint8Array,
+            ptr.baseAddress,
+            self.count,
+            deallocator,
+            nil,
+            &exception)
+
+        if exception != nil {
+            ctx.exception = JSValue(jsValueRef: exception, in: ctx)
+            return nil
+        }
+        
+        return JSValue(jsValueRef: arrayBufferRef, in: ctx)
     }
 }

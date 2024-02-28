@@ -46,7 +46,7 @@ buildSync({
 });
 
 buildSync({
-    entryPoints: ["src/webview.ts"],
+    entryPoints: ["src/webview/index.ts"],
     bundle: true,
     format: "esm",
     outfile: "src/js/webview.js"

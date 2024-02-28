@@ -37,7 +37,7 @@ export function strToUTF8(str: string) {
 }
 
 // https://stackoverflow.com/a/44614927
-export function UTF8ToStr(strBytes: number[] | Uint8Array) {
+export function UTF8ToStr(strBytes: Uint8Array) {
     let MAX_SIZE = 0x4000;
     let codeUnits: number[] = [];
     let highSurrogate: number;

@@ -125,7 +125,7 @@ export class JavaScript {
                 options: {
                     headers?: Record<string, string>;
                     method?: "GET" | "POST" | "PUT" | "DELTE";
-                    body?: Uint8Array | number[];
+                    body?: Uint8Array;
                 }
             ) {
                 const response = await fetch(url, {
@@ -145,7 +145,7 @@ export class JavaScript {
                 options: {
                     headers?: Record<string, string>;
                     method?: "GET" | "POST" | "PUT" | "DELTE";
-                    body?: Uint8Array | number[];
+                    body?: Uint8Array;
                 }
             ) {
                 const response = await fetch(url, {

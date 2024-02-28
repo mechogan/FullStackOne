@@ -74,12 +74,9 @@ export const installEsbuild = async (js: JavaScript) => {
     });
 
     const esbuildOutdir = path.join(outdir, "esbuild");
-    console.log(esbuildTarball, fs.existsSync(esbuildTarball));
-    console.log(esbuildOutdir, fs.existsSync(esbuildOutdir));
     fs.mkdirSync(esbuildOutdir, { recursive: true });
     const size = fs.statSync(esbuildTarball).size;
     const esbuildTarReadStream = fs.createReadStream(esbuildTarball);
-    console.log(esbuildOutdir, fs.existsSync(esbuildOutdir));
     const untarWriteStream = tar.x({
         strip: 1,
         C: esbuildOutdir

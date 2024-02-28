@@ -104,10 +104,10 @@ const handle = async (request: Request) => {
 
     return new Promise<Response>((resolve) => {
         js.processRequest(headers, pathname, body, (jsResponse) => {
-            const responseBody = jsResponse.data
+            const responseBody = jsResponse.data 
                 ? (jsResponse.data as Uint8Array).buffer
                 : null;
-
+            
             const response = new Response(responseBody, {
                 headers: responseBody
                     ? {

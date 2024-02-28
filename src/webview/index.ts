@@ -1,3 +1,4 @@
+import "./Uint8Array";
 import { SourceMapConsumer } from "source-map-js";
 
 async function fetchCall(pathComponents: string[], ...args) {
@@ -9,9 +10,13 @@ async function fetchCall(pathComponents: string[], ...args) {
         body: JSON.stringify(args)
     });
 
-    return response.headers.get("content-type")?.startsWith("application/json")
+    const contentType = response.headers.get("content-type");
+
+    return contentType?.startsWith("application/json")
         ? response.json()
-        : response.text();
+        : contentType?.startsWith("application/octet-stream")
+            ? response.arrayBuffer()
+            : response.text();
 }
 
 function recurseInProxy(target: Function, pathComponents: string[] = []) {
