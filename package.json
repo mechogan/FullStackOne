@@ -1,6 +1,6 @@
 {
     "name": "fullstacked-editor",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build && npm start -w platform/node",
