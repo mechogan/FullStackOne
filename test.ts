@@ -1,11 +1,14 @@
 import child_process from "child_process";
-import puppeteer, { ElementHandle } from "puppeteer";
+import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
     IMPORT_PROJECT_FILE_INPUT_ID,
+    NEW_FILE_ID,
     NEW_PROJECT_ID,
     PROJECTS_TITLE,
     RUN_PROJECT_ID
 } from "./editor/constants";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const throwError = (message: string) => {
     const error = Error(message);
@@ -69,9 +72,39 @@ const importProjectFileInput = (await page.waitForSelector(
     `#${IMPORT_PROJECT_FILE_INPUT_ID}`
 )) as ElementHandle<HTMLInputElement>;
 await importProjectFileInput.uploadFile("Demo.zip");
+
+// add file
+const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);
+await newFileButton.click();
+const testFileName = "test.txt";
+for (let i = 0; i < testFileName.length; i++) {
+    await page.keyboard.press(testFileName[i] as KeyInput);
+}
+await page.keyboard.press("Enter");
+let tries = 3;
+while (tries) {
+    tries--;
+    const getFileTreeItemsTitle = () =>
+        Array.from(document.querySelectorAll("ul.file-tree li span") ?? []).map(
+            (e) => e.textContent.trim()
+        );
+    const fileTreeItems = await page.evaluate(getFileTreeItemsTitle);
+
+    if (!fileTreeItems.includes(testFileName)) {
+        if (!tries) {
+            const errorMsg = `Could not found file in file tree. Searching [${testFileName}] in [${fileTreeItems.join(", ")}] `;
+            throwError(errorMsg);
+        } else {
+            await sleep(100);
+        }
+    } else {
+        break;
+    }
+}
+
 const runProjectButton = await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton.click();
-let tries = 3;
+tries = 3;
 while (tries) {
     tries--;
     try {

@@ -2,6 +2,7 @@ import "./index.css";
 
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
+import { NEW_FILE_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -46,6 +47,11 @@ export class FileTree {
             ).text();
             deleteButton.addEventListener("click", async (e) => {
                 e.stopPropagation();
+
+                if (this.itemSelected?.element === parentLi) {
+                    this.itemSelected = undefined;
+                }
+
                 await rpc().fs.rm(itemPath.join("/"));
                 parentLi.remove();
             });
@@ -67,6 +73,7 @@ export class FileTree {
                 return true;
             }
         );
+
         for (const { name, isDirectory } of items) {
             const itemPathComponents = [...pathComponents, name];
 
@@ -173,6 +180,7 @@ export class FileTree {
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
+                this.ulRoot = updatedChildrenList;
             }
 
             ul?.replaceWith(updatedChildrenList);
@@ -209,7 +217,7 @@ export class FileTree {
 
             await rpc().fs.putfileUTF8(
                 parentDirectoryPathComponents.join("/") + "/" + newFileName,
-                "\n"
+                " "
             );
 
             const updatedChildrenList = await this.openDirectory(
@@ -218,6 +226,7 @@ export class FileTree {
 
             if (ul === this.ulRoot) {
                 updatedChildrenList.classList.add("file-tree");
+                this.ulRoot = updatedChildrenList;
             }
 
             ul?.replaceWith(updatedChildrenList);
@@ -269,6 +278,8 @@ export class FileTree {
     }
 
     async render() {
+        this.itemSelected = undefined;
+
         const container = document.createElement("div");
         container.classList.add("file-tree-view");
         container.addEventListener("click", () => {
@@ -308,6 +319,7 @@ export class FileTree {
 
         if (!this.directoryOnly) {
             const newFileButton = document.createElement("button");
+            newFileButton.id = NEW_FILE_ID;
             newFileButton.classList.add("small", "text");
             newFileButton.innerHTML = await (
                 await fetch("/assets/icons/add-file.svg")
