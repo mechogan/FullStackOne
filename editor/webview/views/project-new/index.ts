@@ -1,5 +1,6 @@
-import { FileTree } from "../file-tree";
 import "./index.css";
+import { FileTree } from "../file-tree";
+import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../../constants";
 
 import type { Project } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
@@ -44,6 +45,7 @@ export class ProjectNew {
         const importer = document.createElement("div");
 
         const inputFile = document.createElement("input");
+        inputFile.id = IMPORT_PROJECT_FILE_INPUT_ID;
         inputFile.type = "file";
         inputFile.multiple = false;
         inputFile.accept = ".zip";

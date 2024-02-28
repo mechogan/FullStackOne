@@ -7,6 +7,7 @@ import { Console } from "../console";
 import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
+import { RUN_PROJECT_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -190,6 +191,7 @@ export class Project {
         rightSide.append(shareButton);
 
         const runButton = document.createElement("button");
+        runButton.id = RUN_PROJECT_ID;
         runButton.classList.add("text");
         runButton.innerHTML = await (
             await fetch("/assets/icons/run.svg")

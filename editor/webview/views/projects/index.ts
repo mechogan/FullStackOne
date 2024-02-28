@@ -3,7 +3,7 @@ import "./index.css";
 import type { Project } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { PROJECTS_TITLE } from "./constants";
+import { NEW_PROJECT_ID, PROJECTS_TITLE } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -59,6 +59,7 @@ export class Projects {
         }
 
         const newProject = document.createElement("article");
+        newProject.id = NEW_PROJECT_ID;
         newProject.innerHTML = await (
             await fetch("/assets/icons/add.svg")
         ).text();
