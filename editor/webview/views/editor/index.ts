@@ -117,9 +117,7 @@ export class Editor {
             imageContainer.classList.add("img-container");
 
             const img = document.createElement("img");
-            const imageData = new Uint8Array(
-                await rpc().fs.readfile(this.filePath.join("/"))
-            );
+            const imageData = await rpc().fs.readfile(this.filePath.join("/"));
             const imageBlob = new Blob([imageData]);
             img.src = window.URL.createObjectURL(imageBlob);
             imageContainer.append(img);

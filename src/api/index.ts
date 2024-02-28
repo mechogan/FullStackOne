@@ -4,13 +4,13 @@ import { UTF8ToStr, strToUTF8 } from "./utf8";
 export declare var fs: {
     exists(itemPath: string, forAsset?: boolean): boolean;
 
-    readfile(filename: string, forAsset?: boolean): number[] | Uint8Array;
+    readfile(filename: string, forAsset?: boolean): Uint8Array;
     readfileUTF8(filename: string, forAsset?: boolean): string;
 
     readdir(directory: string): { name: string; isDirectory: boolean }[];
     mkdir(directory: string): void;
 
-    putfile(filename: string, contents: number[]): void;
+    putfile(filename: string, contents: Uint8Array): void;
     putfileUTF8(filename: string, contents: string): void;
 
     rm(itemPath: string): void;
@@ -23,11 +23,11 @@ type fetch<T> = (
     options: {
         headers?: Record<string, string>;
         method?: "GET" | "POST" | "PUT" | "DELTE";
-        body?: Uint8Array | number[];
+        body?: Uint8Array;
     }
 ) => Promise<{ headers: Record<string, string>; body: T }>;
 export declare var fetch: {
-    data: fetch<Uint8Array | number[]>;
+    data: fetch<Uint8Array>;
     UTF8: fetch<string>;
 };
 
@@ -44,13 +44,13 @@ const notFound = {
 
 export type Response = {
     mimeType: string;
-    data?: number[] | Uint8Array;
+    data?: Uint8Array;
 };
 
 export default async (
     headers: Record<string, string>,
     pathname: string,
-    body: Uint8Array | number[]
+    body: Uint8Array
 ): Promise<Response> => {
     let response: Response = notFound;
 
@@ -81,9 +81,10 @@ export default async (
     }
 
     if (fs.exists(maybeFileName, true)) {
+        const data = fs.readfile(maybeFileName, true);
         response = {
             mimeType: mime.getType(maybeFileName) || "text/plain",
-            data: fs.readfile(maybeFileName, true)
+            data
         };
     }
 
@@ -103,20 +104,24 @@ export default async (
             responseBody = await responseBody;
         }
 
-        if (ArrayBuffer.isView(responseBody)) {
-            responseBody = Array.from(responseBody as Uint8Array);
-        }
-
-        const isJSON = typeof responseBody !== "string";
-
-        response.mimeType = isJSON ? "application/json" : "text/plain";
+        let type = "text/plain";
         if (responseBody) {
-            response.data = strToUTF8(
-                isJSON ? JSON.stringify(responseBody) : responseBody
-            );
+            if (ArrayBuffer.isView(responseBody)) {
+                type = "application/octet-stream";
+                responseBody = new Uint8Array(responseBody.buffer);
+            } else {
+                if (typeof responseBody !== "string") {
+                    type = "application/json";
+                    responseBody = JSON.stringify(responseBody);
+                }
+                responseBody = strToUTF8(responseBody);
+            }
+            response.data = responseBody;
         } else {
             delete response.data;
         }
+
+        response.mimeType = type;
     }
 
     return response;

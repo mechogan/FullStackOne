@@ -255,10 +255,7 @@ export class FileTree {
         const filePath =
             parentDirectoryPathComponents.join("/") + "/" + file.name;
 
-        rpc().fs.putfile(
-            filePath,
-            Array.from(new Uint8Array(await file.arrayBuffer()))
-        );
+        rpc().fs.putfile(filePath, new Uint8Array(await file.arrayBuffer()));
 
         const ul = this.itemSelected
             ? this.itemSelected.isDirectory
@@ -272,6 +269,7 @@ export class FileTree {
 
         if (ul === this.ulRoot) {
             updatedChildrenList.classList.add("file-tree");
+            this.ulRoot = updatedChildrenList;
         }
 
         ul?.replaceWith(updatedChildrenList);

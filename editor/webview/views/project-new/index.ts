@@ -71,7 +71,7 @@ export class ProjectNew {
 
             const importedProject = await rpc().projects.import(
                 project,
-                Array.from(new Uint8Array(await zipFile.arrayBuffer()))
+                new Uint8Array(await zipFile.arrayBuffer())
             );
             this.didCreateProjectAction(importedProject);
         });

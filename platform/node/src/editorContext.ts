@@ -36,7 +36,7 @@ export default function (home: string, js: JavaScript, jsDir: string) {
         zip.writeZip(out);
         return out.split("/").slice(0, -1).join("/");
     };
-    js.ctx.unzip = (to: string, zipData: number[] | Uint8Array) => {
+    js.ctx.unzip = (to: string, zipData: Uint8Array) => {
         const zip = new AdmZip(Buffer.from(zipData));
         zip.extractAllTo(resolvePath(to));
     };
