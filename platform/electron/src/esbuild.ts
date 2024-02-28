@@ -44,7 +44,7 @@ export const installEsbuild = async (js: JavaScript) => {
     if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
 
     const esbuildResponse = await fetch(
-        `https://registry.npmjs.org/esbuild/${esbuildVersion}`,
+        `https://registry.npmjs.org/esbuild/${esbuildVersion}`
     );
     const esbuildPackage = await esbuildResponse.json();
     const esbuildtarballUrl = esbuildPackage.dist.tarball;
@@ -64,8 +64,8 @@ export const installEsbuild = async (js: JavaScript) => {
                     "esbuildInstall",
                     JSON.stringify({
                         step: 0,
-                        progress,
-                    }),
+                        progress
+                    })
                 );
 
                 if (progress === 1) esbuildWiteStream.close(resolve);
@@ -82,7 +82,7 @@ export const installEsbuild = async (js: JavaScript) => {
     console.log(esbuildOutdir, fs.existsSync(esbuildOutdir));
     const untarWriteStream = tar.x({
         strip: 1,
-        C: esbuildOutdir,
+        C: esbuildOutdir
     });
     await new Promise<void>((resolve) => {
         let read = 0;
@@ -96,8 +96,8 @@ export const installEsbuild = async (js: JavaScript) => {
                 "esbuildInstall",
                 JSON.stringify({
                     step: 1,
-                    progress,
-                }),
+                    progress
+                })
             );
 
             if (progress === 1) resolve();
@@ -106,7 +106,7 @@ export const installEsbuild = async (js: JavaScript) => {
     fs.rmSync(esbuildTarball);
 
     const npmResponse = await fetch(
-        `https://registry.npmjs.org/${pkg}/${esbuildVersion}`,
+        `https://registry.npmjs.org/${pkg}/${esbuildVersion}`
     );
     const latestEsbuild = await npmResponse.json();
     const tarballUrl = latestEsbuild.dist.tarball;
@@ -126,8 +126,8 @@ export const installEsbuild = async (js: JavaScript) => {
                     "esbuildInstall",
                     JSON.stringify({
                         step: 2,
-                        progress,
-                    }),
+                        progress
+                    })
                 );
 
                 if (progress === 1) writeStream.close(resolve);
@@ -141,7 +141,7 @@ export const installEsbuild = async (js: JavaScript) => {
     const binTarReadStream = fs.createReadStream(tarball);
     const untarBinWriteStream = tar.x({
         strip: 1,
-        C: esbuildBinOutdir,
+        C: esbuildBinOutdir
     });
     await new Promise<void>((resolve) => {
         let read = 0;
@@ -155,8 +155,8 @@ export const installEsbuild = async (js: JavaScript) => {
                 "esbuildInstall",
                 JSON.stringify({
                     step: 3,
-                    progress,
-                }),
+                    progress
+                })
             );
 
             if (progress === 1) resolve();

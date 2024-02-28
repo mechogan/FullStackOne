@@ -12,7 +12,7 @@ export function buildWebview(entryPoint: string, outdir: string) {
             format: "esm",
             sourcemap: "inline",
             write: true,
-            logLevel: "silent",
+            logLevel: "silent"
         });
     } catch (e) {
         return { errors: e.errors };
@@ -30,7 +30,7 @@ export function buildAPI(entryPoint: string) {
             globalName: "api",
             format: "iife",
             write: false,
-            logLevel: "silent",
+            logLevel: "silent"
         });
     } catch (e) {
         return { errors: e.errors };

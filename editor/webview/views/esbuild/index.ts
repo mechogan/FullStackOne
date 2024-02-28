@@ -41,7 +41,7 @@ export class EsbuildInstall {
             "Downloading esbuild package",
             "Extracting esbuild package",
             "Downloading esbuild binary",
-            "Extracting esbuild binary",
+            "Extracting esbuild binary"
         ];
         steps.forEach((step) => {
             const li = document.createElement("li");

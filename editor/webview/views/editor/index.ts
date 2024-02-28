@@ -7,7 +7,7 @@ import {
     linter,
     lintGutter,
     setDiagnostics,
-    Diagnostic,
+    Diagnostic
 } from "@codemirror/lint";
 import { Extension } from "@codemirror/state";
 
@@ -32,7 +32,7 @@ enum UTF8_Ext {
     CSS = ".css",
     JSON = ".json",
     SASS = ".sass",
-    SCSS = ".scss",
+    SCSS = ".scss"
 }
 
 enum IMAGE_Ext {
@@ -41,7 +41,7 @@ enum IMAGE_Ext {
     JPEG = ".jpeg",
     GIF = ".gif",
     WEBP = ".webp",
-    BMP = ".bmp",
+    BMP = ".bmp"
 }
 
 export class Editor {
@@ -49,7 +49,7 @@ export class Editor {
         basicSetup,
         oneDark,
         keymap.of([indentWithTab]),
-        EditorView.updateListener.of(this.updateFileContents.bind(this)),
+        EditorView.updateListener.of(this.updateFileContents.bind(this))
     ];
     private parent = document.createElement("div");
     private editor: EditorView;
@@ -89,7 +89,7 @@ export class Editor {
                 from,
                 to: from + error.length,
                 severity: "error",
-                message: error.message,
+                message: error.message
             };
         });
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
@@ -98,19 +98,19 @@ export class Editor {
     private async loadFileContents() {
         if (
             Object.values(UTF8_Ext).find((ext) =>
-                this.filePath.at(-1)?.endsWith(ext),
+                this.filePath.at(-1)?.endsWith(ext)
             )
         ) {
             this.editor = new EditorView({
                 doc: await rpc().fs.readfileUTF8(this.filePath.join("/")),
                 extensions: this.extensions.concat(
-                    await this.loadLanguageExtensions(),
+                    await this.loadLanguageExtensions()
                 ),
-                parent: this.parent,
+                parent: this.parent
             });
         } else if (
             Object.values(IMAGE_Ext).find((ext) =>
-                this.filePath.at(-1)?.endsWith(ext),
+                this.filePath.at(-1)?.endsWith(ext)
             )
         ) {
             const imageContainer = document.createElement("div");
@@ -118,7 +118,7 @@ export class Editor {
 
             const img = document.createElement("img");
             const imageData = new Uint8Array(
-                await rpc().fs.readfile(this.filePath.join("/")),
+                await rpc().fs.readfile(this.filePath.join("/"))
             );
             const imageBlob = new Blob([imageData]);
             img.src = window.URL.createObjectURL(imageBlob);
@@ -166,9 +166,9 @@ export class Editor {
                     typescript:
                         filename.endsWith(UTF8_Ext.TYPESCRIPT) ||
                         filename.endsWith(UTF8_Ext.TYPESCRIPT_X),
-                    jsx: filename.endsWith("x"),
+                    jsx: filename.endsWith("x")
                 }),
-                lintGutter(),
+                lintGutter()
             );
 
             if (
@@ -179,8 +179,8 @@ export class Editor {
             ) {
                 extensions.push(
                     jsLang.javascriptLanguage.data.of({
-                        autocomplete: jsLang.scopeCompletionSource(globalThis),
-                    }),
+                        autocomplete: jsLang.scopeCompletionSource(globalThis)
+                    })
                 );
             }
         } else if (filename.endsWith(UTF8_Ext.HTML)) {
@@ -197,12 +197,12 @@ export class Editor {
         ) {
             extensions.push(
                 (await import("@codemirror/lang-sass")).sass({
-                    indented: filename.endsWith(UTF8_Ext.SCSS),
-                }),
+                    indented: filename.endsWith(UTF8_Ext.SCSS)
+                })
             );
         } else if (filename.endsWith(UTF8_Ext.MARKDOWN)) {
             extensions.push(
-                (await import("@codemirror/lang-markdown")).markdown(),
+                (await import("@codemirror/lang-markdown")).markdown()
             );
         }
 
