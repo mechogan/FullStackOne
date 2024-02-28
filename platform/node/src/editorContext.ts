@@ -12,7 +12,7 @@ export default function (home: string, js: JavaScript, jsDir: string) {
     js.ctx.buildWebview = (entryPoint: string, outdir: string) => {
         const maybeErrors = buildWebview(
             resolvePath(entryPoint),
-            resolvePath(outdir),
+            resolvePath(outdir)
         );
 
         if (maybeErrors?.errors) {

@@ -3,5 +3,5 @@ declare var installEsbuild: () => void;
 
 export default {
     checkInstall: () => checkEsbuildInstall(),
-    install: () => installEsbuild(),
+    install: () => installEsbuild()
 };

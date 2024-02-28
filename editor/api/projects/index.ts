@@ -11,7 +11,7 @@ declare var run: (
     projectdir: string,
     assetdir: string,
     entrypointData: string,
-    hasErrors: boolean,
+    hasErrors: boolean
 ) => void;
 declare var buildWebview: (entrypoint: string, outdir: string) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
@@ -22,7 +22,7 @@ const create = (project: Omit<Project, "createdDate">) => {
     const projects = list();
     const newProject = {
         ...project,
-        createdDate: Date.now(),
+        createdDate: Date.now()
     };
     projects.push(newProject);
     config.save(CONFIG_TYPE.PROJECTS, projects);
@@ -32,7 +32,7 @@ const create = (project: Omit<Project, "createdDate">) => {
 const deleteProject = (project: Project) => {
     const projects = list();
     const indexOf = projects.findIndex(
-        ({ location }) => location === project.location,
+        ({ location }) => location === project.location
     );
     projects.splice(indexOf, 1);
     config.save(CONFIG_TYPE.PROJECTS, projects);
@@ -50,7 +50,7 @@ export default {
             const entrypointWebview = mingleWebview(maybeWebviewJS);
             hasErrors = !buildWebview(
                 entrypointWebview,
-                project.location + "/.build",
+                project.location + "/.build"
             );
             fs.rm(entrypointWebview);
         }
@@ -71,7 +71,7 @@ export default {
             .filter(
                 (item) =>
                     !item.startsWith(project.location + "/data") &&
-                    !item.startsWith(project.location + "/.build"),
+                    !item.startsWith(project.location + "/.build")
             )
             // convert to relative path to project.location
             .map((item) => item.slice(project.location.length + 1));
@@ -80,11 +80,11 @@ export default {
     },
     import(
         project: Omit<Project, "createdDate">,
-        zipData: number[] | Uint8Array,
+        zipData: number[] | Uint8Array
     ) {
         const newProject = {
             ...project,
-            createdDate: Date.now(),
+            createdDate: Date.now()
         };
 
         if (fs.exists(project.location)) deleteProject(newProject);
@@ -93,5 +93,5 @@ export default {
         unzip(project.location, zipData);
 
         return newProject;
-    },
+    }
 };

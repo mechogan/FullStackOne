@@ -10,7 +10,8 @@
         "start": "npm run build && electron-forge start",
         "package": "electron-forge package",
         "premake": "npm run build",
-        "make": "electron-forge make"
+        "make": "electron-forge make",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "electron-squirrel-startup": "^1.0.0"
@@ -25,7 +26,7 @@
         "@types/tar": "^6.1.11",
         "dotenv": "^16.4.5",
         "electron": "28.2.3",
-        "esbuild": "^0.20.0",
+        "esbuild": "^0.20.1",
         "tar": "^6.2.0"
     }
 }

@@ -31,7 +31,7 @@ export class FileTree {
         itemPath: string[],
         isDirectory: boolean,
         parentLi: HTMLLIElement,
-        expanded = false,
+        expanded = false
     ) {
         const span = document.createElement("span");
         span.innerText = `${
@@ -70,7 +70,7 @@ export class FileTree {
                 if (this.directoryOnly) return isDirectory;
 
                 return true;
-            },
+            }
         );
 
         for (const { name, isDirectory } of items) {
@@ -78,11 +78,7 @@ export class FileTree {
 
             const li = document.createElement("li");
             li.append(
-                await this.renderItemSpan(
-                    itemPathComponents,
-                    !!isDirectory,
-                    li,
-                ),
+                await this.renderItemSpan(itemPathComponents, !!isDirectory, li)
             );
 
             li.addEventListener("click", async (e) => {
@@ -96,7 +92,7 @@ export class FileTree {
                 this.itemSelected = {
                     element: li,
                     path: itemPathComponents,
-                    isDirectory: !!isDirectory,
+                    isDirectory: !!isDirectory
                 };
 
                 if (this.onItemSelect) this.onItemSelect(this.itemSelected);
@@ -115,8 +111,8 @@ export class FileTree {
                             itemPathComponents,
                             !!isDirectory,
                             li,
-                            expand,
-                        ),
+                            expand
+                        )
                     );
 
                     if (expand) {
@@ -151,7 +147,7 @@ export class FileTree {
         return {
             ul: selectedUl,
             li: newLi,
-            input: newNameInput,
+            input: newNameInput
         };
     }
 
@@ -174,13 +170,11 @@ export class FileTree {
                 : this.baseDirectory;
 
             await rpc().fs.mkdir(
-                parentDirectoryPathComponents.join("/") +
-                    "/" +
-                    newDirectoryName,
+                parentDirectoryPathComponents.join("/") + "/" + newDirectoryName
             );
 
             const updatedChildrenList = await this.openDirectory(
-                parentDirectoryPathComponents,
+                parentDirectoryPathComponents
             );
 
             if (ul === this.ulRoot) {
@@ -222,11 +216,11 @@ export class FileTree {
 
             await rpc().fs.putfileUTF8(
                 parentDirectoryPathComponents.join("/") + "/" + newFileName,
-                " ",
+                " "
             );
 
             const updatedChildrenList = await this.openDirectory(
-                parentDirectoryPathComponents,
+                parentDirectoryPathComponents
             );
 
             if (ul === this.ulRoot) {
@@ -262,7 +256,7 @@ export class FileTree {
 
         rpc().fs.putfile(
             filePath,
-            Array.from(new Uint8Array(await file.arrayBuffer())),
+            Array.from(new Uint8Array(await file.arrayBuffer()))
         );
 
         const ul = this.itemSelected
@@ -272,7 +266,7 @@ export class FileTree {
             : this.ulRoot;
 
         const updatedChildrenList = await this.openDirectory(
-            parentDirectoryPathComponents,
+            parentDirectoryPathComponents
         );
 
         if (ul === this.ulRoot) {

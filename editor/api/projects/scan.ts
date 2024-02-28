@@ -4,7 +4,7 @@ declare var fs: typeof globalFS;
 
 const scanRecursive = (
     parent: string,
-    item: { name: string; isDirectory: boolean },
+    item: { name: string; isDirectory: boolean }
 ) => {
     const itemPath = parent + "/" + item.name;
     if (!item.isDirectory) return itemPath;
