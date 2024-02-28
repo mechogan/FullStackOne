@@ -8,7 +8,7 @@ import {
     RUN_PROJECT_ID
 } from "./editor/constants";
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const throwError = (message: string) => {
     const error = Error(message);
@@ -73,27 +73,28 @@ const importProjectFileInput = (await page.waitForSelector(
 )) as ElementHandle<HTMLInputElement>;
 await importProjectFileInput.uploadFile("Demo.zip");
 
-
 // add file
 const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);
 await newFileButton.click();
 const testFileName = "test.txt";
-for(let i = 0; i < testFileName.length; i++){
+for (let i = 0; i < testFileName.length; i++) {
     await page.keyboard.press(testFileName[i] as KeyInput);
 }
-await page.keyboard.press('Enter'); 
+await page.keyboard.press("Enter");
 let tries = 3;
-while(tries) {
+while (tries) {
     tries--;
-    const getFileTreeItemsTitle = () => Array.from(document.querySelectorAll("ul.file-tree li span") ?? []).map(e => e.textContent.trim());
+    const getFileTreeItemsTitle = () =>
+        Array.from(document.querySelectorAll("ul.file-tree li span") ?? []).map(
+            (e) => e.textContent.trim()
+        );
     const fileTreeItems = await page.evaluate(getFileTreeItemsTitle);
 
-    if(!fileTreeItems.includes(testFileName)){
-        if(!tries) {
+    if (!fileTreeItems.includes(testFileName)) {
+        if (!tries) {
             const errorMsg = `Could not found file in file tree. Searching [${testFileName}] in [${fileTreeItems.join(", ")}] `;
-            throwError(errorMsg)
-        }
-        else{
+            throwError(errorMsg);
+        } else {
             await sleep(100);
         }
     } else {
