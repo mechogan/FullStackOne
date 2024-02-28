@@ -17,9 +17,9 @@ const mainjs = new JavaScript(
     home,
     path.join(editorDiretory, "webview"),
     fs.readFileSync(path.resolve(editorDiretory, "api", "index.js"), {
-        encoding: "utf-8",
+        encoding: "utf-8"
     }),
-    "electron",
+    "electron"
 );
 mainjs.privileged = true;
 
@@ -56,7 +56,7 @@ mainjs.ctx.run = (
     projectdir: string,
     assetdir: string,
     entrypoint: string,
-    hasErrors: boolean,
+    hasErrors: boolean
 ) => {
     const apiScript = buildAPI(path.join(home, entrypoint));
 
@@ -74,19 +74,19 @@ mainjs.ctx.run = (
         path.join(home, projectdir),
         assetdir,
         apiScript as string,
-        "electron",
+        "electron"
     );
 
     createWindow(hostname, projectdir).then((appWindow) => {
         apps[hostname].push = (message) =>
             appWindow.webContents.executeJavaScript(
-                `window.push(\`${message.replace(/\\/g, "\\\\")}\`)`,
+                `window.push(\`${message.replace(/\\/g, "\\\\")}\`)`
             );
     });
 };
 
 const apps: { [hostname: string]: JavaScript } = {
-    main: mainjs,
+    main: mainjs
 };
 const handle = async (request: Request) => {
     const headers = {};
@@ -114,9 +114,9 @@ const handle = async (request: Request) => {
                           ["Content-Type"]: jsResponse.mimeType,
                           ["Content-Length"]: (
                               jsResponse.data?.length || 0
-                          ).toString(),
+                          ).toString()
                       }
-                    : undefined,
+                    : undefined
             });
 
             resolve(response);
@@ -130,7 +130,7 @@ const createWindow = async (hostname: string, title: string) => {
         width: 800,
         height: 600,
         title,
-        icon: "icons/icon.png",
+        icon: "icons/icon.png"
     });
 
     appWindow.loadURL(`http://${hostname}`);
@@ -141,7 +141,7 @@ const createWindow = async (hostname: string, title: string) => {
 createWindow("main", "FullStacked").then((appWindow) => {
     mainjs.push = (messageType: string, message: string) => {
         appWindow.webContents.executeJavaScript(
-            `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`,
+            `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
         );
     };
 });

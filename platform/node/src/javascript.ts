@@ -14,7 +14,7 @@ export class JavaScript {
         fsdir: string,
         assetdir: string,
         entrypointContents: string,
-        platform: string,
+        platform: string
     ) {
         this.bindFs(fsdir);
         this.bindConsole(logFn);
@@ -32,7 +32,7 @@ export class JavaScript {
         headers: { [headerName: string]: string },
         pathname: string,
         body: Uint8Array,
-        onCompletion: (jsResponse: Response) => void,
+        onCompletion: (jsResponse: Response) => void
     ) {
         const requestId = this.requestId;
         this.requestId += 1;
@@ -58,7 +58,7 @@ export class JavaScript {
         const ctxFs: typeof fsType = {
             exists(itemPath, forAsset) {
                 return fs.existsSync(
-                    forAsset ? realpathForAsset(itemPath) : realpath(itemPath),
+                    forAsset ? realpathForAsset(itemPath) : realpath(itemPath)
                 );
             },
             mkdir(directory) {
@@ -77,7 +77,7 @@ export class JavaScript {
                     .readdirSync(realpath(directory), { withFileTypes: true })
                     .map((item) => ({
                         name: item.name,
-                        isDirectory: item.isDirectory(),
+                        isDirectory: item.isDirectory()
                     }));
             },
             readfile(filename, forAsset) {
@@ -85,19 +85,19 @@ export class JavaScript {
                     fs.readFileSync(
                         forAsset
                             ? realpathForAsset(filename)
-                            : realpath(filename),
-                    ),
+                            : realpath(filename)
+                    )
                 );
             },
             readfileUTF8(filename, forAsset) {
                 return fs.readFileSync(
                     forAsset ? realpathForAsset(filename) : realpath(filename),
-                    { encoding: "utf-8" },
+                    { encoding: "utf-8" }
                 );
             },
             rm(itemPath) {
                 fs.rmSync(realpath(itemPath), { recursive: true });
-            },
+            }
         };
 
         this.ctx.fs = ctxFs;
@@ -105,7 +105,7 @@ export class JavaScript {
 
     private bindConsole(logFn: (...args) => void) {
         this.ctx.console = {
-            log: logFn,
+            log: logFn
         };
     }
 
@@ -114,7 +114,7 @@ export class JavaScript {
             let headersObj: Record<string, string> = {};
             headers.forEach(
                 (headerValue, headerName) =>
-                    (headersObj[headerName] = headerValue),
+                    (headersObj[headerName] = headerValue)
             );
             return headersObj;
         };
@@ -126,20 +126,18 @@ export class JavaScript {
                     headers?: Record<string, string>;
                     method?: "GET" | "POST" | "PUT" | "DELTE";
                     body?: Uint8Array | number[];
-                },
+                }
             ) {
                 const response = await fetch(url, {
                     method: options?.method || "GET",
                     headers: options?.headers || {},
-                    body: options?.body
-                        ? Buffer.from(options?.body)
-                        : undefined,
+                    body: options?.body ? Buffer.from(options?.body) : undefined
                 });
 
                 const headers = convertHeadersToObj(response.headers);
                 return {
                     headers,
-                    body: new Uint8Array(await response.arrayBuffer()),
+                    body: new Uint8Array(await response.arrayBuffer())
                 };
             },
             async UTF8(
@@ -148,22 +146,20 @@ export class JavaScript {
                     headers?: Record<string, string>;
                     method?: "GET" | "POST" | "PUT" | "DELTE";
                     body?: Uint8Array | number[];
-                },
+                }
             ) {
                 const response = await fetch(url, {
                     method: options?.method || "GET",
                     headers: options?.headers || {},
-                    body: options?.body
-                        ? Buffer.from(options?.body)
-                        : undefined,
+                    body: options?.body ? Buffer.from(options?.body) : undefined
                 });
 
                 const headers = convertHeadersToObj(response.headers);
                 return {
                     headers,
-                    body: await response.text(),
+                    body: await response.text()
                 };
-            },
+            }
         };
         this.ctx.fetch = fetchObj;
     }

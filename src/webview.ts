@@ -6,7 +6,7 @@ async function fetchCall(pathComponents: string[], ...args) {
 
     const response = await fetch(url.toString(), {
         method: "POST",
-        body: JSON.stringify(args),
+        body: JSON.stringify(args)
     });
 
     return response.headers.get("content-type")?.startsWith("application/json")
@@ -22,7 +22,7 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
         get: (_, p) => {
             pathComponents.push(p as string);
             return recurseInProxy(target, pathComponents);
-        },
+        }
     });
 }
 

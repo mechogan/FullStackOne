@@ -20,7 +20,7 @@ export default {
         fs.mkdir(configdir);
         projects.import(
             { title: "Demo", location: configdir + "/Demo" },
-            fs.readfile(demoZIP, true),
+            fs.readfile(demoZIP, true)
         );
     },
     load<T extends CONFIG_TYPE>(type: T): DATA_TYPE[T] | null {
@@ -33,5 +33,5 @@ export default {
     save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configFile = configdir + "/" + type + ".json";
         fs.putfileUTF8(configFile, JSON.stringify(data, null, 2));
-    },
+    }
 };

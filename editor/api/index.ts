@@ -9,5 +9,5 @@ export default {
     projects,
     fs,
     config,
-    esbuild,
+    esbuild
 };

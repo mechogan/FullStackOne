@@ -24,7 +24,7 @@ type fetch<T> = (
         headers?: Record<string, string>;
         method?: "GET" | "POST" | "PUT" | "DELTE";
         body?: Uint8Array | number[];
-    },
+    }
 ) => Promise<{ headers: Record<string, string>; body: T }>;
 export declare var fetch: {
     data: fetch<Uint8Array | number[]>;
@@ -34,12 +34,12 @@ export declare var fetch: {
 let methods = {
     fs,
     fetch,
-    platform,
+    platform
 };
 
 const notFound = {
     data: strToUTF8("Not Found"),
-    mimeType: "text/plain",
+    mimeType: "text/plain"
 };
 
 export type Response = {
@@ -50,7 +50,7 @@ export type Response = {
 export default async (
     headers: Record<string, string>,
     pathname: string,
-    body: Uint8Array | number[],
+    body: Uint8Array | number[]
 ): Promise<Response> => {
     let response: Response = notFound;
 
@@ -83,14 +83,14 @@ export default async (
     if (fs.exists(maybeFileName, true)) {
         response = {
             mimeType: mime.getType(maybeFileName) || "text/plain",
-            data: fs.readfile(maybeFileName, true),
+            data: fs.readfile(maybeFileName, true)
         };
     }
 
     const methodPath = pathname.split("/");
     const method = methodPath.reduce(
         (api, key) => (api ? api[key] : undefined),
-        methods,
+        methods
     ) as any;
 
     if (method) {
@@ -112,7 +112,7 @@ export default async (
         response.mimeType = isJSON ? "application/json" : "text/plain";
         if (responseBody) {
             response.data = strToUTF8(
-                isJSON ? JSON.stringify(responseBody) : responseBody,
+                isJSON ? JSON.stringify(responseBody) : responseBody
             );
         } else {
             delete response.data;

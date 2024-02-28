@@ -14,7 +14,7 @@ export class Console {
 
         window.addEventListener("resize", () => this.fitAddon.fit());
         window.addEventListener("focus", () =>
-            setTimeout(() => this.fitAddon.fit(), 350),
+            setTimeout(() => this.fitAddon.fit(), 350)
         );
     }
 
