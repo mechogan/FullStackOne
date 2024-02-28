@@ -78,10 +78,7 @@ export default {
 
         zip(project.location, items, out);
     },
-    import(
-        project: Omit<Project, "createdDate">,
-        zipData: Uint8Array
-    ) {
+    import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
         const newProject = {
             ...project,
             createdDate: Date.now()

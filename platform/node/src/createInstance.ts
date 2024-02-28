@@ -70,8 +70,7 @@ const requestHandler = async (
             : undefined;
 
         response.writeHead(200, responseHeaders);
-        if (jsResponse.data) 
-            response.write(jsResponse.data);
+        if (jsResponse.data) response.write(jsResponse.data);
         response.end();
     });
 };

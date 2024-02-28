@@ -105,12 +105,12 @@ export default async (
         }
 
         let type = "text/plain";
-        if(responseBody) {
+        if (responseBody) {
             if (ArrayBuffer.isView(responseBody)) {
                 type = "application/octet-stream";
                 responseBody = new Uint8Array(responseBody.buffer);
             } else {
-                if(typeof responseBody !== "string") {
+                if (typeof responseBody !== "string") {
                     type = "application/json";
                     responseBody = JSON.stringify(responseBody);
                 }

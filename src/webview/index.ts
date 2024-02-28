@@ -15,8 +15,8 @@ async function fetchCall(pathComponents: string[], ...args) {
     return contentType?.startsWith("application/json")
         ? response.json()
         : contentType?.startsWith("application/octet-stream")
-            ? response.arrayBuffer()
-            : response.text();
+          ? response.arrayBuffer()
+          : response.text();
 }
 
 function recurseInProxy(target: Function, pathComponents: string[] = []) {
