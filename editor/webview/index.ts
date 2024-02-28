@@ -14,7 +14,6 @@ const clearView = () => Array.from(main.children).forEach((e) => e.remove());
 
 await rpc().config.init();
 const esbuildInstall = await rpc().esbuild.checkInstall();
-console.log(esbuildInstall);
 
 const app = async () => {
     const projectsView = new Projects();
