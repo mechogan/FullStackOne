@@ -54,47 +54,60 @@ export class Project {
             const errors = JSON.parse(message);
 
             const packagesMissing = new Map<string, Set<string>>();
-            errors.forEach(error => {
+            errors.forEach((error) => {
                 const file = error.location?.file || error.Location?.File;
 
                 const filename = file.split(this.project.location).pop();
                 let filePath = this.project.location + filename;
 
-                const message = error.text || error.Text
+                const message = error.text || error.Text;
 
-                if(message.startsWith("Could not resolve")){
-                    const moduleName: string[] = message.match(/\".*\"/)?.at(0)?.slice(1, -1).split("/");
+                if (message.startsWith("Could not resolve")) {
+                    const moduleName: string[] = message
+                        .match(/\".*\"/)
+                        ?.at(0)
+                        ?.slice(1, -1)
+                        .split("/");
 
-                    if(!moduleName.at(0)?.startsWith(".")){
+                    if (!moduleName.at(0)?.startsWith(".")) {
                         const dependency = moduleName.at(0)?.startsWith("@")
                             ? moduleName.slice(0, 2).join("/")
                             : moduleName.at(0);
 
-                        if(dependency){
-                            let fileRequiringPackage = packagesMissing.get(dependency);
-                            if(!fileRequiringPackage)
+                        if (dependency) {
+                            let fileRequiringPackage =
+                                packagesMissing.get(dependency);
+                            if (!fileRequiringPackage)
                                 fileRequiringPackage = new Set();
-                            fileRequiringPackage.add(filename.includes("node_modules")
-                                ? "node_modules" + filename.split("node_modules").pop()
-                                : filename.slice(1));
-                            packagesMissing.set(dependency, fileRequiringPackage);
+                            fileRequiringPackage.add(
+                                filename.includes("node_modules")
+                                    ? "node_modules" +
+                                          filename.split("node_modules").pop()
+                                    : filename.slice(1)
+                            );
+                            packagesMissing.set(
+                                dependency,
+                                fileRequiringPackage
+                            );
                         }
 
                         return;
-                    }                    
+                    }
                 }
 
-
-                let editor = this.editors.find(activeEditor => activeEditor.filePath.join("/") === filePath);
-                if(!editor) {
+                let editor = this.editors.find(
+                    (activeEditor) =>
+                        activeEditor.filePath.join("/") === filePath
+                );
+                if (!editor) {
                     editor = new Editor(filePath.split("/"));
                     this.editors.push(editor);
                 }
 
                 editor.addBuildError({
-                    line: error.location?.line || error.Location?.Line, 
-                    col: error.location?.column || error.Location?.Column, 
-                    length: error.location?.length || error.Location?.Length, 
+                    line: error.location?.line || error.Location?.Line,
+                    col: error.location?.column || error.Location?.Column,
+                    length: error.location?.length || error.Location?.Length,
                     message
                 });
 
@@ -103,10 +116,10 @@ export class Project {
 
             this.renderEditors();
 
-            if(packagesMissing.size > 0) {
+            if (packagesMissing.size > 0) {
                 this.installPackages(packagesMissing);
             }
-        }
+        };
 
         (window as any).onPush["download"] = async (message: string) => {
             const uint8Arr = new Uint8Array(
@@ -179,16 +192,19 @@ export class Project {
         dialog.classList.add("dialog");
 
         const container = document.createElement("div");
-        container.innerHTML = `<h1>Dependencies</h1>`
+        container.innerHTML = `<h1>Dependencies</h1>`;
 
         const packagesContainer = document.createElement("dl");
         const installPromises: Promise<void>[] = [];
-        for(const [packageName, filesRequiringPackage] of packagesToInstall.entries()) {
+        for (const [
+            packageName,
+            filesRequiringPackage
+        ] of packagesToInstall.entries()) {
             const dt = document.createElement("dt");
             dt.innerText = packageName;
             const dd = document.createElement("dd");
             const ul = document.createElement("ul");
-            for(const file of filesRequiringPackage) {
+            for (const file of filesRequiringPackage) {
                 const li = document.createElement("li");
                 li.innerText = file;
                 ul.append(li);
@@ -199,12 +215,13 @@ export class Project {
             status.innerText = "installing...";
             container.append(status);
 
-            const installPromise = new Promise<void>(resolve => {
-                rpc().npm.install(packageName)
+            const installPromise = new Promise<void>((resolve) => {
+                rpc()
+                    .npm.install(packageName)
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
-                    })
+                    });
             });
             installPromises.push(installPromise);
 
@@ -215,18 +232,19 @@ export class Project {
         dialog.append(container);
         this.container.append(dialog);
 
-        Promise.all(installPromises)
-            .then(() => {
-                dialog.remove();
-                this.runProject();
-            })
+        Promise.all(installPromises).then(() => {
+            dialog.remove();
+            this.runProject();
+        });
     }
 
     private async runProject() {
-        await Promise.all(this.editors.map(editor => {
-            editor.clearBuildErrors();
-            return editor.updateFile();
-        }));
+        await Promise.all(
+            this.editors.map((editor) => {
+                editor.clearBuildErrors();
+                return editor.updateFile();
+            })
+        );
         this.renderEditors();
         this.console.term.clear();
         rpc().projects.run(this.project);
@@ -281,7 +299,9 @@ export class Project {
         const runButton = document.createElement("button");
         runButton.id = RUN_PROJECT_ID;
         runButton.classList.add("text");
-        runButton.innerHTML = await (await fetch("/assets/icons/run.svg")).text();
+        runButton.innerHTML = await (
+            await fetch("/assets/icons/run.svg")
+        ).text();
         runButton.addEventListener("click", this.runProject.bind(this));
         rightSide.append(runButton);
 

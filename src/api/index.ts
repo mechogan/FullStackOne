@@ -6,7 +6,7 @@ import type { fetch as fetchType } from "./fetch";
 declare var assetdir: string;
 declare var platform: string;
 declare var fs: typeof fsType;
-declare var fetch: typeof fetchType
+declare var fetch: typeof fetchType;
 
 let methods = {
     fs,

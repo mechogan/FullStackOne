@@ -57,6 +57,22 @@ export class JavaScript {
         const realpathWithAbsolutePath = (path: string) =>
             this.privileged ? path : realpath(path);
 
+        const exists = async (
+            path: string,
+            options?: { absolutePath: boolean }
+        ) => {
+            path = options?.absolutePath
+                ? realpathWithAbsolutePath(path)
+                : realpath(path);
+
+            try {
+                await fs.promises.stat(path);
+                return true;
+            } catch (e) {}
+
+            return false;
+        };
+
         const ctxFs: typeof fsType = {
             async readFile(path, options) {
                 path = options?.absolutePath
@@ -111,9 +127,11 @@ export class JavaScript {
                 await fs.promises.mkdir(path, { recursive: true });
             },
 
-            rmdir(path) {
-                path = realpath(path);
+            async rmdir(path) {
+                // node throws a lstat error if doesn't exists
+                if (!(await exists(path))) return;
 
+                path = realpath(path);
                 return fs.promises.rm(path, { recursive: true });
             },
             stat(path) {
@@ -136,19 +154,7 @@ export class JavaScript {
             chmod(path: string, uid: number, gid: number) {
                 throw Error("not implemented");
             },
-
-            async exists(path, options) {
-                path = options?.absolutePath
-                    ? realpathWithAbsolutePath(path)
-                    : realpath(path);
-
-                try {
-                    await fs.promises.stat(path);
-                    return true;
-                } catch (e) {}
-
-                return false;
-            }
+            exists
         };
 
         this.ctx.fs = ctxFs;

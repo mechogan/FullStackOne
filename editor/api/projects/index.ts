@@ -8,8 +8,17 @@ import { scan } from "./scan";
 import { Project } from "./types";
 
 declare var fs: typeof globalFS;
-declare var run: (projectdir: string, assetdir: string, entrypointData: string, hasErrors: boolean) => void;
-declare var buildWebview: (entryPoint: string, outdir: string, nodeModulesDir: string) => boolean;
+declare var run: (
+    projectdir: string,
+    assetdir: string,
+    entrypointData: string,
+    hasErrors: boolean
+) => void;
+declare var buildWebview: (
+    entryPoint: string,
+    outdir: string,
+    nodeModulesDir: string
+) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: Uint8Array) => void;
 
