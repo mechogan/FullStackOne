@@ -238,104 +238,61 @@ class JavaScript {
     }
     
     private func bindFetch() {
-        let fetchCallbackData: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
-        { urlStr, onCompletion, headers, method, body  in
+        let fetchMethod: @convention (block) (String, JSValue?) -> JSValue = { urlStr, options in
             let url = URL(string: urlStr)!
             var request = URLRequest(url: url)
-
-            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
             
-            if (headers != nil) {
-                for (headerName, headerValue) in headers! {
+            request.httpMethod = !options!.isUndefined && options!["method"]!.isString
+                ? options!["method"]!.toString()!
+                : "GET"
+            
+            if (!options!.isUndefined && options!["headers"]!.isObject) {
+                let headers = options!["headers"]!.toDictionary() as! [String: String]
+                for (headerName, headerValue) in headers {
                     request.setValue(headerValue, forHTTPHeaderField: headerName)
                 }
             }
             
-            if (body != nil) {
-                request.httpBody = Data(body!)
+            if (!options!.isUndefined && !options!["body"]!.isUndefined) {
+                let body = options!["body"]!.isString
+                    ? options!["body"]!.toString().data(using: .utf8)
+                    : Data(options!["body"]!.toArray() as! [UInt8])
+                
+                request.httpBody = body
             }
             
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if error != nil {
-                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
-                    onCompletion.call(withArguments: [[:], ""])
-                    return
-                }
-                
-                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
-                DispatchQueue.main.async {
-                    if(data == nil){
-                        onCompletion.call(withArguments: [headers])
-                        return;
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                    if error != nil {
+                        reject!.call(withArguments: ["[\"Fetch Error for \(urlStr)\"]"])
+                        return
                     }
                     
-                    let uint8array = data?.toUint8Array(ctx: self.ctx);
-                    onCompletion.call(withArguments: [headers, uint8array!])
-                }
-            }
-            task.resume()
-        }
-        
-        let fetchCallbackUTF8: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
-        { urlStr, onCompletion, headers, method, body  in
-            let url = URL(string: urlStr)!
-            var request = URLRequest(url: url)
+                    let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
 
-            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
-            
-            if (headers != nil) {
-                for (headerName, headerValue) in headers! {
-                    request.setValue(headerValue, forHTTPHeaderField: headerName)
+                    let responseObj = JSValue(newObjectIn: self.ctx)!
+                    responseObj["url"] = response?.url
+                    responseObj["headers"] = headers
+                    responseObj["method"] = request.httpMethod
+                    responseObj["statusCode"] = (response as! HTTPURLResponse).statusCode
+                    responseObj["statusMessage"] = "OK"
+                    
+                    if(data != nil) {
+                        if(!options!.isUndefined && options!["encoding"]!.isString && options!["encoding"]!.toString() == "utf8"){
+                            responseObj["body"] = String(data: data!, encoding: .utf8)!
+                        } else {
+                            responseObj["body"] = data!.toUint8Array(ctx: self.ctx)
+                        }
+                    }
+                    
+                    resolve!.call(withArguments: [responseObj])
                 }
+                task.resume()
             }
-            
-            if (body != nil) {
-                request.httpBody = Data(body!)
-            }
-            
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if error != nil {
-                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
-                    onCompletion.call(withArguments: [[:], ""])
-                    return
-                }
-                
-                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
-                let body = String(data: data!, encoding: .utf8)!
-                DispatchQueue.main.async {
-                    onCompletion.call(withArguments: [headers, body])
-                }
-            }
-            task.resume()
         }
         
-        let fetchCallback = JSValue(newObjectIn: self.ctx)!
-        fetchCallback["data"] = fetchCallbackData
-        fetchCallback["UTF8"] = fetchCallbackUTF8
         
-        self.ctx["fetchCallback"] = fetchCallback
-        
-        let patch = """
-        var fetch = {
-            data: (url, options) => {
-                return new Promise(resolve => {
-                    fetchCallback.data(
-                        url,
-                        (headers, data) => resolve({ headers, body: data }),
-                        options?.headers,
-                        options?.method,
-                        options?.body
-                    )
-                })
-            },
-            UTF8: (url, options) => {
-                return new Promise(resolve => {
-                    fetchCallback.UTF8(url, (headers, UTF8) => resolve({ headers, body: UTF8 }), options?.headers, options?.method, options?.body)
-                })
-            }
-        }
-        """
-        self.ctx.evaluateScript(patch)
+        self.ctx["fetch"] = fetchMethod
     }
 }
 

@@ -1,7 +1,8 @@
 import vm from "vm";
 import fs from "fs";
-import { Response, fetch as fetchType } from "../../../src/api";
+import { Response } from "../../../src/api";
 import type { fs as fsType } from "../../../src/api/fs";
+import type { fetch as fetchType } from "../../../src/api/fetch";
 
 export class JavaScript {
     private requestId = 0;
@@ -169,48 +170,38 @@ export class JavaScript {
             return headersObj;
         };
 
-        const fetchObj: typeof fetchType = {
-            async data(
-                url: string,
-                options: {
-                    headers?: Record<string, string>;
-                    method?: "GET" | "POST" | "PUT" | "DELTE";
-                    body?: Uint8Array;
-                }
-            ) {
-                const response = await fetch(url, {
-                    method: options?.method || "GET",
-                    headers: options?.headers || {},
-                    body: options?.body ? Buffer.from(options?.body) : undefined
-                });
-
-                const headers = convertHeadersToObj(response.headers);
-                return {
-                    headers,
-                    body: new Uint8Array(await response.arrayBuffer())
-                };
-            },
-            async UTF8(
-                url: string,
-                options: {
-                    headers?: Record<string, string>;
-                    method?: "GET" | "POST" | "PUT" | "DELTE";
-                    body?: Uint8Array;
-                }
-            ) {
-                const response = await fetch(url, {
-                    method: options?.method || "GET",
-                    headers: options?.headers || {},
-                    body: options?.body ? Buffer.from(options?.body) : undefined
-                });
-
-                const headers = convertHeadersToObj(response.headers);
-                return {
-                    headers,
-                    body: await response.text()
-                };
+        const fetchMethod: typeof fetchType = async (
+            url: string,
+            options: {
+                headers?: Record<string, string>;
+                method?: "GET" | "POST" | "PUT" | "DELTE";
+                body?: string | Uint8Array;
+                encoding?: string;
             }
+        ) => {
+            const response = await fetch(url, {
+                method: options?.method || "GET",
+                headers: options?.headers || {},
+                body: options?.body ? Buffer.from(options?.body) : undefined
+            });
+
+            const headers = convertHeadersToObj(response.headers);
+
+            const body =
+                options?.encoding === "utf8"
+                    ? await response.text()
+                    : new Uint8Array(await response.arrayBuffer());
+
+            return {
+                url,
+                headers,
+                method: options?.method || "GET",
+                statusCode: response.status,
+                statusMessage: response.statusText,
+                body
+            };
         };
-        this.ctx.fetch = fetchObj;
+
+        this.ctx.fetch = fetchMethod;
     }
 }
