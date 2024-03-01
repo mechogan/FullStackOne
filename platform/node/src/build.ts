@@ -1,6 +1,5 @@
 import type esbuildType from "esbuild";
 import path from "path";
-import fs from "fs";
 
 export function buildWebview(entryPoint: string, outdir: string) {
     if (!global.esbuild) return { errors: "Cannot find esbuild module" };
