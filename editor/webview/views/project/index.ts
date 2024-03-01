@@ -81,7 +81,9 @@ export class Project {
         };
 
         (window as any).onPush["download"] = async (message: string) => {
-            const uint8Arr = new Uint8Array(await rpc().fs.readfile(message));
+            const uint8Arr = new Uint8Array(
+                (await rpc().fs.readFile(message)) as Uint8Array
+            );
             const blob = new Blob([uint8Arr]);
             const url = window.URL.createObjectURL(blob);
 

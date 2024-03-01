@@ -102,7 +102,9 @@ export class Editor {
             )
         ) {
             this.editor = new EditorView({
-                doc: await rpc().fs.readfileUTF8(this.filePath.join("/")),
+                doc: (await rpc().fs.readFile(this.filePath.join("/"), {
+                    encoding: "utf8"
+                })) as string,
                 extensions: this.extensions.concat(
                     await this.loadLanguageExtensions()
                 ),
@@ -117,7 +119,7 @@ export class Editor {
             imageContainer.classList.add("img-container");
 
             const img = document.createElement("img");
-            const imageData = await rpc().fs.readfile(this.filePath.join("/"));
+            const imageData = await rpc().fs.readFile(this.filePath.join("/"));
             const imageBlob = new Blob([imageData]);
             img.src = window.URL.createObjectURL(imageBlob);
             imageContainer.append(img);
@@ -139,7 +141,7 @@ export class Editor {
         const exists = await rpc().fs.exists(this.filePath.join("/"));
         if (!exists) return;
 
-        rpc().fs.putfileUTF8(this.filePath.join("/"), contents);
+        rpc().fs.writeFile(this.filePath.join("/"), contents);
     }
 
     private updateFileContents() {

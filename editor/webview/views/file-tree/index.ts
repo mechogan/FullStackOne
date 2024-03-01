@@ -3,10 +3,9 @@ import "./index.css";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
 import { NEW_FILE_ID } from "../../../constants";
+import type { Dirent } from "../../../../src/api/fs";
 
 declare var rpc: typeof typeRPC<typeof api>;
-
-type Item = ReturnType<typeof api.fs.readdir>[0];
 
 export class FileTree {
     allowDeletion = false;
@@ -52,7 +51,10 @@ export class FileTree {
                     this.itemSelected = undefined;
                 }
 
-                await rpc().fs.rm(itemPath.join("/"));
+                const path = itemPath.join("/");
+                if (isDirectory) await rpc().fs.rmdir(path);
+                else await rpc().fs.unlink(path);
+
                 parentLi.remove();
             });
             span.append(deleteButton);
@@ -64,15 +66,16 @@ export class FileTree {
     private async openDirectory(pathComponents: string[]) {
         const ul = document.createElement("ul");
 
-        const items = (await rpc().fs.readdir(pathComponents.join("/"))).filter(
-            ({ name, isDirectory }) => {
-                if (name.startsWith(".")) return false;
+        let items = (await rpc().fs.readdir(pathComponents.join("/"), {
+            withFileTypes: true
+        })) as Dirent[];
+        items = items.filter(({ name, isDirectory }) => {
+            if (name.startsWith(".")) return false;
 
-                if (this.directoryOnly) return isDirectory;
+            if (this.directoryOnly) return isDirectory;
 
-                return true;
-            }
-        );
+            return true;
+        });
 
         for (const { name, isDirectory } of items) {
             const itemPathComponents = [...pathComponents, name];
@@ -215,9 +218,9 @@ export class FileTree {
                     : this.itemSelected.path.slice(0, -1)
                 : this.baseDirectory;
 
-            await rpc().fs.putfileUTF8(
+            await rpc().fs.writeFile(
                 parentDirectoryPathComponents.join("/") + "/" + newFileName,
-                " "
+                "\n"
             );
 
             const updatedChildrenList = await this.openDirectory(
@@ -255,7 +258,10 @@ export class FileTree {
         const filePath =
             parentDirectoryPathComponents.join("/") + "/" + file.name;
 
-        rpc().fs.putfile(filePath, new Uint8Array(await file.arrayBuffer()));
+        await rpc().fs.writeFile(
+            filePath,
+            new Uint8Array(await file.arrayBuffer())
+        );
 
         const ul = this.itemSelected
             ? this.itemSelected.isDirectory

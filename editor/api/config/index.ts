@@ -1,4 +1,4 @@
-import type { fs as globalFS } from "../../../src/api";
+import type { fs as globalFS } from "../../../src/api/fs";
 import projects from "../projects";
 
 import { Project } from "../projects/types";
@@ -14,24 +14,31 @@ type DATA_TYPE = {
 };
 
 export default {
-    init() {
-        if (fs.exists(configdir)) return;
+    async init() {
+        try {
+            await fs.stat(configdir);
+            return;
+        } catch (e) {}
 
-        fs.mkdir(configdir);
+        await fs.mkdir(configdir);
         projects.import(
             { title: "Demo", location: configdir + "/Demo" },
-            fs.readfile(demoZIP, true)
+            (await fs.readFile(demoZIP, { absolutePath: true })) as Uint8Array
         );
     },
-    load<T extends CONFIG_TYPE>(type: T): DATA_TYPE[T] | null {
+    async load<T extends CONFIG_TYPE>(type: T): Promise<DATA_TYPE[T] | null> {
         const configFile = configdir + "/" + type + ".json";
-        if (fs.exists(configFile))
-            return JSON.parse(fs.readfileUTF8(configFile));
+        try {
+            await fs.stat(configFile);
+            return JSON.parse(
+                (await fs.readFile(configFile, { encoding: "utf8" })) as string
+            );
+        } catch (e) {}
 
         return null;
     },
-    save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
+    async save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configFile = configdir + "/" + type + ".json";
-        fs.putfileUTF8(configFile, JSON.stringify(data, null, 2));
+        fs.writeFile(configFile, JSON.stringify(data, null, 2));
     }
 };
