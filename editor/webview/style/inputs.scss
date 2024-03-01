@@ -37,6 +37,12 @@ button {
     align-items: center;
     justify-content: center;
 
+    &.text-and-icon {
+        svg {
+            margin-left: spacing(0.5);
+        }
+    }
+
     &:active {
         background-color: $blue-active;
     }

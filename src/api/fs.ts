@@ -36,7 +36,7 @@ export declare var fs: {
 
     readdir(
         path: string,
-        options: { withFileTypes: boolean }
+        options?: { withFileTypes: boolean }
     ): Promise<string[] | Dirent[]>;
 
     mkdir(path: string): Promise<void>;

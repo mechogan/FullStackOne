@@ -2,7 +2,7 @@ import type { fs as globalFS } from "../../../src/api/fs";
 
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import { nodeModulesDir } from "../npm/install";
+import { nodeModulesDir } from "../packages/install";
 import { mingleAPI, mingleWebview } from "./mingle";
 import { scan } from "./scan";
 import { Project } from "./types";

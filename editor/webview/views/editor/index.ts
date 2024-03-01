@@ -3,6 +3,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
+import { indentUnit } from "@codemirror/language";
 import {
     linter,
     lintGutter,
@@ -49,6 +50,7 @@ export class Editor {
         basicSetup,
         oneDark,
         keymap.of([indentWithTab]),
+        indentUnit.of("    "), // 4 spaces
         EditorView.updateListener.of(this.updateFileContents.bind(this))
     ];
     private parent = document.createElement("div");

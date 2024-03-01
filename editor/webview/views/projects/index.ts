@@ -51,13 +51,21 @@ export class Projects {
         title.innerText = PROJECTS_TITLE;
         topContainer.append(title);
 
-        const deleteNodeModules = document.createElement("button");
-        deleteNodeModules.innerText = "Delete Packages";
-        deleteNodeModules.classList.add("danger");
-        deleteNodeModules.addEventListener("click", () =>
+        const packagesButton = document.createElement("button");
+        packagesButton.classList.add("text", "text-and-icon");
+        const [
+            packagesCount,
+            packageIcon
+        ] = await Promise.all([
+            rpc().packages.count(),
+            (await fetch("assets/icons/package.svg")).text()
+        ])
+        packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`
+
+        packagesButton.addEventListener("click", () =>
             rpc().fs.rmdir(".config/fullstacked/node_modules")
         );
-        topContainer.append(deleteNodeModules);
+        topContainer.append(packagesButton);
 
         this.container.append(topContainer);
 

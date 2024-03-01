@@ -216,8 +216,7 @@ export class Project {
             container.append(status);
 
             const installPromise = new Promise<void>((resolve) => {
-                rpc()
-                    .npm.install(packageName)
+                rpc().packages.install(packageName)
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
