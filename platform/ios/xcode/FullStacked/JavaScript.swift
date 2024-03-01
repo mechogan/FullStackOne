@@ -235,51 +235,6 @@ class JavaScript {
         fs["lstat"] = lstat
         fs["exists"] = exists
         self.ctx["fs"] = fs
-        
-        
-//        let readdir: @convention (block) (String) -> [[String: Any]] = { directory in
-//            let items = try! FileManager.default.contentsOfDirectory(atPath: realpath(directory))
-//            return items.map { item in
-//                var isDirectory: ObjCBool = false;
-//                let itemPath = directory + "/" + item
-//                FileManager.default.fileExists(atPath: realpath(itemPath), isDirectory: &isDirectory)
-//                return ["name": item, "isDirectory": isDirectory.boolValue]
-//            }
-//        }
-//        let readfile: @convention (block) (String, Bool) -> JSValue? = { [self] filename, forAsset in
-//            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
-//            return contents.toUint8Array(ctx: self.ctx)
-//        }
-//        let readfileUTF8: @convention (block) (String, Bool) -> String = { filename, forAsset in
-//            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
-//            return String(data: contents, encoding: .utf8)!
-//        }
-//        let mkdir: @convention (block) (String) -> Void = {directory in
-//            try! FileManager.default.createDirectory(atPath: realpath(directory), withIntermediateDirectories: true)
-//        }
-//        let rm: @convention (block) (String) -> Void = { path in
-//            try! FileManager.default.removeItem(atPath: realpath(path))
-//        }
-//        let putfile: @convention (block) (String, [UInt8]) -> Void = { filename, data in
-//            try! Data(data).write(to: URL(fileURLWithPath: realpath(filename)))
-//        }
-//        let putfileUTF8: @convention (block) (String, String) -> Void = { filename, data in
-//            try! data.write(toFile: realpath(filename), atomically: true, encoding: .utf8)
-//        }
-//        let exists: @convention (block) (String, Bool) -> Bool = { path, forAsset in
-//            return FileManager.default.fileExists(atPath: forAsset ? realpathForAsset(path) : realpath(path))
-//        }
-//        
-//        let fs = JSValue(newObjectIn: self.ctx)!
-//        fs["readdir"] = readdir
-//        fs["readfile"] = readfile
-//        fs["readfileUTF8"] = readfileUTF8
-//        fs["mkdir"] = mkdir
-//        fs["rm"] = rm
-//        fs["putfile"] = putfile
-//        fs["putfileUTF8"] = putfileUTF8
-//        fs["exists"] = exists
-//        self.ctx["fs"] = fs
     }
     
     private func bindFetch() {
