@@ -8,12 +8,14 @@ export class Console {
     term = new Terminal();
     fitAddon = new FitAddon();
 
-    constructor(){
+    constructor() {
         this.term.open(this.container);
         this.term.loadAddon(this.fitAddon);
 
         window.addEventListener("resize", () => this.fitAddon.fit());
-        window.addEventListener("focus", () => setTimeout(() => this.fitAddon.fit(), 350));
+        window.addEventListener("focus", () =>
+            setTimeout(() => this.fitAddon.fit(), 350)
+        );
     }
 
     render() {

@@ -13,5 +13,7 @@ esbuild.buildSync({
     external: ["esbuild", "electron"]
 });
 
-fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", { recursive: true });
+fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", {
+    recursive: true
+});
 fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });

@@ -16,7 +16,9 @@ const mainjs = new JavaScript(
     console.log,
     home,
     path.join(editorDiretory, "webview"),
-    fs.readFileSync(path.resolve(editorDiretory, "api", "index.js"), { encoding: "utf-8" }),
+    fs.readFileSync(path.resolve(editorDiretory, "api", "index.js"), {
+        encoding: "utf-8"
+    }),
     "electron"
 );
 mainjs.privileged = true;
@@ -27,11 +29,9 @@ mainjs.ctx.demoZIP = path.resolve(process.resourcesPath, "Demo.zip");
 
 mainjs.ctx.checkEsbuildInstall = async () => {
     const version = getVersion();
-    if(version && version !== esbuildVersion)
-        return false;
+    if (version && version !== esbuildVersion) return false;
 
-    if(global.esbuild)
-        return true;
+    if (global.esbuild) return true;
 
     try {
         await loadEsbuild();
@@ -39,30 +39,33 @@ mainjs.ctx.checkEsbuildInstall = async () => {
     } catch (e) {
         return false;
     }
-}
+};
 mainjs.ctx.installEsbuild = async () => {
     installEsbuild(mainjs);
-}
+};
 
 const originalZip = mainjs.ctx.zip;
 mainjs.ctx.zip = (projectdir: string, items: string[], to: string) => {
     let outdir = originalZip(projectdir, items, to);
-    if(os.platform() === "win32")
-        outdir = outdir.split("/").join("\\")
+    if (os.platform() === "win32") outdir = outdir.split("/").join("\\");
     shell.openPath(outdir);
-}
+};
 
 let appID = 1;
-mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasErrors: boolean) => {
+mainjs.ctx.run = (
+    projectdir: string,
+    assetdir: string,
+    entrypoint: string,
+    hasErrors: boolean
+) => {
     const apiScript = buildAPI(path.join(home, entrypoint));
 
-    if(typeof apiScript != 'string' && apiScript?.errors) {
+    if (typeof apiScript != "string" && apiScript?.errors) {
         hasErrors = true;
         mainjs.push("buildError", JSON.stringify(apiScript.errors));
     }
 
-    if(hasErrors)
-        return;
+    if (hasErrors) return;
 
     const hostname = `app-${appID}`;
     appID++;
@@ -74,20 +77,22 @@ mainjs.ctx.run = (projectdir: string, assetdir: string, entrypoint: string, hasE
         "electron"
     );
 
-    createWindow(hostname, projectdir).then(appWindow => {
-        apps[hostname].push = message =>
-            appWindow.webContents.executeJavaScript(`window.push(\`${message.replace(/\\/g, "\\\\")}\`)`);
+    createWindow(hostname, projectdir).then((appWindow) => {
+        apps[hostname].push = (message) =>
+            appWindow.webContents.executeJavaScript(
+                `window.push(\`${message.replace(/\\/g, "\\\\")}\`)`
+            );
     });
-}
+};
 
 const apps: { [hostname: string]: JavaScript } = {
-    "main": mainjs
-}
+    main: mainjs
+};
 const handle = async (request: Request) => {
-    const headers = {}
+    const headers = {};
     Array.from(request.headers.entries()).map(([name, value]) => {
         headers[name] = value;
-    })
+    });
 
     const url = new URL(request.url);
     const hostname = url.hostname;
@@ -97,8 +102,8 @@ const handle = async (request: Request) => {
 
     const js = apps[hostname];
 
-    return new Promise<Response>(resolve => {
-        js.processRequest(headers, pathname, body, jsResponse => {
+    return new Promise<Response>((resolve) => {
+        js.processRequest(headers, pathname, body, (jsResponse) => {
             const responseBody = jsResponse.data
                 ? (jsResponse.data as Uint8Array).buffer
                 : null;
@@ -106,40 +111,42 @@ const handle = async (request: Request) => {
             const response = new Response(responseBody, {
                 headers: responseBody
                     ? {
-                        ["Content-Type"]: jsResponse.mimeType,
-                        ["Content-Length"]: (jsResponse.data?.length || 0).toString()
-                    }
+                          ["Content-Type"]: jsResponse.mimeType,
+                          ["Content-Length"]: (
+                              jsResponse.data?.length || 0
+                          ).toString()
+                      }
                     : undefined
             });
 
             resolve(response);
-        })
+        });
     });
-}
-protocol.handle('http', handle);
-
+};
+protocol.handle("http", handle);
 
 const createWindow = async (hostname: string, title: string) => {
     const appWindow = new BrowserWindow({
         width: 800,
         height: 600,
         title,
-        icon: 'icons/icon.png'
+        icon: "icons/icon.png"
     });
 
     appWindow.loadURL(`http://${hostname}`);
 
     return appWindow;
-}
+};
 
-createWindow("main", "FullStacked").then(appWindow => {
+createWindow("main", "FullStacked").then((appWindow) => {
     mainjs.push = (messageType: string, message: string) => {
-        appWindow.webContents.executeJavaScript(`window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`);
-    }
+        appWindow.webContents.executeJavaScript(
+            `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
+        );
+    };
 });
 
-
-app.on('activate', () => {
+app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow("main", "FullStacked");
     }

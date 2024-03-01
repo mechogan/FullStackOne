@@ -1,13 +1,13 @@
 import "./index.css";
 
-import { Editor } from '../editor';
-import { FileTree } from '../file-tree';
+import { Editor } from "../editor";
+import { FileTree } from "../file-tree";
 import { Console } from "../console";
-
 
 import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
+import { RUN_PROJECT_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -18,12 +18,12 @@ export class Project {
     private project: TypeProject;
 
     fileTree: {
-        instance: FileTree,
-        element: Awaited<ReturnType<FileTree["render"]>> | null
+        instance: FileTree;
+        element: Awaited<ReturnType<FileTree["render"]>> | null;
     } = {
-            instance: new FileTree(),
-            element: null
-        };
+        instance: new FileTree(),
+        element: null
+    };
     console = new Console();
 
     private tabsContainer = document.createElement("ul");
@@ -33,20 +33,22 @@ export class Project {
     private editors: Editor[] = [];
 
     constructor() {
-        this.fileTree.instance.onItemSelect = (item => {
-            if (!item || item.isDirectory)
-                return;
+        this.fileTree.instance.onItemSelect = (item) => {
+            if (!item || item.isDirectory) return;
 
             const joinedPath = item.path.join("/");
-            if (!this.editors.find(({ filePath }) => filePath.join("/") === joinedPath)) {
+            if (
+                !this.editors.find(
+                    ({ filePath }) => filePath.join("/") === joinedPath
+                )
+            ) {
                 this.editors.push(new Editor(item.path));
             }
 
             this.currentFile = joinedPath;
 
             this.renderEditors();
-        });
-
+        };
 
         (window as any).onPush["buildError"] = (message: string) => {
             const errors = JSON.parse(message);
@@ -107,52 +109,63 @@ export class Project {
         }
 
         (window as any).onPush["download"] = async (message: string) => {
-            const uint8Arr = new Uint8Array(await rpc().fs.readfile(message));
+            const uint8Arr = new Uint8Array(
+                (await rpc().fs.readFile(message)) as Uint8Array
+            );
             const blob = new Blob([uint8Arr]);
             const url = window.URL.createObjectURL(blob);
 
-            const element = document.createElement('a');
-            element.setAttribute('href', url);
-            element.setAttribute('download', message.split("/").pop() ?? "unnamed.zip");
-            element.style.display = 'none';
+            const element = document.createElement("a");
+            element.setAttribute("href", url);
+            element.setAttribute(
+                "download",
+                message.split("/").pop() ?? "unnamed.zip"
+            );
+            element.style.display = "none";
 
             document.body.appendChild(element);
 
             element.click();
             document.body.removeChild(element);
             window.URL.revokeObjectURL(url);
-        }
+        };
 
         const openConsole = () => {
             this.console.fitAddon.fit();
             this.container.classList.add("console-opened");
-            setTimeout(() => { this.console.fitAddon.fit() }, 350);
-        }
+            setTimeout(() => {
+                this.console.fitAddon.fit();
+            }, 350);
+        };
 
         const writeParagraph = (contents: string) => {
-            contents.split("\n").forEach(ln => this.console.term.writeln(ln));
-        }
+            contents.split("\n").forEach((ln) => this.console.term.writeln(ln));
+        };
 
         (window as any).onPush["log"] = (message: string) => {
             const logs = JSON.parse(message);
-            if(logs.length){
+            if (logs.length) {
                 openConsole();
             }
-            const str = logs.map(log => typeof log === "string" ? log : JSON.stringify(log, null, 2)).join("  ")
+            const str = logs
+                .map((log) =>
+                    typeof log === "string" ? log : JSON.stringify(log, null, 2)
+                )
+                .join("  ");
             writeParagraph(str);
-        }
+        };
         (window as any).onPush["error"] = (message: string) => {
             openConsole();
-            const error: {message: string, name: string, stack: string} = JSON.parse(message);
-            writeParagraph(error.message)
-            writeParagraph(error.name)
-            writeParagraph(error.stack)
-        }
+            const error: { message: string; name: string; stack: string } =
+                JSON.parse(message);
+            writeParagraph(error.message);
+            writeParagraph(error.name);
+            writeParagraph(error.stack);
+        };
     }
 
     setProject(project: TypeProject) {
-        if (project === this.project)
-            return;
+        if (project === this.project) return;
 
         this.project = project;
         this.fileTree.instance.setBaseDirectory(project.location);
@@ -221,35 +234,42 @@ export class Project {
 
     private async renderToolbar() {
         const container = document.createElement("div");
-        container.classList.add("top-bar")
+        container.classList.add("top-bar");
 
         const leftSide = document.createElement("div");
 
         const backButton = document.createElement("button");
-        backButton.innerHTML = await (await fetch("/assets/icons/arrow-left.svg")).text();
+        backButton.innerHTML = await (
+            await fetch("/assets/icons/arrow-left.svg")
+        ).text();
         backButton.classList.add("text");
         backButton.addEventListener("click", this.backAction);
         leftSide.append(backButton);
 
         const fileTreeToggle = document.createElement("button");
-        fileTreeToggle.innerHTML = await (await fetch("/assets/icons/side-panel.svg")).text();
+        fileTreeToggle.innerHTML = await (
+            await fetch("/assets/icons/side-panel.svg")
+        ).text();
         fileTreeToggle.classList.add("text");
         fileTreeToggle.addEventListener("click", () => {
             this.container.classList.toggle("side-panel-closed");
-            setTimeout(() => {this.console.fitAddon.fit()}, 350)
-        })
+            setTimeout(() => {
+                this.console.fitAddon.fit();
+            }, 350);
+        });
         leftSide.append(fileTreeToggle);
 
         const projectTitle = document.createElement("h3");
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
 
-
         const rightSide = document.createElement("div");
 
         const shareButton = document.createElement("button");
         shareButton.classList.add("text");
-        shareButton.innerHTML = await (await fetch("/assets/icons/share.svg")).text();
+        shareButton.innerHTML = await (
+            await fetch("/assets/icons/share.svg")
+        ).text();
         shareButton.addEventListener("click", async () => {
             await rpc().projects.zip(this.project);
             const refreshedFileTree = await this.fileTree.instance.render();
@@ -259,6 +279,7 @@ export class Project {
         rightSide.append(shareButton);
 
         const runButton = document.createElement("button");
+        runButton.id = RUN_PROJECT_ID;
         runButton.classList.add("text");
         runButton.innerHTML = await (await fetch("/assets/icons/run.svg")).text();
         runButton.addEventListener("click", this.runProject.bind(this));
@@ -271,31 +292,35 @@ export class Project {
     }
 
     renderEditors() {
-        Array.from(this.editorsContainer.children).forEach(child => child.remove());
+        Array.from(this.editorsContainer.children).forEach((child) =>
+            child.remove()
+        );
 
         const tabsContainer = document.createElement("ul");
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
             const tab = document.createElement("li");
-            if(editor.hasBuildErrors()){
-                tab.classList.add("has-errors")
+            if (editor.hasBuildErrors()) {
+                tab.classList.add("has-errors");
             }
             tab.innerText = editor.filePath.at(-1) || "file";
             tab.addEventListener("click", () => {
                 this.currentFile = editor.filePath.join("/");
                 this.renderEditors();
-            })
+            });
 
             const removeBtn = document.createElement("button");
-            removeBtn.classList.add("text", "small")
-            removeBtn.innerHTML = await (await fetch("/assets/icons/close.svg")).text();
-            removeBtn.addEventListener("click", async e => {
+            removeBtn.classList.add("text", "small");
+            removeBtn.innerHTML = await (
+                await fetch("/assets/icons/close.svg")
+            ).text();
+            removeBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
                 await editor.updateFile();
                 this.editors.splice(index, 1);
                 this.renderEditors();
-            })
+            });
             tab.append(removeBtn);
 
             tabsContainer.append(tab);
@@ -308,23 +333,26 @@ export class Project {
 
         this.tabsContainer.replaceWith(tabsContainer);
         this.tabsContainer = tabsContainer;
-
     }
 
-    async renderConsole(){
+    async renderConsole() {
         const consoleContainer = document.createElement("div");
         consoleContainer.classList.add("console");
         consoleContainer.append(this.console.render());
 
         const toggleConsoleButton = document.createElement("button");
         toggleConsoleButton.classList.add("text");
-        toggleConsoleButton.innerHTML = await (await fetch("assets/icons/caret-down.svg")).text();
+        toggleConsoleButton.innerHTML = await (
+            await fetch("assets/icons/caret-down.svg")
+        ).text();
         toggleConsoleButton.addEventListener("click", () => {
             this.container.classList.toggle("console-opened");
-            setTimeout(() => { this.console.fitAddon.fit() }, 350)
-        })
+            setTimeout(() => {
+                this.console.fitAddon.fit();
+            }, 350);
+        });
         consoleContainer.append(toggleConsoleButton);
-        return consoleContainer
+        return consoleContainer;
     }
 
     async render() {
@@ -334,9 +362,9 @@ export class Project {
         this.container.append(await this.renderToolbar());
 
         const fileTreeContainer = document.createElement("div");
-        fileTreeContainer.classList.add("left-sidebar")
+        fileTreeContainer.classList.add("left-sidebar");
         this.fileTree.instance.allowDeletion = true;
-        this.fileTree.element = await this.fileTree.instance.render()
+        this.fileTree.element = await this.fileTree.instance.render();
         fileTreeContainer.append(this.fileTree.element);
         this.container.append(fileTreeContainer);
 

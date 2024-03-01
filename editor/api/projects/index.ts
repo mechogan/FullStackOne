@@ -1,5 +1,4 @@
-
-import type { fs as globalFS } from "../../../src/api";
+import type { fs as globalFS } from "../../../src/api/fs";
 
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
@@ -12,77 +11,86 @@ declare var fs: typeof globalFS;
 declare var run: (projectdir: string, assetdir: string, entrypointData: string, hasErrors: boolean) => void;
 declare var buildWebview: (entryPoint: string, outdir: string, nodeModulesDir: string) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
-declare var unzip: (to: string, zipData: number[] | Uint8Array) => void;
+declare var unzip: (to: string, zipData: Uint8Array) => void;
 
-
-const list = () => config.load(CONFIG_TYPE.PROJECTS) || [];
-const create = (project: Omit<Project, "createdDate">) => {
-    const projects = list();
+const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
+const create = async (project: Omit<Project, "createdDate">) => {
+    const projects = await list();
     const newProject = {
         ...project,
         createdDate: Date.now()
-    }
+    };
     projects.push(newProject);
     config.save(CONFIG_TYPE.PROJECTS, projects);
     fs.mkdir(project.location);
     return newProject;
-}
-const deleteProject = (project: Project) => {
-    const projects = list();
-    const indexOf = projects.findIndex(({ location }) => location === project.location);
+};
+const deleteProject = async (project: Project) => {
+    const projects = await list();
+    const indexOf = projects.findIndex(
+        ({ location }) => location === project.location
+    );
     projects.splice(indexOf, 1);
     config.save(CONFIG_TYPE.PROJECTS, projects);
-    fs.rm(project.location);
-}
+    return fs.rmdir(project.location);
+};
 
 export default {
     list,
     create,
     delete: deleteProject,
-    run(project: Project) {
+    async run(project: Project) {
         const maybeWebviewJS = project.location + "/index.js";
         let hasErrors = false;
-        if (fs.exists(maybeWebviewJS)) {
-            const entrypointWebview = mingleWebview(maybeWebviewJS);
-            hasErrors = !buildWebview(entrypointWebview, project.location + "/.build", nodeModulesDir);
-            fs.rm(entrypointWebview);
+
+        if (await fs.exists(maybeWebviewJS)) {
+            const entrypointWebview = await mingleWebview(maybeWebviewJS);
+            hasErrors = !buildWebview(
+                entrypointWebview,
+                project.location + "/.build",
+                nodeModulesDir
+            );
+            await fs.unlink(entrypointWebview);
         }
 
-        const entrypointAPI = mingleAPI(project.location + "/api/index.js");
+        const entrypointAPI = await mingleAPI(
+            project.location + "/api/index.js"
+        );
         run(project.location, "", entrypointAPI, hasErrors);
-        fs.rm(entrypointAPI);
+        await fs.unlink(entrypointAPI);
     },
-    zip(project: Project) {
+    async zip(project: Project) {
         const out = project.location + "/" + project.title + ".zip";
 
-        if (fs.exists(out)) {
-            fs.rm(out);
+        if (await fs.exists(out)) {
+            await fs.unlink(out);
         }
 
-        const items = scan(project.location)
-            .filter(item => 
-                // filter
-                !item.startsWith(project.location + "/data")  // data
-                && !item.startsWith(project.location + "/.build") // build
-                && !item.startsWith(project.location + "/node_modules") // node_modules
+        const items = (await scan(project.location))
+            // filter out data items and build items
+            .filter(
+                (item) =>
+                    !item.startsWith(project.location + "/data") &&
+                    !item.startsWith(project.location + "/.build")
             )
             // convert to relative path to project.location
-            .map(item => item.slice(project.location.length + 1));
-            
+            .map((item) => item.slice(project.location.length + 1));
+
         zip(project.location, items, out);
     },
-    import(project: Omit<Project, "createdDate">, zipData: number[] | Uint8Array) {
+    async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
         const newProject = {
             ...project,
             createdDate: Date.now()
-        }
+        };
 
-        if(fs.exists(project.location))
-            deleteProject(newProject);
+        if (await fs.exists(project.location)) {
+            await deleteProject(newProject);
+        }
 
         create(newProject);
         unzip(project.location, zipData);
 
         return newProject;
     }
-}
+};

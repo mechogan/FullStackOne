@@ -87,7 +87,6 @@ struct ContentView: View {
                 return
             }
             
-            
             let entrypointContents = String.init(cString: apiScriptPtr!, encoding: .utf8)!
             RunningProject.instance?.setRunningProject(js: JavaScript(
                 logFn: {messages in ContentView.instance?.mainjs.push?("log", messages) },

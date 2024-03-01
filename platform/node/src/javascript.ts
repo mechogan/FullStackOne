@@ -1,18 +1,20 @@
-import vm from "vm"
+import vm from "vm";
 import fs from "fs";
-import { fs as fsType, Response, fetch as fetchType } from "../../../src/api"
+import { Response } from "../../../src/api";
+import type { fs as fsType } from "../../../src/api/fs";
+import type { fetch as fetchType } from "../../../src/api/fetch";
 
 export class JavaScript {
-    private requestId = 0
+    private requestId = 0;
     ctx = vm.createContext();
     push: (messageType: string, data: string) => void;
 
-    privileged = false
+    privileged = false;
 
     constructor(
         logFn: (...args) => void,
-        fsdir: string, 
-        assetdir: string, 
+        fsdir: string,
+        assetdir: string,
         entrypointContents: string,
         platform: string
     ) {
@@ -29,19 +31,15 @@ export class JavaScript {
     }
 
     processRequest(
-        headers: { [headerName: string]: string }, 
-        pathname: string, 
+        headers: { [headerName: string]: string },
+        pathname: string,
         body: Uint8Array,
         onCompletion: (jsResponse: Response) => void
     ) {
-        const requestId = this.requestId
+        const requestId = this.requestId;
         this.requestId += 1;
 
-        this.ctx.requests[requestId] = [
-            headers,
-            pathname,
-            body
-        ]
+        this.ctx.requests[requestId] = [headers, pathname, body];
 
         const script = new vm.Script(`api.default(...requests[${requestId}]);`);
         const cleanup = new vm.Script(`delete requests[${requestId}];`);
@@ -49,47 +47,109 @@ export class JavaScript {
         const respond = (jsResponse: Response) => {
             onCompletion(jsResponse);
             cleanup.runInContext(this.ctx);
-        }
+        };
 
         script.runInContext(this.ctx).then(respond);
     }
 
     private bindFs(rootdir: string) {
         const realpath = (path: string) => rootdir + "/" + path;
-        const realpathForAsset = (path: string) => this.privileged ? path : realpath(path);
+        const realpathWithAbsolutePath = (path: string) =>
+            this.privileged ? path : realpath(path);
 
         const ctxFs: typeof fsType = {
-            exists(itemPath, forAsset) {
-                return fs.existsSync(forAsset ? realpathForAsset(itemPath) : realpath(itemPath))
+            async readFile(path, options) {
+                path = options?.absolutePath
+                    ? realpathWithAbsolutePath(path)
+                    : realpath(path);
+
+                if (options?.encoding === "utf8") {
+                    return fs.promises.readFile(path, { encoding: "utf8" });
+                }
+
+                const data = await fs.promises.readFile(path);
+                return new Uint8Array(data);
             },
-            mkdir(directory) {
-                fs.mkdirSync(realpath(directory), { recursive: true });
+
+            writeFile(file, data) {
+                file = realpath(file);
+
+                if (Array.isArray(data)) {
+                    const uint8arr = new Uint8Array(data.length);
+                    data.forEach((num, i) => (uint8arr[i] = num % 256));
+                    data = uint8arr;
+                }
+
+                return fs.promises.writeFile(file, data);
             },
-            putfile(filename, contents) {
-                const uint8arr = new Uint8Array(contents.length);
-                contents.forEach((num, i) => uint8arr[i] = num % 256);
-                fs.writeFileSync(realpath(filename), uint8arr);
+
+            unlink(path) {
+                path = realpath(path);
+
+                return fs.promises.unlink(path);
             },
-            putfileUTF8(filename, contents) {
-                fs.writeFileSync(realpath(filename), contents);
-            },
-            readdir(directory) {
-                return fs.readdirSync(realpath(directory), { withFileTypes: true })
-                    .map(item => ({
+
+            async readdir(path, options) {
+                path = realpath(path);
+
+                if (options?.withFileTypes) {
+                    const items = await fs.promises.readdir(path, {
+                        withFileTypes: true
+                    });
+                    return items.map((item) => ({
                         name: item.name,
                         isDirectory: item.isDirectory()
-                    }))
+                    }));
+                }
+
+                return fs.promises.readdir(path);
             },
-            readfile(filename, forAsset) {
-                return new Uint8Array(fs.readFileSync(forAsset ? realpathForAsset(filename) : realpath(filename)));
+
+            async mkdir(path) {
+                path = realpath(path);
+
+                await fs.promises.mkdir(path, { recursive: true });
             },
-            readfileUTF8(filename, forAsset) {
-                return fs.readFileSync(forAsset ? realpathForAsset(filename) : realpath(filename), { encoding: "utf-8" });
+
+            rmdir(path) {
+                path = realpath(path);
+
+                return fs.promises.rm(path, { recursive: true });
             },
-            rm(itemPath) {
-                fs.rmSync(realpath(itemPath), { recursive: true });
+            stat(path) {
+                path = realpath(path);
+
+                return fs.promises.stat(path);
+            },
+            lstat(path) {
+                path = realpath(path);
+
+                return fs.promises.lstat(path);
+            },
+
+            readlink(path: string) {
+                throw Error("not implemeted");
+            },
+            symlink(path: string) {
+                throw Error("not implemeted");
+            },
+            chmod(path: string, uid: number, gid: number) {
+                throw Error("not implemented");
+            },
+
+            async exists(path, options) {
+                path = options?.absolutePath
+                    ? realpathWithAbsolutePath(path)
+                    : realpath(path);
+
+                try {
+                    await fs.promises.stat(path);
+                    return true;
+                } catch (e) {}
+
+                return false;
             }
-        }
+        };
 
         this.ctx.fs = ctxFs;
     }
@@ -97,53 +157,51 @@ export class JavaScript {
     private bindConsole(logFn: (...args) => void) {
         this.ctx.console = {
             log: logFn
-        }
+        };
     }
 
     private bindFetch() {
         const convertHeadersToObj = (headers: Headers) => {
             let headersObj: Record<string, string> = {};
-            headers.forEach((headerValue, headerName) => headersObj[headerName] = headerValue);
+            headers.forEach(
+                (headerValue, headerName) =>
+                    (headersObj[headerName] = headerValue)
+            );
             return headersObj;
-        }
+        };
 
-        const fetchObj: typeof fetchType = {
-            async data(url: string, options: {
-                    headers?: Record<string, string>, 
-                    method?: "GET" | "POST" | "PUT" | "DELTE", 
-                    body?: Uint8Array | number[]
-                }) {
-                    
-                const response = await fetch(url, {
-                    method: options?.method || "GET",
-                    headers: options?.headers || {},
-                    body: options?.body ? Buffer.from(options?.body) : undefined
-                })
+        const fetchMethod: typeof fetchType = async (
+            url: string,
+            options: {
+                headers?: Record<string, string>;
+                method?: "GET" | "POST" | "PUT" | "DELTE";
+                body?: string | Uint8Array;
+                encoding?: string;
+            }
+        ) => {
+            const response = await fetch(url, {
+                method: options?.method || "GET",
+                headers: options?.headers || {},
+                body: options?.body ? Buffer.from(options?.body) : undefined
+            });
 
-                const headers = convertHeadersToObj(response.headers)
-                return {
-                    headers,
-                    body: new Uint8Array(await response.arrayBuffer())
-                }
-            },
-            async UTF8(url: string, options: {
-                    headers?: Record<string, string>, 
-                    method?: "GET" | "POST" | "PUT" | "DELTE", 
-                    body?: Uint8Array | number[]
-                }) {
-                const response = await fetch(url, {
-                    method: options?.method || "GET",
-                    headers: options?.headers || {},
-                    body: options?.body ? Buffer.from(options?.body) : undefined
-                })
+            const headers = convertHeadersToObj(response.headers);
 
-                const headers = convertHeadersToObj(response.headers)
-                return {
-                    headers,
-                    body: await response.text()
-                }
-            },
-        }
-        this.ctx.fetch = fetchObj;
+            const body =
+                options?.encoding === "utf8"
+                    ? await response.text()
+                    : new Uint8Array(await response.arrayBuffer());
+
+            return {
+                url,
+                headers,
+                method: options?.method || "GET",
+                statusCode: response.status,
+                statusMessage: response.statusText,
+                body
+            };
+        };
+
+        this.ctx.fetch = fetchMethod;
     }
 }

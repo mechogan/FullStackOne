@@ -55,7 +55,7 @@ class JavaScript {
         }
         let promiseArgs = [unsafeBitCast(onFulfilled, to: JSValue.self), unsafeBitCast(onRejected, to: JSValue.self)]
         
-        let payload = body != nil ? Array(body!) : nil
+        let payload = body != nil ? body!.toUint8Array(ctx: self.ctx) : nil
         self.ctx["api"]?["default"]?.call(withArguments: [headers, pathname, payload as Any])
             .invokeMethod("then", withArguments: promiseArgs)
     }
@@ -83,144 +83,216 @@ class JavaScript {
         }
         
         // make sure only main app is privileged and bypasses the fsdir protection
-        let realpathForAsset = { (path: String) -> String in
+        let realpathWithAbsolutePath = { (path: String) -> String in
             return self.privileged
                 ? path
                 : realpath(path)
         }
         
-        let readdir: @convention (block) (String) -> [[String: Any]] = { directory in
-            let items = try! FileManager.default.contentsOfDirectory(atPath: realpath(directory))
-            return items.map { item in
-                var isDirectory: ObjCBool = false;
-                let itemPath = directory + "/" + item
-                FileManager.default.fileExists(atPath: realpath(itemPath), isDirectory: &isDirectory)
-                return ["name": item, "isDirectory": isDirectory.boolValue]
+        
+        let readFile: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let itemPath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+                ? realpathWithAbsolutePath(path)
+                : realpath(path)
+            
+            let contents = FileManager.default.contents(atPath: itemPath)!
+            
+            if(options?["encoding"]?.toString() == "utf8"){
+                let stringValue = String(data: contents, encoding: .utf8)!
+                
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    resolve!.call(withArguments: [stringValue])
+                }
+            }
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [contents.toUint8Array(ctx: self.ctx)!])
             }
         }
-        let readfile: @convention (block) (String, Bool) -> [UInt8] = { filename, forAsset in
-            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
-            return Array(contents)
+        
+        let writeFile: @convention (block) (String, JSValue) -> JSValue = { file, data in
+            let itemPath = realpath(file)
+            
+            if (data.isString) {
+                let stringValue = data.toString()!
+                try! stringValue.write(toFile: itemPath, atomically: true, encoding: .utf8)
+            } else {
+                let data = Data(data.toArray()! as! [UInt8])
+                try! Data(data).write(to: URL(fileURLWithPath: itemPath))
+            }
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [])
+            }
         }
-        let readfileUTF8: @convention (block) (String, Bool) -> String = { filename, forAsset in
-            let contents = FileManager.default.contents(atPath: forAsset ? realpathForAsset(filename) : realpath(filename))!
-            return String(data: contents, encoding: .utf8)!
+        
+        let unlink: @convention (block) (String) -> JSValue = { path in
+            let itemPath = realpath(path)
+            
+            // let's at least try to act like nodejs unlink and not delete directories
+            var isDirectory: ObjCBool = false;
+            let exists = FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
+            
+            if(exists && !isDirectory.boolValue) {
+                try! FileManager.default.removeItem(atPath: itemPath)
+            }
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [])
+            }
         }
-        let mkdir: @convention (block) (String) -> Void = {directory in
-            try! FileManager.default.createDirectory(atPath: realpath(directory), withIntermediateDirectories: true)
+        
+        let readdir: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let itemPath = realpath(path);
+            
+            let items = try! FileManager.default.contentsOfDirectory(atPath: itemPath)
+            
+            if(!options!.isUndefined && !options!["withFileTypes"]!.isUndefined && options!["withFileTypes"]!.toBool()){
+                let itemsWithFileTypes = items.map { item in
+                    var isDirectory: ObjCBool = false;
+                    let itemPath = path + "/" + item
+                    FileManager.default.fileExists(atPath: realpath(itemPath), isDirectory: &isDirectory)
+                    return ["name": item, "isDirectory": isDirectory.boolValue]
+                }
+                
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    resolve!.call(withArguments: [itemsWithFileTypes])
+                }
+            }
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [items])
+            }
         }
-        let rm: @convention (block) (String) -> Void = { path in
-            try! FileManager.default.removeItem(atPath: realpath(path))
+        
+        let mkdir: @convention (block) (String) -> JSValue = { path in
+            let itemPath = realpath(path)
+            
+            try! FileManager.default.createDirectory(atPath: itemPath, withIntermediateDirectories: true)
+
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [])
+            }
         }
-        let putfile: @convention (block) (String, [UInt8]) -> Void = { filename, data in
-            try! Data(data).write(to: URL(fileURLWithPath: realpath(filename)))
+        
+        let rmdir: @convention (block) (String) -> JSValue = { path in
+            let itemPath = realpath(path)
+            
+            // let's at least try to act like nodejs rmdir and delete only directories
+            var isDirectory: ObjCBool = false;
+            let exists = FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
+            
+            if(exists && isDirectory.boolValue) {
+                try! FileManager.default.removeItem(atPath: itemPath)
+            }
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [])
+            }
         }
-        let putfileUTF8: @convention (block) (String, String) -> Void = { filename, data in
-            try! data.write(toFile: realpath(filename), atomically: true, encoding: .utf8)
+        
+        let stat: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let itemPath = realpath(path)
+            
+            let stats = try! FileManager.default.attributesOfItem(atPath: itemPath)
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [stats])
+            }
         }
-        let exists: @convention (block) (String, Bool) -> Bool = { path, forAsset in
-            return FileManager.default.fileExists(atPath: forAsset ? realpathForAsset(path) : realpath(path))
+        
+        let lstat: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let itemPath = realpath(path)
+            
+            let stats = try! FileManager.default.attributesOfItem(atPath: itemPath)
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [stats])
+            }
+        }
+        
+        let exists: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let itemPath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+                ? realpathWithAbsolutePath(path)
+                : realpath(path)
+            
+            let exists = FileManager.default.fileExists(atPath: itemPath)
+            let value = JSValue(bool: exists, in: self.ctx)!
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [value])
+            }
         }
         
         let fs = JSValue(newObjectIn: self.ctx)!
+        fs["readFile"] = readFile
+        fs["writeFile"] = writeFile
+        fs["unlink"] = unlink
         fs["readdir"] = readdir
-        fs["readfile"] = readfile
-        fs["readfileUTF8"] = readfileUTF8
         fs["mkdir"] = mkdir
-        fs["rm"] = rm
-        fs["putfile"] = putfile
-        fs["putfileUTF8"] = putfileUTF8
+        fs["rmdir"] = rmdir
+        fs["stat"] = stat
+        fs["lstat"] = lstat
         fs["exists"] = exists
         self.ctx["fs"] = fs
     }
     
     private func bindFetch() {
-        let fetchCallbackData: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
-        { urlStr, onCompletion, headers, method, body  in
+        let fetchMethod: @convention (block) (String, JSValue?) -> JSValue = { urlStr, options in
             let url = URL(string: urlStr)!
             var request = URLRequest(url: url)
-
-            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
             
-            if (headers != nil) {
-                for (headerName, headerValue) in headers! {
+            request.httpMethod = !options!.isUndefined && options!["method"]!.isString
+                ? options!["method"]!.toString()!
+                : "GET"
+            
+            if (!options!.isUndefined && options!["headers"]!.isObject) {
+                let headers = options!["headers"]!.toDictionary() as! [String: String]
+                for (headerName, headerValue) in headers {
                     request.setValue(headerValue, forHTTPHeaderField: headerName)
                 }
             }
             
-            if (body != nil) {
-                request.httpBody = Data(body!)
+            if (!options!.isUndefined && !options!["body"]!.isUndefined) {
+                let body = options!["body"]!.isString
+                    ? options!["body"]!.toString().data(using: .utf8)
+                    : Data(options!["body"]!.toArray() as! [UInt8])
+                
+                request.httpBody = body
             }
             
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if error != nil {
-                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
-                    onCompletion.call(withArguments: [[:], ""])
-                    return
-                }
-                
-                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
-                DispatchQueue.main.async {
-                    onCompletion.call(withArguments: [headers, Array(data!)])
-                }
-            }
-            task.resume()
-        }
-        
-        let fetchCallbackUTF8: @convention (block) (String, JSValue, [String: String]?, JSValue?, [UInt8]?) -> Void =
-        { urlStr, onCompletion, headers, method, body  in
-            let url = URL(string: urlStr)!
-            var request = URLRequest(url: url)
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                    if error != nil {
+                        reject!.call(withArguments: ["[\"Fetch Error for \(urlStr)\"]"])
+                        return
+                    }
+                    
+                    let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
 
-            request.httpMethod = method!.isUndefined ? "GET" : method?.toString()!
-            
-            if (headers != nil) {
-                for (headerName, headerValue) in headers! {
-                    request.setValue(headerValue, forHTTPHeaderField: headerName)
+                    let responseObj = JSValue(newObjectIn: self.ctx)!
+                    responseObj["url"] = response?.url
+                    responseObj["headers"] = headers
+                    responseObj["method"] = request.httpMethod
+                    responseObj["statusCode"] = (response as! HTTPURLResponse).statusCode
+                    responseObj["statusMessage"] = "OK"
+                    
+                    if(data != nil) {
+                        if(!options!.isUndefined && options!["encoding"]!.isString && options!["encoding"]!.toString() == "utf8"){
+                            responseObj["body"] = String(data: data!, encoding: .utf8)!
+                        } else {
+                            responseObj["body"] = data!.toUint8Array(ctx: self.ctx)
+                        }
+                    }
+                    
+                    resolve!.call(withArguments: [responseObj])
                 }
+                task.resume()
             }
-            
-            if (body != nil) {
-                request.httpBody = Data(body!)
-            }
-            
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if error != nil {
-                    self.logFn("[\"Fetch Error for \(urlStr)\"]")
-                    onCompletion.call(withArguments: [[:], ""])
-                    return
-                }
-                
-                let headers = (response as! HTTPURLResponse).allHeaderFields as! [String: String]
-                let body = String(data: data!, encoding: .utf8)!
-                DispatchQueue.main.async {
-                    onCompletion.call(withArguments: [headers, body])
-                }
-            }
-            task.resume()
         }
         
-        let fetchCallback = JSValue(newObjectIn: self.ctx)!
-        fetchCallback["data"] = fetchCallbackData
-        fetchCallback["UTF8"] = fetchCallbackUTF8
         
-        self.ctx["fetchCallback"] = fetchCallback
-        
-        let patch = """
-        var fetch = {
-            data: (url, options) => {
-                return new Promise(resolve => {
-                    fetchCallback.data(url, (headers, data) => resolve({ headers, body: data }), options?.headers, options?.method, options?.body)
-                })
-            },
-            UTF8: (url, options) => {
-                return new Promise(resolve => {
-                    fetchCallback.UTF8(url, (headers, UTF8) => resolve({ headers, body: UTF8 }), options?.headers, options?.method, options?.body)
-                })
-            }
-        }
-        """
-        self.ctx.evaluateScript(patch)
+        self.ctx["fetch"] = fetchMethod
     }
 }
 
@@ -243,5 +315,34 @@ extension JSValue {
     subscript(_ key: String) -> Any? {
         get { return objectForKeyedSubscript(key) }
         set { setObject(newValue, forKeyedSubscript: key) }
+    }
+}
+
+extension Data {
+    func toUint8Array(ctx: JSContext) -> JSValue? {
+        // source: https://gist.github.com/hyperandroid/52f8198347d61c3fa62c75c72c31deb6
+        let ptr: UnsafeMutableBufferPointer<UInt8> = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: self.count)
+        try! self.withUnsafeBytes<UInt8> { (contentsPtr: UnsafeRawBufferPointer) -> Void in
+            let _ = ptr.initialize(from: UnsafeRawBufferPointer(contentsPtr))
+        }
+        var exception : JSValueRef?
+        let deallocator: JSTypedArrayBytesDeallocator = { ptr, deallocatorContext in
+            ptr?.deallocate()
+        }
+        let arrayBufferRef = JSObjectMakeTypedArrayWithBytesNoCopy(
+            ctx.jsGlobalContextRef,
+            kJSTypedArrayTypeUint8Array,
+            ptr.baseAddress,
+            self.count,
+            deallocator,
+            nil,
+            &exception)
+
+        if exception != nil {
+            ctx.exception = JSValue(jsValueRef: exception, in: ctx)
+            return nil
+        }
+        
+        return JSValue(jsValueRef: arrayBufferRef, in: ctx)
     }
 }

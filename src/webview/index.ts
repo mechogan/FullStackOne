@@ -1,4 +1,5 @@
-import { SourceMapConsumer } from "source-map-js"
+import "./Uint8Array";
+import { SourceMapConsumer } from "source-map-js";
 
 async function fetchCall(pathComponents: string[], ...args) {
     const url = new URL(window.location.origin);
@@ -9,9 +10,13 @@ async function fetchCall(pathComponents: string[], ...args) {
         body: JSON.stringify(args)
     });
 
-    return response.headers.get("content-type")?.startsWith("application/json")
+    const contentType = response.headers.get("content-type");
+
+    return contentType?.startsWith("application/json")
         ? response.json()
-        : response.text();
+        : contentType?.startsWith("application/octet-stream")
+          ? response.arrayBuffer()
+          : response.text();
 }
 
 function recurseInProxy(target: Function, pathComponents: string[] = []) {
@@ -23,7 +28,7 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
             pathComponents.push(p as string);
             return recurseInProxy(target, pathComponents);
         }
-    })
+    });
 }
 
 export default function rpc<T>() {
@@ -31,18 +36,21 @@ export default function rpc<T>() {
 }
 (window as any).rpc = rpc;
 
-type OnlyOnePromise<T> = T extends PromiseLike<any>
-    ? T
-    : Promise<T>;
+type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
-    [K in keyof T]: T[K] extends ((...args: any) => any)
-    ? (...args: T[K] extends ((...args: infer P) => any) ? P : never[]) =>
-        OnlyOnePromise<(T[K] extends ((...args: any) => any) ? ReturnType<T[K]> : any)>
-    : AwaitAll<T[K]>
+    [K in keyof T]: T[K] extends (...args: any) => any
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => OnlyOnePromise<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : AwaitAll<T[K]>;
 };
 
-(window as any).onPush = {} as { [messageType: string]: (message: string) => void };
+(window as any).onPush = {} as {
+    [messageType: string]: (message: string) => void;
+};
 
 (window as any).push = (messageType: string, message: string) => {
     const callback = (window as any).onPush[messageType];
@@ -50,19 +58,20 @@ type AwaitAll<T> = {
         throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;
 
     callback(message);
-}
-
+};
 
 // use a websocket for nodejs
 const platform = await (rpc() as any).platform();
 if (platform === "node") {
-    const url = (window.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
-        window.location.host
+    const url =
+        (window.location.protocol === "http:" ? "ws:" : "wss:") +
+        "//" +
+        window.location.host;
     const ws = new WebSocket(url);
     ws.onmessage = ({ data }) => {
         const { messageType, message } = JSON.parse(data);
         (window as any).push(messageType, message);
-    }
-} 
+    };
+}
 
 (window as any).sourceMapConsumer = SourceMapConsumer;

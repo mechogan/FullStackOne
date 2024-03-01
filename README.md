@@ -3,10 +3,11 @@
 # FullStacked Editor
 
 Build and run full-stack JS web apps on any platform.
-* iOS/iPadOS 
-* MacOS/Windows/Linux
-* **WIP** Android 
-* **WIP** Docker
+
+-   iOS/iPadOS
+-   MacOS/Windows/Linux
+-   **WIP** Android
+-   **WIP** Docker
 
 ## Docs
 

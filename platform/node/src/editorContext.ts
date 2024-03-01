@@ -5,8 +5,9 @@ import { JavaScript } from "./javascript";
 import tar from "tar";
 
 
-export default function(home: string, js: JavaScript, jsDir: string) {
-    const resolvePath = (entrypoint: string) => path.join(home, entrypoint).split("\\").join("/");
+export default function (home: string, js: JavaScript, jsDir: string) {
+    const resolvePath = (entrypoint: string) =>
+        path.join(home, entrypoint).split("\\").join("/");
 
     js.ctx.jsDirectory = jsDir;
     js.ctx.resolvePath = resolvePath;
@@ -22,7 +23,7 @@ export default function(home: string, js: JavaScript, jsDir: string) {
     };
     js.ctx.zip = (projectdir: string, items: string[], to: string) => {
         var zip = new AdmZip();
-        items.forEach(item => {
+        items.forEach((item) => {
             const itemPathComponents = item.split("/");
             const itemName = itemPathComponents.pop();
             const itemDirectory = itemPathComponents.join("/");
@@ -33,9 +34,9 @@ export default function(home: string, js: JavaScript, jsDir: string) {
         const out = resolvePath(to);
         zip.writeZip(out);
         return out.split("/").slice(0, -1).join("/");
-    }
-    js.ctx.unzip = (to: string, zipData: number[] | Uint8Array) => {
-        const zip = new AdmZip(Buffer.from(zipData))
+    };
+    js.ctx.unzip = (to: string, zipData: Uint8Array) => {
+        const zip = new AdmZip(Buffer.from(zipData));
         zip.extractAllTo(resolvePath(to));
     }
     js.ctx.untar = (outdir: string, data: Uint8Array | number[]) => {

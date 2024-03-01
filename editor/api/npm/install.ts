@@ -1,4 +1,5 @@
-import type { fs as globalFS, fetch as globalFetch } from "../../../src/api";
+import type { fs as globalFS } from "../../../src/api/fs";
+import type { fetch as globalFetch } from "../../../src/api/fetch";
 import { configdir } from "../config";
 
 declare var fetch: typeof globalFetch;
@@ -11,11 +12,11 @@ export default async function(
     packageName: string, 
     version = "latest"
 ){
-    const packageInfoStr = (await fetch.UTF8(`https://registry.npmjs.org/${packageName}/${version}`)).body;
+    const packageInfoStr = (await fetch(`https://registry.npmjs.org/${packageName}/${version}`, { encoding: "utf8" })).body as string;
     const packageInfo = JSON.parse(packageInfoStr);
     const tarbalUrl = packageInfo.dist.tarball;
-    const tarballData = (await fetch.data(tarbalUrl)).body;
+    const tarballData = (await fetch(tarbalUrl)).body as Uint8Array;
     const outdir =  nodeModulesDir + "/" + packageName;
-    fs.mkdir(outdir);
+    await fs.mkdir(outdir);
     await untar(outdir, tarballData);
 }

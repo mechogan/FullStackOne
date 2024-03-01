@@ -15,5 +15,7 @@ esbuild.buildSync({
 });
 
 fs.cpSync(path.resolve("..", "..", "Demo.zip"), "Demo.zip");
-fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", { recursive: true });
+fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", {
+    recursive: true
+});
 fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });

@@ -17,13 +17,12 @@ export function buildWebview(entryPoint: string, outdir: string, nodePath?: stri
             nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
-        return { errors: e.errors }
+        return { errors: e.errors };
     }
 }
 
 export function buildAPI(entryPoint: string) {
-    if (!global.esbuild)
-        return { errors: "Cannot find esbuild module" }
+    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     let result: esbuildType.BuildResult;
     try {
@@ -36,9 +35,8 @@ export function buildAPI(entryPoint: string) {
             logLevel: "silent"
         });
     } catch (e) {
-        return { errors: e.errors }
+        return { errors: e.errors };
     }
-
 
     return result?.outputFiles?.at(0)?.text;
 }
