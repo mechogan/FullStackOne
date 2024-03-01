@@ -1,22 +1,10 @@
 import mime from "mime";
 import { UTF8ToStr, strToUTF8 } from "./utf8";
+import type { fs as fsType } from "./fs";
 
-export declare var fs: {
-    exists(itemPath: string, forAsset?: boolean): boolean;
-
-    readfile(filename: string, forAsset?: boolean): Uint8Array;
-    readfileUTF8(filename: string, forAsset?: boolean): string;
-
-    readdir(directory: string): { name: string; isDirectory: boolean }[];
-    mkdir(directory: string): void;
-
-    putfile(filename: string, contents: Uint8Array): void;
-    putfileUTF8(filename: string, contents: string): void;
-
-    rm(itemPath: string): void;
-};
 declare var assetdir: string;
 declare var platform: string;
+declare var fs: typeof fsType;
 
 type fetch<T> = (
     url: string,
@@ -64,7 +52,7 @@ export default async (
 
     // check for [path]/index.html
     let maybeIndexHTML = maybeFileName + "/index.html";
-    if (fs.exists(maybeIndexHTML, true)) {
+    if (await fs.exists(maybeIndexHTML, { absolutePath: true })) {
         maybeFileName = maybeIndexHTML;
     }
 
@@ -75,13 +63,15 @@ export default async (
         maybeFileName.endsWith(".map")
     ) {
         const maybeBuiltFile = ".build/" + maybeFileName;
-        if (fs.exists(maybeBuiltFile)) {
+        if (await fs.exists(maybeBuiltFile, { absolutePath: true })) {
             maybeFileName = maybeBuiltFile;
         }
     }
 
-    if (fs.exists(maybeFileName, true)) {
-        const data = fs.readfile(maybeFileName, true);
+    if (await fs.exists(maybeFileName, { absolutePath: true })) {
+        const data = (await fs.readFile(maybeFileName, {
+            absolutePath: true
+        })) as Uint8Array;
         response = {
             mimeType: mime.getType(maybeFileName) || "text/plain",
             data

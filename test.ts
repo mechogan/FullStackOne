@@ -111,6 +111,7 @@ while (tries) {
         await page.goto("http://localhost:9001");
     } catch (e) {
         if (!tries) throwError(e);
+        await sleep(100);
     }
 }
 
