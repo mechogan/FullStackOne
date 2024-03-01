@@ -6,19 +6,6 @@ declare var assetdir: string;
 declare var platform: string;
 declare var fs: typeof fsType;
 
-type fetch<T> = (
-    url: string,
-    options: {
-        headers?: Record<string, string>;
-        method?: "GET" | "POST" | "PUT" | "DELTE";
-        body?: Uint8Array;
-    }
-) => Promise<{ headers: Record<string, string>; body: T }>;
-export declare var fetch: {
-    data: fetch<Uint8Array>;
-    UTF8: fetch<string>;
-};
-
 let methods = {
     fs,
     fetch,
