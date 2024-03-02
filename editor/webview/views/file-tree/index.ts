@@ -282,10 +282,10 @@ export class FileTree {
         ul?.replaceWith(updatedChildrenList);
     }
 
-    private async renderActions(){
+    private async renderActions() {
         const container = document.createElement("div");
 
-         // const hiddenFileCheckboxLabel = document.createElement("label");
+        // const hiddenFileCheckboxLabel = document.createElement("label");
         // hiddenFileCheckboxLabel.innerText = "Hidden Files";
         // container.append(hiddenFileCheckboxLabel);
 
@@ -360,12 +360,12 @@ export class FileTree {
         });
 
         // make sure dir exists
-        await rpc().fs.mkdir(this.baseDirectory.join("/"))
+        await rpc().fs.mkdir(this.baseDirectory.join("/"));
 
         this.ulRoot = await this.openDirectory(this.baseDirectory);
         this.ulRoot.classList.add("file-tree");
 
-        if(!this.noNewItems) {
+        if (!this.noNewItems) {
             const actionsContainer = await this.renderActions();
             container.append(actionsContainer);
         }

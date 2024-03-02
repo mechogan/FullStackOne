@@ -217,7 +217,8 @@ export class Project {
             container.append(status);
 
             const installPromise = new Promise<void>((resolve) => {
-                rpc().packages.install(packageName)
+                rpc()
+                    .packages.install(packageName)
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
@@ -250,20 +251,19 @@ export class Project {
         rpc().projects.run(this.project);
     }
 
-    private async renderTopRightActions(){
+    private async renderTopRightActions() {
         const container = document.createElement("div");
 
-        if(this.packagesView) {
+        if (this.packagesView) {
             const deleteAllPackagesButton = document.createElement("button");
             deleteAllPackagesButton.classList.add("danger", "text");
             deleteAllPackagesButton.innerText = "Delete All";
             deleteAllPackagesButton.addEventListener("click", async () => {
                 await rpc().fs.rmdir(this.project.location);
                 this.backAction();
-            })
+            });
             container.append(deleteAllPackagesButton);
-        }
-        else {
+        } else {
             const shareButton = document.createElement("button");
             shareButton.classList.add("text");
             shareButton.innerHTML = await (

@@ -54,14 +54,11 @@ export class Projects {
 
         const packagesButton = document.createElement("button");
         packagesButton.classList.add("text", "text-and-icon");
-        const [
-            packagesCount,
-            packageIcon
-        ] = await Promise.all([
+        const [packagesCount, packageIcon] = await Promise.all([
             rpc().packages.count(),
             (await fetch("assets/icons/package.svg")).text()
-        ])
-        packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`
+        ]);
+        packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`;
 
         packagesButton.addEventListener("click", async () =>
             this.goToPackages()

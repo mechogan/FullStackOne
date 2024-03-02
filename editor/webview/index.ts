@@ -37,7 +37,7 @@ const app = async () => {
         });
 
         main.append(await projectView.render());
-    }
+    };
 
     const projectNewView = new ProjectNew();
     projectNewView.cancelAction = async () => {
@@ -46,6 +46,7 @@ const app = async () => {
     };
     projectNewView.didCreateProjectAction = async (newProjectPath) => {
         clearView();
+        projectView.packagesView = false;
         projectView.setProject(newProjectPath);
         main.append(await projectView.render());
     };
