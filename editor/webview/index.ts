@@ -16,6 +16,8 @@ await rpc().config.init();
 const esbuildInstall = await rpc().esbuild.checkInstall();
 
 const app = async () => {
+    await rpc().git.clone();
+
     const projectsView = new Projects();
     projectsView.newProjectAction = async () => {
         clearView();
