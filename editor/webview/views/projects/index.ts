@@ -62,8 +62,12 @@ export class Projects {
         ])
         packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`
 
-        packagesButton.addEventListener("click", () =>
-            rpc().fs.rmdir(".config/fullstacked/node_modules")
+        packagesButton.addEventListener("click", async () =>
+            this.selectProjectAction({
+                title: "Packages",
+                location: await rpc().packages.directory(),
+                createdDate: null
+            })
         );
         topContainer.append(packagesButton);
 

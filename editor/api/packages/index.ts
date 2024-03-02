@@ -5,6 +5,7 @@ declare var fs: typeof globalFS;
 
 export default {
     install,
+    directory: () => nodeModulesDir,
     async count() {
         if(!await fs.exists(nodeModulesDir))
             return 0;
