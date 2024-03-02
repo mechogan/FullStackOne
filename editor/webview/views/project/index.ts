@@ -13,6 +13,7 @@ declare var rpc: typeof typeRPC<typeof api>;
 
 export class Project {
     backAction: () => void;
+    packagesView: boolean = false;
 
     private container: HTMLDivElement;
     private project: TypeProject;
@@ -249,6 +250,46 @@ export class Project {
         rpc().projects.run(this.project);
     }
 
+    private async renderTopRightActions(){
+        const container = document.createElement("div");
+
+        if(this.packagesView) {
+            const deleteAllPackagesButton = document.createElement("button");
+            deleteAllPackagesButton.classList.add("danger", "text");
+            deleteAllPackagesButton.innerText = "Delete All";
+            deleteAllPackagesButton.addEventListener("click", async () => {
+                await rpc().fs.rmdir(this.project.location);
+                this.backAction();
+            })
+            container.append(deleteAllPackagesButton);
+        }
+        else {
+            const shareButton = document.createElement("button");
+            shareButton.classList.add("text");
+            shareButton.innerHTML = await (
+                await fetch("/assets/icons/share.svg")
+            ).text();
+            shareButton.addEventListener("click", async () => {
+                await rpc().projects.zip(this.project);
+                const refreshedFileTree = await this.fileTree.instance.render();
+                this.fileTree.element?.replaceWith(refreshedFileTree);
+                this.fileTree.element = refreshedFileTree;
+            });
+            container.append(shareButton);
+
+            const runButton = document.createElement("button");
+            runButton.id = RUN_PROJECT_ID;
+            runButton.classList.add("text");
+            runButton.innerHTML = await (
+                await fetch("/assets/icons/run.svg")
+            ).text();
+            runButton.addEventListener("click", this.runProject.bind(this));
+            container.append(runButton);
+        }
+
+        return container;
+    }
+
     private async renderToolbar() {
         const container = document.createElement("div");
         container.classList.add("top-bar");
@@ -280,31 +321,9 @@ export class Project {
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
 
-        const rightSide = document.createElement("div");
-
-        const shareButton = document.createElement("button");
-        shareButton.classList.add("text");
-        shareButton.innerHTML = await (
-            await fetch("/assets/icons/share.svg")
-        ).text();
-        shareButton.addEventListener("click", async () => {
-            await rpc().projects.zip(this.project);
-            const refreshedFileTree = await this.fileTree.instance.render();
-            this.fileTree.element?.replaceWith(refreshedFileTree);
-            this.fileTree.element = refreshedFileTree;
-        });
-        rightSide.append(shareButton);
-
-        const runButton = document.createElement("button");
-        runButton.id = RUN_PROJECT_ID;
-        runButton.classList.add("text");
-        runButton.innerHTML = await (
-            await fetch("/assets/icons/run.svg")
-        ).text();
-        runButton.addEventListener("click", this.runProject.bind(this));
-        rightSide.append(runButton);
-
         container.append(leftSide);
+
+        const rightSide = await this.renderTopRightActions();
         container.append(rightSide);
 
         return container;
@@ -383,6 +402,7 @@ export class Project {
         const fileTreeContainer = document.createElement("div");
         fileTreeContainer.classList.add("left-sidebar");
         this.fileTree.instance.allowDeletion = true;
+        this.fileTree.instance.noNewItems = this.packagesView;
         this.fileTree.element = await this.fileTree.instance.render();
         fileTreeContainer.append(this.fileTree.element);
         this.container.append(fileTreeContainer);

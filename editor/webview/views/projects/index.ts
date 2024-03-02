@@ -10,6 +10,7 @@ declare var rpc: typeof typeRPC<typeof api>;
 export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;
+    goToPackages: () => void;
 
     private container: HTMLDivElement;
 
@@ -63,11 +64,7 @@ export class Projects {
         packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`
 
         packagesButton.addEventListener("click", async () =>
-            this.selectProjectAction({
-                title: "Packages",
-                location: await rpc().packages.directory(),
-                createdDate: null
-            })
+            this.goToPackages()
         );
         topContainer.append(packagesButton);
 
