@@ -1,5 +1,5 @@
 import mime from "mime";
-import { UTF8ToStr, strToUTF8 } from "./utf8";
+import { TextEncoder, TextDecoder } from "./utf8";
 import type { fs as fsType } from "./fs";
 import type { fetch as fetchType } from "./fetch";
 
@@ -7,6 +7,13 @@ declare var assetdir: string;
 declare var platform: string;
 declare var fs: typeof fsType;
 declare var fetch: typeof fetchType;
+declare var userMethods: any;
+
+globalThis.TextEncoder = TextEncoder as any;
+globalThis.TextDecoder = TextDecoder as any;
+
+const te = new TextEncoder();
+const td = new TextDecoder();
 
 let methods = {
     fs,
@@ -15,7 +22,7 @@ let methods = {
 };
 
 const notFound = {
-    data: strToUTF8("Not Found"),
+    data: te.encode("Not Found"),
     mimeType: "text/plain"
 };
 
@@ -29,7 +36,10 @@ export default async (
     pathname: string,
     body: Uint8Array
 ): Promise<Response> => {
-    let response: Response = notFound;
+    let response: Response = { ...notFound };
+
+    // trim whitespaces
+    pathname = pathname.trim();
 
     // remove trailing slash
     if (pathname?.endsWith("/")) pathname = pathname.slice(0, -1);
@@ -37,11 +47,15 @@ export default async (
     // remove leading slash
     if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
-    let maybeFileName = assetdir ? assetdir + "/" + pathname : pathname;
+    // add assets directory in front
+    let maybeFileName = assetdir 
+        ? assetdir + 
+            (pathname ? "/" + pathname : "") 
+        : pathname;
 
     // check for [path]/index.html
     let maybeIndexHTML = maybeFileName + "/index.html";
-    if (await fs.exists(maybeIndexHTML, { absolutePath: true })) {
+    if (await fs.isFile(maybeIndexHTML, { absolutePath: true })) {
         maybeFileName = maybeIndexHTML;
     }
 
@@ -52,12 +66,12 @@ export default async (
         maybeFileName.endsWith(".map")
     ) {
         const maybeBuiltFile = ".build/" + maybeFileName;
-        if (await fs.exists(maybeBuiltFile, { absolutePath: true })) {
+        if (await fs.isFile(maybeBuiltFile, { absolutePath: true })) {
             maybeFileName = maybeBuiltFile;
         }
     }
 
-    if (await fs.exists(maybeFileName, { absolutePath: true })) {
+    if (await fs.isFile(maybeFileName, { absolutePath: true })) {
         const data = (await fs.readFile(maybeFileName, {
             absolutePath: true
         })) as Uint8Array;
@@ -68,22 +82,32 @@ export default async (
     }
 
     const methodPath = pathname.split("/");
-    const method = methodPath.reduce(
+    let method = methodPath.reduce(
         (api, key) => (api ? api[key] : undefined),
-        methods
+        Object.assign(methods, userMethods)
     ) as any;
 
+    if(typeof method === "object" && method.hasOwnProperty("")){
+        method = method[""];
+    }
+
     if (method) {
-        const args = body && body.length ? JSON.parse(UTF8ToStr(body)) : [];
+        const args = body && body.length ? JSON.parse(td.decode(body)) : [];
 
         let responseBody =
             typeof method === "function" ? method(...args) : method;
 
+        // await all promises
         while (typeof responseBody?.then === "function") {
             responseBody = await responseBody;
         }
 
         let type = "text/plain";
+        if(typeof responseBody === "object" && responseBody.hasOwnProperty("type") && responseBody.hasOwnProperty("body")){
+            type = responseBody.type;
+            responseBody = responseBody.body;
+        }
+        
         if (responseBody) {
             if (ArrayBuffer.isView(responseBody)) {
                 type = "application/octet-stream";
@@ -93,7 +117,7 @@ export default async (
                     type = "application/json";
                     responseBody = JSON.stringify(responseBody);
                 }
-                responseBody = strToUTF8(responseBody);
+                responseBody = te.encode(responseBody);
             }
             response.data = responseBody;
         } else {

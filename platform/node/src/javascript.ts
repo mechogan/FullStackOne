@@ -59,15 +59,14 @@ export class JavaScript {
 
         const exists = async (
             path: string,
-            options?: { absolutePath: boolean }
+            options?: { absolutePath?: boolean }
         ) => {
             path = options?.absolutePath
                 ? realpathWithAbsolutePath(path)
                 : realpath(path);
 
             try {
-                await fs.promises.stat(path);
-                return true;
+                return await fs.promises.stat(path);
             } catch (e) {}
 
             return false;
@@ -144,6 +143,17 @@ export class JavaScript {
 
                 return fs.promises.lstat(path);
             },
+            exists: async (path, options) => !!(await exists(path, options)),
+            async isFile(path, options){
+                const maybeStats = await exists(path, options);
+                if(!maybeStats) return false;
+                return maybeStats.isFile();
+            },
+            async isDirectory(path, options){
+                const maybeStats = await exists(path, options);
+                if(!maybeStats) return false;
+                return maybeStats.isDirectory();
+            },
 
             readlink(path: string) {
                 throw Error("not implemeted");
@@ -153,8 +163,7 @@ export class JavaScript {
             },
             chmod(path: string, uid: number, gid: number) {
                 throw Error("not implemented");
-            },
-            exists
+            }
         };
 
         this.ctx.fs = ctxFs;

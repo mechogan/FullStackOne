@@ -55,4 +55,6 @@ export declare var fs: {
         path: string,
         options?: { absolutePath?: boolean }
     ): Promise<boolean>;
+    isFile(path: string, options?: { absolutePath?: boolean }): Promise<boolean>;
+    isDirectory(path: string, options?: { absolutePath?: boolean }): Promise<boolean>;
 };

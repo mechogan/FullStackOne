@@ -11,7 +11,8 @@ declare var fs: typeof globalFS;
 declare var run: (
     projectdir: string,
     assetdir: string,
-    entrypointData: string,
+    entrypoint: string,
+    resolvedNodeModulesDir: string,
     hasErrors: boolean
 ) => void;
 declare var buildWebview: (
@@ -21,6 +22,8 @@ declare var buildWebview: (
 ) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: Uint8Array) => void;
+declare var resolvePath: (entrypoint: string) => string;
+
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
@@ -65,7 +68,7 @@ export default {
         const entrypointAPI = await mingleAPI(
             project.location + "/api/index.js"
         );
-        run(project.location, "", entrypointAPI, hasErrors);
+        run(project.location, "", entrypointAPI, resolvePath(nodeModulesDir), hasErrors);
         await fs.unlink(entrypointAPI);
     },
     async zip(project: Project) {

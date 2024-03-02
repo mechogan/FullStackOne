@@ -24,7 +24,7 @@ export function buildWebview(
     }
 }
 
-export function buildAPI(entryPoint: string) {
+export function buildAPI(entryPoint: string, nodePath?: string) {
     if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     let result: esbuildType.BuildResult;
@@ -35,7 +35,8 @@ export function buildAPI(entryPoint: string) {
             globalName: "api",
             format: "iife",
             write: false,
-            logLevel: "silent"
+            logLevel: "silent",
+            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors };
