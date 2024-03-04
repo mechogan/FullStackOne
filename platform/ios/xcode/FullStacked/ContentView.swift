@@ -141,12 +141,19 @@ struct ContentView: View {
         
         let unzip: @convention (block) (String, [UInt8]) -> Void = { to, zipData in
             let data = Data(zipData)
-            let tmpURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension("zip")
-            try! data.write(to: tmpURL)
-            try! FileManager.default.unzipItem(at: tmpURL, to: URL(fileURLWithPath: resolvePath(to)))
-            try! FileManager.default.removeItem(at: tmpURL)
+            let zipEntries = try! ZipContainer.open(container: data);
+            zipEntries.forEach { zipEntry in
+                let nameComponents = zipEntry.info.name.split(separator: "/")
+                let directoryComponents = nameComponents.dropLast();
+                
+                let directory = directoryComponents.count > 0
+                    ? resolvePath(to + "/" + String(directoryComponents.joined(separator: "/")))
+                    : resolvePath(to)
+                try! FileManager.default.createDirectory(at: URL(fileURLWithPath: directory), withIntermediateDirectories: true)
+                
+                let filename = resolvePath(to + "/" + String(nameComponents.joined(separator: "/")))
+                try! zipEntry.data?.write(to: URL(fileURLWithPath: filename))
+            }
         }
         self.mainjs.ctx["unzip"] = unzip
         
