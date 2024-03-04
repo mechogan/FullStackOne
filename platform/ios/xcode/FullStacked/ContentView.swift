@@ -69,11 +69,11 @@ struct ContentView: View {
         }
         self.mainjs.ctx["resolvePath"] = resolvePath
         
-        let run: @convention (block) (String, String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, resolvedNodeModulesDirectory, hasErrors in
+        let run: @convention (block) (String, String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, nodeModulesDir, hasErrors in
             let entrypointPath = documentDir + "/" + entrypoint
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypointPath as NSString).utf8String)
             
-            let nodeModuleDirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvedNodeModulesDirectory as NSString).utf8String)
+            let nodeModuleDirPtr = UnsafeMutablePointer<Int8>(mutating: (nodeModulesDir as NSString).utf8String)
             
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
@@ -99,10 +99,10 @@ struct ContentView: View {
         }
         self.mainjs.ctx["run"] = run
         
-        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outfile, nodeModulesDirectory in
+        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outfile, nodeModulesDir in
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
             let outfilePtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outfile) as NSString).utf8String)
-            let nodeModulesDirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(nodeModulesDirectory) as NSString).utf8String)
+            let nodeModulesDirPtr = UnsafeMutablePointer<Int8>(mutating: (nodeModulesDir as NSString).utf8String)
             
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         

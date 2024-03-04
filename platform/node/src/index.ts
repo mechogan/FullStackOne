@@ -50,12 +50,12 @@ js.ctx.run = (
     projectdir: string,
     assetdir: string,
     entrypoint: string,
-    resolvedNodeModulesDir: string,
+    nodeModulesDir: string,
     hasErrors: boolean
 ) => {
     const apiScript = buildAPI(
         path.join(home, entrypoint),
-        resolvedNodeModulesDir
+        nodeModulesDir
     );
 
     if (typeof apiScript != "string" && apiScript?.errors) {

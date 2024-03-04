@@ -18,7 +18,7 @@ export default function (home: string, js: JavaScript, jsDir: string) {
         const maybeErrors = buildWebview(
             resolvePath(entryPoint),
             resolvePath(outdir),
-            resolvePath(nodeModulesDir)
+            nodeModulesDir
         );
 
         if (maybeErrors?.errors) {

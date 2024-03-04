@@ -12,7 +12,7 @@ declare var run: (
     projectdir: string,
     assetdir: string,
     entrypoint: string,
-    resolvedNodeModulesDir: string,
+    nodeModulesDir: string,
     hasErrors: boolean
 ) => void;
 declare var buildWebview: (
@@ -22,7 +22,7 @@ declare var buildWebview: (
 ) => boolean;
 declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: Uint8Array) => void;
-declare var resolvePath: (entrypoint: string) => string;
+declare var resolvePath: (path: string) => string;
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
@@ -76,7 +76,7 @@ export default {
             hasErrors = !buildWebview(
                 entrypointWebview,
                 project.location + "/.build/index.js",
-                nodeModulesDir
+                resolvePath(nodeModulesDir)
             );
             await fs.unlink(entrypointWebview);
         }
