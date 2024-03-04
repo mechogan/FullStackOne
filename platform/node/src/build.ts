@@ -1,9 +1,8 @@
 import type esbuildType from "esbuild";
-import path from "path";
 
 export function buildWebview(
     entryPoint: string,
-    outdir: string,
+    outfile: string,
     nodePath?: string
 ) {
     if (!global.esbuild) return { errors: "Cannot find esbuild module" };
@@ -11,7 +10,7 @@ export function buildWebview(
     try {
         (global.esbuild as typeof esbuildType).buildSync({
             entryPoints: [entryPoint],
-            outfile: path.join(outdir, "index.js"),
+            outfile: outfile,
             bundle: true,
             format: "esm",
             sourcemap: "inline",

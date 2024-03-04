@@ -4,29 +4,28 @@ const utf8encode = (n: string) =>
         m < 0x80
             ? Uint8Array.from([((m >> 0) & 0x7f) | 0x00])
             : m < 0x800
-                ? Uint8Array.from([
+              ? Uint8Array.from([
                     ((m >> 6) & 0x1f) | 0xc0,
                     ((m >> 0) & 0x3f) | 0x80
                 ])
-                : m < 0x10000
-                    ? Uint8Array.from([
-                        ((m >> 12) & 0x0f) | 0xe0,
+              : m < 0x10000
+                ? Uint8Array.from([
+                      ((m >> 12) & 0x0f) | 0xe0,
+                      ((m >> 6) & 0x3f) | 0x80,
+                      ((m >> 0) & 0x3f) | 0x80
+                  ])
+                : m < 0x110000
+                  ? Uint8Array.from([
+                        ((m >> 18) & 0x07) | 0xf0,
+                        ((m >> 12) & 0x3f) | 0x80,
                         ((m >> 6) & 0x3f) | 0x80,
                         ((m >> 0) & 0x3f) | 0x80
                     ])
-                    : m < 0x110000
-                        ? Uint8Array.from([
-                            ((m >> 18) & 0x07) | 0xf0,
-                            ((m >> 12) & 0x3f) | 0x80,
-                            ((m >> 6) & 0x3f) | 0x80,
-                            ((m >> 0) & 0x3f) | 0x80
-                        ])
-                        : (() => {
-                            throw "Invalid Unicode Code Point!";
-                        })())(
-                            typeof n === "string" ? (n.codePointAt(0) as number) : n & 0x1fffff
-                        );
-
+                  : (() => {
+                        throw "Invalid Unicode Code Point!";
+                    })())(
+        typeof n === "string" ? (n.codePointAt(0) as number) : n & 0x1fffff
+    );
 
 export class TextEncoder {
     encode(str: string) {

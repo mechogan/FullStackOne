@@ -53,7 +53,7 @@ buildSync({
 });
 
 const entrypointWebview = await mingleWebview("../../editor/webview/index.ts");
-buildWebview(entrypointWebview, "editor/build/webview");
+buildWebview(entrypointWebview, "editor/build/webview/index.js");
 fs.rmSync(entrypointWebview);
 
 // cleanup

@@ -3,7 +3,11 @@ import "./index.css";
 import type { Project } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { NEW_PROJECT_ID, PROJECTS_TITLE } from "../../../constants";
+import {
+    NEW_PROJECT_ID,
+    PACKAGES_BUTTON_ID,
+    PROJECTS_TITLE
+} from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -53,6 +57,7 @@ export class Projects {
         topContainer.append(title);
 
         const packagesButton = document.createElement("button");
+        packagesButton.id = PACKAGES_BUTTON_ID;
         packagesButton.classList.add("text", "text-and-icon");
         const [packagesCount, packageIcon] = await Promise.all([
             rpc().packages.count(),

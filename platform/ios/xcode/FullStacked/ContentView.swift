@@ -69,13 +69,15 @@ struct ContentView: View {
         }
         self.mainjs.ctx["resolvePath"] = resolvePath
         
-        let run: @convention (block) (String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, hasErrors in
+        let run: @convention (block) (String, String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, resolvedNodeModulesDirectory, hasErrors in
             let entrypointPath = documentDir + "/" + entrypoint
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypointPath as NSString).utf8String)
             
+            let nodeModuleDirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvedNodeModulesDirectory as NSString).utf8String)
+            
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
-            let apiScriptPtr = buildAPI(entrypointPtr, &errorsPtr)
+            let apiScriptPtr = buildAPI(entrypointPtr, nodeModuleDirPtr, &errorsPtr)
             
             if(errorsPtr != nil) {
                 let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
@@ -97,14 +99,14 @@ struct ContentView: View {
         }
         self.mainjs.ctx["run"] = run
         
-        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outdir, nodeModulesDirectory in
+        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outfile, nodeModulesDirectory in
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
-            let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outdir) as NSString).utf8String)
+            let outfilePtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outfile) as NSString).utf8String)
             let nodeModulesDirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(nodeModulesDirectory) as NSString).utf8String)
             
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
-            buildWebview(entrypointPtr, outdirPtr, nodeModulesDirPtr, &errorsPtr)
+            buildWebview(entrypointPtr, outfilePtr, nodeModulesDirPtr, &errorsPtr)
             
             if(errorsPtr != nil) {
                 let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
@@ -361,6 +363,7 @@ struct WebView: UIViewRepresentable {
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         wkConfig.userContentController = userContentController
+        wkConfig.suppressesIncrementalRendering = true
         self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
         self.wkWebView.isOpaque = false
         self.wkWebView.navigationDelegate = self.navigationDelegate

@@ -9,10 +9,10 @@ import (
 )
 
 //export buildWebview
-func buildWebview(entryPoint *C.char, OutDir *C.char, NodePath *C.char, errors **C.char) {
+func buildWebview(entryPoint *C.char, Outfile *C.char, NodePath *C.char, errors **C.char) {
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{C.GoString(entryPoint)},
-		Outfile:     C.GoString(OutDir) + "/index.js",
+		Outfile:     C.GoString(Outfile),
 		Sourcemap:   api.SourceMapInlineAndExternal,
 		Bundle:      true,
 		Format:      api.FormatESModule,
@@ -27,13 +27,14 @@ func buildWebview(entryPoint *C.char, OutDir *C.char, NodePath *C.char, errors *
 }
 
 //export buildAPI
-func buildAPI(entryPoint *C.char, errors **C.char) *C.char {
+func buildAPI(entryPoint *C.char, NodePath *C.char, errors **C.char) *C.char {
 	result := api.Build(api.BuildOptions{
 		EntryPoints: []string{C.GoString(entryPoint)},
 		Bundle:      true,
 		GlobalName:  "api",
 		Format:      api.FormatIIFE,
 		Write:       false,
+		NodePaths:   []string{C.GoString(NodePath)},
 	})
 
 	if len(result.Errors) > 0 {

@@ -7,7 +7,7 @@ import { Console } from "../console";
 import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { RUN_PROJECT_ID } from "../../../constants";
+import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -256,6 +256,7 @@ export class Project {
 
         if (this.packagesView) {
             const deleteAllPackagesButton = document.createElement("button");
+            deleteAllPackagesButton.id = DELETE_ALL_PACKAGES_ID;
             deleteAllPackagesButton.classList.add("danger", "text");
             deleteAllPackagesButton.innerText = "Delete All";
             deleteAllPackagesButton.addEventListener("click", async () => {

@@ -24,7 +24,6 @@ declare var zip: (projectdir: string, items: string[], to: string) => void;
 declare var unzip: (to: string, zipData: Uint8Array) => void;
 declare var resolvePath: (entrypoint: string) => string;
 
-
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
     const projects = await list();
@@ -52,23 +51,61 @@ export default {
     create,
     delete: deleteProject,
     async run(project: Project) {
-        const maybeWebviewJS = project.location + "/index.js";
-        let hasErrors = false;
+        const maybeWebviewEntrypoints = [
+            project.location + "/index.js",
+            project.location + "/index.jsx"
+        ];
 
-        if (await fs.exists(maybeWebviewJS)) {
-            const entrypointWebview = await mingleWebview(maybeWebviewJS);
+        const existsWebviewPromises = maybeWebviewEntrypoints.map(
+            (maybeWebviewJS) => fs.exists(maybeWebviewJS)
+        );
+        const foundWebviewEntrypointIndex = (
+            await Promise.all(existsWebviewPromises)
+        ).findIndex((exists) => exists);
+
+        const foundWebviewEntrypoint =
+            foundWebviewEntrypointIndex >= 0
+                ? maybeWebviewEntrypoints.at(foundWebviewEntrypointIndex)
+                : null;
+
+        let hasErrors = false;
+        if (foundWebviewEntrypoint) {
+            const entrypointWebview = await mingleWebview(
+                foundWebviewEntrypoint
+            );
             hasErrors = !buildWebview(
                 entrypointWebview,
-                project.location + "/.build",
+                project.location + "/.build/index.js",
                 nodeModulesDir
             );
             await fs.unlink(entrypointWebview);
         }
 
-        const entrypointAPI = await mingleAPI(
-            project.location + "/api/index.js"
+        const maybeAPIEntrypoint = [
+            project.location + "/api/index.js",
+            project.location + "/api/index.jsx"
+        ];
+
+        const existsAPIEntrypointPromises = maybeAPIEntrypoint.map(
+            (maybeWebviewJS) => fs.exists(maybeWebviewJS)
         );
-        run(project.location, "", entrypointAPI, resolvePath(nodeModulesDir), hasErrors);
+        const foundAPIEntrypointIndex = (
+            await Promise.all(existsAPIEntrypointPromises)
+        ).findIndex((exists) => exists);
+
+        const foundAPIEntrypoint =
+            foundAPIEntrypointIndex >= 0
+                ? maybeAPIEntrypoint.at(foundAPIEntrypointIndex)
+                : null;
+
+        const entrypointAPI = await mingleAPI(foundAPIEntrypoint);
+        run(
+            project.location,
+            "",
+            entrypointAPI,
+            resolvePath(nodeModulesDir),
+            hasErrors
+        );
         await fs.unlink(entrypointAPI);
     },
     async zip(project: Project) {

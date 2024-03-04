@@ -144,14 +144,14 @@ export class JavaScript {
                 return fs.promises.lstat(path);
             },
             exists: async (path, options) => !!(await exists(path, options)),
-            async isFile(path, options){
+            async isFile(path, options) {
                 const maybeStats = await exists(path, options);
-                if(!maybeStats) return false;
+                if (!maybeStats) return false;
                 return maybeStats.isFile();
             },
-            async isDirectory(path, options){
+            async isDirectory(path, options) {
                 const maybeStats = await exists(path, options);
-                if(!maybeStats) return false;
+                if (!maybeStats) return false;
                 return maybeStats.isDirectory();
             },
 

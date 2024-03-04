@@ -8,7 +8,7 @@ declare var platform: string;
 declare var fs: typeof fsType;
 declare var fetch: typeof fetchType;
 declare var userMethods: any;
-
+globalThis.userMethods = {};
 globalThis.TextEncoder = TextEncoder as any;
 globalThis.TextDecoder = TextDecoder as any;
 
@@ -48,9 +48,8 @@ export default async (
     if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
     // add assets directory in front
-    let maybeFileName = assetdir 
-        ? assetdir + 
-            (pathname ? "/" + pathname : "") 
+    let maybeFileName = assetdir
+        ? assetdir + (pathname ? "/" + pathname : "")
         : pathname;
 
     // check for [path]/index.html
@@ -87,7 +86,7 @@ export default async (
         Object.assign(methods, userMethods)
     ) as any;
 
-    if(typeof method === "object" && method.hasOwnProperty("")){
+    if (typeof method === "object" && method.hasOwnProperty("")) {
         method = method[""];
     }
 
@@ -103,11 +102,15 @@ export default async (
         }
 
         let type = "text/plain";
-        if(typeof responseBody === "object" && responseBody.hasOwnProperty("type") && responseBody.hasOwnProperty("body")){
+        if (
+            typeof responseBody === "object" &&
+            responseBody.hasOwnProperty("type") &&
+            responseBody.hasOwnProperty("body")
+        ) {
             type = responseBody.type;
             responseBody = responseBody.body;
         }
-        
+
         if (responseBody) {
             if (ArrayBuffer.isView(responseBody)) {
                 type = "application/octet-stream";
