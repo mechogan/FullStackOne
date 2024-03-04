@@ -1,6 +1,6 @@
 export declare var fetch: (
     url: string,
-    options: {
+    options?: {
         headers?: Record<string, string>;
         method?: "GET" | "POST" | "PUT" | "DELTE";
         body?: string | Uint8Array;

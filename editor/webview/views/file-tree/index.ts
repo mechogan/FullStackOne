@@ -10,6 +10,7 @@ declare var rpc: typeof typeRPC<typeof api>;
 export class FileTree {
     allowDeletion = false;
     directoryOnly = false;
+    noNewItems = false;
 
     private ulRoot: HTMLUListElement;
     private baseDirectory: string[] = [];
@@ -281,34 +282,16 @@ export class FileTree {
         ul?.replaceWith(updatedChildrenList);
     }
 
-    async render() {
-        this.itemSelected = undefined;
-
+    private async renderActions() {
         const container = document.createElement("div");
-        container.classList.add("file-tree-view");
-        container.addEventListener("click", () => {
-            if (this.itemSelected) {
-                this.itemSelected.element.removeAttribute("aria-selected");
-                this.itemSelected.element.classList.remove("selected");
-            }
-
-            this.itemSelected = undefined;
-
-            if (this.onItemSelect) this.onItemSelect(this.itemSelected);
-        });
-
-        this.ulRoot = await this.openDirectory(this.baseDirectory);
-        this.ulRoot.classList.add("file-tree");
-
-        const actionsContainer = document.createElement("div");
 
         // const hiddenFileCheckboxLabel = document.createElement("label");
         // hiddenFileCheckboxLabel.innerText = "Hidden Files";
-        // actionsContainer.append(hiddenFileCheckboxLabel);
+        // container.append(hiddenFileCheckboxLabel);
 
         // const hiddenFileCheckbox = document.createElement("input")
         // hiddenFileCheckbox.type = "checkbox";
-        // actionsContainer.appendChild(hiddenFileCheckbox);
+        // container.appendChild(hiddenFileCheckbox);
 
         const newDirectoryButton = document.createElement("button");
         newDirectoryButton.classList.add("small", "text");
@@ -319,7 +302,7 @@ export class FileTree {
             e.stopPropagation();
             this.mkdir();
         });
-        actionsContainer.append(newDirectoryButton);
+        container.append(newDirectoryButton);
 
         if (!this.directoryOnly) {
             const newFileButton = document.createElement("button");
@@ -332,12 +315,12 @@ export class FileTree {
                 e.stopPropagation();
                 this.touch();
             });
-            actionsContainer.append(newFileButton);
+            container.append(newFileButton);
 
             const inputFile = document.createElement("input");
             inputFile.type = "file";
             inputFile.multiple = false;
-            actionsContainer.append(inputFile);
+            container.append(inputFile);
             inputFile.addEventListener("click", (e) => e.stopPropagation());
             inputFile.addEventListener("change", () => {
                 if (!inputFile.files?.[0]) return;
@@ -354,10 +337,38 @@ export class FileTree {
                 e.stopPropagation();
                 inputFile.click();
             });
-            actionsContainer.append(uploadFileButton);
+            container.append(uploadFileButton);
         }
 
-        container.append(actionsContainer);
+        return container;
+    }
+
+    async render() {
+        this.itemSelected = undefined;
+
+        const container = document.createElement("div");
+        container.classList.add("file-tree-view");
+        container.addEventListener("click", () => {
+            if (this.itemSelected) {
+                this.itemSelected.element.removeAttribute("aria-selected");
+                this.itemSelected.element.classList.remove("selected");
+            }
+
+            this.itemSelected = undefined;
+
+            if (this.onItemSelect) this.onItemSelect(this.itemSelected);
+        });
+
+        // make sure dir exists
+        await rpc().fs.mkdir(this.baseDirectory.join("/"));
+
+        this.ulRoot = await this.openDirectory(this.baseDirectory);
+        this.ulRoot.classList.add("file-tree");
+
+        if (!this.noNewItems) {
+            const actionsContainer = await this.renderActions();
+            container.append(actionsContainer);
+        }
 
         container.append(this.ulRoot);
 

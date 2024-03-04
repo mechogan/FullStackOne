@@ -89,6 +89,16 @@ class JavaScript {
                 : realpath(path)
         }
         
+        // @returns {nil} if doesn't exists, {true} if exists and directory, {false} if exists and file
+        let itemExistsAndIsDirectory = { (_ path: String, _ absolutePath: Bool) -> Bool? in
+            let itemPath = absolutePath
+                ? realpathWithAbsolutePath(path)
+                : realpath(path)
+            var isDirectory: ObjCBool = false;
+            let exists = FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
+            return exists ? isDirectory.boolValue : nil
+        }
+        
         
         let readFile: @convention (block) (String, JSValue?) -> JSValue = { path, options in
             let itemPath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
@@ -127,13 +137,11 @@ class JavaScript {
         }
         
         let unlink: @convention (block) (String) -> JSValue = { path in
-            let itemPath = realpath(path)
-            
             // let's at least try to act like nodejs unlink and not delete directories
-            var isDirectory: ObjCBool = false;
-            let exists = FileManager.default.fileExists(atPath: itemPath, isDirectory: &isDirectory)
-            
-            if(exists && !isDirectory.boolValue) {
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, false)
+            let isFile = existsAndIsDirectory != nil && !existsAndIsDirectory!
+            if(isFile) {
+                let itemPath = realpath(path)
                 try! FileManager.default.removeItem(atPath: itemPath)
             }
             
@@ -212,12 +220,33 @@ class JavaScript {
         }
         
         let exists: @convention (block) (String, JSValue?) -> JSValue = { path, options in
-            let itemPath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
-                ? realpathWithAbsolutePath(path)
-                : realpath(path)
+            let absolutePath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
             
-            let exists = FileManager.default.fileExists(atPath: itemPath)
-            let value = JSValue(bool: exists, in: self.ctx)!
+            let exists = itemExistsAndIsDirectory(path, absolutePath)
+            let value = JSValue(bool: exists != nil, in: self.ctx)!
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [value])
+            }
+        }
+        
+        let isFile: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let absolutePath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+            
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, absolutePath)
+            let isFile = existsAndIsDirectory != nil && !existsAndIsDirectory!
+            let value = JSValue(bool: isFile, in: self.ctx)!
+            
+            return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                resolve!.call(withArguments: [value])
+            }
+        }
+        let isDirectory: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let absolutePath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+            
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, absolutePath)
+            let isDirecotry = existsAndIsDirectory != nil && existsAndIsDirectory!
+            let value = JSValue(bool: isDirecotry, in: self.ctx)!
             
             return JSValue(newPromiseIn: self.ctx) { resolve, reject in
                 resolve!.call(withArguments: [value])
@@ -234,6 +263,8 @@ class JavaScript {
         fs["stat"] = stat
         fs["lstat"] = lstat
         fs["exists"] = exists
+        fs["isFile"] = isFile
+        fs["isDirectory"] = isDirectory
         self.ctx["fs"] = fs
     }
     

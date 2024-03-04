@@ -3,13 +3,18 @@ import "./index.css";
 import type { Project } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { NEW_PROJECT_ID, PROJECTS_TITLE } from "../../../constants";
+import {
+    NEW_PROJECT_ID,
+    PACKAGES_BUTTON_ID,
+    PROJECTS_TITLE
+} from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
 export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;
+    goToPackages: () => void;
 
     private container: HTMLDivElement;
 
@@ -44,9 +49,28 @@ export class Projects {
         this.container = document.createElement("div");
         this.container.classList.add("projects");
 
+        const topContainer = document.createElement("div");
+        topContainer.style.cssText = `display: flex; justify-content:space-between; align-items: flex-start`;
+
         const title = document.createElement("h1");
         title.innerText = PROJECTS_TITLE;
-        this.container.append(title);
+        topContainer.append(title);
+
+        const packagesButton = document.createElement("button");
+        packagesButton.id = PACKAGES_BUTTON_ID;
+        packagesButton.classList.add("text", "text-and-icon");
+        const [packagesCount, packageIcon] = await Promise.all([
+            rpc().packages.count(),
+            (await fetch("assets/icons/package.svg")).text()
+        ]);
+        packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`;
+
+        packagesButton.addEventListener("click", async () =>
+            this.goToPackages()
+        );
+        topContainer.append(packagesButton);
+
+        this.container.append(topContainer);
 
         const projectsContainer = document.createElement("div");
 

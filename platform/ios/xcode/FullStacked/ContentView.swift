@@ -2,6 +2,7 @@ import SwiftUI
 import WebKit
 import JavaScriptCore
 import ZIPFoundation
+import SWCompression
 
 struct Project: Identifiable {
     var id: Int
@@ -68,13 +69,15 @@ struct ContentView: View {
         }
         self.mainjs.ctx["resolvePath"] = resolvePath
         
-        let run: @convention (block) (String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, hasErrors in
+        let run: @convention (block) (String, String, String, String, Bool) -> Void = { projectdir, assetdir, entrypoint, nodeModulesDir, hasErrors in
             let entrypointPath = documentDir + "/" + entrypoint
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (entrypointPath as NSString).utf8String)
             
+            let nodeModuleDirPtr = UnsafeMutablePointer<Int8>(mutating: (nodeModulesDir as NSString).utf8String)
+            
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
-            let apiScriptPtr = buildAPI(entrypointPtr, &errorsPtr)
+            let apiScriptPtr = buildAPI(entrypointPtr, nodeModuleDirPtr, &errorsPtr)
             
             if(errorsPtr != nil) {
                 let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
@@ -96,13 +99,14 @@ struct ContentView: View {
         }
         self.mainjs.ctx["run"] = run
         
-        let buildWebviewSwift: @convention (block) (String, String) -> Bool = { entrypoint, outdir in
+        let buildWebviewSwift: @convention (block) (String, String, String) -> Bool = { entrypoint, outfile, nodeModulesDir in
             let entrypointPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(entrypoint) as NSString).utf8String)
-            let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outdir) as NSString).utf8String)
+            let outfilePtr = UnsafeMutablePointer<Int8>(mutating: (resolvePath(outfile) as NSString).utf8String)
+            let nodeModulesDirPtr = UnsafeMutablePointer<Int8>(mutating: (nodeModulesDir as NSString).utf8String)
             
             var errorsPtr = UnsafeMutablePointer<Int8>(nil)
         
-            buildWebview(entrypointPtr, outdirPtr, &errorsPtr)
+            buildWebview(entrypointPtr, outfilePtr, nodeModulesDirPtr, &errorsPtr)
             
             if(errorsPtr != nil) {
                 let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
@@ -137,14 +141,40 @@ struct ContentView: View {
         
         let unzip: @convention (block) (String, [UInt8]) -> Void = { to, zipData in
             let data = Data(zipData)
-            let tmpURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension("zip")
-            try! data.write(to: tmpURL)
-            try! FileManager.default.unzipItem(at: tmpURL, to: URL(fileURLWithPath: resolvePath(to)))
-            try! FileManager.default.removeItem(at: tmpURL)
+            let zipEntries = try! ZipContainer.open(container: data);
+            zipEntries.forEach { zipEntry in
+                let nameComponents = zipEntry.info.name.split(separator: "/")
+                let directoryComponents = nameComponents.dropLast();
+                
+                let directory = directoryComponents.count > 0
+                    ? resolvePath(to + "/" + String(directoryComponents.joined(separator: "/")))
+                    : resolvePath(to)
+                try! FileManager.default.createDirectory(at: URL(fileURLWithPath: directory), withIntermediateDirectories: true)
+                
+                let filename = resolvePath(to + "/" + String(nameComponents.joined(separator: "/")))
+                try! zipEntry.data?.write(to: URL(fileURLWithPath: filename))
+            }
         }
         self.mainjs.ctx["unzip"] = unzip
+        
+        let untar: @convention (block) (String, [UInt8]) -> Void = { to, tarData in
+            let data = Data(tarData)
+            let decompressedData = try! GzipArchive.unarchive(archive: data)
+            let tarEntries = try! TarContainer.open(container: decompressedData)
+            tarEntries.forEach { tarEntry in
+                let nameComponents = tarEntry.info.name.split(separator: "/").dropFirst()
+                let directoryComponents = nameComponents.dropLast();
+                
+                let directory = directoryComponents.count > 0
+                    ? resolvePath(to + "/" + String(directoryComponents.joined(separator: "/")))
+                    : resolvePath(to)
+                try! FileManager.default.createDirectory(at: URL(fileURLWithPath: directory), withIntermediateDirectories: true)
+                
+                let filename = resolvePath(to + "/" + String(nameComponents.joined(separator: "/")))
+                try! tarEntry.data?.write(to: URL(fileURLWithPath: filename))
+            }
+        }
+        self.mainjs.ctx["untar"] = untar
         
         let checkEsbuild: @convention (block) () -> Bool = { 
             return true
@@ -340,6 +370,7 @@ struct WebView: UIViewRepresentable {
         let wkConfig = WKWebViewConfiguration()
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         wkConfig.userContentController = userContentController
+        wkConfig.suppressesIncrementalRendering = true
         self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
         self.wkWebView.isOpaque = false
         self.wkWebView.navigationDelegate = self.navigationDelegate
