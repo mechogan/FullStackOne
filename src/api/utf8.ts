@@ -27,63 +27,67 @@ const utf8encode = (n: string) =>
         typeof n === "string" ? (n.codePointAt(0) as number) : n & 0x1fffff
     );
 
-export function strToUTF8(str: string) {
-    const strArr = Array.from(str);
-    let uint8arr: number[] = [];
-    for (let i = 0; i < strArr.length; i++) {
-        uint8arr.push(...utf8encode(strArr[i]));
+export class TextEncoder {
+    encode(str: string) {
+        const strArr = Array.from(str);
+        let uint8arr: number[] = [];
+        for (let i = 0; i < strArr.length; i++) {
+            uint8arr.push(...utf8encode(strArr[i]));
+        }
+        return new Uint8Array(uint8arr);
     }
-    return new Uint8Array(uint8arr);
 }
 
-// https://stackoverflow.com/a/44614927
-export function UTF8ToStr(strBytes: Uint8Array) {
-    let MAX_SIZE = 0x4000;
-    let codeUnits: number[] = [];
-    let highSurrogate: number;
-    let lowSurrogate: number;
-    let index = -1;
+export class TextDecoder {
+    // https://stackoverflow.com/a/44614927
+    decode(strBytes: Uint8Array) {
+        let MAX_SIZE = 0x4000;
+        let codeUnits: number[] = [];
+        let highSurrogate: number;
+        let lowSurrogate: number;
+        let index = -1;
 
-    let result = "";
+        let result = "";
 
-    while (++index < strBytes.length) {
-        let codePoint = Number(strBytes[index]);
+        while (++index < strBytes.length) {
+            let codePoint = Number(strBytes[index]);
 
-        if (codePoint === (codePoint & 0x7f)) {
-        } else if (0xf0 === (codePoint & 0xf0)) {
-            codePoint ^= 0xf0;
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
-        } else if (0xe0 === (codePoint & 0xe0)) {
-            codePoint ^= 0xe0;
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
-        } else if (0xc0 === (codePoint & 0xc0)) {
-            codePoint ^= 0xc0;
-            codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+            if (codePoint === (codePoint & 0x7f)) {
+            } else if (0xf0 === (codePoint & 0xf0)) {
+                codePoint ^= 0xf0;
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+            } else if (0xe0 === (codePoint & 0xe0)) {
+                codePoint ^= 0xe0;
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+            } else if (0xc0 === (codePoint & 0xc0)) {
+                codePoint ^= 0xc0;
+                codePoint = (codePoint << 6) | (strBytes[++index] ^ 0x80);
+            }
+
+            if (
+                !isFinite(codePoint) ||
+                codePoint < 0 ||
+                codePoint > 0x10ffff ||
+                Math.floor(codePoint) != codePoint
+            )
+                throw "Invalid code point: " + codePoint;
+
+            if (codePoint <= 0xffff) codeUnits.push(codePoint);
+            else {
+                codePoint -= 0x10000;
+                highSurrogate = (codePoint >> 10) | 0xd800;
+                lowSurrogate = codePoint % 0x400 | 0xdc00;
+                codeUnits.push(highSurrogate, lowSurrogate);
+            }
+            if (index + 1 == strBytes.length || codeUnits.length > MAX_SIZE) {
+                result += String.fromCharCode.apply(null, codeUnits);
+                codeUnits.length = 0;
+            }
         }
 
-        if (
-            !isFinite(codePoint) ||
-            codePoint < 0 ||
-            codePoint > 0x10ffff ||
-            Math.floor(codePoint) != codePoint
-        )
-            throw "Invalid code point: " + codePoint;
-
-        if (codePoint <= 0xffff) codeUnits.push(codePoint);
-        else {
-            codePoint -= 0x10000;
-            highSurrogate = (codePoint >> 10) | 0xd800;
-            lowSurrogate = codePoint % 0x400 | 0xdc00;
-            codeUnits.push(highSurrogate, lowSurrogate);
-        }
-        if (index + 1 == strBytes.length || codeUnits.length > MAX_SIZE) {
-            result += String.fromCharCode.apply(null, codeUnits);
-            codeUnits.length = 0;
-        }
+        return result;
     }
-
-    return result;
 }

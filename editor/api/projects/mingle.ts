@@ -21,11 +21,11 @@ import("${resolvePath(entryPoint)}");`;
     return tmpFile;
 };
 
-export const mingleAPI = async (entryPoint: string) => {
+export const mingleAPI = async (entryPoint?: string) => {
     let mergedContent = `${await fs.readFile(jsDirectory + "/api.js", { absolutePath: true, encoding: "utf8" })}`;
 
-    if (await fs.exists(resolvePath(entryPoint), { absolutePath: true })) {
-        mergedContent += `methods = Object.assign(methods, require("${resolvePath(entryPoint)}")?.default ?? {});`;
+    if (entryPoint) {
+        mergedContent += `globalThis.userMethods = require("${resolvePath(entryPoint)}")?.default ?? {};`;
     }
 
     mkCacheDir();

@@ -2,6 +2,7 @@ import path from "path";
 import AdmZip from "adm-zip";
 import { buildWebview } from "./build";
 import { JavaScript } from "./javascript";
+import tar from "tar";
 
 export default function (home: string, js: JavaScript, jsDir: string) {
     const resolvePath = (entrypoint: string) =>
@@ -9,10 +10,15 @@ export default function (home: string, js: JavaScript, jsDir: string) {
 
     js.ctx.jsDirectory = jsDir;
     js.ctx.resolvePath = resolvePath;
-    js.ctx.buildWebview = (entryPoint: string, outdir: string) => {
+    js.ctx.buildWebview = (
+        entryPoint: string,
+        outdir: string,
+        nodeModulesDir: string
+    ) => {
         const maybeErrors = buildWebview(
             resolvePath(entryPoint),
-            resolvePath(outdir)
+            resolvePath(outdir),
+            nodeModulesDir
         );
 
         if (maybeErrors?.errors) {
@@ -39,5 +45,15 @@ export default function (home: string, js: JavaScript, jsDir: string) {
     js.ctx.unzip = (to: string, zipData: Uint8Array) => {
         const zip = new AdmZip(Buffer.from(zipData));
         zip.extractAllTo(resolvePath(to));
+    };
+    js.ctx.untar = (outdir: string, data: Uint8Array | number[]) => {
+        return new Promise<void>((resolve) => {
+            const untarWriteStream = tar.x({
+                strip: 1,
+                C: resolvePath(outdir)
+            });
+            untarWriteStream.write(data);
+            untarWriteStream.on("drain", resolve);
+        });
     };
 }

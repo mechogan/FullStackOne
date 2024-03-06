@@ -36,7 +36,7 @@ export declare var fs: {
 
     readdir(
         path: string,
-        options: { withFileTypes: boolean }
+        options?: { withFileTypes: boolean }
     ): Promise<string[] | Dirent[]>;
 
     mkdir(path: string): Promise<void>;
@@ -52,6 +52,14 @@ export declare var fs: {
     chmod(path: string, uid: number, gid: number): Promise<void>;
 
     exists(
+        path: string,
+        options?: { absolutePath?: boolean }
+    ): Promise<boolean>;
+    isFile(
+        path: string,
+        options?: { absolutePath?: boolean }
+    ): Promise<boolean>;
+    isDirectory(
         path: string,
         options?: { absolutePath?: boolean }
     ): Promise<boolean>;

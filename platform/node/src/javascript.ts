@@ -57,6 +57,21 @@ export class JavaScript {
         const realpathWithAbsolutePath = (path: string) =>
             this.privileged ? path : realpath(path);
 
+        const exists = async (
+            path: string,
+            options?: { absolutePath?: boolean }
+        ) => {
+            path = options?.absolutePath
+                ? realpathWithAbsolutePath(path)
+                : realpath(path);
+
+            try {
+                return await fs.promises.stat(path);
+            } catch (e) {}
+
+            return false;
+        };
+
         const ctxFs: typeof fsType = {
             async readFile(path, options) {
                 path = options?.absolutePath
@@ -111,9 +126,11 @@ export class JavaScript {
                 await fs.promises.mkdir(path, { recursive: true });
             },
 
-            rmdir(path) {
-                path = realpath(path);
+            async rmdir(path) {
+                // node throws a lstat error if doesn't exists
+                if (!(await exists(path))) return;
 
+                path = realpath(path);
                 return fs.promises.rm(path, { recursive: true });
             },
             stat(path) {
@@ -126,6 +143,17 @@ export class JavaScript {
 
                 return fs.promises.lstat(path);
             },
+            exists: async (path, options) => !!(await exists(path, options)),
+            async isFile(path, options) {
+                const maybeStats = await exists(path, options);
+                if (!maybeStats) return false;
+                return maybeStats.isFile();
+            },
+            async isDirectory(path, options) {
+                const maybeStats = await exists(path, options);
+                if (!maybeStats) return false;
+                return maybeStats.isDirectory();
+            },
 
             readlink(path: string) {
                 throw Error("not implemeted");
@@ -135,19 +163,6 @@ export class JavaScript {
             },
             chmod(path: string, uid: number, gid: number) {
                 throw Error("not implemented");
-            },
-
-            async exists(path, options) {
-                path = options?.absolutePath
-                    ? realpathWithAbsolutePath(path)
-                    : realpath(path);
-
-                try {
-                    await fs.promises.stat(path);
-                    return true;
-                } catch (e) {}
-
-                return false;
             }
         };
 

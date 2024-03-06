@@ -1,25 +1,29 @@
 import type esbuildType from "esbuild";
-import path from "path";
 
-export function buildWebview(entryPoint: string, outdir: string) {
+export function buildWebview(
+    entryPoint: string,
+    outfile: string,
+    nodePath?: string
+) {
     if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     try {
-        global.esbuild.buildSync({
+        (global.esbuild as typeof esbuildType).buildSync({
             entryPoints: [entryPoint],
-            outfile: path.join(outdir, "index.js"),
+            outfile: outfile,
             bundle: true,
             format: "esm",
             sourcemap: "inline",
             write: true,
-            logLevel: "silent"
+            logLevel: "silent",
+            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors };
     }
 }
 
-export function buildAPI(entryPoint: string) {
+export function buildAPI(entryPoint: string, nodePath?: string) {
     if (!global.esbuild) return { errors: "Cannot find esbuild module" };
 
     let result: esbuildType.BuildResult;
@@ -30,7 +34,8 @@ export function buildAPI(entryPoint: string) {
             globalName: "api",
             format: "iife",
             write: false,
-            logLevel: "silent"
+            logLevel: "silent",
+            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors };

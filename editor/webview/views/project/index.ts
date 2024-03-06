@@ -7,12 +7,13 @@ import { Console } from "../console";
 import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { RUN_PROJECT_ID } from "../../../constants";
+import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
 export class Project {
     backAction: () => void;
+    packagesView: boolean = false;
 
     private container: HTMLDivElement;
     private project: TypeProject;
@@ -53,17 +54,54 @@ export class Project {
         (window as any).onPush["buildError"] = (message: string) => {
             const errors = JSON.parse(message);
 
+            const packagesMissing = new Map<string, Set<string>>();
             errors.forEach((error) => {
                 const file = error.location?.file || error.Location?.File;
 
-                let fileName =
-                    this.project.location +
-                    file.split(this.project.location).pop();
+                const filename = file.split(this.project.location).pop();
+                let filePath = this.project.location + filename;
+
+                const message = error.text || error.Text;
+
+                if (message.startsWith("Could not resolve")) {
+                    const moduleName: string[] = message
+                        .match(/\".*\"/)
+                        ?.at(0)
+                        ?.slice(1, -1)
+                        .split("/");
+
+                    if (!moduleName.at(0)?.startsWith(".")) {
+                        const dependency = moduleName.at(0)?.startsWith("@")
+                            ? moduleName.slice(0, 2).join("/")
+                            : moduleName.at(0);
+
+                        if (dependency) {
+                            let fileRequiringPackage =
+                                packagesMissing.get(dependency);
+                            if (!fileRequiringPackage)
+                                fileRequiringPackage = new Set();
+                            fileRequiringPackage.add(
+                                filename.includes("node_modules")
+                                    ? "node_modules" +
+                                          filename.split("node_modules").pop()
+                                    : filename.slice(1)
+                            );
+                            packagesMissing.set(
+                                dependency,
+                                fileRequiringPackage
+                            );
+                        }
+
+                        return;
+                    }
+                }
+
                 let editor = this.editors.find(
-                    ({ filePath }) => filePath.join("/") === fileName
+                    (activeEditor) =>
+                        activeEditor.filePath.join("/") === filePath
                 );
                 if (!editor) {
-                    editor = new Editor(fileName.split("/"));
+                    editor = new Editor(filePath.split("/"));
                     this.editors.push(editor);
                 }
 
@@ -71,13 +109,17 @@ export class Project {
                     line: error.location?.line || error.Location?.Line,
                     col: error.location?.column || error.Location?.Column,
                     length: error.location?.length || error.Location?.Length,
-                    message: error.text || error.Text
+                    message
                 });
 
-                this.currentFile = fileName;
+                this.currentFile = filename;
             });
 
             this.renderEditors();
+
+            if (packagesMissing.size > 0) {
+                this.installPackages(packagesMissing);
+            }
         };
 
         (window as any).onPush["download"] = async (message: string) => {
@@ -146,6 +188,109 @@ export class Project {
         this.renderEditors();
     }
 
+    private installPackages(packagesToInstall: Map<string, Set<string>>) {
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
+
+        const container = document.createElement("div");
+        container.innerHTML = `<h1>Dependencies</h1>`;
+
+        const packagesContainer = document.createElement("dl");
+        const installPromises: Promise<void>[] = [];
+        for (const [
+            packageName,
+            filesRequiringPackage
+        ] of packagesToInstall.entries()) {
+            const dt = document.createElement("dt");
+            dt.innerText = packageName;
+            const dd = document.createElement("dd");
+            const ul = document.createElement("ul");
+            for (const file of filesRequiringPackage) {
+                const li = document.createElement("li");
+                li.innerText = file;
+                ul.append(li);
+            }
+            dd.append(ul);
+
+            const status = document.createElement("div");
+            status.innerText = "installing...";
+            container.append(status);
+
+            const installPromise = new Promise<void>((resolve) => {
+                rpc()
+                    .packages.install(packageName)
+                    .then(() => {
+                        status.innerText = "installed";
+                        resolve();
+                    });
+            });
+            installPromises.push(installPromise);
+
+            packagesContainer.append(dt, dd, status);
+        }
+
+        container.append(packagesContainer);
+        dialog.append(container);
+        this.container.append(dialog);
+
+        Promise.all(installPromises).then(() => {
+            dialog.remove();
+            this.runProject();
+        });
+    }
+
+    private async runProject() {
+        await Promise.all(
+            this.editors.map((editor) => {
+                editor.clearBuildErrors();
+                return editor.updateFile();
+            })
+        );
+        this.renderEditors();
+        this.console.term.clear();
+        rpc().projects.run(this.project);
+    }
+
+    private async renderTopRightActions() {
+        const container = document.createElement("div");
+
+        if (this.packagesView) {
+            const deleteAllPackagesButton = document.createElement("button");
+            deleteAllPackagesButton.id = DELETE_ALL_PACKAGES_ID;
+            deleteAllPackagesButton.classList.add("danger", "text");
+            deleteAllPackagesButton.innerText = "Delete All";
+            deleteAllPackagesButton.addEventListener("click", async () => {
+                await rpc().fs.rmdir(this.project.location);
+                this.backAction();
+            });
+            container.append(deleteAllPackagesButton);
+        } else {
+            const shareButton = document.createElement("button");
+            shareButton.classList.add("text");
+            shareButton.innerHTML = await (
+                await fetch("/assets/icons/share.svg")
+            ).text();
+            shareButton.addEventListener("click", async () => {
+                await rpc().projects.zip(this.project);
+                const refreshedFileTree = await this.fileTree.instance.render();
+                this.fileTree.element?.replaceWith(refreshedFileTree);
+                this.fileTree.element = refreshedFileTree;
+            });
+            container.append(shareButton);
+
+            const runButton = document.createElement("button");
+            runButton.id = RUN_PROJECT_ID;
+            runButton.classList.add("text");
+            runButton.innerHTML = await (
+                await fetch("/assets/icons/run.svg")
+            ).text();
+            runButton.addEventListener("click", this.runProject.bind(this));
+            container.append(runButton);
+        }
+
+        return container;
+    }
+
     private async renderToolbar() {
         const container = document.createElement("div");
         container.classList.add("top-bar");
@@ -177,41 +322,9 @@ export class Project {
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
 
-        const rightSide = document.createElement("div");
-
-        const shareButton = document.createElement("button");
-        shareButton.classList.add("text");
-        shareButton.innerHTML = await (
-            await fetch("/assets/icons/share.svg")
-        ).text();
-        shareButton.addEventListener("click", async () => {
-            await rpc().projects.zip(this.project);
-            const refreshedFileTree = await this.fileTree.instance.render();
-            this.fileTree.element?.replaceWith(refreshedFileTree);
-            this.fileTree.element = refreshedFileTree;
-        });
-        rightSide.append(shareButton);
-
-        const runButton = document.createElement("button");
-        runButton.id = RUN_PROJECT_ID;
-        runButton.classList.add("text");
-        runButton.innerHTML = await (
-            await fetch("/assets/icons/run.svg")
-        ).text();
-        runButton.addEventListener("click", async () => {
-            await Promise.all(
-                this.editors.map((editor) => {
-                    editor.clearBuildErrors();
-                    return editor.updateFile();
-                })
-            );
-            this.renderEditors();
-            this.console.term.clear();
-            rpc().projects.run(this.project);
-        });
-        rightSide.append(runButton);
-
         container.append(leftSide);
+
+        const rightSide = await this.renderTopRightActions();
         container.append(rightSide);
 
         return container;
@@ -290,6 +403,7 @@ export class Project {
         const fileTreeContainer = document.createElement("div");
         fileTreeContainer.classList.add("left-sidebar");
         this.fileTree.instance.allowDeletion = true;
+        this.fileTree.instance.noNewItems = this.packagesView;
         this.fileTree.element = await this.fileTree.instance.render();
         fileTreeContainer.append(this.fileTree.element);
         this.container.append(fileTreeContainer);

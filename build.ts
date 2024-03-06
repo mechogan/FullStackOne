@@ -6,6 +6,7 @@ import { buildSync } from "esbuild";
 import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
+import AdmZip from "adm-zip";
 
 if (fs.existsSync("editor/build"))
     fs.rmSync("editor/build", { recursive: true });
@@ -52,7 +53,7 @@ buildSync({
 });
 
 const entrypointWebview = await mingleWebview("../../editor/webview/index.ts");
-buildWebview(entrypointWebview, "editor/build/webview");
+buildWebview(entrypointWebview, "editor/build/webview/index.js");
 fs.rmSync(entrypointWebview);
 
 // cleanup
@@ -71,3 +72,13 @@ const api = buildAPI(entrypointAPI);
 fs.rmSync(entrypointAPI);
 fs.mkdirSync("editor/build/api", { recursive: true });
 fs.writeFileSync("editor/build/api/index.js", api as string);
+
+const demoFiles = await scan("Demo");
+var zip = new AdmZip();
+demoFiles.forEach((item) => {
+    const itemPathComponents = item.split("/");
+    const itemName = itemPathComponents.pop();
+    const itemDirectory = itemPathComponents.slice(1).join("/");
+    zip.addLocalFile(item, itemDirectory, itemName);
+});
+zip.writeZip("Demo.zip");

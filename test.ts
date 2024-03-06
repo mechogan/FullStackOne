@@ -1,9 +1,11 @@
 import child_process from "child_process";
 import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
+    DELETE_ALL_PACKAGES_ID,
     IMPORT_PROJECT_FILE_INPUT_ID,
     NEW_FILE_ID,
     NEW_PROJECT_ID,
+    PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
     RUN_PROJECT_ID
 } from "./editor/constants";
@@ -65,6 +67,14 @@ if (projectsTitle !== PROJECTS_TITLE) {
     throwError(errorMsg);
 }
 
+// delete all packages to test download
+const packagesButton = await page.waitForSelector(`#${PACKAGES_BUTTON_ID}`);
+await packagesButton.click();
+const deleteAllPackagesButton = await page.waitForSelector(
+    `#${DELETE_ALL_PACKAGES_ID}`
+);
+await deleteAllPackagesButton.click();
+
 // import demo project
 const newProjectTile = await page.waitForSelector(`#${NEW_PROJECT_ID}`);
 await newProjectTile.click();
@@ -95,7 +105,7 @@ while (tries) {
             const errorMsg = `Could not found file in file tree. Searching [${testFileName}] in [${fileTreeItems.join(", ")}] `;
             throwError(errorMsg);
         } else {
-            await sleep(100);
+            await sleep(200);
         }
     } else {
         break;
@@ -104,6 +114,38 @@ while (tries) {
 
 const runProjectButton = await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton.click();
+
+// wait for dependencies to load
+let caughtDependencies = false;
+tries = 3;
+while (tries) {
+    tries--;
+
+    const dependenciesDialogTitle = await page.evaluate(getHeadingText);
+    if (dependenciesDialogTitle === "Dependencies") {
+        caughtDependencies = true;
+    } else {
+        await sleep(200);
+    }
+
+    if (caughtDependencies) {
+        break;
+    } else if (tries === 0) {
+        throwError("Never caught installing dependencies");
+    }
+}
+tries = 5;
+while (tries) {
+    tries--;
+    const dependenciesDialogTitle = await page.evaluate(getHeadingText);
+    if (dependenciesDialogTitle === "Dependencies") {
+        await sleep(3000); // max 15sec to load react
+    } else {
+        break;
+    }
+}
+
+// try to go to launched demo
 tries = 3;
 while (tries) {
     tries--;
@@ -111,7 +153,14 @@ while (tries) {
         await page.goto("http://localhost:9001");
     } catch (e) {
         if (!tries) throwError(e);
-        await sleep(100);
+
+        const dependenciesDialogTitle = await page.evaluate(getHeadingText);
+        console.log(dependenciesDialogTitle);
+        if (dependenciesDialogTitle === "Dependencies") {
+            await sleep(5000);
+        } else {
+            await sleep(100);
+        }
     }
 }
 
