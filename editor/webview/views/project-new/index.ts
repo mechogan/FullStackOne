@@ -24,6 +24,25 @@ export class ProjectNew {
         const titleInput = document.createElement("input");
         container.append(titleInput);
 
+        // create button
+        const createButton = document.createElement("button");
+        createButton.innerText = "Create";
+
+        // git repo
+        const gitRepoInputLabel = document.createElement("label");
+        gitRepoInputLabel.innerText = "Git Repo (optional)";
+        container.append(gitRepoInputLabel);
+
+        const gitRepoInput = document.createElement("input");
+        gitRepoInput.addEventListener("keyup", () => {
+            if (gitRepoInput.value) {
+                createButton.innerText = "Clone";
+            } else {
+                createButton.innerText = "Create";
+            }
+        });
+        container.append(gitRepoInput);
+
         // location
         const locationLabel = document.createElement("label");
         locationLabel.innerText = "Location";
@@ -87,8 +106,7 @@ export class ProjectNew {
 
         buttonContainer.append(importer);
 
-        const createButton = document.createElement("button");
-        createButton.innerText = "Create";
+        // Create/Clone button
         createButton.addEventListener("click", async () => {
             const projectBaseDirectory = fileTree.itemSelected
                 ? fileTree.itemSelected.isDirectory
@@ -99,6 +117,10 @@ export class ProjectNew {
             const location = [...projectBaseDirectory, titleInput.value].join(
                 "/"
             );
+
+            if (gitRepoInput.value) {
+                await rpc().git.clone(gitRepoInput.value, location);
+            }
 
             const project = await rpc().projects.create({
                 title: titleInput.value,
