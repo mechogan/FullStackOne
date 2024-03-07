@@ -1,12 +1,12 @@
 {
     "name": "fullstacked-editor",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build && npm start -w platform/node",
         "prettier": "prettier . --write",
         "typecheck": "tsc --noEmit && npm run typecheck -w platform/electron ",
-        "test": "esbuild test.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
+        "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
     "workspaces": [
         "platform/node",
@@ -29,6 +29,7 @@
         "@codemirror/view": "^6.24.0",
         "@types/node": "^20.11.19",
         "@types/ws": "^8.5.10",
+        "@webcontainer/api": "^1.1.9",
         "@xterm/addon-fit": "^0.9.0-beta.1",
         "@xterm/xterm": "^5.4.0-beta.1",
         "buffer": "^6.0.3",
@@ -40,6 +41,7 @@
         "prettier": "^3.2.5",
         "puppeteer": "^22.3.0",
         "sass": "^1.71.0",
+        "semver": "^7.6.0",
         "source-map": "^0.7.4",
         "typescript": "^5.3.3",
         "ws": "^8.16.0",

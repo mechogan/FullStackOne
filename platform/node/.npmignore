@@ -3,3 +3,4 @@ src
 *.ts
 *.tgz
 !dist
+!Demo.zip

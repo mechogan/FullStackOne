@@ -15,7 +15,7 @@ export const mingleWebview = async (entryPoint: string) => {
     const mergedContent = `${await fs.readFile(jsDirectory + "/webview.js", { absolutePath: true, encoding: "utf8" })}
 import("${resolvePath(entryPoint)}");`;
 
-    mkCacheDir();
+    await mkCacheDir();
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
     await fs.writeFile(tmpFile, mergedContent);
     return tmpFile;
@@ -28,7 +28,7 @@ export const mingleAPI = async (entryPoint?: string) => {
         mergedContent += `globalThis.userMethods = require("${resolvePath(entryPoint)}")?.default ?? {};`;
     }
 
-    mkCacheDir();
+    await mkCacheDir();
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
     await fs.writeFile(tmpFile, mergedContent);
     return tmpFile;

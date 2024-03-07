@@ -11,8 +11,6 @@ function Icon(props) {
             .then(setIcon);
     }, []);
 
-    console.log(icon);
-
     return <span dangerouslySetInnerHTML={{ __html: icon }} />;
 }
 

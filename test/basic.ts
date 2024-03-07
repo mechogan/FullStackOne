@@ -8,44 +8,17 @@ import {
     PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
     RUN_PROJECT_ID
-} from "./editor/constants";
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const throwError = (message: string) => {
-    const error = Error(message);
-    console.error(error);
-    process.exit(1);
-};
-
-// typecheck
-child_process.execSync("npm run typecheck", {
-    stdio: "inherit"
-});
+} from "../editor/constants";
+import { sleep, throwError } from "./utils";
 
 // test build
-await import("./build");
+await import("../build");
 
 // test node build
 child_process.execSync("npm run build", {
     cwd: "platform/node",
     stdio: "inherit"
 });
-
-// make esbuild ios
-child_process.execSync("make ios", {
-    stdio: "inherit",
-    cwd: "platform/ios/esbuild"
-});
-
-// build ios
-child_process.execSync(
-    "xcodebuild -project ./FullStacked.xcodeproj -scheme FullStacked build",
-    {
-        stdio: "inherit",
-        cwd: "platform/ios/xcode"
-    }
-);
 
 // test functionalities with node
 process.env.NO_OPEN = "1";
