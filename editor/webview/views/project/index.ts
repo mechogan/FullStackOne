@@ -322,6 +322,15 @@ export class Project {
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
 
+        if (this.project.gitRepository) {
+            const branchNameContainer = document.createElement("div");
+            branchNameContainer.innerHTML =
+                (await (await fetch("assets/icons/git.svg")).text()) +
+                    " " +
+                    (await rpc().git.currentBranch(this.project)) || "DETACHED";
+            leftSide.append(branchNameContainer);
+        }
+
         container.append(leftSide);
 
         const rightSide = await this.renderTopRightActions();

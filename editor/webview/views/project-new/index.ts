@@ -30,11 +30,11 @@ export class ProjectNew {
 
         // git repo
         const gitRepoInputLabel = document.createElement("label");
-        gitRepoInputLabel.innerText = "Git Repo (optional)";
+        gitRepoInputLabel.innerText = "Git Repository (optional)";
         container.append(gitRepoInputLabel);
 
         const gitRepoInput = document.createElement("input");
-        gitRepoInput.addEventListener("keyup", () => {
+        gitRepoInput.addEventListener("keypress", () => {
             if (gitRepoInput.value) {
                 createButton.innerText = "Clone";
             } else {
@@ -124,6 +124,7 @@ export class ProjectNew {
 
             const project = await rpc().projects.create({
                 title: titleInput.value,
+                gitRepository: gitRepoInput.value || undefined,
                 location
             });
             this.didCreateProjectAction(project);

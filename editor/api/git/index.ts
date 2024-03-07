@@ -2,6 +2,7 @@ import git from "isomorphic-git";
 import type { fs as globalFS } from "../../../src/api/fs";
 import type { fetch as globalFetch } from "../../../src/api/fetch";
 import { Buffer as globalBuffer } from "buffer";
+import { Project } from "../projects/types";
 
 declare var fs: typeof globalFS;
 declare var fetch: typeof globalFetch;
@@ -44,6 +45,12 @@ const http = {
 };
 
 export default {
+    currentBranch(project: Project) {
+        return git.currentBranch({
+            fs,
+            dir: project.location
+        });
+    },
     clone(url: string, dir: string) {
         return git.clone({
             fs,
