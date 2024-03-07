@@ -60,12 +60,13 @@ const app = async () => {
     clearView();
     main.append(await projectsView.render());
 
-
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);
-    if(searchParams.has("demo")){
-        const demoProject = (await rpc().projects.list()).find(({title}) => title === "Demo");
-        if(demoProject){
+    if (searchParams.has("demo")) {
+        const demoProject = (await rpc().projects.list()).find(
+            ({ title }) => title === "Demo"
+        );
+        if (demoProject) {
             projectView.setProject(demoProject);
             clearView();
             main.append(await projectView.render());

@@ -16,9 +16,9 @@ const start = Date.now();
 // 1 iframe is stackblitz corp stuff
 // 1 for the editor
 // 1 for the running demo
-while(iframeCount !== 3){
-    if(Date.now() - start > maxWait){
-        throwError("Never spawned 2 iframes")
+while (iframeCount !== 3) {
+    if (Date.now() - start > maxWait) {
+        throwError("Never spawned 2 iframes");
     }
     await sleep(1000);
     iframeCount = await page.evaluate(() => {
