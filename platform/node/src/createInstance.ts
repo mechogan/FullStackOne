@@ -57,7 +57,7 @@ const requestHandler = async (
         headers[name] = value;
     });
 
-    const pathname = request.url as string;
+    const pathname = (request.url as string).split("?").shift();
 
     const body = await readBody(request);
 

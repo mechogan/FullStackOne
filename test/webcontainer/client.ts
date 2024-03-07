@@ -47,8 +47,8 @@ runProcess.output.pipeTo(
     })
 );
 
-webcontainerInstance.on("server-ready", (_, url) => {
+webcontainerInstance.on("server-ready", (port, url) => {
     const iframe = document.createElement("iframe");
     document.body.append(iframe);
-    iframe.src = url;
+    iframe.src = url + (port === 9000 ? "?demo=1" : "");
 });

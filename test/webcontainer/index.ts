@@ -28,13 +28,13 @@ child_process.execSync("npm pack", { cwd: platformNodeDir, stdio: "inherit" });
 
 // get data from .tgz file
 const builtTgz = (await getAllTgzFiles()).at(0);
-if (!builtTgz) throw "No built package in platform/node";
+if (!builtTgz) throw Error("No built package in platform/node");
 const builtTgzBin = await fs.promises.readFile(
     path.resolve(platformNodeDir, builtTgz)
 );
 
 const build = esbuild.buildSync({
-    entryPoints: [path.resolve(__dirname, "client.ts")],
+    entryPoints: [path.resolve(__dirname, "..", "webcontainer", "client.ts")],
     bundle: true,
     format: "esm",
     write: false
@@ -55,7 +55,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(9000);
-console.log("ready");
 
 const html = `
 <style>
