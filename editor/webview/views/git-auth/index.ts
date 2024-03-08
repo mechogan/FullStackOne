@@ -6,16 +6,20 @@ import type api from "../../../api";
 declare var rpc: typeof typeRPC<typeof api>;
 
 export class GitAuth {
-    static async renderGitAuthForm(done: () => void, auth?: { 
-        host?: string,
-        username?: string, 
-        email?: string
-    }, create = true) {
+    static async renderGitAuthForm(
+        done: () => void,
+        auth?: {
+            host?: string;
+            username?: string;
+            email?: string;
+        },
+        create = true
+    ) {
         const form = document.createElement("form");
         form.classList.add("git-form");
 
         let hostnameInput: HTMLInputElement;
-        if(!auth?.host) {
+        if (!auth?.host) {
             const hostLabel = document.createElement("label");
             hostLabel.innerText = "Hostname";
             form.append(hostLabel);
@@ -23,7 +27,7 @@ export class GitAuth {
             hostnameInput = document.createElement("input");
             form.append(hostnameInput);
         }
-        
+
         const usernameLabel = document.createElement("label");
         usernameLabel.innerText = "Username";
         form.append(usernameLabel);
@@ -41,18 +45,18 @@ export class GitAuth {
         emailInput.value = auth?.email || "";
         form.append(emailInput);
 
-            const passwordLabel = document.createElement("label");
-            passwordLabel.innerText = "Password";
-            form.append(passwordLabel);
-    
+        const passwordLabel = document.createElement("label");
+        passwordLabel.innerText = "Password";
+        form.append(passwordLabel);
+
         let passwordInput: HTMLInputElement;
-        if(create) {
+        if (create) {
             passwordInput = document.createElement("input");
             passwordInput.type = "password";
             form.append(passwordInput);
         } else {
             const div = document.createElement("div");
-            div.innerText = "To change password, delete and re-create."
+            div.innerText = "To change password, delete and re-create.";
             form.append(div);
         }
 
@@ -60,21 +64,26 @@ export class GitAuth {
 
         const confirmButton = document.createElement("button");
         confirmButton.classList.add("text");
-        confirmButton.innerHTML = await (await fetch("assets/icons/check.svg")).text()
+        confirmButton.innerHTML = await (
+            await fetch("assets/icons/check.svg")
+        ).text();
         buttonGroup.append(confirmButton);
 
         const cancelButton = document.createElement("button");
         cancelButton.classList.add("text", "danger");
-        cancelButton.innerHTML = await (await fetch("assets/icons/close.svg")).text()
-        cancelButton.addEventListener("click", e => {
+        cancelButton.innerHTML = await (
+            await fetch("assets/icons/close.svg")
+        ).text();
+        cancelButton.addEventListener("click", (e) => {
+            e.preventDefault();
             e.stopPropagation();
             done();
-        })
+        });
         buttonGroup.append(cancelButton);
 
         form.append(buttonGroup);
 
-        form.addEventListener("submit", async e => {
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             await rpc().git.auth(
@@ -82,10 +91,10 @@ export class GitAuth {
                 usernameInput.value,
                 emailInput.value,
                 passwordInput?.value
-            )
+            );
 
             done();
-        })
+        });
 
         return form;
     }
@@ -104,9 +113,11 @@ export class GitAuth {
         text.innerHTML = `Authenticate for <b>${message.hostname}<b>`;
         container.append(text);
 
-        container.append(await GitAuth.renderGitAuthForm(() => dialog.remove(), {
-            host: message.hostname
-        }));
+        container.append(
+            await GitAuth.renderGitAuthForm(() => dialog.remove(), {
+                host: message.hostname
+            })
+        );
 
         dialog.append(container);
 

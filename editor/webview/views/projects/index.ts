@@ -61,7 +61,9 @@ export class Projects {
         const settingsButton = document.createElement("button");
         settingsButton.id = SETTINGS_BUTTON_ID;
         settingsButton.classList.add("text");
-        const settingsIcon = await (await fetch("assets/icons/settings.svg")).text()
+        const settingsIcon = await (
+            await fetch("assets/icons/settings.svg")
+        ).text();
         settingsButton.innerHTML = settingsIcon;
         settingsButton.addEventListener("click", async () =>
             this.goToSettings()

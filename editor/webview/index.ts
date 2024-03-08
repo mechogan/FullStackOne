@@ -53,7 +53,7 @@ const app = async () => {
     settings.backAction = async () => {
         clearView();
         main.append(await projectsView.render());
-    }
+    };
 
     const projectNewView = new ProjectNew();
     projectNewView.cancelAction = async () => {
@@ -70,12 +70,11 @@ const app = async () => {
     const projectView = new Project();
     projectView.backAction = async () => {
         clearView();
-        if(projectView.packagesView) {
+        if (projectView.packagesView) {
             main.append(await settings.render());
         } else {
             main.append(await projectsView.render());
         }
-       
     };
 
     clearView();

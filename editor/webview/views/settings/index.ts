@@ -11,13 +11,14 @@ export class Settings {
     backAction: () => void;
     goToPackages: () => void;
 
-    private async renderGitAuths(){
+    private async renderGitAuths() {
         const container = document.createElement("div");
 
-        const refresh = async () => container.replaceWith(await this.renderGitAuths());
+        const refresh = async () =>
+            container.replaceWith(await this.renderGitAuths());
 
         const settingRow = document.createElement("div");
-        settingRow.classList.add("setting-row")
+        settingRow.classList.add("setting-row");
 
         const title = document.createElement("h2");
         title.innerText = "Git Authentications";
@@ -25,21 +26,19 @@ export class Settings {
 
         const addButton = document.createElement("button");
         addButton.classList.add("text");
-        addButton.innerHTML = await (await fetch("assets/icons/add.svg")).text();
+        addButton.innerHTML = await (
+            await fetch("assets/icons/add.svg")
+        ).text();
         settingRow.append(addButton);
-
 
         container.append(settingRow);
 
         const gitAuths = await rpc().git.getAllAuths();
 
-        const [
-            editIcon,
-            deleteIcon
-        ] = await Promise.all([
+        const [editIcon, deleteIcon] = await Promise.all([
             (await fetch("/assets/icons/edit.svg")).text(),
             (await fetch("/assets/icons/delete.svg")).text()
-        ])
+        ]);
 
         const ul = document.createElement("ul");
 
@@ -48,9 +47,9 @@ export class Settings {
             const li = document.createElement("li");
             li.append(await GitAuth.renderGitAuthForm(refresh));
             ul.prepend(li);
-        })
+        });
 
-        Object.entries(gitAuths).forEach(([ host, auth ]) => {
+        Object.entries(gitAuths).forEach(([host, auth]) => {
             const li = document.createElement("li");
 
             const top = document.createElement("div");
@@ -66,8 +65,14 @@ export class Settings {
             editButton.addEventListener("click", async () => {
                 editButton.remove();
                 infoOrFormContainer.innerHTML = "";
-                infoOrFormContainer.append(await GitAuth.renderGitAuthForm(refresh, { host, ...auth }, false));
-            })
+                infoOrFormContainer.append(
+                    await GitAuth.renderGitAuthForm(
+                        refresh,
+                        { host, ...auth },
+                        false
+                    )
+                );
+            });
             buttonGroup.append(editButton);
 
             const deleteButton = document.createElement("button");
@@ -76,7 +81,7 @@ export class Settings {
             deleteButton.addEventListener("click", async () => {
                 await rpc().git.deleteAuthForHost(host);
                 li.remove();
-            })
+            });
             buttonGroup.append(deleteButton);
 
             top.append(buttonGroup);
@@ -101,7 +106,7 @@ export class Settings {
         return container;
     }
 
-    private async renderPackagesRow(){
+    private async renderPackagesRow() {
         const container = document.createElement("div");
         container.classList.add("setting-row");
 
@@ -126,16 +131,16 @@ export class Settings {
         return container;
     }
 
-    async render(){
+    async render() {
         const container = document.createElement("div");
-        container.classList.add("settings")
+        container.classList.add("settings");
 
         const header = document.createElement("header");
 
         const backButton = document.createElement("button");
         backButton.id = BACK_BUTTON_ID;
         backButton.innerHTML = await (
-            await fetch("/assets/icons/arrow-left.svg")
+            await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
         backButton.addEventListener("click", this.backAction);
@@ -147,10 +152,9 @@ export class Settings {
 
         container.append(header);
 
-        
         container.append(await this.renderPackagesRow());
 
-        container.append(await this.renderGitAuths())
+        container.append(await this.renderGitAuths());
 
         return container;
     }

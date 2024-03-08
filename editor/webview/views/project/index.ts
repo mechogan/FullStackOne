@@ -33,6 +33,8 @@ export class Project {
     private currentFile: string;
     private editors: Editor[] = [];
 
+    private gitBtn: HTMLButtonElement;
+
     constructor() {
         this.fileTree.instance.onItemSelect = (item) => {
             if (!item || item.isDirectory) return;
@@ -292,49 +294,49 @@ export class Project {
     }
 
     private async renderGitButton(pull = false) {
-        const buttonContainer = document.createElement("button");
-        buttonContainer.classList.add("text", "text-and-icon", "git-btn");
+        this.gitBtn = document.createElement("button");
+        this.gitBtn.classList.add("text", "text-and-icon", "git-btn");
 
-        const icon = await (await fetch("assets/icons/git.svg")).text();
-        buttonContainer.innerHTML = icon;
+        const [gitIcon, arrowIcon] = await Promise.all([
+            (await fetch("assets/icons/git.svg")).text(),
+            (await fetch("assets/icons/arrow.svg")).text()
+        ]);
+        this.gitBtn.innerHTML = gitIcon;
 
-        let pullLabel: HTMLDivElement;
-        if (pull) {
-            pullLabel = document.createElement("div");
-            pullLabel.innerText = "Pulling...";
-            buttonContainer.append(pullLabel);
-        }
+        const [branch, commit] = await Promise.all([
+            rpc().git.currentBranch(this.project),
+            rpc().git.log(this.project, 1)
+        ]);
+        const currentBranch = branch || "DETACHED";
+        const currentCommit = commit?.at(0)?.oid || "";
 
-        setTimeout(
-            async () => {
-                if (pull) {
-                    await rpc().git.pull(this.project);
-                    pullLabel?.remove();
-                }
-
-                const [branch, commit] = await Promise.all([
-                    rpc().git.currentBranch(this.project),
-                    rpc().git.log(this.project, 1)
-                ]);
-                const currentBranch = branch || "DETACHED";
-                const currentCommit = commit?.at(0)?.oid || "";
-
-                buttonContainer.addEventListener("click", () =>
-                    this.renderGitDialog(icon, currentBranch, currentCommit)
-                );
-
-                const branchContainer = document.createElement("div");
-                branchContainer.innerText = currentBranch;
-                buttonContainer.append(branchContainer);
-
-                const commitContainer = document.createElement("div");
-                commitContainer.innerText = currentCommit.slice(0, 7);
-                buttonContainer.append(commitContainer);
-            },
-            pull ? 500 : 1
+        this.gitBtn.addEventListener("click", () =>
+            this.renderGitDialog(gitIcon, currentBranch, currentCommit)
         );
 
-        return buttonContainer;
+        const branchContainer = document.createElement("div");
+        branchContainer.classList.add("branch");
+        branchContainer.innerText = currentBranch;
+        this.gitBtn.append(branchContainer);
+
+        const commitContainer = document.createElement("div");
+        commitContainer.classList.add("commit");
+        commitContainer.innerText = currentCommit.slice(0, 7);
+        this.gitBtn.append(commitContainer);
+
+        if (pull) {
+            const pullIcon = document.createElement("div");
+            pullIcon.classList.add("pull");
+            pullIcon.innerHTML = arrowIcon;
+            this.gitBtn.prepend(pullIcon);
+
+            setTimeout(async () => {
+                await rpc().git.pull(this.project);
+                this.gitBtn.replaceWith(await this.renderGitButton());
+            }, 500);
+        }
+
+        return this.gitBtn;
     }
 
     private async renderGitDialog(
@@ -416,8 +418,6 @@ export class Project {
             form.append(buttonGroup);
 
             authorContainer.append(form);
-
-            
         };
 
         const renderAuthorInfo = async () => {
@@ -490,13 +490,24 @@ export class Project {
 
                 confirmButton.disabled = false;
                 confirmButton.addEventListener("click", async () => {
-                    await rpc().git.push(
-                        this.project,
-                        commitMessageInput.value
-                    );
                     dialog.remove();
-                    const gitButton = this.container.querySelector(".git-btn");
-                    gitButton.replaceWith(await this.renderGitButton());
+
+                    const arrowIcon = await (
+                        await fetch("assets/icons/arrow.svg")
+                    ).text();
+
+                    let pushIcon = document.createElement("div");
+                    pushIcon.classList.add("push");
+                    pushIcon.innerHTML = arrowIcon;
+                    this.gitBtn.prepend(pushIcon);
+
+                    setTimeout(async () => {
+                        await rpc().git.push(
+                            this.project,
+                            commitMessageInput.value
+                        );
+                        this.gitBtn.replaceWith(await this.renderGitButton());
+                    }, 500);
                 });
             }
         };
@@ -531,7 +542,7 @@ export class Project {
 
         const backButton = document.createElement("button");
         backButton.innerHTML = await (
-            await fetch("/assets/icons/arrow-left.svg")
+            await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
         backButton.addEventListener("click", this.backAction);
