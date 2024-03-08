@@ -1,13 +1,15 @@
 import child_process from "child_process";
 import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
+    BACK_BUTTON_ID,
     DELETE_ALL_PACKAGES_ID,
     IMPORT_PROJECT_FILE_INPUT_ID,
     NEW_FILE_ID,
     NEW_PROJECT_ID,
     PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
-    RUN_PROJECT_ID
+    RUN_PROJECT_ID,
+    SETTINGS_BUTTON_ID
 } from "../editor/constants";
 import { sleep, throwError } from "./utils";
 
@@ -41,12 +43,16 @@ if (projectsTitle !== PROJECTS_TITLE) {
 }
 
 // delete all packages to test download
+const settingsButton = await page.waitForSelector(`#${SETTINGS_BUTTON_ID}`);
+await settingsButton.click();
 const packagesButton = await page.waitForSelector(`#${PACKAGES_BUTTON_ID}`);
 await packagesButton.click();
 const deleteAllPackagesButton = await page.waitForSelector(
     `#${DELETE_ALL_PACKAGES_ID}`
 );
 await deleteAllPackagesButton.click();
+const backButton = await page.waitForSelector(`#${BACK_BUTTON_ID}`);
+await backButton.click();
 
 // import demo project
 const newProjectTile = await page.waitForSelector(`#${NEW_PROJECT_ID}`);

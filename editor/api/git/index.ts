@@ -86,7 +86,7 @@ async function getParsedChanges(project: Project) {
 // hostname => onAuthPromises
 const gitAuthPromiseResolveCallbacks = new Map<
     string,
-    ((auth: { username: string; password: string; email: string }) => void)[]
+    ((auth: { username: string, password: string }) => void)[]
 >();
 
 const requestGitAuth = async (url: string) => {
@@ -103,21 +103,51 @@ const requestGitAuth = async (url: string) => {
         }
     );
 
-    gitAuths[hostname] = auth;
-    await config.save(CONFIG_TYPE.GIT, gitAuths);
-
     return auth;
 };
 
 export default {
-    auth(hostname: string, username: string, password: string, email: string) {
-        const gitAuthPromiseResolves =
-            gitAuthPromiseResolveCallbacks.get(hostname);
-        if (!gitAuthPromiseResolves) return;
+    async auth(hostname: string, username: string, email: string, password: string) {
+        hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
 
-        gitAuthPromiseResolves.forEach((resolver) =>
-            resolver({ username, password, email })
+        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+
+        // exists
+        if(gitAuths?.[hostname]){
+            gitAuths[hostname] = {
+                password: gitAuths[hostname].password,
+                username,
+                email
+            }
+        }
+        // new
+        else {
+            gitAuths[hostname] = {
+                username,
+                email,
+                password
+            }
+        }
+        await  config.save(CONFIG_TYPE.GIT, gitAuths);
+
+
+
+        const gitAuthPromiseResolves = gitAuthPromiseResolveCallbacks.get(hostname);
+
+        gitAuthPromiseResolves?.forEach((resolver) =>
+            resolver({ username, password })
         );
+    },
+    async getAllAuths(){
+        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+
+        // remove passwords
+        Object.entries(gitAuths).forEach(([ host, auth ]) => {
+            const { password, ...rest } = auth;
+            gitAuths[host] = rest;
+        });
+
+        return gitAuths;
     },
     async getUsernameAndEmailForHost(url: string) {
         const { hostname } = new URL(url);
@@ -129,6 +159,12 @@ export default {
             username: gitAuth.username,
             email: gitAuth.email
         };
+    },
+    async deleteAuthForHost(host: string){
+        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+        if(gitAuths?.[host])
+            delete gitAuths[host];
+        return config.save(CONFIG_TYPE.GIT, gitAuths);
     },
     currentBranch(project: Project) {
         return git.currentBranch({

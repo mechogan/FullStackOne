@@ -346,7 +346,7 @@ export class Project {
         dialog.classList.add("dialog");
 
         const container = document.createElement("div");
-        container.classList.add("git-form");
+        container.classList.add("git-dialog");
 
         const gitInfo = document.createElement("header");
         const remote = this.project.gitRepository.url;
@@ -362,9 +362,10 @@ export class Project {
         authorContainer.classList.add("author");
         container.append(authorContainer);
 
-        const [userIcon, editIcon, checkIcon] = await Promise.all([
+        const [userIcon, editIcon, closeIcon, checkIcon] = await Promise.all([
             (await fetch("assets/icons/user.svg")).text(),
             (await fetch("assets/icons/edit.svg")).text(),
+            (await fetch("assets/icons/close.svg")).text(),
             (await fetch("assets/icons/check.svg")).text()
         ]);
 
@@ -372,48 +373,60 @@ export class Project {
             authorContainer.innerHTML = `
                 ${userIcon}`;
 
-            const usernameContainer = document.createElement("div");
+            const form = document.createElement("form");
 
             const nameLabel = document.createElement("label");
             nameLabel.innerText = "Name";
-            usernameContainer.append(nameLabel);
+            form.append(nameLabel);
 
             const nameInput = document.createElement("input");
             nameInput.value = this.project.gitRepository.name || "";
-            usernameContainer.append(nameInput);
-
-            authorContainer.append(usernameContainer);
-
-            const emailContainer = document.createElement("div");
+            form.append(nameInput);
 
             const emailInputLabel = document.createElement("label");
             emailInputLabel.innerText = "Email";
-            emailContainer.append(emailInputLabel);
+            form.append(emailInputLabel);
 
             const emailInput = document.createElement("input");
             emailInput.value = this.project.gitRepository.email || "";
             emailInput.type = "email";
-            emailContainer.append(emailInput);
+            form.append(emailInput);
 
-            authorContainer.append(emailContainer);
+            const buttonGroup = document.createElement("div");
 
             const confirmButton = document.createElement("button");
+            confirmButton.classList.add("text");
             confirmButton.addEventListener("click", () => {
                 this.project.gitRepository.name = nameInput.value;
                 this.project.gitRepository.email = emailInput.value;
                 renderAuthorInfo();
                 rpc().projects.update(this.project);
             });
-            confirmButton.classList.add("small", "text");
             confirmButton.innerHTML = checkIcon;
-            authorContainer.append(confirmButton);
+            buttonGroup.append(confirmButton);
+
+            const cancelButton = document.createElement("button");
+            cancelButton.classList.add("text", "danger");
+            cancelButton.addEventListener("click", () => {
+                renderAuthorInfo();
+            });
+            cancelButton.innerHTML = closeIcon;
+            buttonGroup.append(cancelButton);
+
+            form.append(buttonGroup);
+
+            authorContainer.append(form);
+
+            
         };
 
         const renderAuthorInfo = async () => {
             authorContainer.innerHTML = `
                 ${userIcon}
-                <div>${this.project.gitRepository.name || "<b>No username</b>"}</div>
-                <div>${this.project.gitRepository.email || "<b>No email</b>"}</div>`;
+                <div>
+                    <div>${this.project.gitRepository.name || "<b>No username</b>"}</div>
+                    <div>${this.project.gitRepository.email || "<b>No email</b>"}</div>
+                </div>`;
 
             const editButton = document.createElement("button");
             editButton.addEventListener("click", () => {

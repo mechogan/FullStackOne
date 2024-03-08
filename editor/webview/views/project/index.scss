@@ -174,11 +174,13 @@ $transition: 0.3s all;
             "icon branch"
             "icon commit";
         text-align: left;
+        grid-template-columns: 32px auto;
+        @media screen and (max-width: $break-sm) {
+            grid-template-columns: 24px auto;
+        }
         svg {
             grid-area: icon;
-            @media screen and (max-width: $break-sm) {
-                margin: 0 !important;
-            }
+            margin: 0 !important;
         }
         > div:nth-child(2) {
             grid-area: branch;
@@ -195,7 +197,7 @@ $transition: 0.3s all;
         }
     }
 
-    .git-form {
+    .git-dialog {
         header {
             display: grid;
             grid-template-columns: 45px auto;
@@ -207,6 +209,8 @@ $transition: 0.3s all;
             > svg {
                 grid-area: icon;
                 align-self: center;
+                height: 32px;
+                width: 32px;
             }
             > a {
                 grid-area: url;
@@ -229,10 +233,7 @@ $transition: 0.3s all;
             }
         }
         > .author {
-            display: grid;
-            grid-template-areas:
-                "icon username button"
-                "icon email button";
+            display: flex;
             font-size: $font-size-s;
             grid-template-columns: 45px auto 45px;
             background-color: colorOpacity(white, 0.1);
@@ -241,12 +242,12 @@ $transition: 0.3s all;
             border-radius: $border-radius;
             border: $border-width solid colorOpacity(white, 0.3);
             > svg {
-                grid-area: icon;
                 align-self: center;
                 justify-self: center;
+                margin-right: spacing();
             }
-            > div:nth-child(2) {
-                grid-area: username;
+            > *:nth-child(2) {
+                flex:1;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
@@ -255,17 +256,12 @@ $transition: 0.3s all;
                     margin-bottom: spacing();
                 }
             }
-            > div:nth-child(3) {
-                grid-area: email;
+            form > div:last-child {
                 display: flex;
-                flex-direction: column;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            > button {
-                grid-area: button;
-                align-self: center;
-                justify-self: center;
+                flex-direction: row-reverse;
+                button {
+                    flex: 1;
+                }
             }
         }
 

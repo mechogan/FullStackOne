@@ -4,17 +4,22 @@
     p {
         margin: 0;
     }
-    form {
+}
+
+
+.git-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    label {
+        margin-top: spacing();
+    }
+    > div:last-child {
+        margin-top: spacing();
         display: flex;
-        flex-direction: column;
-        padding-top: spacing();
-        > label {
-            margin-top: spacing();
-        }
-        > div:last-child {
-            margin-top: spacing(3);
-            display: flex;
-            justify-content: space-between;
+        flex-direction: row-reverse;
+        button {
+            flex: 1
         }
     }
 }
