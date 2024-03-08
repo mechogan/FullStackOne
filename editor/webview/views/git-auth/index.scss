@@ -1,0 +1,20 @@
+@import "../../style/spacing";
+
+.git-auth {
+    p {
+        margin: 0;
+    }
+    form {
+        display: flex;
+        flex-direction: column;
+        padding-top: spacing();
+        > label {
+            margin-top: spacing()
+        }
+        > div:last-child {
+            margin-top: spacing(3);
+            display: flex;
+            justify-content: space-between;
+        }
+    }
+}

@@ -358,7 +358,6 @@ let overrideConsole = """
 struct WebView: UIViewRepresentable {
     let js: JavaScript;
     let navigationDelegate = OpenLinkDelegate();
-    let wkWebView: WKWebView;
     
     init(js: JavaScript) {
         self.js = js
@@ -371,26 +370,22 @@ struct WebView: UIViewRepresentable {
         wkConfig.setURLSchemeHandler(RequestHandler(js: self.js),  forURLScheme: "fs")
         wkConfig.userContentController = userContentController
         wkConfig.suppressesIncrementalRendering = true
-        self.wkWebView = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
-        self.wkWebView.isOpaque = false
-        self.wkWebView.navigationDelegate = self.navigationDelegate
+        self.js.webview = FullScreenWKWebView(frame: CGRect(x: 0, y: 0, width: 100, height: 100), configuration: wkConfig)
+        self.js.webview!.isOpaque = false
+        self.js.webview!.navigationDelegate = self.navigationDelegate
         if #available(iOS 16.4, *) {
-            self.wkWebView.isInspectable = true
+            self.js.webview!.isInspectable = true
         }
     }
     
     func makeUIView(context: Context) -> WKWebView  {
         let request = URLRequest(url: URL(string: "fs://localhost")!)
-        self.wkWebView.load(request)
-        return self.wkWebView
+        self.js.webview!.load(request)
+        return self.js.webview!
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        self.js.push = { messageType, message in
-            DispatchQueue.main.async {
-                uiView.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
-            }
-        }
+        self.js.webview = uiView
         uiView.navigationDelegate = self.navigationDelegate
     }
 }

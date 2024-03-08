@@ -291,6 +291,127 @@ export class Project {
         return container;
     }
 
+    private async renderGitButton(){
+        const buttonContainer = document.createElement("button");
+        buttonContainer.classList.add("text", "text-and-icon", "git-btn");
+
+        const [
+            icon,
+            branch,
+            commit
+        ] = await Promise.all([
+            (await fetch("assets/icons/git.svg")).text(),
+            rpc().git.currentBranch(this.project),
+            rpc().git.log(this.project, 1)
+        ])
+        const currentBranch = branch || "DETACHED";
+        const currentCommit = commit?.at(0)?.oid || "";
+
+        buttonContainer.addEventListener("click", () => this.renderGitDialog(icon, currentBranch, currentCommit));
+
+        buttonContainer.innerHTML = icon
+
+        const branchContainer = document.createElement("div");
+        branchContainer.innerText = currentBranch;
+        buttonContainer.append(branchContainer);
+        
+        const commitContainer = document.createElement("div");
+        commitContainer.innerText = currentCommit.slice(0, 7);
+        buttonContainer.append(commitContainer);
+
+        return buttonContainer;
+    }
+
+    private async renderGitDialog(icon: string, branch: string, commit: string){
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
+
+        const container = document.createElement("div");
+        container.classList.add("git-form");
+
+        const gitInfo = document.createElement("header");
+        const remote = this.project.gitRepository;
+        gitInfo.innerHTML = `
+            ${icon}
+            <a href="${remote}" target="_blank">${remote.slice(0, -".git".length)}</a>
+            <div>${branch}</div>
+            <div>${commit}</div>`
+        
+        
+        container.append(gitInfo);
+
+        const confirmButton = document.createElement("button");
+        const changesContainer = document.createElement("div");
+        changesContainer.innerText = "Calculating diffs..."
+        container.append(changesContainer);
+
+        const getChanges = async () => {
+            const changes = await rpc().git.changes(this.project);
+            changesContainer.innerText = "";
+                
+            const hasChanges = Object.values(changes).some(arr => arr.length !== 0)
+
+            if (!hasChanges) {
+                changesContainer.innerHTML = `<h3>No changes</h3>`;
+            }
+            else {
+                Object.entries(changes).forEach(([status, files]) => {
+                    if(files.length === 0)
+                        return;
+
+                    const subtitle = document.createElement("h3");
+                    subtitle.innerText = status.at(0).toUpperCase() + status.slice(1);
+                    changesContainer.append(subtitle);
+
+                    const ul = document.createElement("ul");
+                    const lis = files.map(file => {
+                        const li = document.createElement("li");
+                        li.innerText = file;
+                        return li;
+                    })
+                    ul.append(...lis);
+                    changesContainer.append(ul);
+                });
+
+                const commitMessageInputLabel = document.createElement("label");
+                commitMessageInputLabel.innerText = "Commit Message";
+                changesContainer.append(commitMessageInputLabel);
+
+                const commitMessageInput = document.createElement("input");
+                changesContainer.append(commitMessageInput)
+
+                confirmButton.disabled = false;
+                confirmButton.addEventListener("click", async () => {
+                    await rpc().git.push(this.project, commitMessageInput.value);
+                    dialog.remove();
+                    const gitButton = this.container.querySelector(".git-btn");
+                    gitButton.replaceWith(await this.renderGitButton());
+                });
+            }
+        }
+
+        const buttonGroup = document.createElement("div");
+
+        const cancelButton = document.createElement("button");
+        cancelButton.classList.add("text");
+        cancelButton.innerText = "Close";
+        cancelButton.addEventListener("click", () => {
+            dialog.remove();
+        });
+        buttonGroup.append(cancelButton);
+
+        confirmButton.disabled = true;
+        confirmButton.innerText = "Push";
+        buttonGroup.append(confirmButton);
+
+        container.append(buttonGroup);
+
+        dialog.append(container);
+        this.container.append(dialog);
+
+        setTimeout(getChanges, 500);
+    }
+
     private async renderToolbar() {
         const container = document.createElement("div");
         container.classList.add("top-bar");
@@ -323,12 +444,7 @@ export class Project {
         leftSide.append(projectTitle);
 
         if (this.project.gitRepository) {
-            const branchNameContainer = document.createElement("div");
-            branchNameContainer.innerHTML =
-                (await (await fetch("assets/icons/git.svg")).text()) +
-                    " " +
-                    (await rpc().git.currentBranch(this.project)) || "DETACHED";
-            leftSide.append(branchNameContainer);
+            leftSide.append(await this.renderGitButton());
         }
 
         container.append(leftSide);

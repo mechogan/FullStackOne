@@ -7,6 +7,7 @@ import { Projects } from "./views/projects";
 import type typeRPC from "../../src/webview";
 import type api from "../api";
 import { EsbuildInstall } from "./views/esbuild";
+import { GitAuth } from "./views/git-auth";
 declare var rpc: typeof typeRPC<typeof api>;
 
 const main = document.querySelector("main") as HTMLElement;
@@ -16,6 +17,9 @@ await rpc().config.init();
 const esbuildInstall = await rpc().esbuild.checkInstall();
 
 const app = async () => {
+    const gitAuth = new GitAuth();
+    (window as any).onPush["gitAuth"] = gitAuth.receivedMessage;
+
     const projectsView = new Projects();
     projectsView.newProjectAction = async () => {
         clearView();

@@ -28,7 +28,7 @@ struct WindowView: View {
             HStack {
                 
                 Button {
-                    self.webview.wkWebView.reload()
+                    self.webview.js.webview!.reload()
                     RunningProject.instance!.jsLogs = ""
                 } label: {
                     Image(systemName: "arrow.clockwise")

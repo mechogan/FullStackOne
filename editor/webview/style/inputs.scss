@@ -37,9 +37,27 @@ button {
     align-items: center;
     justify-content: center;
 
+    & svg {
+        height: 24px;
+        width: 24px;
+    }
+
     &.text-and-icon {
-        svg {
+        svg:last-child {
             margin-left: spacing(0.5);
+        }
+        svg:first-child {
+            margin-right: spacing(0.5);
+        }
+    }
+
+    &:disabled {
+        background-color: darkgrey;
+        border-color: darkgray;
+        color: gray;
+        cursor: default;
+        &:active {
+            background-color: darkgray;
         }
     }
 

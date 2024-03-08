@@ -34,13 +34,17 @@ export class ProjectNew {
         container.append(gitRepoInputLabel);
 
         const gitRepoInput = document.createElement("input");
-        gitRepoInput.addEventListener("keypress", () => {
+        const changeCreateButtonLabel = () => {
             if (gitRepoInput.value) {
                 createButton.innerText = "Clone";
             } else {
                 createButton.innerText = "Create";
             }
-        });
+        };
+        gitRepoInput.addEventListener("keyup", changeCreateButtonLabel);
+        gitRepoInput.addEventListener("keypress", changeCreateButtonLabel);
+        gitRepoInput.addEventListener("change", changeCreateButtonLabel);
+        
         container.append(gitRepoInput);
 
         // location
