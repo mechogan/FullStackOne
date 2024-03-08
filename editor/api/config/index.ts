@@ -11,7 +11,7 @@ export const configdir = ".config/fullstacked";
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[];
-    [CONFIG_TYPE.GIT]: GitAuths
+    [CONFIG_TYPE.GIT]: GitAuths;
 };
 
 export default {

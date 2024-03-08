@@ -44,7 +44,7 @@ export class ProjectNew {
         gitRepoInput.addEventListener("keyup", changeCreateButtonLabel);
         gitRepoInput.addEventListener("keypress", changeCreateButtonLabel);
         gitRepoInput.addEventListener("change", changeCreateButtonLabel);
-        
+
         container.append(gitRepoInput);
 
         // location
@@ -122,16 +122,24 @@ export class ProjectNew {
                 "/"
             );
 
-            if (gitRepoInput.value) {
-                await rpc().git.clone(gitRepoInput.value, location);
+            const project: Omit<Project, "createdDate"> = {
+                title: titleInput.value,
+                location
+            };
+
+            const gitUrl = gitRepoInput.value;
+            if (gitUrl) {
+                await rpc().git.clone(gitUrl, location);
+                const usernameAndEmail =
+                    await rpc().git.getUsernameAndEmailForHost(gitUrl);
+                project.gitRepository = {
+                    url: gitUrl,
+                    name: usernameAndEmail?.username,
+                    email: usernameAndEmail?.email
+                };
             }
 
-            const project = await rpc().projects.create({
-                title: titleInput.value,
-                gitRepository: gitRepoInput.value || undefined,
-                location
-            });
-            this.didCreateProjectAction(project);
+            this.didCreateProjectAction(await rpc().projects.create(project));
         });
         buttonContainer.append(createButton);
 

@@ -3,7 +3,7 @@ import type { fs as globalFS } from "../../../src/api/fs";
 import type { fetch as globalFetch } from "../../../src/api/fetch";
 import { Buffer as globalBuffer } from "buffer";
 import { Project } from "../projects/types";
-import URL from "url-parse"
+import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 
@@ -48,22 +48,24 @@ const http = {
     }
 };
 
-function parseChangesMatrix(changesMatrix: Awaited<ReturnType<typeof git.statusMatrix>>) {
+function parseChangesMatrix(
+    changesMatrix: Awaited<ReturnType<typeof git.statusMatrix>>
+) {
     let changes = {
-        "added": [],
-        "modified": [],
-        "deleted": []
+        added: [],
+        modified: [],
+        deleted: []
     };
 
     // https://isomorphic-git.org/docs/en/statusMatrix
-    changesMatrix.forEach(item => {
+    changesMatrix.forEach((item) => {
         const path = item[0];
         if (item[1] === 0) {
             changes["added"].push(path);
         } else {
-            if(item[2] === 2) {
+            if (item[2] === 2) {
                 changes["modified"].push(path);
-            } else if(item[2] === 0) {
+            } else if (item[2] === 0) {
                 changes["deleted"].push(path);
             }
         }
@@ -73,40 +75,60 @@ function parseChangesMatrix(changesMatrix: Awaited<ReturnType<typeof git.statusM
 }
 
 async function getParsedChanges(project: Project) {
-    return parseChangesMatrix(await git.statusMatrix({
-        fs,
-        dir: project.location
-    }))
+    return parseChangesMatrix(
+        await git.statusMatrix({
+            fs,
+            dir: project.location
+        })
+    );
 }
 
 // hostname => onAuthPromises
-const gitAuthPromiseResolveCallbacks = new Map<string, ((auth: {username: string, password: string}) => void)[]>()
+const gitAuthPromiseResolveCallbacks = new Map<
+    string,
+    ((auth: { username: string; password: string; email: string }) => void)[]
+>();
 
 const requestGitAuth = async (url: string) => {
     const { hostname } = new URL(url);
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
-    if(gitAuths?.[hostname]){
+    if (gitAuths?.[hostname]) {
         return gitAuths?.[hostname];
     }
-    
-    const auth = await new Promise<{username: string, password: string}>(resolve => {
-        gitAuthPromiseResolveCallbacks.set(hostname, [resolve]);
-        push("gitAuth", JSON.stringify({ hostname }));
-    });
+
+    const auth = await new Promise<{ username: string; password: string }>(
+        (resolve) => {
+            gitAuthPromiseResolveCallbacks.set(hostname, [resolve]);
+            push("gitAuth", JSON.stringify({ hostname }));
+        }
+    );
 
     gitAuths[hostname] = auth;
     await config.save(CONFIG_TYPE.GIT, gitAuths);
 
     return auth;
-}
+};
 
 export default {
-    auth(hostname: string, username: string, password: string){
-        const gitAuthPromiseResolves = gitAuthPromiseResolveCallbacks.get(hostname);
-        if(!gitAuthPromiseResolves)
-            return;
+    auth(hostname: string, username: string, password: string, email: string) {
+        const gitAuthPromiseResolves =
+            gitAuthPromiseResolveCallbacks.get(hostname);
+        if (!gitAuthPromiseResolves) return;
 
-        gitAuthPromiseResolves.forEach(resolver => resolver({ username, password }));
+        gitAuthPromiseResolves.forEach((resolver) =>
+            resolver({ username, password, email })
+        );
+    },
+    async getUsernameAndEmailForHost(url: string) {
+        const { hostname } = new URL(url);
+        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+        const gitAuth = gitAuths?.[hostname];
+        if (!gitAuth) return null;
+
+        return {
+            username: gitAuth.username,
+            email: gitAuth.email
+        };
     },
     currentBranch(project: Project) {
         return git.currentBranch({
@@ -119,12 +141,25 @@ export default {
             fs,
             depth,
             dir: project.location
-        })
+        });
     },
     changes(project: Project) {
-        return getParsedChanges(project)
+        return getParsedChanges(project);
     },
-    async push(project: Project, commitMessage: string){
+    async pull(project: Project) {
+        return git.pull({
+            fs,
+            http,
+            dir: project.location,
+            singleBranch: true,
+            author: {
+                name: project.gitRepository.name,
+                email: project.gitRepository.email
+            },
+            onAuth: requestGitAuth
+        });
+    },
+    async push(project: Project, commitMessage: string) {
         const changes = await getParsedChanges(project);
         await git.add({
             fs,
@@ -134,7 +169,11 @@ export default {
         await git.commit({
             fs,
             dir: project.location,
-            message: commitMessage
+            message: commitMessage,
+            author: {
+                name: project.gitRepository.name,
+                email: project.gitRepository.email
+            }
         });
         return git.push({
             fs,
