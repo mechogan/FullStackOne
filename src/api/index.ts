@@ -86,7 +86,7 @@ export default async (
         Object.assign(methods, userMethods)
     ) as any;
 
-    if (typeof method === "object" && method.hasOwnProperty("")) {
+    if (typeof method === "object" && method?.hasOwnProperty("")) {
         method = method[""];
     }
 
@@ -104,8 +104,8 @@ export default async (
         let type = "text/plain";
         if (
             typeof responseBody === "object" &&
-            responseBody.hasOwnProperty("type") &&
-            responseBody.hasOwnProperty("body")
+            responseBody?.hasOwnProperty("type") &&
+            responseBody?.hasOwnProperty("body")
         ) {
             type = responseBody.type;
             responseBody = responseBody.body;

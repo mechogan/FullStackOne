@@ -188,6 +188,8 @@ export default {
         return getParsedChanges(project);
     },
     async pull(project: Project) {
+        if (!project.gitRepository.name) return;
+
         return git.pull({
             fs,
             http,

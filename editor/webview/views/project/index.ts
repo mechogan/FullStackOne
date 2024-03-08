@@ -8,6 +8,7 @@ import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
 import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
+import git from "../../../api/git";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -324,7 +325,7 @@ export class Project {
         commitContainer.innerText = currentCommit.slice(0, 7);
         this.gitBtn.append(commitContainer);
 
-        if (pull) {
+        if (pull && this.project.gitRepository.name) {
             const pullIcon = document.createElement("div");
             pullIcon.classList.add("pull");
             pullIcon.innerHTML = arrowIcon;
@@ -334,6 +335,15 @@ export class Project {
                 await rpc().git.pull(this.project);
                 this.gitBtn.replaceWith(await this.renderGitButton());
             }, 500);
+        }
+
+        if (!this.project.gitRepository.name) {
+            const alertIcon = document.createElement("div");
+            alertIcon.classList.add("alert");
+            alertIcon.innerHTML = await (
+                await fetch("assets/icons/alert.svg")
+            ).text();
+            this.gitBtn.prepend(alertIcon);
         }
 
         return this.gitBtn;
@@ -371,11 +381,18 @@ export class Project {
             (await fetch("assets/icons/check.svg")).text()
         ]);
 
-        const renderAuthorInputs = () => {
+        const renderAuthorInputs = async () => {
             authorContainer.innerHTML = `
                 ${userIcon}`;
 
             const form = document.createElement("form");
+
+            if (!this.project.gitRepository.name) {
+                const alert = document.createElement("p");
+                alert.innerHTML = `${await (await fetch("assets/icons/alert.svg")).text()}
+                    No git user.name`;
+                form.append(alert);
+            }
 
             const nameLabel = document.createElement("label");
             nameLabel.innerText = "Name";
@@ -398,22 +415,28 @@ export class Project {
 
             const confirmButton = document.createElement("button");
             confirmButton.classList.add("text");
-            confirmButton.addEventListener("click", () => {
+            confirmButton.addEventListener("click", async () => {
                 this.project.gitRepository.name = nameInput.value;
                 this.project.gitRepository.email = emailInput.value;
                 renderAuthorInfo();
-                rpc().projects.update(this.project);
+                await rpc().projects.update(this.project);
+                this.gitBtn.replaceWith(await this.renderGitButton());
             });
             confirmButton.innerHTML = checkIcon;
             buttonGroup.append(confirmButton);
 
-            const cancelButton = document.createElement("button");
-            cancelButton.classList.add("text", "danger");
-            cancelButton.addEventListener("click", () => {
-                renderAuthorInfo();
-            });
-            cancelButton.innerHTML = closeIcon;
-            buttonGroup.append(cancelButton);
+            if (this.project.gitRepository.name) {
+                const cancelButton = document.createElement("button");
+                cancelButton.classList.add("text", "danger");
+                cancelButton.addEventListener("click", () => {
+                    renderAuthorInfo();
+                });
+                cancelButton.innerHTML = closeIcon;
+                buttonGroup.append(cancelButton);
+            } else {
+                const filler = document.createElement("div");
+                buttonGroup.append(filler);
+            }
 
             form.append(buttonGroup);
 
@@ -429,9 +452,7 @@ export class Project {
                 </div>`;
 
             const editButton = document.createElement("button");
-            editButton.addEventListener("click", () => {
-                renderAuthorInputs();
-            });
+            editButton.addEventListener("click", () => renderAuthorInputs());
             editButton.classList.add("small", "text");
             editButton.innerHTML = editIcon;
             authorContainer.append(editButton);
@@ -443,7 +464,7 @@ export class Project {
         ) {
             await renderAuthorInfo();
         } else {
-            renderAuthorInputs();
+            await renderAuthorInputs();
         }
 
         const confirmButton = document.createElement("button");
