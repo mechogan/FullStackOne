@@ -1,0 +1,224 @@
+@import "../../../style/colors";
+@import "../../../style/breakpoints";
+@import "../../../style/typography";
+@import "../../../style/border";
+@import "../../../style/spacing";
+
+.git-btn {
+    position: relative;
+    display: grid;
+    grid-template-areas:
+        "icon branch"
+        "icon commit";
+    text-align: left;
+    grid-template-columns: 32px auto;
+    @media screen and (max-width: $break-sm) {
+        grid-template-columns: 24px auto;
+    }
+    svg {
+        grid-area: icon;
+        margin: 0 !important;
+    }
+    > .branch {
+        grid-area: branch;
+        margin-top: -4px;
+        @media screen and (max-width: $break-sm) {
+            display: none;
+        }
+    }
+    > .commit {
+        grid-area: commit;
+        font-size: $font-size-s;
+        margin-top: -2px;
+        margin-bottom: -3px;
+        opacity: 0.8;
+        @media screen and (max-width: $break-sm) {
+            display: none;
+        }
+    }
+
+    .push,
+    .pull,
+    .alert {
+        position: absolute;
+        z-index: 1;
+        left: 30px;
+        height: 20px;
+        top: 5px;
+        svg {
+            height: 100%;
+            width: 100%;
+        }
+    }
+
+    .pull {
+        transform: rotate(45deg);
+        color: $green;
+    }
+
+    .push {
+        transform: rotate(225deg);
+        color: $red;
+    }
+
+    .alert {
+        background-color: colorOpacity($red, 0.2);
+        border-radius: 50%;
+        color: $red;
+        left: 32px;
+        top: 3px;
+        height: 16px;
+        width: 16px;
+    }
+}
+
+.git-dialog {
+    header {
+        display: grid;
+        grid-template-columns: 45px auto 65px;
+        grid-template-areas:
+            "icon url button"
+            "icon branch button"
+            "icon commit button";
+
+        > svg {
+            grid-area: icon;
+            align-self: center;
+            height: 32px;
+            width: 32px;
+        }
+        > a {
+            grid-area: url;
+            white-space: nowrap;
+            color: colorOpacity(white, 0.7);
+            font-size: $font-size-s;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            &:hover {
+                color: colorOpacity(white, 1);
+            }
+        }
+        > div:nth-child(3) {
+            grid-area: branch;
+        }
+        > div:nth-child(4) {
+            grid-area: commit;
+            font-size: $font-size-s;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        > button {
+            grid-area: button;
+            align-self: center;
+        }
+    }
+    > .author {
+        display: flex;
+        font-size: $font-size-s;
+        grid-template-columns: 45px auto 45px;
+        background-color: colorOpacity(white, 0.1);
+        margin: spacing() 0;
+        padding: spacing();
+        border-radius: $border-radius;
+        border: $border-width solid colorOpacity(white, 0.3);
+        > svg {
+            align-self: center;
+            justify-self: center;
+            margin-right: spacing();
+        }
+        > *:nth-child(2) {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            > input {
+                margin-bottom: spacing();
+            }
+        }
+        form {
+            > p {
+                svg {
+                    color: $red;
+                    vertical-align: middle;
+                    height: 18px;
+                    width: 18px;
+                }
+                margin-top: 0;
+                display: flex;
+                align-items: center;
+                gap: spacing(0.5);
+            }
+            > div:last-child {
+                display: flex;
+                flex-direction: row-reverse;
+                > * {
+                    flex: 1;
+                }
+            }
+        }
+    }
+
+    > .changes {
+        display: flex;
+        flex-direction: column;
+        padding: spacing() 0;
+    }
+    > .button-group {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+
+.branches {
+    > div:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        > div {
+            display: flex;
+            align-items: center;
+        }
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        .button-group {
+            display: flex;
+            flex-direction: row-reverse;
+            margin-top: spacing();
+            > button {
+                flex: 1
+            }
+        }
+    }
+
+    form, ul > li {
+        background-color: colorOpacity(white, 0.1);
+        margin: spacing() 0;
+        padding: spacing();
+        border-radius: $border-radius;
+        border: $border-width solid colorOpacity(white, 0.3);
+    }
+
+    ul {
+        padding-left: 0;
+        margin: 0;
+        li {
+            display: flex;
+            align-items: center;
+            min-height: 60px;
+            svg {
+                transform: rotate(-90deg);
+            }
+            > *:first-child {
+                min-width: 24px;
+                margin-right: spacing(0.5);
+            }
+            > div:nth-child(2) {
+                flex: 1
+            }
+        }
+    }
+}

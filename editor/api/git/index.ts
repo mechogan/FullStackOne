@@ -7,6 +7,7 @@ import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
+import { dir } from "console";
 
 declare var fs: typeof globalFS;
 declare var fetch: typeof globalFetch;
@@ -251,6 +252,43 @@ export default {
             depth: 1,
             onAuth: requestGitAuth
         });
+    },
+    checkout(project: Project, branchOrCommit: string) {
+        return git.checkout({
+            fs,
+            dir: project.location,
+            ref: branchOrCommit
+        });
+    },
+    branch: {
+        async getAll(project: Project){
+            await git.fetch({
+                fs,
+                http,
+                dir: project.location,
+                prune: true,
+                onAuth: requestGitAuth
+            })
+            return git.listBranches({
+                fs,
+                dir: project.location,
+                remote: "origin"
+            })
+        },
+        async create(project: Project, branch: string){
+            await git.branch({
+                fs,
+                dir: project.location,
+                ref: branch,
+                checkout: true
+            });
+            return git.push({
+                fs,
+                http,
+                dir: project.location,
+                onAuth: requestGitAuth
+            })
+        }
     },
     github
 };
