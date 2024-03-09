@@ -325,25 +325,26 @@ export class Project {
         commitContainer.innerText = currentCommit.slice(0, 7);
         this.gitBtn.append(commitContainer);
 
-        if (pull && this.project.gitRepository.name) {
+        if (pull) {
             const pullIcon = document.createElement("div");
             pullIcon.classList.add("pull");
             pullIcon.innerHTML = arrowIcon;
             this.gitBtn.prepend(pullIcon);
 
             setTimeout(async () => {
-                await rpc().git.pull(this.project);
-                this.gitBtn.replaceWith(await this.renderGitButton());
+                const maybeError = await rpc().git.pull(this.project);
+                pullIcon.remove();
+                if(maybeError && maybeError?.error) {
+                    const alertIcon = document.createElement("div");
+                    alertIcon.classList.add("alert");
+                    alertIcon.innerHTML = await (
+                        await fetch("assets/icons/alert.svg")
+                    ).text();
+                    this.gitBtn.prepend(alertIcon);
+                } else {
+                    this.gitBtn.replaceWith(await this.renderGitButton());
+                }
             }, 500);
-        }
-
-        if (!this.project.gitRepository.name) {
-            const alertIcon = document.createElement("div");
-            alertIcon.classList.add("alert");
-            alertIcon.innerHTML = await (
-                await fetch("assets/icons/alert.svg")
-            ).text();
-            this.gitBtn.prepend(alertIcon);
         }
 
         return this.gitBtn;

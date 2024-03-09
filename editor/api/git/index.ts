@@ -6,6 +6,7 @@ import { Project } from "../projects/types";
 import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
+import github from "./github";
 
 declare var fs: typeof globalFS;
 declare var fetch: typeof globalFetch;
@@ -106,44 +107,46 @@ const requestGitAuth = async (url: string) => {
     return auth;
 };
 
+export async function auth(
+    hostname: string,
+    username: string,
+    email: string,
+    password: string
+) {
+    hostname = hostname.includes("://")
+        ? new URL(hostname).hostname
+        : hostname;
+
+    const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+
+    // exists
+    if (gitAuths?.[hostname]) {
+        gitAuths[hostname] = {
+            password: gitAuths[hostname].password,
+            username,
+            email
+        };
+    }
+    // new
+    else {
+        gitAuths[hostname] = {
+            username,
+            email,
+            password
+        };
+    }
+    await config.save(CONFIG_TYPE.GIT, gitAuths);
+
+    const gitAuthPromiseResolves =
+        gitAuthPromiseResolveCallbacks.get(hostname);
+
+    gitAuthPromiseResolves?.forEach((resolver) =>
+        resolver({ username, password })
+    );
+}
+
 export default {
-    async auth(
-        hostname: string,
-        username: string,
-        email: string,
-        password: string
-    ) {
-        hostname = hostname.includes("://")
-            ? new URL(hostname).hostname
-            : hostname;
-
-        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
-
-        // exists
-        if (gitAuths?.[hostname]) {
-            gitAuths[hostname] = {
-                password: gitAuths[hostname].password,
-                username,
-                email
-            };
-        }
-        // new
-        else {
-            gitAuths[hostname] = {
-                username,
-                email,
-                password
-            };
-        }
-        await config.save(CONFIG_TYPE.GIT, gitAuths);
-
-        const gitAuthPromiseResolves =
-            gitAuthPromiseResolveCallbacks.get(hostname);
-
-        gitAuthPromiseResolves?.forEach((resolver) =>
-            resolver({ username, password })
-        );
-    },
+    auth,
     async getAllAuths() {
         const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
@@ -188,19 +191,35 @@ export default {
         return getParsedChanges(project);
     },
     async pull(project: Project) {
-        if (!project.gitRepository.name) return;
+        const changes = await getParsedChanges(project);
 
-        return git.pull({
-            fs,
-            http,
-            dir: project.location,
-            singleBranch: true,
-            author: {
-                name: project.gitRepository.name,
-                email: project.gitRepository.email
-            },
-            onAuth: requestGitAuth
-        });
+        if (Object.values(changes).some(arr => arr.length !== 0)) {
+            if(!project.gitRepository.name) {
+                return {
+                    error: "No git user.name"
+                };
+            }
+
+            return git.pull({
+                fs,
+                http,
+                dir: project.location,
+                singleBranch: true,
+                author: {
+                    name: project.gitRepository.name,
+                    email: project.gitRepository.email
+                },
+                onAuth: requestGitAuth
+            });
+        } else {
+            return git.fastForward({
+                fs,
+                http,
+                dir: project.location,
+                singleBranch: true,
+                onAuth: requestGitAuth
+            })
+        }
     },
     async push(project: Project, commitMessage: string) {
         const changes = await getParsedChanges(project);
@@ -235,5 +254,6 @@ export default {
             depth: 1,
             onAuth: requestGitAuth
         });
-    }
+    },
+    github
 };

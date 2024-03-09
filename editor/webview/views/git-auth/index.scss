@@ -1,4 +1,7 @@
 @import "../../style/spacing";
+@import "../../style/border";
+@import "../../style/colors";
+@import "../../style/typography";
 
 .git-auth {
     p {
@@ -19,6 +22,30 @@
         flex-direction: row-reverse;
         button {
             flex: 1;
+        }
+    }
+}
+
+.github-device-flow {
+    .code {
+        align-items: center;
+        > span {
+            font-size: $font-size-xl;
+            background-color: colorOpacity(white, 0.1);
+            padding: spacing();
+            border-radius: $border-radius;
+            border: $border-width solid colorOpacity(white, 0.3);
+        }
+        button.copied {
+            color: $green;
+        }
+    }
+    li {
+        margin-top: spacing(3);
+        > .code, > a {
+            display: flex;
+            margin-top: spacing();
+            text-decoration: none;
         }
     }
 }

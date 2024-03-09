@@ -6,6 +6,96 @@ import type api from "../../../api";
 declare var rpc: typeof typeRPC<typeof api>;
 
 export class GitAuth {
+    private static async githubDeviceFlow(done: () => void) {
+        const container = document.createElement("div");
+        container.classList.add("github-device-flow")
+
+        const start: {
+            device_code: string,
+            expires_in: number,
+            interval: number,
+            user_code: string,
+            verification_uri: string
+        } = JSON.parse(await rpc().git.github.deviceFlowStart());
+
+        const ol = document.createElement("ol");
+
+        const step1 = document.createElement("li");
+        step1.innerHTML = `<div>Copy this code</div>`;
+
+        const code = document.createElement("div");
+        code.classList.add("code")
+        code.innerHTML = `<span>${start.user_code}</span>`;
+        const copyToClip = document.createElement("button");
+
+        const [
+            copyIcon,
+            checkIcon
+        ] = await Promise.all([
+            (await fetch("assets/icons/copy.svg")).text(),
+            (await fetch("assets/icons/check.svg")).text(),
+        ])
+        copyToClip.addEventListener("click", () => {
+            copyToClipboard(start.user_code);
+            copyToClip.innerHTML = checkIcon;
+            copyToClip.classList.add("copied");
+        })
+        copyToClip.classList.add("text");
+        copyToClip.innerHTML = copyIcon; 
+        code.append(copyToClip);
+
+        step1.append(code);
+
+        ol.append(step1);
+
+        const step2 = document.createElement("li");
+        step2.innerHTML = `<div>Go to <a href="${start.verification_uri}" target="_blank">${start.verification_uri}</a> to verify.</div>
+        <a href="${start.verification_uri}" target="_blank"><button>Verify</button></a>`;
+
+        ol.append(step2);
+
+        const step3 = document.createElement("li");
+        ol.append(step3);
+
+        let waitTime = start.interval;
+        const startPolling = async () => {
+            let authenticated = false;
+
+            while(!authenticated) {
+                step3.innerText = `Validating authentication in ${waitTime}s...`;
+                await sleep(1000);
+                waitTime--;
+
+                if(waitTime === 0) {
+
+                    step3.innerText = `Validating authentication...`;
+
+                    const poll = await rpc().git.github.deviceFlowPoll(start.device_code);
+
+                    if(!poll){
+                        authenticated = true;
+                        step3.innerText = `Authenticated`;
+                        break;
+                    } else if(poll.error) {
+                        step3.innerText = poll.error;
+                        return;
+                    }
+                    
+                    waitTime = poll.wait || start.interval
+                }
+            }
+
+            done();
+        }
+
+
+        container.append(ol);
+
+        startPolling();
+
+        return container;
+    }
+
     static async renderGitAuthForm(
         done: () => void,
         auth?: {
@@ -15,6 +105,10 @@ export class GitAuth {
         },
         create = true
     ) {
+        if(auth?.host === "github.com" && create) {
+            return this.githubDeviceFlow(done);
+        }
+
         const form = document.createElement("form");
         form.classList.add("git-form");
 
@@ -123,4 +217,16 @@ export class GitAuth {
 
         document.body.append(dialog);
     }
+}
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function copyToClipboard(str: string) {
+    const input = document.createElement('textarea');
+    input.innerHTML = str;
+    document.body.appendChild(input);
+    input.select();
+    const result = document.execCommand('copy');
+    document.body.removeChild(input);
+    return result;
 }
