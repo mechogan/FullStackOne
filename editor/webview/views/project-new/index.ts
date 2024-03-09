@@ -92,6 +92,11 @@ export class ProjectNew {
                 title
             };
 
+            cancelButton.replaceWith(document.createElement("div"));
+            createButton.replaceWith(document.createElement("div"));
+            importButton.innerText = "Importing...";
+            importButton.disabled = true;
+
             const importedProject = await rpc().projects.import(
                 project,
                 new Uint8Array(await zipFile.arrayBuffer())
@@ -129,6 +134,11 @@ export class ProjectNew {
 
             const gitUrl = gitRepoInput.value;
             if (gitUrl) {
+                cancelButton.replaceWith(document.createElement("div"));
+                importButton.replaceWith(document.createElement("div"));
+                createButton.innerText = "Cloning...";
+                createButton.disabled = true;
+
                 await rpc().git.clone(gitUrl, location);
                 const usernameAndEmail =
                     await rpc().git.getUsernameAndEmailForHost(gitUrl);
