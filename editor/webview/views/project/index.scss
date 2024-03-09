@@ -185,15 +185,16 @@ $transition: 0.3s all;
         }
         > .branch {
             grid-area: branch;
-            font-size: $font-size-s;
+            margin-top: -4px;
             @media screen and (max-width: $break-sm) {
                 display: none;
             }
         }
         > .commit {
             grid-area: commit;
-            font-size: $font-size-xs;
+            font-size: $font-size-s;
             margin-top: -2px;
+            margin-bottom: -3px;
             opacity: 0.8;
             @media screen and (max-width: $break-sm) {
                 display: none;
