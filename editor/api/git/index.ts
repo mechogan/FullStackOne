@@ -113,9 +113,7 @@ export async function auth(
     email: string,
     password: string
 ) {
-    hostname = hostname.includes("://")
-        ? new URL(hostname).hostname
-        : hostname;
+    hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
@@ -137,8 +135,7 @@ export async function auth(
     }
     await config.save(CONFIG_TYPE.GIT, gitAuths);
 
-    const gitAuthPromiseResolves =
-        gitAuthPromiseResolveCallbacks.get(hostname);
+    const gitAuthPromiseResolves = gitAuthPromiseResolveCallbacks.get(hostname);
 
     gitAuthPromiseResolves?.forEach((resolver) =>
         resolver({ username, password })
@@ -193,8 +190,8 @@ export default {
     async pull(project: Project) {
         const changes = await getParsedChanges(project);
 
-        if (Object.values(changes).some(arr => arr.length !== 0)) {
-            if(!project.gitRepository.name) {
+        if (Object.values(changes).some((arr) => arr.length !== 0)) {
+            if (!project.gitRepository.name) {
                 return {
                     error: "No git user.name"
                 };
@@ -218,7 +215,7 @@ export default {
                 dir: project.location,
                 singleBranch: true,
                 onAuth: requestGitAuth
-            })
+            });
         }
     },
     async push(project: Project, commitMessage: string) {

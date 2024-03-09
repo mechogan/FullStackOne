@@ -42,7 +42,8 @@
     }
     li {
         margin-top: spacing(3);
-        > .code, > a {
+        > .code,
+        > a {
             display: flex;
             margin-top: spacing();
             text-decoration: none;

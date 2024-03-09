@@ -8,14 +8,14 @@ declare var rpc: typeof typeRPC<typeof api>;
 export class GitAuth {
     private static async githubDeviceFlow(done: () => void) {
         const container = document.createElement("div");
-        container.classList.add("github-device-flow")
+        container.classList.add("github-device-flow");
 
         const start: {
-            device_code: string,
-            expires_in: number,
-            interval: number,
-            user_code: string,
-            verification_uri: string
+            device_code: string;
+            expires_in: number;
+            interval: number;
+            user_code: string;
+            verification_uri: string;
         } = JSON.parse(await rpc().git.github.deviceFlowStart());
 
         const ol = document.createElement("ol");
@@ -24,24 +24,21 @@ export class GitAuth {
         step1.innerHTML = `<div>Copy this code</div>`;
 
         const code = document.createElement("div");
-        code.classList.add("code")
+        code.classList.add("code");
         code.innerHTML = `<span>${start.user_code}</span>`;
         const copyToClip = document.createElement("button");
 
-        const [
-            copyIcon,
-            checkIcon
-        ] = await Promise.all([
+        const [copyIcon, checkIcon] = await Promise.all([
             (await fetch("assets/icons/copy.svg")).text(),
-            (await fetch("assets/icons/check.svg")).text(),
-        ])
+            (await fetch("assets/icons/check.svg")).text()
+        ]);
         copyToClip.addEventListener("click", () => {
             copyToClipboard(start.user_code);
             copyToClip.innerHTML = checkIcon;
             copyToClip.classList.add("copied");
-        })
+        });
         copyToClip.classList.add("text");
-        copyToClip.innerHTML = copyIcon; 
+        copyToClip.innerHTML = copyIcon;
         code.append(copyToClip);
 
         step1.append(code);
@@ -61,33 +58,33 @@ export class GitAuth {
         const startPolling = async () => {
             let authenticated = false;
 
-            while(!authenticated) {
+            while (!authenticated) {
                 step3.innerText = `Validating authentication in ${waitTime}s...`;
                 await sleep(1000);
                 waitTime--;
 
-                if(waitTime === 0) {
-
+                if (waitTime === 0) {
                     step3.innerText = `Validating authentication...`;
 
-                    const poll = await rpc().git.github.deviceFlowPoll(start.device_code);
+                    const poll = await rpc().git.github.deviceFlowPoll(
+                        start.device_code
+                    );
 
-                    if(!poll){
+                    if (!poll) {
                         authenticated = true;
                         step3.innerText = `Authenticated`;
                         break;
-                    } else if(poll.error) {
+                    } else if (poll.error) {
                         step3.innerText = poll.error;
                         return;
                     }
-                    
-                    waitTime = poll.wait || start.interval
+
+                    waitTime = poll.wait || start.interval;
                 }
             }
 
             done();
-        }
-
+        };
 
         container.append(ol);
 
@@ -105,7 +102,7 @@ export class GitAuth {
         },
         create = true
     ) {
-        if(auth?.host === "github.com" && create) {
+        if (auth?.host === "github.com" && create) {
             return this.githubDeviceFlow(done);
         }
 
@@ -219,14 +216,14 @@ export class GitAuth {
     }
 }
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function copyToClipboard(str: string) {
-    const input = document.createElement('textarea');
+    const input = document.createElement("textarea");
     input.innerHTML = str;
     document.body.appendChild(input);
     input.select();
-    const result = document.execCommand('copy');
+    const result = document.execCommand("copy");
     document.body.removeChild(input);
     return result;
 }

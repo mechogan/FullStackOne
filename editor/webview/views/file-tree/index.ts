@@ -266,7 +266,7 @@ export class FileTree {
 
         const ul = this.itemSelected
             ? this.itemSelected.isDirectory
-                ? this.itemSelected.element
+                ? this.itemSelected.element.querySelector(":scope > ul")
                 : this.itemSelected.element.parentElement
             : this.ulRoot;
 

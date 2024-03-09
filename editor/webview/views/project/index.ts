@@ -334,7 +334,7 @@ export class Project {
             setTimeout(async () => {
                 const maybeError = await rpc().git.pull(this.project);
                 pullIcon.remove();
-                if(maybeError && maybeError?.error) {
+                if (maybeError && maybeError?.error) {
                     const alertIcon = document.createElement("div");
                     alertIcon.classList.add("alert");
                     alertIcon.innerHTML = await (
