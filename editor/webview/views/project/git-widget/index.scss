@@ -137,18 +137,6 @@
             }
         }
         form {
-            > p {
-                svg {
-                    color: $red;
-                    vertical-align: middle;
-                    height: 18px;
-                    width: 18px;
-                }
-                margin-top: 0;
-                display: flex;
-                align-items: center;
-                gap: spacing(0.5);
-            }
             > div:last-child {
                 display: flex;
                 flex-direction: row-reverse;
@@ -167,6 +155,19 @@
     > .button-group {
         display: flex;
         justify-content: space-between;
+    }
+
+    p.alert {
+        svg {
+            color: $red;
+            vertical-align: middle;
+            height: 18px;
+            width: 18px;
+        }
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: spacing(0.5);
     }
 }
 

@@ -7,7 +7,6 @@ import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
-import { dir } from "console";
 
 declare var fs: typeof globalFS;
 declare var fetch: typeof globalFetch;
@@ -190,10 +189,63 @@ export default {
             dir: project.location
         });
     },
-    changes(project: Project) {
-        return getParsedChanges(project);
+    async changes(project: Project) {
+        let unreacheable = false;
+        try {
+            await git.fetch({
+                fs,
+                http,
+                dir: project.location,
+                prune: true,
+                onAuth: requestGitAuth
+            });
+        } catch (e) {
+            // unreacheable
+            if (e.cause?.code == "ENOTFOUND") {
+                unreacheable = true;
+            }
+        }
+
+        return {
+            unreacheable,
+            changes: await getParsedChanges(project)
+        };
     },
     async pull(project: Project) {
+        try {
+            await git.fetch({
+                fs,
+                http,
+                dir: project.location,
+                prune: true,
+                onAuth: requestGitAuth
+            });
+        } catch (e) {
+            // unreacheable
+            if (e.cause?.code === "ENOTFOUND") {
+                return;
+            }
+
+            return e;
+        }
+
+        const [currentBranch, remoteBranches] = await Promise.all([
+            git.currentBranch({
+                fs,
+                dir: project.location
+            }),
+            git.listBranches({
+                fs,
+                dir: project.location,
+                remote: "origin"
+            })
+        ]);
+
+        // branch not on remote or detached
+        if (!currentBranch || !remoteBranches.includes(currentBranch)) {
+            return;
+        }
+
         const changes = await getParsedChanges(project);
 
         if (Object.values(changes).some((arr) => arr.length !== 0)) {

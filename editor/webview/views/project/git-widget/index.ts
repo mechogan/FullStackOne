@@ -249,6 +249,7 @@ export default class GitWidget {
 
             if (!this.project.gitRepository.name) {
                 const alert = document.createElement("p");
+                alert.classList.add("alert");
                 alert.innerHTML = `${await (await fetch("assets/icons/alert.svg")).text()}
                     No git user.name`;
                 form.append(alert);
@@ -335,8 +336,18 @@ export default class GitWidget {
         container.append(changesContainer);
 
         const getChanges = async () => {
-            const changes = await rpc().git.changes(this.project);
+            const { changes, unreacheable } = await rpc().git.changes(
+                this.project
+            );
             changesContainer.innerText = "";
+
+            if (unreacheable) {
+                const alert = document.createElement("p");
+                alert.classList.add("alert");
+                alert.innerHTML = `${await (await fetch("assets/icons/alert.svg")).text()}
+                    Remote is unreacheable`;
+                changesContainer.append(alert);
+            }
 
             const hasChanges = Object.values(changes).some(
                 (arr) => arr.length !== 0
@@ -370,7 +381,7 @@ export default class GitWidget {
                 const commitMessageInput = document.createElement("input");
                 changesContainer.append(commitMessageInput);
 
-                confirmButton.disabled = false;
+                confirmButton.disabled = unreacheable;
                 confirmButton.addEventListener("click", async () => {
                     dialog.remove();
 
