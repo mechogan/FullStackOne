@@ -82,8 +82,8 @@ async function getParsedChanges(project: Project) {
             fs,
             dir: project.location,
             // always ignore .build and data directories
-            filter: file => 
-                !file.startsWith(".build") && 
+            filter: (file) =>
+                !file.startsWith(".build") &&
                 !file.startsWith("data") &&
                 file !== project.title + ".zip"
         })
@@ -231,11 +231,15 @@ export default {
             dir: project.location,
             filepath: changes.added.concat(changes.modified)
         });
-        await Promise.all(changes.deleted.map(filepath => git.remove({
-            fs,
-            dir: project.location,
-            filepath
-        })))
+        await Promise.all(
+            changes.deleted.map((filepath) =>
+                git.remove({
+                    fs,
+                    dir: project.location,
+                    filepath
+                })
+            )
+        );
         await git.commit({
             fs,
             dir: project.location,
@@ -271,7 +275,7 @@ export default {
         });
     },
     branch: {
-        async getAll(project: Project){
+        async getAll(project: Project) {
             try {
                 await git.fetch({
                     fs,
@@ -279,13 +283,10 @@ export default {
                     dir: project.location,
                     prune: true,
                     onAuth: requestGitAuth
-                })
-            } catch(e) { }
+                });
+            } catch (e) {}
 
-            const [
-                local,
-                remote
-            ] = await Promise.all([
+            const [local, remote] = await Promise.all([
                 git.listBranches({
                     fs,
                     dir: project.location
@@ -295,11 +296,11 @@ export default {
                     dir: project.location,
                     remote: "origin"
                 })
-            ])
+            ]);
 
             return { local, remote };
         },
-        create(project: Project, branch: string){
+        create(project: Project, branch: string) {
             return git.branch({
                 fs,
                 dir: project.location,
@@ -307,12 +308,12 @@ export default {
                 checkout: true
             });
         },
-        delete(project: Project, branch: string){
+        delete(project: Project, branch: string) {
             return git.deleteBranch({
                 fs,
                 dir: project.location,
                 ref: branch
-            })
+            });
         }
     },
     github

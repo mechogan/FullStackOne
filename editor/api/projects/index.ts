@@ -129,7 +129,7 @@ export default {
                 (item) =>
                     !item.startsWith(project.location + "/data") &&
                     !item.startsWith(project.location + "/.build") &&
-                    !item.startsWith(project.location + "/.git") 
+                    !item.startsWith(project.location + "/.git")
             )
             // convert to relative path to project.location
             .map((item) => item.slice(project.location.length + 1));

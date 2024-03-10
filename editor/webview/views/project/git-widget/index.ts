@@ -14,7 +14,7 @@ export default class GitWidget {
 
     btn: HTMLButtonElement;
 
-    constructor(reloadContent: GitWidget["reloadContent"]){
+    constructor(reloadContent: GitWidget["reloadContent"]) {
         this.reloadContent = reloadContent;
     }
 
@@ -27,21 +27,23 @@ export default class GitWidget {
         return {
             branch: branch || "DETACHED",
             commit: commit?.at(0)?.oid || ""
-        }
+        };
     }
 
-    private async renderBranches(backAction: () => void){
+    private async renderBranches(backAction: () => void) {
         const container = document.createElement("div");
-        container.classList.add("branches")
+        container.classList.add("branches");
 
         const top = document.createElement("div");
 
-        const leftSide = document.createElement("div")
+        const leftSide = document.createElement("div");
 
         const backButton = document.createElement("button");
         backButton.classList.add("text");
         backButton.addEventListener("click", backAction);
-        backButton.innerHTML = await (await fetch("assets/icons/chevron.svg")).text();
+        backButton.innerHTML = await (
+            await fetch("assets/icons/chevron.svg")
+        ).text();
         leftSide.append(backButton);
 
         const title = document.createElement("h3");
@@ -55,17 +57,12 @@ export default class GitWidget {
 
         container.append(top);
 
-        const [
-            arrow,
-            check,
-            close,
-            deleteIcon
-        ] = await Promise.all([
+        const [arrow, check, close, deleteIcon] = await Promise.all([
             (await fetch("assets/icons/arrow.svg")).text(),
             (await fetch("assets/icons/check.svg")).text(),
             (await fetch("assets/icons/close.svg")).text(),
             (await fetch("assets/icons/delete.svg")).text()
-        ])
+        ]);
 
         const renderBranchForm = () => {
             createBranchButton.disabled = true;
@@ -81,7 +78,7 @@ export default class GitWidget {
 
             const buttonGroup = document.createElement("div");
             buttonGroup.classList.add("button-group");
-            
+
             const confirmButton = document.createElement("button");
             confirmButton.classList.add("text");
             confirmButton.innerHTML = check;
@@ -95,60 +92,63 @@ export default class GitWidget {
             cancelButton.addEventListener("click", () => {
                 form.remove();
                 createBranchButton.disabled = false;
-            })
+            });
 
-            form.addEventListener("submit", async e => {
+            form.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 form.innerHTML = `Creating <b>${branchNameInput.value}</b> branch...`;
-                await rpc().git.branch.create(this.project, branchNameInput.value);
+                await rpc().git.branch.create(
+                    this.project,
+                    branchNameInput.value
+                );
                 form.remove();
                 createBranchButton.disabled = false;
-                container.querySelector("ul").replaceWith(await renderBranchList());
+                container
+                    .querySelector("ul")
+                    .replaceWith(await renderBranchList());
                 this.btn.replaceWith(await this.renderButton());
-            })
+            });
 
             form.append(buttonGroup);
 
             return form;
-        }
+        };
 
         const formContainer = document.createElement("div");
         container.append(formContainer);
 
         createBranchButton.addEventListener("click", () => {
             formContainer.append(renderBranchForm());
-        })
-
+        });
 
         const renderBranchList = async () => {
-            const [
-                currentBranch,
-                branches
-            ] = await Promise.all([
+            const [currentBranch, branches] = await Promise.all([
                 rpc().git.currentBranch(this.project),
-                rpc().git.branch.getAll(this.project),
+                rpc().git.branch.getAll(this.project)
             ]);
 
             const ul = document.createElement("ul");
-            new Set(Object.values(branches).flat()).forEach(branch => {
-                if(branch === "HEAD") return;
+            new Set(Object.values(branches).flat()).forEach((branch) => {
+                if (branch === "HEAD") return;
 
                 const li = document.createElement("li");
 
-                const branchIsLocalOnly = branches.local.includes(branch) && !branches.remote.includes(branch);
+                const branchIsLocalOnly =
+                    branches.local.includes(branch) &&
+                    !branches.remote.includes(branch);
 
                 if (branch === currentBranch) {
                     const arrowContainer = document.createElement("span");
                     arrowContainer.innerHTML = arrow;
                     li.append(arrowContainer);
-                }  else if(branchIsLocalOnly) {
+                } else if (branchIsLocalOnly) {
                     const deleteButton = document.createElement("button");
                     deleteButton.classList.add("text", "danger", "small");
                     deleteButton.innerHTML = deleteIcon;
                     deleteButton.addEventListener("click", async () => {
                         await rpc().git.branch.delete(this.project, branch);
                         ul.replaceWith(await renderBranchList());
-                    })
+                    });
                     li.append(deleteButton);
                 } else {
                     li.append(document.createElement("div"));
@@ -165,26 +165,27 @@ export default class GitWidget {
                     li.append(localLabel);
                 }
 
-                if(branch !== currentBranch){
+                if (branch !== currentBranch) {
                     const checkoutButton = document.createElement("button");
                     checkoutButton.classList.add("text");
                     checkoutButton.innerText = "Checkout";
                     checkoutButton.addEventListener("click", async () => {
                         await rpc().git.checkout(this.project, branch);
                         ul.replaceWith(await renderBranchList());
-                        this.btn.replaceWith(await this.renderButton(!branchIsLocalOnly));
+                        this.btn.replaceWith(
+                            await this.renderButton(!branchIsLocalOnly)
+                        );
                         this.reloadContent();
-                    })
+                    });
                     li.append(checkoutButton);
                 }
 
                 ul.append(li);
-            })
+            });
 
             return ul;
-        }
+        };
 
-        
         setTimeout(async () => container.append(await renderBranchList()), 200);
 
         return container;
@@ -194,18 +195,19 @@ export default class GitWidget {
         icon: string,
         branch: string,
         commit: string,
-        elements?: {dialog: HTMLDivElement, container: HTMLDivElement}
+        elements?: { dialog: HTMLDivElement; container: HTMLDivElement }
     ) {
         const dialog = elements?.dialog || document.createElement("div");
         dialog.classList.add("dialog");
 
-        const [userIcon, editIcon, closeIcon, checkIcon, branchIcon] = await Promise.all([
-            (await fetch("assets/icons/user.svg")).text(),
-            (await fetch("assets/icons/edit.svg")).text(),
-            (await fetch("assets/icons/close.svg")).text(),
-            (await fetch("assets/icons/check.svg")).text(),
-            (await fetch("assets/icons/git-branch.svg")).text()
-        ]);
+        const [userIcon, editIcon, closeIcon, checkIcon, branchIcon] =
+            await Promise.all([
+                (await fetch("assets/icons/user.svg")).text(),
+                (await fetch("assets/icons/edit.svg")).text(),
+                (await fetch("assets/icons/close.svg")).text(),
+                (await fetch("assets/icons/check.svg")).text(),
+                (await fetch("assets/icons/git-branch.svg")).text()
+            ]);
 
         const container = elements?.container || document.createElement("div");
         container.classList.add("git-dialog");
@@ -217,20 +219,21 @@ export default class GitWidget {
             <a href="${remote}" target="_blank">${remote.slice(0, -".git".length)}</a>
             <div>${branch}</div>
             <div>${commit}</div>`;
-        
+
         const branchButton = document.createElement("button");
         branchButton.classList.add("text");
         branchButton.innerHTML = branchIcon;
         branchButton.addEventListener("click", async () => {
             container.innerHTML = "";
             const rerenderDialog = async () => {
-                const { branch, commit } = await this.getCurrentBranchAndCommit();
+                const { branch, commit } =
+                    await this.getCurrentBranchAndCommit();
                 container.innerHTML = "";
-                this.renderDialog(icon, branch, commit, {container, dialog});
-            }
-            container.append(await this.renderBranches(rerenderDialog))
-        })
-        gitInfo.append(branchButton)
+                this.renderDialog(icon, branch, commit, { container, dialog });
+            };
+            container.append(await this.renderBranches(rerenderDialog));
+        });
+        gitInfo.append(branchButton);
 
         container.append(gitInfo);
 
@@ -269,7 +272,7 @@ export default class GitWidget {
             form.append(emailInput);
 
             const buttonGroup = document.createElement("div");
-            buttonGroup.classList.add("button-group")
+            buttonGroup.classList.add("button-group");
 
             const confirmButton = document.createElement("button");
             confirmButton.classList.add("text");
@@ -392,7 +395,7 @@ export default class GitWidget {
         };
 
         const buttonGroup = document.createElement("div");
-        buttonGroup.classList.add("button-group")
+        buttonGroup.classList.add("button-group");
 
         const cancelButton = document.createElement("button");
         cancelButton.classList.add("text");
@@ -410,13 +413,12 @@ export default class GitWidget {
 
         dialog.append(container);
 
-        if(!elements)
-            this.parentContainer.append(dialog);
+        if (!elements) this.parentContainer.append(dialog);
 
         setTimeout(getChanges, 500);
     }
 
-    async renderButton(pull = false){
+    async renderButton(pull = false) {
         if (!this.project.gitRepository) {
             return document.createElement("div");
         }

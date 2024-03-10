@@ -181,24 +181,25 @@ export class Project {
         };
     }
 
-    async reloadContent(){
+    async reloadContent() {
         const fileTree = this.fileTree.element;
         this.fileTree.element = await this.fileTree.instance.render();
         fileTree.replaceWith(this.fileTree.element);
 
         const editors = [];
-        const removeOrUpdate = (editor: Editor) => new Promise<void>(async resolve => {
-            const exists = await rpc().fs.exists(editor.filePath.join("/"));
-            if (exists) {
-                editors.push(editor);
-                await editor.loadFileContents();
-            }
-            resolve();
-        })
+        const removeOrUpdate = (editor: Editor) =>
+            new Promise<void>(async (resolve) => {
+                const exists = await rpc().fs.exists(editor.filePath.join("/"));
+                if (exists) {
+                    editors.push(editor);
+                    await editor.loadFileContents();
+                }
+                resolve();
+            });
         const removeOrUpdatePromises = this.editors.map(removeOrUpdate);
         await Promise.all(removeOrUpdatePromises);
         this.editors = editors;
-        return this.renderEditors()
+        return this.renderEditors();
     }
 
     setProject(project: TypeProject) {
@@ -275,8 +276,6 @@ export class Project {
         this.console.term.clear();
         rpc().projects.run(this.project);
     }
-
-
 
     private async renderTopRightActions() {
         const container = document.createElement("div");

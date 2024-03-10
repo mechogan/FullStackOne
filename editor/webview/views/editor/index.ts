@@ -98,10 +98,10 @@ export class Editor {
     }
 
     async loadFileContents() {
-        if(this.editor){
+        if (this.editor) {
             this.editor.dom.remove();
         }
-        
+
         if (
             Object.values(UTF8_Ext).find((ext) =>
                 this.filePath.at(-1)?.endsWith(ext)
