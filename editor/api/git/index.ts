@@ -80,7 +80,9 @@ async function getParsedChanges(project: Project) {
     return parseChangesMatrix(
         await git.statusMatrix({
             fs,
-            dir: project.location
+            dir: project.location,
+            // always ignore .build and data directories
+            filter: file => !file.startsWith(".build") && !file.startsWith("data")
         })
     );
 }
