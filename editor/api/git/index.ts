@@ -82,7 +82,10 @@ async function getParsedChanges(project: Project) {
             fs,
             dir: project.location,
             // always ignore .build and data directories
-            filter: file => !file.startsWith(".build") && !file.startsWith("data")
+            filter: file => 
+                !file.startsWith(".build") && 
+                !file.startsWith("data") &&
+                file !== project.title + ".zip"
         })
     );
 }
