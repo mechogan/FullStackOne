@@ -97,7 +97,11 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
-    private async loadFileContents() {
+    async loadFileContents() {
+        if(this.editor){
+            this.editor.dom.remove();
+        }
+        
         if (
             Object.values(UTF8_Ext).find((ext) =>
                 this.filePath.at(-1)?.endsWith(ext)

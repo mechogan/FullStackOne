@@ -54,9 +54,9 @@ function parseChangesMatrix(
     changesMatrix: Awaited<ReturnType<typeof git.statusMatrix>>
 ) {
     let changes = {
-        added: [],
-        modified: [],
-        deleted: []
+        added: [] as string[],
+        modified: [] as string[],
+        deleted: [] as string[]
     };
 
     // https://isomorphic-git.org/docs/en/statusMatrix
@@ -224,8 +224,13 @@ export default {
         await git.add({
             fs,
             dir: project.location,
-            filepath: Object.values(changes).flat()
+            filepath: changes.added.concat(changes.modified)
         });
+        await Promise.all(changes.deleted.map(filepath => git.remove({
+            fs,
+            dir: project.location,
+            filepath
+        })))
         await git.commit({
             fs,
             dir: project.location,
@@ -262,31 +267,46 @@ export default {
     },
     branch: {
         async getAll(project: Project){
-            await git.fetch({
-                fs,
-                http,
-                dir: project.location,
-                prune: true,
-                onAuth: requestGitAuth
-            })
-            return git.listBranches({
-                fs,
-                dir: project.location,
-                remote: "origin"
-            })
+            try {
+                await git.fetch({
+                    fs,
+                    http,
+                    dir: project.location,
+                    prune: true,
+                    onAuth: requestGitAuth
+                })
+            } catch(e) { }
+
+            const [
+                local,
+                remote
+            ] = await Promise.all([
+                git.listBranches({
+                    fs,
+                    dir: project.location
+                }),
+                git.listBranches({
+                    fs,
+                    dir: project.location,
+                    remote: "origin"
+                })
+            ])
+
+            return { local, remote };
         },
-        async create(project: Project, branch: string){
-            await git.branch({
+        create(project: Project, branch: string){
+            return git.branch({
                 fs,
                 dir: project.location,
                 ref: branch,
                 checkout: true
             });
-            return git.push({
+        },
+        delete(project: Project, branch: string){
+            return git.deleteBranch({
                 fs,
-                http,
                 dir: project.location,
-                onAuth: requestGitAuth
+                ref: branch
             })
         }
     },

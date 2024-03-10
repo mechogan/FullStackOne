@@ -8,10 +8,15 @@ import type api from "../../../../api";
 declare var rpc: typeof typeRPC<typeof api>;
 
 export default class GitWidget {
+    reloadContent: () => void;
     parentContainer: HTMLDivElement;
     project: TypeProject;
 
     btn: HTMLButtonElement;
+
+    constructor(reloadContent: GitWidget["reloadContent"]){
+        this.reloadContent = reloadContent;
+    }
 
     private async getCurrentBranchAndCommit() {
         const [branch, commit] = await Promise.all([
@@ -53,11 +58,13 @@ export default class GitWidget {
         const [
             arrow,
             check,
-            close
+            close,
+            deleteIcon
         ] = await Promise.all([
             (await fetch("assets/icons/arrow.svg")).text(),
             (await fetch("assets/icons/check.svg")).text(),
-            (await fetch("assets/icons/close.svg")).text()
+            (await fetch("assets/icons/close.svg")).text(),
+            (await fetch("assets/icons/delete.svg")).text()
         ])
 
         const renderBranchForm = () => {
@@ -123,13 +130,40 @@ export default class GitWidget {
             ]);
 
             const ul = document.createElement("ul");
-            branches.forEach(branch => {
+            new Set(Object.values(branches).flat()).forEach(branch => {
                 if(branch === "HEAD") return;
 
                 const li = document.createElement("li");
 
-                li.innerHTML = `${branch === currentBranch ? arrow : "<div></div>"}
-                    <div>${branch}</div>`;
+                const branchIsLocalOnly = branches.local.includes(branch) && !branches.remote.includes(branch);
+
+                if (branch === currentBranch) {
+                    const arrowContainer = document.createElement("span");
+                    arrowContainer.innerHTML = arrow;
+                    li.append(arrowContainer);
+                }  else if(branchIsLocalOnly) {
+                    const deleteButton = document.createElement("button");
+                    deleteButton.classList.add("text", "danger", "small");
+                    deleteButton.innerHTML = deleteIcon;
+                    deleteButton.addEventListener("click", async () => {
+                        await rpc().git.branch.delete(this.project, branch);
+                        ul.replaceWith(await renderBranchList());
+                    })
+                    li.append(deleteButton);
+                } else {
+                    li.append(document.createElement("div"));
+                }
+
+                const branchName = document.createElement("div");
+                branchName.innerText = branch;
+                li.append(branchName);
+
+                // local only branch
+                if (branchIsLocalOnly) {
+                    const localLabel = document.createElement("div");
+                    localLabel.innerText = "local-only";
+                    li.append(localLabel);
+                }
 
                 if(branch !== currentBranch){
                     const checkoutButton = document.createElement("button");
@@ -138,7 +172,8 @@ export default class GitWidget {
                     checkoutButton.addEventListener("click", async () => {
                         await rpc().git.checkout(this.project, branch);
                         ul.replaceWith(await renderBranchList());
-                        this.btn.replaceWith(await this.renderButton(true));
+                        this.btn.replaceWith(await this.renderButton(!branchIsLocalOnly));
+                        this.reloadContent();
                     })
                     li.append(checkoutButton);
                 }

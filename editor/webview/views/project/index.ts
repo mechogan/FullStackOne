@@ -28,7 +28,7 @@ export class Project {
     };
     console = new Console();
 
-    private gitWidget = new GitWidget();
+    private gitWidget = new GitWidget(this.reloadContent.bind(this));
 
     private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
@@ -181,6 +181,26 @@ export class Project {
         };
     }
 
+    async reloadContent(){
+        const fileTree = this.fileTree.element;
+        this.fileTree.element = await this.fileTree.instance.render();
+        fileTree.replaceWith(this.fileTree.element);
+
+        const editors = [];
+        const removeOrUpdate = (editor: Editor) => new Promise<void>(async resolve => {
+            const exists = await rpc().fs.exists(editor.filePath.join("/"));
+            if (exists) {
+                editors.push(editor);
+                await editor.loadFileContents();
+            }
+            resolve();
+        })
+        const removeOrUpdatePromises = this.editors.map(removeOrUpdate);
+        await Promise.all(removeOrUpdatePromises);
+        this.editors = editors;
+        return this.renderEditors()
+    }
+
     setProject(project: TypeProject) {
         if (project === this.project) return;
 
@@ -255,6 +275,8 @@ export class Project {
         this.console.term.clear();
         rpc().projects.run(this.project);
     }
+
+
 
     private async renderTopRightActions() {
         const container = document.createElement("div");
