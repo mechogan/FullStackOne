@@ -121,11 +121,21 @@ export default class GitWidget {
             formContainer.append(renderBranchForm());
         });
 
+        const alertContainer = document.createElement("div");
+        container.append(alertContainer);
+
         const renderBranchList = async () => {
-            const [currentBranch, branches] = await Promise.all([
+            const [currentBranch, branches, { changes, unreacheable }] = await Promise.all([
                 rpc().git.currentBranch(this.project),
-                rpc().git.branch.getAll(this.project)
+                rpc().git.branch.getAll(this.project),
+                rpc().git.changes(this.project)
             ]);
+
+            const hasUncommittedChanges = Object.values(changes).some(files => files.length > 0);
+            if(hasUncommittedChanges) {
+                alertContainer.innerHTML = `<p class="alert">${await (await fetch("assets/icons/alert.svg")).text()}
+                    You have uncommited changes.</p>`;
+            }
 
             const ul = document.createElement("ul");
             new Set(Object.values(branches).flat()).forEach((branch) => {
@@ -165,7 +175,7 @@ export default class GitWidget {
                     li.append(localLabel);
                 }
 
-                if (branch !== currentBranch) {
+                if (!hasUncommittedChanges && branch !== currentBranch) {
                     const checkoutButton = document.createElement("button");
                     checkoutButton.classList.add("text");
                     checkoutButton.innerText = "Checkout";
@@ -329,11 +339,39 @@ export default class GitWidget {
             await renderAuthorInputs();
         }
 
-        const confirmButton = document.createElement("button");
+        const commitButton = document.createElement("button");
+        commitButton.classList.add("text");
+        const commitAndPushButton = document.createElement("button");
+
         const changesContainer = document.createElement("div");
         changesContainer.classList.add("changes");
         changesContainer.innerText = "Calculating diffs...";
         container.append(changesContainer);
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.classList.add("button-group");
+
+        const cancelButton = document.createElement("button");
+        cancelButton.classList.add("text");
+        cancelButton.innerText = "Close";
+        cancelButton.addEventListener("click", () => {
+            dialog.remove();
+        });
+        buttonGroup.append(cancelButton);
+
+        const subButtonGroup = document.createElement("div");
+        subButtonGroup.classList.add("button-group")
+        commitButton.innerText = "Commit";
+        commitAndPushButton.disabled = true;
+        commitAndPushButton.innerText = "Push";
+        subButtonGroup.append(commitAndPushButton);
+        buttonGroup.append(subButtonGroup);
+
+        container.append(buttonGroup);
+
+        dialog.append(container);
+
+        if (!elements) this.parentContainer.append(dialog);
 
         const getChanges = async () => {
             const { changes, unreacheable } = await rpc().git.changes(
@@ -354,8 +392,9 @@ export default class GitWidget {
             );
 
             if (!hasChanges) {
-                changesContainer.innerHTML = `<h3>No changes</h3>`;
+                changesContainer.innerHTML = `<h3>No Changes</h3>`;
             } else {
+                subButtonGroup.prepend(commitButton);
                 Object.entries(changes).forEach(([status, files]) => {
                     if (files.length === 0) return;
 
@@ -365,24 +404,58 @@ export default class GitWidget {
                     changesContainer.append(subtitle);
 
                     const ul = document.createElement("ul");
-                    const lis = files.map((file) => {
+                    const list = files.map((file) => {
                         const li = document.createElement("li");
                         li.innerText = file;
                         return li;
                     });
-                    ul.append(...lis);
+                    ul.append(...list);
                     changesContainer.append(ul);
                 });
 
+                const commitForm = document.createElement("form");
+
                 const commitMessageInputLabel = document.createElement("label");
                 commitMessageInputLabel.innerText = "Commit Message";
-                changesContainer.append(commitMessageInputLabel);
+                commitForm.append(commitMessageInputLabel);
 
                 const commitMessageInput = document.createElement("input");
-                changesContainer.append(commitMessageInput);
+                commitForm.append(commitMessageInput);
 
-                confirmButton.disabled = unreacheable;
-                confirmButton.addEventListener("click", async () => {
+                const commitSubmit = document.createElement("button");
+                commitForm.append(commitSubmit);
+
+                changesContainer.append(commitForm);
+
+                commitAndPushButton.disabled = unreacheable;
+
+                const commit = () => {
+                    if(!commitMessageInput.value) return;
+
+                    return rpc().git.commit(
+                        this.project,
+                        commitMessageInput.value
+                    )
+                };
+
+                const commitAndPush = async () => {
+                    await commit();
+                    return rpc().git.push(
+                        this.project
+                    );
+                }
+
+                const commitButtonCb = async () => {
+                    if(!commitMessageInput.value) return;
+
+                    dialog.remove();
+                    await commit();
+                    this.btn.replaceWith(await this.renderButton());
+                }
+
+                const commitAndPushButtonCb = async () => {
+                    if(!commitMessageInput.value) return;
+                    
                     dialog.remove();
 
                     const arrowIcon = await (
@@ -395,38 +468,104 @@ export default class GitWidget {
                     this.btn.prepend(pushIcon);
 
                     setTimeout(async () => {
-                        await rpc().git.push(
-                            this.project,
-                            commitMessageInput.value
-                        );
+                        await commitAndPush();
                         this.btn.replaceWith(await this.renderButton());
                     }, 500);
+                }
+
+                commitButton.addEventListener("click", commitButtonCb.bind(this));
+                commitAndPushButton.addEventListener("click", commitAndPushButtonCb.bind(this));
+                
+                commitForm.addEventListener("submit", async e => {
+                    e.preventDefault();
+                    if(unreacheable) {
+                        await commitButtonCb()
+                    } else {
+                        await commitAndPushButtonCb();
+                    }
                 });
             }
         };
 
-        const buttonGroup = document.createElement("div");
-        buttonGroup.classList.add("button-group");
+        setTimeout(getChanges, 500);
+    }
 
-        const cancelButton = document.createElement("button");
-        cancelButton.classList.add("text");
-        cancelButton.innerText = "Close";
-        cancelButton.addEventListener("click", () => {
-            dialog.remove();
-        });
-        buttonGroup.append(cancelButton);
+    renderConflictsDialog(branch: string, files: string[]){
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
 
-        confirmButton.disabled = true;
-        confirmButton.innerText = "Push";
-        buttonGroup.append(confirmButton);
+        const container = document.createElement("div");
+        container.classList.add("conflicts");
 
-        container.append(buttonGroup);
+        container.innerHTML = `<h2>Conflicts</h2>
+        <p>Unable to pull <b>${branch}</b> branch because these files have been modified and would be overwritten.</p>
+        <ul>
+            ${files.map(file => `<li>${file}</li>`).join("")}
+        </ul>
+        <p class="cross-section"><span>You have two options</span></p>`;
+
+        const newBranchText = document.createElement("p");
+        newBranchText.innerText = "Create a new branch with your changes."
+        container.append(newBranchText);
+
+        const newBranchForm = document.createElement("form");
+        
+        const newBranchLabel = document.createElement("label");
+        newBranchLabel.innerText = "Branch Name";
+        newBranchForm.append(newBranchLabel);
+
+        const newBranchInput = document.createElement("input");
+        newBranchForm.append(newBranchInput);
+
+        const newBranchButton = document.createElement("button");
+        newBranchButton.innerText = "Branch";
+        newBranchForm.append(newBranchButton);
+
+        newBranchForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const branchName = newBranchInput.value;
+            if(!branchName) return;
+
+            newBranchButton.innerText = "Branching...";
+            newBranchButton.disabled = true;
+            revertAndPullButton.disabled = true;
+            setTimeout(async () => {
+                await rpc().git.branch.create(this.project, branchName);
+                dialog.remove();
+                this.btn.replaceWith(await this.renderButton(true));
+            }, 200);
+        })
+
+        container.append(newBranchForm);
+
+        const or = document.createElement("p");
+        or.classList.add("cross-section");
+        or.innerHTML = "<span>or</span>";
+        container.append(or);
+
+        const revertAndPullText = document.createElement("p");
+        revertAndPullText.innerText = "Revert all current modifications."
+        container.append(revertAndPullText);
+
+        const revertAndPullButton = document.createElement("button");
+        revertAndPullButton.classList.add("danger");
+        revertAndPullButton.innerText = "Revert";
+        revertAndPullButton.addEventListener("click", () => {
+            revertAndPullButton.innerText = "Reverting...";
+            revertAndPullButton.disabled = true;
+            newBranchButton.disabled = true;
+            setTimeout(async () => {
+                await rpc().git.revertFileChanges(this.project, files);
+                dialog.remove();
+                this.btn.replaceWith(await this.renderButton(true));
+            }, 200);
+        })
+
+        container.append(revertAndPullButton);
 
         dialog.append(container);
 
-        if (!elements) this.parentContainer.append(dialog);
-
-        setTimeout(getChanges, 500);
+        this.parentContainer.append(dialog);
     }
 
     async renderButton(pull = false) {
@@ -469,6 +608,12 @@ export default class GitWidget {
                 const maybeError = await rpc().git.pull(this.project);
                 pullIcon.remove();
                 if (maybeError && maybeError?.error) {
+
+                    if(maybeError.error === "Conflicts") {
+                        this.renderConflictsDialog(branch, maybeError.files);
+                        return;
+                    }
+
                     const alertIcon = document.createElement("div");
                     alertIcon.classList.add("alert");
                     alertIcon.innerHTML = await (

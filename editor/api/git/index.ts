@@ -255,17 +255,26 @@ export default {
                 };
             }
 
-            return git.pull({
-                fs,
-                http,
-                dir: project.location,
-                singleBranch: true,
-                author: {
-                    name: project.gitRepository.name,
-                    email: project.gitRepository.email
-                },
-                onAuth: requestGitAuth
-            });
+            try {
+                await git.pull({
+                    fs,
+                    http,
+                    dir: project.location,
+                    singleBranch: true,
+                    author: {
+                        name: project.gitRepository.name,
+                        email: project.gitRepository.email
+                    },
+                    onAuth: requestGitAuth
+                });
+            } catch (e) {
+                if(e.code === "CheckoutConflictError"){
+                    return { error: "Conflicts", files: e.data.filepaths }
+                }
+                return e;
+            }
+
+            
         } else {
             return git.fastForward({
                 fs,
@@ -276,7 +285,7 @@ export default {
             });
         }
     },
-    async push(project: Project, commitMessage: string) {
+    async commit(project: Project, commitMessage: string){
         const changes = await getParsedChanges(project);
         await git.add({
             fs,
@@ -292,7 +301,7 @@ export default {
                 })
             )
         );
-        await git.commit({
+        return git.commit({
             fs,
             dir: project.location,
             message: commitMessage,
@@ -301,6 +310,8 @@ export default {
                 email: project.gitRepository.email
             }
         });
+    },
+    async push(project: Project) {
         return git.push({
             fs,
             http,
@@ -324,6 +335,14 @@ export default {
             fs,
             dir: project.location,
             ref: branchOrCommit
+        });
+    },
+    revertFileChanges(project: Project, files: string[]){
+        return git.checkout({
+            fs,
+            dir: project.location,
+            filepaths: files,
+            force: true
         });
     },
     branch: {
