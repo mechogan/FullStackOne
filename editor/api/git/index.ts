@@ -82,6 +82,7 @@ async function getParsedChanges(project: Project) {
             dir: project.location,
             // always ignore .build and data directories
             filter: (file) =>
+                !file.endsWith(".DS_Store") &&
                 !file.startsWith(".build") &&
                 !file.startsWith("data") &&
                 file !== project.title + ".zip"
