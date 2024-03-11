@@ -6,6 +6,7 @@ export type Project = {
         url: string;
         name?: string;
         email?: string;
+        merging?: string;
     };
 };
 

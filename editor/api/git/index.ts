@@ -1,4 +1,4 @@
-import git from "isomorphic-git";
+import git, { GitAuth } from "isomorphic-git";
 import type { fs as globalFS } from "../../../src/api/fs";
 import type { fetch as globalFetch } from "../../../src/api/fetch";
 import { Buffer as globalBuffer } from "buffer";
@@ -212,8 +212,17 @@ export default {
         };
     },
     async pull(project: Project) {
+        const currentCommit = (
+            await git.log({
+                fs,
+                depth: 1,
+                dir: project.location
+            })
+        ).at(0).oid;
+
+        let fetch: Awaited<ReturnType<typeof git.fetch>>;
         try {
-            await git.fetch({
+            fetch = await git.fetch({
                 fs,
                 http,
                 dir: project.location,
@@ -246,9 +255,7 @@ export default {
             return;
         }
 
-        const changes = await getParsedChanges(project);
-
-        if (Object.values(changes).some((arr) => arr.length !== 0)) {
+        const pull = async () => {
             if (!project.gitRepository.name) {
                 return {
                     error: "No git user.name"
@@ -256,7 +263,7 @@ export default {
             }
 
             try {
-                await git.pull({
+                const response = await git.pull({
                     fs,
                     http,
                     dir: project.location,
@@ -267,31 +274,83 @@ export default {
                     },
                     onAuth: requestGitAuth
                 });
+                return response;
             } catch (e) {
-                if(e.code === "CheckoutConflictError"){
-                    return { error: "Conflicts", files: e.data.filepaths }
+                if (e.code === "CheckoutConflictError") {
+                    return { error: "Conflicts", files: e.data.filepaths };
+                } else if (e.code === "MergeConflictError") {
+                    try {
+                        await git.merge({
+                            fs,
+                            dir: project.location,
+                            ours: currentBranch,
+                            theirs: fetch.fetchHead,
+                            abortOnConflict: false,
+                            author: {
+                                name: project.gitRepository.name,
+                                email: project.gitRepository.email
+                            }
+                        });
+                    } catch (e) {
+                        return {
+                            error: "Merge",
+                            files: e.data.bothModified,
+                            theirs: fetch.fetchHead
+                        };
+                    }
+                } else if (e.code === "UnmergedPathsError") {
+                    return {
+                        error: "Merge",
+                        files: e.data.filepaths,
+                        theirs: fetch.fetchHead
+                    };
+                }
+
+                return e;
+            }
+        };
+
+        const changes = await getParsedChanges(project);
+        if (Object.values(changes).some((arr) => arr.length !== 0)) {
+            return pull();
+        } else {
+            try {
+                await git.fastForward({
+                    fs,
+                    http,
+                    dir: project.location,
+                    singleBranch: true,
+                    onAuth: requestGitAuth
+                });
+            } catch (e) {
+                if (e.code === "FastForwardError") {
+                    return pull();
                 }
                 return e;
             }
-
-            
-        } else {
-            return git.fastForward({
-                fs,
-                http,
-                dir: project.location,
-                singleBranch: true,
-                onAuth: requestGitAuth
-            });
         }
     },
-    async commit(project: Project, commitMessage: string){
+    async commit(
+        project: Project,
+        commitMessage: string,
+        merging?: {
+            theirs: string;
+            filepaths: string[];
+        }
+    ) {
         const changes = await getParsedChanges(project);
+
+        const filepath = changes.added.concat(changes.modified);
+        if (merging?.filepaths) {
+            filepath.push(...merging.filepaths);
+        }
+
         await git.add({
             fs,
             dir: project.location,
-            filepath: changes.added.concat(changes.modified)
+            filepath
         });
+
         await Promise.all(
             changes.deleted.map((filepath) =>
                 git.remove({
@@ -301,6 +360,17 @@ export default {
                 })
             )
         );
+
+        const parent = merging?.theirs
+            ? [
+                  (await git.currentBranch({
+                      fs,
+                      dir: project.location
+                  })) as string,
+                  merging.theirs
+              ]
+            : undefined;
+
         return git.commit({
             fs,
             dir: project.location,
@@ -308,7 +378,8 @@ export default {
             author: {
                 name: project.gitRepository.name,
                 email: project.gitRepository.email
-            }
+            },
+            parent
         });
     },
     async push(project: Project) {
@@ -337,7 +408,21 @@ export default {
             ref: branchOrCommit
         });
     },
-    revertFileChanges(project: Project, files: string[]){
+    checkoutFile(
+        project: Project,
+        branchOrCommit: string,
+        filepaths: string[],
+        force: boolean = false
+    ) {
+        return git.checkout({
+            fs,
+            dir: project.location,
+            ref: branchOrCommit,
+            force,
+            filepaths
+        });
+    },
+    revertFileChanges(project: Project, files: string[]) {
         return git.checkout({
             fs,
             dir: project.location,

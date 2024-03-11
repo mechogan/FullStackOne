@@ -52,12 +52,12 @@ button {
     }
 
     &:disabled {
-        background-color: darkgrey!important;
-        border-color: darkgray!important;
-        color: gray!important;
+        background-color: darkgrey !important;
+        border-color: darkgray !important;
+        color: gray !important;
         cursor: default;
         &:active {
-            background-color: darkgray!important;
+            background-color: darkgray !important;
         }
     }
 

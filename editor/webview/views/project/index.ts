@@ -28,7 +28,10 @@ export class Project {
     };
     console = new Console();
 
-    private gitWidget = new GitWidget(this.reloadContent.bind(this));
+    private gitWidget = new GitWidget(
+        this.reloadContent.bind(this),
+        this.openFiles.bind(this)
+    );
 
     private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
@@ -179,6 +182,16 @@ export class Project {
             writeParagraph(error.name);
             writeParagraph(error.stack);
         };
+    }
+
+    openFiles(filepaths: string[]) {
+        const editors = filepaths.map(
+            (file) =>
+                new Editor((this.project.location + "/" + file).split("/"))
+        );
+        this.editors = editors;
+        this.currentFile = this.project.location + "/" + filepaths;
+        this.renderEditors();
     }
 
     async reloadContent() {
