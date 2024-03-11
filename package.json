@@ -13,7 +13,7 @@
         "platform/electron"
     ],
     "author": "FullStacked Org.",
-    "license": "MIT",
+    "license": "GPL-3.0",
     "type": "module",
     "prettier": {
         "tabWidth": 4,
