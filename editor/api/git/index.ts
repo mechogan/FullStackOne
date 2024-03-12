@@ -213,14 +213,6 @@ export default {
         };
     },
     async pull(project: Project) {
-        const currentCommit = (
-            await git.log({
-                fs,
-                depth: 1,
-                dir: project.location
-            })
-        ).at(0).oid;
-
         let fetch: Awaited<ReturnType<typeof git.fetch>>;
         try {
             fetch = await git.fetch({
@@ -235,6 +227,7 @@ export default {
             if (e.cause?.code === "ENOTFOUND") {
                 return;
             }
+            console.log(e)
 
             return e;
         }
@@ -253,6 +246,7 @@ export default {
 
         // branch not on remote or detached
         if (!currentBranch || !remoteBranches.includes(currentBranch)) {
+            console.log("WHYYYYY")
             return;
         }
 
@@ -277,7 +271,7 @@ export default {
                 });
                 return response;
             } catch (e) {
-                if (e.code === "CheckoutConflictError") {
+                if (e.code === "CheckoutConflictError" || e.code === "MergeNotSupportedError") {
                     return { error: "Conflicts", files: e.data.filepaths };
                 } else if (e.code === "MergeConflictError") {
                     try {
@@ -292,6 +286,7 @@ export default {
                                 email: project.gitRepository.email
                             }
                         });
+                        return;
                     } catch (e) {
                         return {
                             error: "Merge",

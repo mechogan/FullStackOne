@@ -158,17 +158,21 @@ export default class GitWidget {
                 const branchIsLocalOnly =
                     branches.local.includes(branch) &&
                     !branches.remote.includes(branch);
+                const branchIsRemoteOnly =
+                    !branches.local.includes(branch) &&
+                    branches.remote.includes(branch);
 
                 if (branch === currentBranch) {
                     const arrowContainer = document.createElement("span");
                     arrowContainer.innerHTML = arrow;
                     li.append(arrowContainer);
-                } else if (branchIsLocalOnly) {
+                } else if(!branchIsRemoteOnly) {
                     const deleteButton = document.createElement("button");
                     deleteButton.classList.add("text", "danger", "small");
                     deleteButton.innerHTML = deleteIcon;
                     deleteButton.addEventListener("click", async () => {
                         await rpc().git.branch.delete(this.project, branch);
+                        li.remove();
                         ul.replaceWith(await renderBranchList());
                     });
                     li.append(deleteButton);
@@ -185,19 +189,27 @@ export default class GitWidget {
                     const localLabel = document.createElement("div");
                     localLabel.innerText = "local-only";
                     li.append(localLabel);
+                } else if (branchIsRemoteOnly) {
+                    const remoteLabel = document.createElement("div");
+                    remoteLabel.innerText = "remote-only";
+                    li.append(remoteLabel);
                 }
 
                 if (!hasUncommittedChanges && branch !== currentBranch) {
                     const checkoutButton = document.createElement("button");
                     checkoutButton.classList.add("text");
                     checkoutButton.innerText = "Checkout";
-                    checkoutButton.addEventListener("click", async () => {
-                        await rpc().git.checkout(this.project, branch);
-                        ul.replaceWith(await renderBranchList());
-                        this.btn.replaceWith(
-                            await this.renderButton(!branchIsLocalOnly)
-                        );
-                        this.reloadContent();
+                    checkoutButton.addEventListener("click", () => {
+                        checkoutButton.disabled = true;
+                        checkoutButton.innerText = "Checking out..."
+                        setTimeout(async () => {
+                            await rpc().git.checkout(this.project, branch);
+                            ul.replaceWith(await renderBranchList());
+                            this.btn.replaceWith(
+                                await this.renderButton(!branchIsLocalOnly)
+                            );
+                            this.reloadContent();
+                        }, 100)
                     });
                     li.append(checkoutButton);
                 }
@@ -410,6 +422,8 @@ export default class GitWidget {
             if (!hasChanges) {
                 changesContainer.innerHTML = `<h3>No Changes</h3>`;
             } else {
+                const revertIcon = await (await fetch("assets/icons/revert.svg")).text();
+
                 subButtonGroup.prepend(commitButton);
                 Object.entries(changes).forEach(([status, files]) => {
                     if (files.length === 0) return;
@@ -420,12 +434,25 @@ export default class GitWidget {
                     changesContainer.append(subtitle);
 
                     const ul = document.createElement("ul");
-                    const list = files.map((file) => {
+                    files.forEach((file) => {
                         const li = document.createElement("li");
-                        li.innerText = file;
-                        return li;
+                        li.innerHTML = `<span>${file}</span>`;
+
+                        const revertButton = document.createElement("button");
+                        revertButton.classList.add("text", "small");
+                        revertButton.innerHTML = revertIcon;
+                        revertButton.addEventListener("click", async () => {
+                            await rpc().git.checkoutFile(this.project, branch, [file], true);
+                            changesContainer.innerText = "Calculating diffs...";
+                            commitAndPushButton.disabled = true;
+                            commitButton.remove();
+                            this.reloadContent();
+                            await getChanges();
+                        });
+                        li.append(revertButton);
+                        
+                        ul.append(li);
                     });
-                    ul.append(...list);
                     changesContainer.append(ul);
                 });
 
