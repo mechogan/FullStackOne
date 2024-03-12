@@ -24,6 +24,29 @@ export class ProjectNew {
         const titleInput = document.createElement("input");
         container.append(titleInput);
 
+        // create button
+        const createButton = document.createElement("button");
+        createButton.innerText = "Create";
+
+        // git repo
+        const gitRepoInputLabel = document.createElement("label");
+        gitRepoInputLabel.innerText = "Git Repository (optional)";
+        container.append(gitRepoInputLabel);
+
+        const gitRepoInput = document.createElement("input");
+        const changeCreateButtonLabel = () => {
+            if (gitRepoInput.value) {
+                createButton.innerText = "Clone";
+            } else {
+                createButton.innerText = "Create";
+            }
+        };
+        gitRepoInput.addEventListener("keyup", changeCreateButtonLabel);
+        gitRepoInput.addEventListener("keypress", changeCreateButtonLabel);
+        gitRepoInput.addEventListener("change", changeCreateButtonLabel);
+
+        container.append(gitRepoInput);
+
         // location
         const locationLabel = document.createElement("label");
         locationLabel.innerText = "Location";
@@ -69,6 +92,11 @@ export class ProjectNew {
                 title
             };
 
+            cancelButton.replaceWith(document.createElement("div"));
+            createButton.replaceWith(document.createElement("div"));
+            importButton.innerText = "Importing...";
+            importButton.disabled = true;
+
             const importedProject = await rpc().projects.import(
                 project,
                 new Uint8Array(await zipFile.arrayBuffer())
@@ -87,8 +115,7 @@ export class ProjectNew {
 
         buttonContainer.append(importer);
 
-        const createButton = document.createElement("button");
-        createButton.innerText = "Create";
+        // Create/Clone button
         createButton.addEventListener("click", async () => {
             const projectBaseDirectory = fileTree.itemSelected
                 ? fileTree.itemSelected.isDirectory
@@ -100,11 +127,29 @@ export class ProjectNew {
                 "/"
             );
 
-            const project = await rpc().projects.create({
+            const project: Omit<Project, "createdDate"> = {
                 title: titleInput.value,
                 location
-            });
-            this.didCreateProjectAction(project);
+            };
+
+            const gitUrl = gitRepoInput.value;
+            if (gitUrl) {
+                cancelButton.replaceWith(document.createElement("div"));
+                importButton.replaceWith(document.createElement("div"));
+                createButton.innerText = "Cloning...";
+                createButton.disabled = true;
+
+                await rpc().git.clone(gitUrl, location);
+                const usernameAndEmail =
+                    await rpc().git.getUsernameAndEmailForHost(gitUrl);
+                project.gitRepository = {
+                    url: gitUrl,
+                    name: usernameAndEmail?.username,
+                    email: usernameAndEmail?.email
+                };
+            }
+
+            this.didCreateProjectAction(await rpc().projects.create(project));
         });
         buttonContainer.append(createButton);
 

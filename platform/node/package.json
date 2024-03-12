@@ -2,11 +2,12 @@
     "name": "@fullstacked/editor",
     "description": "Build and run full-stack JS web apps on any platform.",
     "author": "FullStacked Org.",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"
     },
+    "license": "GPL-3.0",
     "scripts": {
         "build": "esbuild build.ts --outfile=.cache/build.js --packages=external && node .cache/build.js",
         "start": "npm run build && node index.js",

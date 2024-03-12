@@ -1,6 +1,7 @@
 import projects from "./projects";
 import config from "./config";
 import esbuild from "./esbuild";
+import git from "./git";
 import packages from "./packages";
 
 import type { fs as globalFS } from "../../src/api/fs";
@@ -11,5 +12,6 @@ export default {
     fs,
     config,
     esbuild,
+    git,
     packages
 };

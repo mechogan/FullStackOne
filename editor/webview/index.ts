@@ -7,6 +7,8 @@ import { Projects } from "./views/projects";
 import type typeRPC from "../../src/webview";
 import type api from "../api";
 import { EsbuildInstall } from "./views/esbuild";
+import { GitAuth } from "./views/git-auth";
+import { Settings } from "./views/settings";
 declare var rpc: typeof typeRPC<typeof api>;
 
 const main = document.querySelector("main") as HTMLElement;
@@ -16,7 +18,12 @@ await rpc().config.init();
 const esbuildInstall = await rpc().esbuild.checkInstall();
 
 const app = async () => {
+    const gitAuth = new GitAuth();
+    (window as any).onPush["gitAuth"] = gitAuth.receivedMessage;
+
+    const settings = new Settings();
     const projectsView = new Projects();
+
     projectsView.newProjectAction = async () => {
         clearView();
         main.append(await projectNewView.render());
@@ -27,7 +34,12 @@ const app = async () => {
         projectView.setProject(projectPath);
         main.append(await projectView.render());
     };
-    projectsView.goToPackages = async () => {
+    projectsView.goToSettings = async () => {
+        clearView();
+        main.append(await settings.render());
+    };
+
+    settings.goToPackages = async () => {
         clearView();
         projectView.packagesView = true;
         projectView.setProject({
@@ -37,6 +49,10 @@ const app = async () => {
         });
 
         main.append(await projectView.render());
+    };
+    settings.backAction = async () => {
+        clearView();
+        main.append(await projectsView.render());
     };
 
     const projectNewView = new ProjectNew();
@@ -54,7 +70,11 @@ const app = async () => {
     const projectView = new Project();
     projectView.backAction = async () => {
         clearView();
-        main.append(await projectsView.render());
+        if (projectView.packagesView) {
+            main.append(await settings.render());
+        } else {
+            main.append(await projectsView.render());
+        }
     };
 
     clearView();

@@ -3,11 +3,12 @@ import "./index.css";
 import { Editor } from "../editor";
 import { FileTree } from "../file-tree";
 import { Console } from "../console";
+import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
+import GitWidget from "./git-widget";
 
 import type { Project as TypeProject } from "../../../api/projects/types";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
-import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
 
@@ -26,6 +27,11 @@ export class Project {
         element: null
     };
     console = new Console();
+
+    private gitWidget = new GitWidget(
+        this.reloadContent.bind(this),
+        this.openFiles.bind(this)
+    );
 
     private tabsContainer = document.createElement("ul");
     private editorsContainer = document.createElement("div");
@@ -178,10 +184,43 @@ export class Project {
         };
     }
 
+    openFiles(filepaths: string[]) {
+        const editors = filepaths.map(
+            (file) =>
+                new Editor((this.project.location + "/" + file).split("/"))
+        );
+        this.editors = editors;
+        this.currentFile = this.project.location + "/" + filepaths;
+        this.renderEditors();
+    }
+
+    async reloadContent() {
+        const fileTree = this.fileTree.element;
+        this.fileTree.element = await this.fileTree.instance.render();
+        fileTree.replaceWith(this.fileTree.element);
+
+        const editors = [];
+        const removeOrUpdate = (editor: Editor) =>
+            new Promise<void>(async (resolve) => {
+                const exists = await rpc().fs.exists(editor.filePath.join("/"));
+                if (exists) {
+                    editors.push(editor);
+                    await editor.loadFileContents();
+                }
+                resolve();
+            });
+        const removeOrUpdatePromises = this.editors.map(removeOrUpdate);
+        await Promise.all(removeOrUpdatePromises);
+        this.editors = editors;
+        return this.renderEditors();
+    }
+
     setProject(project: TypeProject) {
         if (project === this.project) return;
 
         this.project = project;
+        this.gitWidget.project = project;
+
         this.fileTree.instance.setBaseDirectory(project.location);
 
         this.editors = [];
@@ -299,7 +338,7 @@ export class Project {
 
         const backButton = document.createElement("button");
         backButton.innerHTML = await (
-            await fetch("/assets/icons/arrow-left.svg")
+            await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
         backButton.addEventListener("click", this.backAction);
@@ -321,6 +360,8 @@ export class Project {
         const projectTitle = document.createElement("h3");
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
+
+        leftSide.append(await this.gitWidget.renderButton(true));
 
         container.append(leftSide);
 
@@ -396,6 +437,7 @@ export class Project {
 
     async render() {
         this.container = document.createElement("div");
+        this.gitWidget.parentContainer = this.container;
         this.container.classList.add("project");
 
         this.container.append(await this.renderToolbar());

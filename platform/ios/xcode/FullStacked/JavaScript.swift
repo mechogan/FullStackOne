@@ -1,10 +1,12 @@
 import Foundation
 import JavaScriptCore
+import WebKit
 
 class JavaScript {
     private var requestId = 0
     let ctx = JSContext()!
-    var push: ((String, String) -> Void)? = nil
+    var webview: WKWebView? = nil
+    var push:  (@convention (block) (String, String) -> Void)?
     let logFn: (String) -> Void
     
     var privileged = false
@@ -16,6 +18,14 @@ class JavaScript {
         entrypointContents: String
     ) {
         self.logFn = logFn;
+        self.push = { messageType, message in
+            DispatchQueue.main.async {
+                self.webview?.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+            }
+        }
+        
+        self.ctx["push"] = self.push
+        
         
         self.bindConsoleLog()
         self.bindFs(rootdir: fsdir)
@@ -101,7 +111,19 @@ class JavaScript {
         
         
         let readFile: @convention (block) (String, JSValue?) -> JSValue = { path, options in
-            let itemPath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+            let absolutePath = !options!.isUndefined && !options!["absolutePath"]!.isUndefined && options!["absolutePath"]!.toBool()
+                
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, absolutePath);
+            if(existsAndIsDirectory == nil || existsAndIsDirectory!) {
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    let errorObject = JSValue(newErrorFromMessage: existsAndIsDirectory != nil ? "Not a file" : "No such file or directory", in: self.ctx)!
+                    errorObject["code"] = existsAndIsDirectory != nil ? "EISDIR" : "ENOENT"
+                    errorObject["path"] = path
+                    reject!.call(withArguments: [ errorObject ])
+                }
+            }
+            
+            let itemPath = absolutePath
                 ? realpathWithAbsolutePath(path)
                 : realpath(path)
             
@@ -123,13 +145,23 @@ class JavaScript {
         let writeFile: @convention (block) (String, JSValue) -> JSValue = { file, data in
             let itemPath = realpath(file)
             
-            if (data.isString) {
-                let stringValue = data.toString()!
-                try! stringValue.write(toFile: itemPath, atomically: true, encoding: .utf8)
-            } else {
-                let data = Data(data.toArray()! as! [UInt8])
-                try! Data(data).write(to: URL(fileURLWithPath: itemPath))
+            do {
+                if (data.isString) {
+                    let stringValue = data.toString()!
+                    try stringValue.write(toFile: itemPath, atomically: true, encoding: .utf8)
+                } else {
+                    let data = Data(data.toArray()! as! [UInt8])
+                    try Data(data).write(to: URL(fileURLWithPath: itemPath))
+                }
+            } catch {
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    let errorObject = JSValue(newErrorFromMessage: "No such file or directory", in: self.ctx)!
+                    errorObject["code"] = "ENOENT"
+                    errorObject["path"] = file
+                    reject!.call(withArguments: [ errorObject ])
+                }
             }
+            
             
             return JSValue(newPromiseIn: self.ctx) { resolve, reject in
                 resolve!.call(withArguments: [])
@@ -151,6 +183,16 @@ class JavaScript {
         }
         
         let readdir: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, false);
+            if(existsAndIsDirectory == nil || !existsAndIsDirectory!) {
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    let errorObject = JSValue(newErrorFromMessage: existsAndIsDirectory != nil ? "Not a directory" : "No such file or directory", in: self.ctx)!
+                    errorObject["code"] = existsAndIsDirectory != nil ? "ENOTDIR" : "ENOENT"
+                    errorObject["path"] = path
+                    reject!.call(withArguments: [ errorObject ])
+                }
+            }
+            
             let itemPath = realpath(path);
             
             let items = try! FileManager.default.contentsOfDirectory(atPath: itemPath)
@@ -199,23 +241,85 @@ class JavaScript {
             }
         }
         
+        let returnTrue: @convention (block) () -> Bool = {
+            return true;
+        }
+        let returnFalse: @convention (block) () -> Bool = {
+            return false;
+        }
+        
         let stat: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, false);
+            if(existsAndIsDirectory == nil) {
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    let errorObject = JSValue(newErrorFromMessage: "No such file or directory", in: self.ctx)!
+                    errorObject["code"] = "ENOENT"
+                    errorObject["path"] = path
+                    reject!.call(withArguments: [ errorObject ])
+                }
+            }
+            
             let itemPath = realpath(path)
+            
+            let jsObj = JSValue(newObjectIn: self.ctx)!
+            jsObj["isDirectory"] = existsAndIsDirectory! ? returnTrue : returnFalse;
+            jsObj["isFile"] = !existsAndIsDirectory! ? returnTrue : returnFalse;
             
             let stats = try! FileManager.default.attributesOfItem(atPath: itemPath)
             
+            let size = stats[FileAttributeKey.size];
+            jsObj["size"] = size;
+            
+            let ctime = stats[FileAttributeKey.creationDate]
+            let ctimeMs = (ctime as! Date).timeIntervalSince1970 * 1000
+            jsObj["ctime"] = self.ctx.evaluateScript("new Date(" + String(ctimeMs) + ")")!
+            jsObj["ctimeMs"] = ctimeMs
+            
+            let mtime = stats[FileAttributeKey.modificationDate]
+            let mtimeMs = (mtime as! Date).timeIntervalSince1970 * 1000
+            jsObj["mtime"] = self.ctx.evaluateScript("new Date(" + String(mtimeMs) + ")")!
+            jsObj["mtimeMs"] = mtimeMs
+            
             return JSValue(newPromiseIn: self.ctx) { resolve, reject in
-                resolve!.call(withArguments: [stats])
+                resolve!.call(withArguments: [jsObj])
             }
         }
         
         let lstat: @convention (block) (String, JSValue?) -> JSValue = { path, options in
+            let existsAndIsDirectory = itemExistsAndIsDirectory(path, false);
+            if(existsAndIsDirectory == nil) {
+                return JSValue(newPromiseIn: self.ctx) { resolve, reject in
+                    let errorObject = JSValue(newErrorFromMessage: "No such file or directory", in: self.ctx)!
+                    errorObject["code"] = "ENOENT"
+                    errorObject["path"] = path
+                    reject!.call(withArguments: [ errorObject ])
+                }
+            }
+            
             let itemPath = realpath(path)
+            
+            let jsObj = JSValue(newObjectIn: self.ctx)!
+            jsObj["isDirectory"] = existsAndIsDirectory! ? returnTrue : returnFalse;
+            jsObj["isFile"] = !existsAndIsDirectory! ? returnTrue : returnFalse;
+            jsObj["isSymbolicLink"] = returnFalse;
             
             let stats = try! FileManager.default.attributesOfItem(atPath: itemPath)
             
+            let size = stats[FileAttributeKey.size];
+            jsObj["size"] = size;
+            
+            let ctime = stats[FileAttributeKey.creationDate]
+            let ctimeMs = (ctime as! Date).timeIntervalSince1970 * 1000
+            jsObj["ctime"] = self.ctx.evaluateScript("new Date(" + String(ctimeMs) + ")")!
+            jsObj["ctimeMs"] = ctimeMs
+            
+            let mtime = stats[FileAttributeKey.modificationDate]
+            let mtimeMs = (mtime as! Date).timeIntervalSince1970 * 1000
+            jsObj["mtime"] = self.ctx.evaluateScript("new Date(" + String(mtimeMs) + ")")!
+            jsObj["mtimeMs"] = mtimeMs
+            
             return JSValue(newPromiseIn: self.ctx) { resolve, reject in
-                resolve!.call(withArguments: [stats])
+                resolve!.call(withArguments: [jsObj])
             }
         }
         
@@ -253,6 +357,10 @@ class JavaScript {
             }
         }
         
+        let notImplemented: @convention (block) () -> Void = {
+            print("Calling method not implemented")
+        }
+        
         let fs = JSValue(newObjectIn: self.ctx)!
         fs["readFile"] = readFile
         fs["writeFile"] = writeFile
@@ -265,6 +373,10 @@ class JavaScript {
         fs["exists"] = exists
         fs["isFile"] = isFile
         fs["isDirectory"] = isDirectory
+        
+        fs["readlink"] = notImplemented
+        fs["symlink"] = notImplemented
+        fs["chmod"] = notImplemented
         self.ctx["fs"] = fs
     }
     

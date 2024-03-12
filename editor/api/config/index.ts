@@ -1,7 +1,7 @@
 import type { fs as globalFS } from "../../../src/api/fs";
 import projects from "../projects";
 
-import { Project } from "../projects/types";
+import { Project, GitAuths } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
 
 declare var fs: typeof globalFS;
@@ -11,6 +11,7 @@ export const configdir = ".config/fullstacked";
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[];
+    [CONFIG_TYPE.GIT]: GitAuths;
 };
 
 export default {

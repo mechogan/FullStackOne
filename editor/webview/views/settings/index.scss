@@ -1,0 +1,59 @@
+@import "../../style/spacing";
+@import "../../style/border";
+@import "../../style/colors";
+@import "../../style/typography";
+
+.settings {
+    @include full-width();
+
+    display: flex;
+    flex-direction: column;
+    gap: spacing(2);
+
+    .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 45px;
+    }
+
+    header {
+        display: flex;
+        align-items: center;
+        h1 {
+            margin: 0;
+        }
+    }
+
+    ul {
+        padding-left: 0;
+        li {
+            background-color: colorOpacity(white, 0.1);
+            margin: spacing() 0;
+            padding: spacing();
+            border-radius: $border-radius;
+            border: $border-width solid colorOpacity(white, 0.3);
+
+            > div:first-child {
+                display: flex;
+                justify-content: space-between;
+                font-size: $font-size-l;
+                margin-bottom: spacing(2);
+                & > div {
+                    display: flex;
+                }
+            }
+        }
+    }
+
+    dt {
+        font-size: $font-size-xs;
+        font-weight: 700;
+        margin-top: spacing();
+        color: colorOpacity(white, 0.7);
+    }
+
+    dd {
+        margin-left: 0;
+    }
+}

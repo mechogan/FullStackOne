@@ -10,6 +10,8 @@ export default function (home: string, js: JavaScript, jsDir: string) {
 
     js.ctx.jsDirectory = jsDir;
     js.ctx.resolvePath = resolvePath;
+    js.ctx.push = (messageType: string, data: string) =>
+        js.push(messageType, data);
     js.ctx.buildWebview = (
         entryPoint: string,
         outdir: string,

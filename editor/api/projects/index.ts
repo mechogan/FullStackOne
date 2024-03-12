@@ -32,8 +32,8 @@ const create = async (project: Omit<Project, "createdDate">) => {
         createdDate: Date.now()
     };
     projects.push(newProject);
-    config.save(CONFIG_TYPE.PROJECTS, projects);
-    fs.mkdir(project.location);
+    await config.save(CONFIG_TYPE.PROJECTS, projects);
+    await fs.mkdir(project.location);
     return newProject;
 };
 const deleteProject = async (project: Project) => {
@@ -42,13 +42,21 @@ const deleteProject = async (project: Project) => {
         ({ location }) => location === project.location
     );
     projects.splice(indexOf, 1);
-    config.save(CONFIG_TYPE.PROJECTS, projects);
+    await config.save(CONFIG_TYPE.PROJECTS, projects);
     return fs.rmdir(project.location);
 };
 
 export default {
     list,
     create,
+    async update(project: Project) {
+        const projects = await list();
+        const indexOf = projects.findIndex(
+            ({ location }) => location === project.location
+        );
+        projects[indexOf] = project;
+        return config.save(CONFIG_TYPE.PROJECTS, projects);
+    },
     delete: deleteProject,
     async run(project: Project) {
         const maybeWebviewEntrypoints = [
@@ -116,11 +124,12 @@ export default {
         }
 
         const items = (await scan(project.location))
-            // filter out data items and build items
+            // filter out data items, build items and git directory
             .filter(
                 (item) =>
                     !item.startsWith(project.location + "/data") &&
-                    !item.startsWith(project.location + "/.build")
+                    !item.startsWith(project.location + "/.build") &&
+                    !item.startsWith(project.location + "/.git")
             )
             // convert to relative path to project.location
             .map((item) => item.slice(project.location.length + 1));

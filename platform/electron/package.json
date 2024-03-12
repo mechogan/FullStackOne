@@ -2,9 +2,9 @@
     "name": "FullStacked",
     "author": "FullStacked Org.",
     "description": "Build and run full-stack JS web apps anywhere.",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "main": ".cache/index.js",
-    "license": "MIT",
+    "license": "GPL-3.0",
     "scripts": {
         "build": "esbuild build.ts --outfile=.cache/build.mjs --packages=external && node .cache/build.mjs",
         "start": "npm run build && electron-forge start",

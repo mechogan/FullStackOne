@@ -6,7 +6,8 @@ import type api from "../../../api";
 import {
     NEW_PROJECT_ID,
     PACKAGES_BUTTON_ID,
-    PROJECTS_TITLE
+    PROJECTS_TITLE,
+    SETTINGS_BUTTON_ID
 } from "../../../constants";
 
 declare var rpc: typeof typeRPC<typeof api>;
@@ -14,7 +15,7 @@ declare var rpc: typeof typeRPC<typeof api>;
 export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;
-    goToPackages: () => void;
+    goToSettings: () => void;
 
     private container: HTMLDivElement;
 
@@ -50,25 +51,27 @@ export class Projects {
         this.container.classList.add("projects");
 
         const topContainer = document.createElement("div");
-        topContainer.style.cssText = `display: flex; justify-content:space-between; align-items: flex-start`;
 
         const title = document.createElement("h1");
         title.innerText = PROJECTS_TITLE;
         topContainer.append(title);
 
-        const packagesButton = document.createElement("button");
-        packagesButton.id = PACKAGES_BUTTON_ID;
-        packagesButton.classList.add("text", "text-and-icon");
-        const [packagesCount, packageIcon] = await Promise.all([
-            rpc().packages.count(),
-            (await fetch("assets/icons/package.svg")).text()
-        ]);
-        packagesButton.innerHTML = `${packagesCount || 0} package${packagesCount > 1 ? "s" : ""} ${packageIcon}`;
+        const buttonGroup = document.createElement("div");
 
-        packagesButton.addEventListener("click", async () =>
-            this.goToPackages()
+        const settingsButton = document.createElement("button");
+        settingsButton.id = SETTINGS_BUTTON_ID;
+        settingsButton.classList.add("text");
+        const settingsIcon = await (
+            await fetch("assets/icons/settings.svg")
+        ).text();
+        settingsButton.innerHTML = settingsIcon;
+        settingsButton.addEventListener("click", async () =>
+            this.goToSettings()
         );
-        topContainer.append(packagesButton);
+
+        buttonGroup.append(settingsButton);
+
+        topContainer.append(buttonGroup);
 
         this.container.append(topContainer);
 
