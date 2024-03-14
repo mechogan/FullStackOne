@@ -75,6 +75,17 @@ js.ctx.run = (
 
 launchInstance(js);
 
+// [ "path/to/node", "path/to/index.js", {LAUNCH_URL} ]
+const maybeLaunchURL = process.argv.at(2);
+if (maybeLaunchURL) {
+    js.processRequest(
+        {},
+        "launchURL",
+        new Uint8Array(Buffer.from(JSON.stringify([maybeLaunchURL]))),
+        () => {}
+    );
+}
+
 process.on("uncaughtException", (e) => {
     js.push(
         "error",

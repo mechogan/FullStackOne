@@ -1,7 +1,5 @@
 import child_process from "child_process";
 import esbuild from "esbuild";
-import url from "url";
-import path from "path";
 
 const build = (testFile: string) => {
     const outfile = "test/.cache/test.js";

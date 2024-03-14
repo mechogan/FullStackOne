@@ -37,6 +37,7 @@
         "codemirror": "^6.0.1",
         "esbuild": "^0.20.1",
         "eslint-linter-browserify": "^8.56.0",
+        "fast-querystring": "^1.1.2",
         "isomorphic-git": "^1.25.6",
         "open": "^10.0.3",
         "prettier": "^3.2.5",

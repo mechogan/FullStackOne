@@ -278,7 +278,7 @@ export class Project {
         });
     }
 
-    private async runProject() {
+    async runProject() {
         await Promise.all(
             this.editors.map((editor) => {
                 editor.clearBuildErrors();
