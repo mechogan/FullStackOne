@@ -244,11 +244,8 @@ export default {
             })
         ]);
 
-        // branch not on remote or detached
-        if (!currentBranch || !remoteBranches.includes(currentBranch)) {
-            console.log("WHYYYYY");
-            return;
-        }
+        // DETACHED
+        if (!currentBranch || !remoteBranches.includes(currentBranch)) return;
 
         const pull = async () => {
             if (!project.gitRepository.name) {
