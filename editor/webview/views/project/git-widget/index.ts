@@ -166,7 +166,7 @@ export default class GitWidget {
                     const arrowContainer = document.createElement("span");
                     arrowContainer.innerHTML = arrow;
                     li.append(arrowContainer);
-                } else if(!branchIsRemoteOnly) {
+                } else if (!branchIsRemoteOnly) {
                     const deleteButton = document.createElement("button");
                     deleteButton.classList.add("text", "danger", "small");
                     deleteButton.innerHTML = deleteIcon;
@@ -201,7 +201,7 @@ export default class GitWidget {
                     checkoutButton.innerText = "Checkout";
                     checkoutButton.addEventListener("click", () => {
                         checkoutButton.disabled = true;
-                        checkoutButton.innerText = "Checking out..."
+                        checkoutButton.innerText = "Checking out...";
                         setTimeout(async () => {
                             await rpc().git.checkout(this.project, branch);
                             ul.replaceWith(await renderBranchList());
@@ -209,7 +209,7 @@ export default class GitWidget {
                                 await this.renderButton(!branchIsLocalOnly)
                             );
                             this.reloadContent();
-                        }, 100)
+                        }, 100);
                     });
                     li.append(checkoutButton);
                 }
@@ -422,7 +422,9 @@ export default class GitWidget {
             if (!hasChanges) {
                 changesContainer.innerHTML = `<h3>No Changes</h3>`;
             } else {
-                const revertIcon = await (await fetch("assets/icons/revert.svg")).text();
+                const revertIcon = await (
+                    await fetch("assets/icons/revert.svg")
+                ).text();
 
                 subButtonGroup.prepend(commitButton);
                 Object.entries(changes).forEach(([status, files]) => {
@@ -442,7 +444,12 @@ export default class GitWidget {
                         revertButton.classList.add("text", "small");
                         revertButton.innerHTML = revertIcon;
                         revertButton.addEventListener("click", async () => {
-                            await rpc().git.checkoutFile(this.project, branch, [file], true);
+                            await rpc().git.checkoutFile(
+                                this.project,
+                                branch,
+                                [file],
+                                true
+                            );
                             changesContainer.innerText = "Calculating diffs...";
                             commitAndPushButton.disabled = true;
                             commitButton.remove();
@@ -450,7 +457,7 @@ export default class GitWidget {
                             await getChanges();
                         });
                         li.append(revertButton);
-                        
+
                         ul.append(li);
                     });
                     changesContainer.append(ul);

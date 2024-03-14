@@ -15,7 +15,9 @@ esbuild.buildSync({
 });
 
 fs.cpSync(path.resolve("..", "..", "Demo.zip"), "Demo.zip");
-fs.cpSync(path.resolve("..", "..", "editor", "build"), "editor", {
+const editorOut = "editor";
+if (fs.existsSync(editorOut)) fs.rmSync(editorOut, { recursive: true });
+fs.cpSync(path.resolve("..", "..", "editor", "build"), editorOut, {
     recursive: true
 });
 fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });

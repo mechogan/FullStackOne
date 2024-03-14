@@ -9,10 +9,14 @@ import (
 )
 
 //export buildWebview
-func buildWebview(entryPoint *C.char, Outfile *C.char, NodePath *C.char, errors **C.char) {
+func buildWebview(entryPoint *C.char, Outdir *C.char, NodePath *C.char, errors **C.char) {
 	result := api.Build(api.BuildOptions{
-		EntryPoints: []string{C.GoString(entryPoint)},
-		Outfile:     C.GoString(Outfile),
+		EntryPointsAdvanced: []api.EntryPoint{{
+			OutputPath: "index",
+			InputPath:  C.GoString(entryPoint),
+		  }},
+		Outdir:      C.GoString(Outdir),
+		Splitting:	 true,
 		Sourcemap:   api.SourceMapInlineAndExternal,
 		Bundle:      true,
 		Format:      api.FormatESModule,
