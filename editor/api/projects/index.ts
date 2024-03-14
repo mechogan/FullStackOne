@@ -59,6 +59,11 @@ export default {
     },
     delete: deleteProject,
     async run(project: Project) {
+        const buildDir = project.location + "/.build";
+
+        // clean
+        if (await fs.exists(buildDir)) await fs.rmdir(buildDir);
+
         const maybeWebviewEntrypoints = [
             project.location + "/index.js",
             project.location + "/index.jsx"
@@ -83,7 +88,7 @@ export default {
             );
             hasErrors = !buildWebview(
                 entrypointWebview,
-                project.location + "/.build/index.js",
+                buildDir,
                 resolvePath(nodeModulesDir)
             );
             await fs.unlink(entrypointWebview);

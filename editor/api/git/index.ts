@@ -227,7 +227,7 @@ export default {
             if (e.cause?.code === "ENOTFOUND") {
                 return;
             }
-            console.log(e)
+            console.log(e);
 
             return e;
         }
@@ -246,7 +246,7 @@ export default {
 
         // branch not on remote or detached
         if (!currentBranch || !remoteBranches.includes(currentBranch)) {
-            console.log("WHYYYYY")
+            console.log("WHYYYYY");
             return;
         }
 
@@ -271,7 +271,10 @@ export default {
                 });
                 return response;
             } catch (e) {
-                if (e.code === "CheckoutConflictError" || e.code === "MergeNotSupportedError") {
+                if (
+                    e.code === "CheckoutConflictError" ||
+                    e.code === "MergeNotSupportedError"
+                ) {
                     return { error: "Conflicts", files: e.data.filepaths };
                 } else if (e.code === "MergeConflictError") {
                     try {
