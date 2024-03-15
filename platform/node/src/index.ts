@@ -75,6 +75,7 @@ js.ctx.run = (
 
 launchInstance(js);
 
+// deeplink
 // [ "path/to/node", "path/to/index.js", {LAUNCH_URL} ]
 const maybeLaunchURL = process.argv.at(2);
 if (maybeLaunchURL) {

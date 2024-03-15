@@ -1,4 +1,4 @@
-import { app, protocol, BrowserWindow, shell } from "electron";
+import { app, protocol, BrowserWindow, shell, dialog } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -82,10 +82,11 @@ mainjs.ctx.run = (
     );
 
     createWindow(hostname, projectdir).then((appWindow) => {
-        apps[hostname].push = (message) =>
+        apps[hostname].push = (messageType: string, message: string) => {
             appWindow.webContents.executeJavaScript(
-                `window.push(\`${message.replace(/\\/g, "\\\\")}\`)`
+                `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
             );
+        };
     });
 };
 
@@ -155,3 +156,5 @@ app.on("activate", () => {
         createWindow("main", "FullStacked");
     }
 });
+
+export default mainjs;

@@ -3,7 +3,7 @@ require("dotenv").config();
 module.exports = {
     packagerConfig: {
         icon: "icons/icon",
-        asar: true,
+        asar: false,
         ignore: [],
         extraResource: ["../../Demo.zip"],
         osxSign: {
@@ -14,7 +14,13 @@ module.exports = {
             appleApiKey: process.env.APPLE_API_KEY,
             appleApiKeyId: process.env.APPLE_API_KEY_ID,
             appleApiIssuer: process.env.APPLE_API_ISSUER
-        }
+        },
+        protocols: [
+            {
+                name: "Open in FullStacked",
+                schemes: ["fullstacked"]
+            }
+        ]
     },
     rebuildConfig: {},
     makers: [
