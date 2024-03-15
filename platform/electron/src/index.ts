@@ -26,27 +26,28 @@ const launchURL = () => {
         () => {}
     );
     urlToLaunch = null;
-}
+};
 
 // deeplink
-app.on('open-url', (event, url) => {
+app.on("open-url", (event, url) => {
     urlToLaunch = url
         .slice("fullstacked://".length) // remove scheme in front
-        .replace(/https?\/\//, value => value.slice(0, -2) + "://") // add : in http(s) protocol
+        .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
 
-    if(js) launchURL();
-})
+    if (js) launchURL();
+});
 
 if (!app.requestSingleInstanceLock()) {
-  app.quit()
+    app.quit();
 } else {
-  app.on('second-instance', (_, commandLine) => {
-    urlToLaunch = commandLine.pop()
-        .slice("fullstacked://".length) // remove scheme in front
-        .replace(/https?\/\//, value => value.slice(0, -2) + "://") // add : in http(s) protocol
+    app.on("second-instance", (_, commandLine) => {
+        urlToLaunch = commandLine
+            .pop()
+            .slice("fullstacked://".length) // remove scheme in front
+            .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
 
-    if(js) launchURL();
-  });
+        if (js) launchURL();
+    });
 }
 
 app.on("window-all-closed", () => app.quit());
@@ -54,6 +55,5 @@ app.on("window-all-closed", () => app.quit());
 app.whenReady().then(async () => {
     js = (await import("./start")).default;
 
-    if(urlToLaunch) launchURL();
-
+    if (urlToLaunch) launchURL();
 });
