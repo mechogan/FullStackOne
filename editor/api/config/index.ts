@@ -16,14 +16,18 @@ type DATA_TYPE = {
 
 export default {
     async init() {
-        try {
-            await fs.stat(configdir);
-            return;
-        } catch (e) {}
+        if (await fs.exists(configdir)) return;
 
         await fs.mkdir(configdir);
         projects.import(
-            { title: "Demo", location: configdir + "/Demo" },
+            {
+                title: "Demo",
+                location: "fullstackedorg/editor-sample-demo"
+                // TODO: uncomment when webcontainer git CORS fixed
+                // gitRepository: {
+                //     url: "https://github.com/fullstackedorg/editor-sample-demo.git"
+                // }
+            },
             (await fs.readFile(demoZIP, { absolutePath: true })) as Uint8Array
         );
     },

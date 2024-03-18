@@ -73,12 +73,14 @@ fs.rmSync(entrypointAPI);
 fs.mkdirSync("editor/build/api", { recursive: true });
 fs.writeFileSync("editor/build/api/index.js", api as string);
 
-const demoFiles = await scan("Demo");
-var zip = new AdmZip();
-demoFiles.forEach((item) => {
-    const itemPathComponents = item.split("/");
-    const itemName = itemPathComponents.pop();
-    const itemDirectory = itemPathComponents.slice(1).join("/");
-    zip.addLocalFile(item, itemDirectory, itemName);
-});
-zip.writeZip("Demo.zip");
+if (fs.existsSync("editor-sample-demo")) {
+    const demoFiles = await scan("editor-sample-demo");
+    var zip = new AdmZip();
+    demoFiles.forEach((item) => {
+        const itemPathComponents = item.split("/");
+        const itemName = itemPathComponents.pop();
+        const itemDirectory = itemPathComponents.slice(1).join("/");
+        zip.addLocalFile(item, itemDirectory, itemName);
+    });
+    zip.writeZip("Demo.zip");
+}

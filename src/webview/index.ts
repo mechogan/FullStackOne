@@ -52,12 +52,23 @@ type AwaitAll<T> = {
     [messageType: string]: (message: string) => void;
 };
 
-(window as any).push = (messageType: string, message: string) => {
+const dispatchMessage = (messageType: string, message: string) => {
     const callback = (window as any).onPush[messageType];
-    if (!callback)
-        throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;
+    if (!callback) return false;
 
     callback(message);
+    return true;
+};
+
+(window as any).push = (messageType: string, message: string) => {
+    // try once
+    if (!dispatchMessage(messageType, message)) {
+        setTimeout(() => {
+            // try twice
+            if (!dispatchMessage(messageType, message))
+                throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;
+        }, 150);
+    }
 };
 
 // use a websocket for nodejs

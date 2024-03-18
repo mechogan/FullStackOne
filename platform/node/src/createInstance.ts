@@ -14,14 +14,24 @@ export default (js: JavaScript) => {
 
     const wss = new WebSocketServer({ server });
     const webSockets = new Set<WebSocket>();
+    const unsentMessages: string[] = [];
     wss.on("connection", (ws) => {
         webSockets.add(ws);
         ws.on("close", () => webSockets.delete(ws));
+        if (unsentMessages.length) {
+            while (unsentMessages.length) {
+                const message = unsentMessages.shift();
+                ws.send(message);
+            }
+        }
     });
     js.push = (messageType, message) => {
-        webSockets.forEach((ws) =>
-            ws.send(JSON.stringify({ messageType, message }))
-        );
+        const serialized = JSON.stringify({ messageType, message });
+        if (webSockets.size === 0) {
+            unsentMessages.push(serialized);
+        } else {
+            webSockets.forEach((ws) => ws.send(serialized));
+        }
     };
 
     return listenningPort;
