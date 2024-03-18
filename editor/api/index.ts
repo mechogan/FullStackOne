@@ -17,7 +17,11 @@ export default {
     esbuild,
     git,
     packages,
-    async launchURL(urlStr: string) {
+    async launchURL(deeplink: string) {
+        let urlStr = deeplink
+            .slice("fullstacked://".length) // remove scheme in front
+            .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
+
         const url = new URL(urlStr);
 
         // only handle .git url for now

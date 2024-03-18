@@ -79,10 +79,11 @@ launchInstance(js);
 // [ "path/to/node", "path/to/index.js", {LAUNCH_URL} ]
 const maybeLaunchURL = process.argv.at(2);
 if (maybeLaunchURL) {
+    const launchURL = "fullstacked://" + maybeLaunchURL.replace(/:\/\//, "//");
     js.processRequest(
         {},
         "launchURL",
-        new Uint8Array(Buffer.from(JSON.stringify([maybeLaunchURL]))),
+        new Uint8Array(Buffer.from(JSON.stringify([launchURL]))),
         () => {}
     );
 }

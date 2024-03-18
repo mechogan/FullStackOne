@@ -30,10 +30,7 @@ const launchURL = () => {
 
 // deeplink
 app.on("open-url", (event, url) => {
-    urlToLaunch = url
-        .slice("fullstacked://".length) // remove scheme in front
-        .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
-
+    urlToLaunch = url;
     if (js) launchURL();
 });
 
@@ -41,11 +38,7 @@ if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
     app.on("second-instance", (_, commandLine) => {
-        urlToLaunch = commandLine
-            .pop()
-            .slice("fullstacked://".length) // remove scheme in front
-            .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
-
+        urlToLaunch = commandLine.pop();
         if (js) launchURL();
     });
 }
@@ -54,6 +47,5 @@ app.on("window-all-closed", () => app.quit());
 
 app.whenReady().then(async () => {
     js = (await import("./start")).default;
-
     if (urlToLaunch) launchURL();
 });

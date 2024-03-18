@@ -254,6 +254,9 @@ struct ContentView: View {
                 .background(Color.black)
             }
         }
+        .onOpenURL { launchURL in
+            self.mainjs.processRequest(headers: [:], pathname: "launchURL", body: "[\"\(launchURL.absoluteString)\"]".data(using: .utf8), onCompletion: {_ in})
+        }
     }
 }
 
