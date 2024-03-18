@@ -3,7 +3,11 @@ import "./index.css";
 import { Editor } from "../editor";
 import { FileTree } from "../file-tree";
 import { Console } from "../console";
-import { DELETE_ALL_PACKAGES_ID, RUN_PROJECT_ID } from "../../../constants";
+import {
+    DELETE_ALL_PACKAGES_ID,
+    PROJECT_TITLE_ID,
+    RUN_PROJECT_ID
+} from "../../../constants";
 import GitWidget from "./git-widget";
 
 import type { Project as TypeProject } from "../../../api/projects/types";
@@ -358,6 +362,7 @@ export class Project {
         leftSide.append(fileTreeToggle);
 
         const projectTitle = document.createElement("h3");
+        projectTitle.id = PROJECT_TITLE_ID;
         projectTitle.innerText = this.project.title;
         leftSide.append(projectTitle);
 

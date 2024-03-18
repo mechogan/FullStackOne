@@ -7,3 +7,4 @@ export const PACKAGES_BUTTON_ID = "packages-btn";
 export const DELETE_ALL_PACKAGES_ID = "delete-all-packages";
 export const SETTINGS_BUTTON_ID = "settings";
 export const BACK_BUTTON_ID = "back-button";
+export const PROJECT_TITLE_ID = "project-title";

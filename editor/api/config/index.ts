@@ -20,7 +20,14 @@ export default {
 
         await fs.mkdir(configdir);
         projects.import(
-            { title: "Demo", location: "Demo" },
+            {
+                title: "Demo",
+                location: "fullstackedorg/editor-sample-demo"
+                // TODO: uncomment when webcontainer git CORS fixed
+                // gitRepository: {
+                //     url: "https://github.com/fullstackedorg/editor-sample-demo.git"
+                // }
+            },
             (await fs.readFile(demoZIP, { absolutePath: true })) as Uint8Array
         );
     },
