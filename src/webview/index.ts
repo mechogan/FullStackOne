@@ -61,11 +61,11 @@ const dispatchMessage = (messageType: string, message: string) => {
 };
 
 (window as any).push = (messageType: string, message: string) => {
+    // try once
     if (!dispatchMessage(messageType, message)) {
-        // try once
         setTimeout(() => {
+            // try twice
             if (!dispatchMessage(messageType, message))
-                // try twice
                 throw `No onPush callback for message type [${messageType}]. Received message [${message}]`;
         }, 150);
     }
