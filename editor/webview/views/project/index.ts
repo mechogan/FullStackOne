@@ -43,6 +43,8 @@ export class Project {
     private currentFile: string;
     private editors: Editor[] = [];
 
+    private runButton: HTMLButtonElement;
+
     constructor() {
         this.fileTree.instance.onItemSelect = (item) => {
             if (!item || item.isDirectory) return;
@@ -283,6 +285,9 @@ export class Project {
     }
 
     async runProject() {
+        this.runButton.disabled = true;
+        const icon = this.runButton.innerHTML;
+        this.runButton.innerHTML = `<div class="loader"></div>`;
         await Promise.all(
             this.editors.map((editor) => {
                 editor.clearBuildErrors();
@@ -291,7 +296,9 @@ export class Project {
         );
         this.renderEditors();
         this.console.term.clear();
-        rpc().projects.run(this.project);
+        await rpc().projects.run(this.project);
+        this.runButton.innerHTML = icon;
+        this.runButton.disabled = false;
     }
 
     private async renderTopRightActions() {
@@ -321,14 +328,14 @@ export class Project {
             });
             container.append(shareButton);
 
-            const runButton = document.createElement("button");
-            runButton.id = RUN_PROJECT_ID;
-            runButton.classList.add("text");
-            runButton.innerHTML = await (
+            this.runButton = document.createElement("button");
+            this.runButton.id = RUN_PROJECT_ID;
+            this.runButton.classList.add("text");
+            this.runButton.innerHTML = await (
                 await fetch("/assets/icons/run.svg")
             ).text();
-            runButton.addEventListener("click", this.runProject.bind(this));
-            container.append(runButton);
+            this.runButton.addEventListener("click", this.runProject.bind(this));
+            container.append(this.runButton);
         }
 
         return container;
