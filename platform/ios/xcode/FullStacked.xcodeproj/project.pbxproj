@@ -25,6 +25,7 @@
 		9C3089322B571C5600C179A6 /* esbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esbuild.h; path = ../../../esbuild/out/esbuild.h; sourceTree = "<group>"; };
 		9C3089332B571C5600C179A6 /* esbuild.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = esbuild.a; path = ../../../esbuild/out/esbuild.a; sourceTree = "<group>"; };
 		9C3911502B6B54C800C4E3EF /* JavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JavaScript.swift; sourceTree = "<group>"; };
+		9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9CA03E4C2B5715AA002D2D9F /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullStackedApp.swift; sourceTree = "<group>"; };
 		9CA03E512B5715AA002D2D9F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -79,6 +80,7 @@
 				9CA03E552B5715AC002D2D9F /* Preview Content */,
 				9C3911502B6B54C800C4E3EF /* JavaScript.swift */,
 				9C2FB2632B7C7F180010EB72 /* Demo.zip */,
+				9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */,
 			);
 			path = FullStacked;
 			sourceTree = "<group>";
@@ -316,7 +318,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"FullStacked/Preview Content\"";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -356,7 +358,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"FullStacked/Preview Content\"";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
