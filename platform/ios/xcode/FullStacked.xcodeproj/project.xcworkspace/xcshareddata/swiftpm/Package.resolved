@@ -1,4 +1,5 @@
 {
+  "originHash" : "dfe989a631e012ee811f833a9f748b9da070de1e02e3964a7049a4fffbd6740e",
   "pins" : [
     {
       "identity" : "bitbytedata",
@@ -28,5 +29,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
