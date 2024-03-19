@@ -45,6 +45,14 @@
             aspect-ratio: 16 / 9;
             position: relative;
             text-align: center;
+            overflow: hidden;
+            padding: spacing(0.5);
+            h3 {
+                width: 100%;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                direction: rtl;
+            }
             > button {
                 position: absolute;
                 bottom: 0;

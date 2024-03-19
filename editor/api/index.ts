@@ -40,13 +40,17 @@ export default {
             await fs.mkdir(projectDir);
 
             await git.clone(gitUrl, projectDir);
+            const usernameAndEmail =
+                await git.getUsernameAndEmailForHost(gitUrl);
 
             const searchParams = SearchParams.parse(url.query.slice(1));
             launchProject = await projects.create({
                 location: projectDir,
                 title: searchParams.title || projectDir,
                 gitRepository: {
-                    url: gitUrl
+                    url: gitUrl,
+                    email: usernameAndEmail?.email,
+                    name: usernameAndEmail.username
                 }
             });
         }
