@@ -285,7 +285,9 @@ export class Project {
     }
 
     async runProject() {
-        this.runButton.disabled = true;
+        if (this.runButton.getAttribute("loading")) return;
+
+        this.runButton.setAttribute("loading", "1");
         const icon = this.runButton.innerHTML;
         this.runButton.innerHTML = `<div class="loader"></div>`;
         await Promise.all(
@@ -296,9 +298,11 @@ export class Project {
         );
         this.renderEditors();
         this.console.term.clear();
-        await rpc().projects.run(this.project);
-        this.runButton.innerHTML = icon;
-        this.runButton.disabled = false;
+        setTimeout(async () => {
+            await rpc().projects.run(this.project);
+            this.runButton.innerHTML = icon;
+            this.runButton.removeAttribute("loading");
+        }, 200);
     }
 
     private async renderTopRightActions() {
@@ -334,7 +338,10 @@ export class Project {
             this.runButton.innerHTML = await (
                 await fetch("/assets/icons/run.svg")
             ).text();
-            this.runButton.addEventListener("click", this.runProject.bind(this));
+            this.runButton.addEventListener(
+                "click",
+                this.runProject.bind(this)
+            );
             container.append(this.runButton);
         }
 
