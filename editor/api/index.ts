@@ -50,7 +50,7 @@ export default {
                 gitRepository: {
                     url: gitUrl,
                     email: usernameAndEmail?.email,
-                    name: usernameAndEmail.username
+                    name: usernameAndEmail?.username
                 }
             });
         }
