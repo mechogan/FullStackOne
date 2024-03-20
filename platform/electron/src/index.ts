@@ -16,7 +16,8 @@ if (process.defaultApp) {
     app.setAsDefaultProtocolClient(deepLinksScheme);
 }
 
-let js: JavaScript, urlToLaunch: string;
+let js: JavaScript;
+let urlToLaunch = process.argv.find(arg => arg.startsWith(deepLinksScheme));
 
 const launchURL = () => {
     js.processRequest(
