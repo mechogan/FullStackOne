@@ -3,13 +3,12 @@ import "./index.css";
 import { Project } from "./views/project";
 import { ProjectNew } from "./views/project-new";
 import { Projects } from "./views/projects";
-
-import type typeRPC from "../../src/webview";
-import type api from "../api";
 import { EsbuildInstall } from "./views/esbuild";
 import { GitAuth } from "./views/git-auth";
 import { Settings } from "./views/settings";
-declare var rpc: typeof typeRPC<typeof api>;
+import api from "./api";
+
+
 
 /// utils ///
 const main = document.querySelector("main") as HTMLElement;
@@ -41,7 +40,7 @@ settings.goToPackages = async () => {
     clearView();
     projectView.setProject({
         title: "Packages",
-        location: await rpc().packages.directory(),
+        location: await api.packages.directory(),
         createdDate: null
     });
     projectView.packagesView = true;

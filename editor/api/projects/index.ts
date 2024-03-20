@@ -1,4 +1,4 @@
-import type { fs as globalFS } from "../../../src/api/fs";
+import type { fs as globalFS } from "../../../src/adapter/fs";
 
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
@@ -7,22 +7,6 @@ import { mingleAPI, mingleWebview } from "./mingle";
 import { scan } from "./scan";
 import { Project } from "./types";
 
-declare var fs: typeof globalFS;
-declare var run: (
-    projectdir: string,
-    assetdir: string,
-    entrypoint: string,
-    nodeModulesDir: string,
-    hasErrors: boolean
-) => void;
-declare var buildWebview: (
-    entryPoint: string,
-    outdir: string,
-    nodeModulesDir: string
-) => boolean;
-declare var zip: (projectdir: string, items: string[], to: string) => void;
-declare var unzip: (to: string, zipData: Uint8Array) => void;
-declare var resolvePath: (path: string) => string;
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {

@@ -1,4 +1,4 @@
-import type { fs as globalFS } from "../../../src/api/fs";
+import type { fs as globalFS } from "../../../src/adapter/fs";
 
 declare var fs: typeof globalFS;
 declare var jsDirectory: string;

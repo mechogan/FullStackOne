@@ -6,10 +6,6 @@ import packages from "./packages";
 import URL from "url-parse";
 import SearchParams from "fast-querystring";
 
-import type { fs as globalFS } from "../../src/api/fs";
-declare var fs: typeof globalFS;
-declare var push: (messageType: string, data: string) => void;
-
 export default {
     projects,
     fs,

@@ -24,7 +24,7 @@ export type Dirent = {
     isDirectory: boolean;
 };
 
-export declare var fs: {
+export type fs = {
     readFile(
         path: string,
         options?: { encoding?: string; absolutePath?: boolean }

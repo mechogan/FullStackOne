@@ -3,7 +3,7 @@ import "./index.css";
 import type typeRPC from "../../../../src/webview";
 import type api from "../../../api";
 import { NEW_FILE_ID } from "../../../constants";
-import type { Dirent } from "../../../../src/api/fs";
+import type { Dirent } from "../../../../src/adapter/fs";
 
 declare var rpc: typeof typeRPC<typeof api>;
 

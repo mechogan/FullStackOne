@@ -1,6 +1,6 @@
 import git from "isomorphic-git";
-import type { fs as globalFS } from "../../../src/api/fs";
-import type { fetch as globalFetch } from "../../../src/api/fetch";
+import type { fs as globalFS } from "../../../src/adapter/fs";
+import type { fetch as globalFetch } from "../../../src/adapter/fetch";
 import { Buffer as globalBuffer } from "buffer";
 import { Project } from "../projects/types";
 import URL from "url-parse";

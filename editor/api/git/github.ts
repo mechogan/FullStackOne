@@ -1,5 +1,5 @@
 import { auth } from ".";
-import type { fetch as globalFetch } from "../../../src/api/fetch";
+import type { fetch as globalFetch } from "../../../src/adapter/fetch";
 
 declare var fetch: typeof globalFetch;
 

@@ -1,0 +1,1 @@
+const rpc = (window as any).rpc;

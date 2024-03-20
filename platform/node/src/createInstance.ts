@@ -1,10 +1,9 @@
 import http, { IncomingMessage, ServerResponse } from "http";
-import { JavaScript } from "./javascript";
 import { WebSocketServer, WebSocket } from "ws";
 
 let port = 9000;
 
-export default (js: JavaScript) => {
+export default () => {
     const listenningPort = port;
     port += 1;
 

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as sass from "sass";
-import { buildAPI, buildWebview } from "./platform/node/src/build";
+import { buildWebview } from "./platform/node/src/build";
 import { buildSync } from "esbuild";
 import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
 import { scan } from "./editor/api/projects/scan";
@@ -39,13 +39,6 @@ const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
 
 buildSync({
-    entryPoints: ["src/api/index.ts"],
-    bundle: true,
-    format: "esm",
-    outfile: "src/js/api.js"
-});
-
-buildSync({
     entryPoints: ["src/webview/index.ts"],
     bundle: true,
     format: "esm",
@@ -66,12 +59,6 @@ fs.cpSync("editor/webview/index.html", "editor/build/webview/index.html");
 fs.cpSync("editor/webview/assets", "editor/build/webview/assets", {
     recursive: true
 });
-
-const entrypointAPI = await mingleAPI(path.resolve("editor/api/index.ts"));
-const api = buildAPI(entrypointAPI);
-fs.rmSync(entrypointAPI);
-fs.mkdirSync("editor/build/api", { recursive: true });
-fs.writeFileSync("editor/build/api/index.js", api as string);
 
 if (fs.existsSync("editor-sample-demo")) {
     const demoFiles = await scan("editor-sample-demo");

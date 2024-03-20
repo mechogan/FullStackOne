@@ -1,4 +1,4 @@
-export declare var fetch: (
+export type fetch = (
     url: string,
     options?: {
         headers?: Record<string, string>;

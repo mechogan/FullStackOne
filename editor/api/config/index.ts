@@ -1,11 +1,7 @@
-import type { fs as globalFS } from "../../../src/api/fs";
 import projects from "../projects";
 
 import { Project, GitAuths } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
-
-declare var fs: typeof globalFS;
-declare var demoZIP: string;
 
 export const configdir = ".config/fullstacked";
 

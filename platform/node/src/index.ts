@@ -5,7 +5,6 @@ import os from "os";
 import path from "path";
 import createInstance from "./createInstance";
 import open from "open";
-import { buildAPI } from "./build";
 import fs from "fs";
 import editorContext from "./editorContext";
 import esbuild from "esbuild";
@@ -17,15 +16,7 @@ const home = os.homedir();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
 
-const js = new JavaScript(
-    console.log,
-    home,
-    path.join(editorDirectory, "webview"),
-    fs.readFileSync(path.join(editorDirectory, "api", "index.js"), {
-        encoding: "utf-8"
-    }),
-    "node"
-);
+const js = new Instance();
 js.privileged = true;
 
 const launchInstance = (js: JavaScript) => {
