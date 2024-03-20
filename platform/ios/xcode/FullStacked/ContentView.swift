@@ -42,7 +42,7 @@ struct ContentView: View {
     @State private var otherWindow: Int? = nil
     @State private var jsConsole: Bool = false
     static var instance: ContentView? = nil
-    let mainjs: JavaScript;
+    let mainjs: JavaScript
     
     init(){
         let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
@@ -266,6 +266,18 @@ struct ContentView: View {
 
 
 class OpenLinkDelegate: NSObject, WKNavigationDelegate {
+    let js: JavaScript;
+    
+    init(js: JavaScript) {
+        self.js = js;
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        while(self.js.unsentMessages.count > 0) {
+            let unsentMessage = self.js.unsentMessages.removeFirst();
+            self.js.push?(unsentMessage.0, unsentMessage.1)
+        }
+    }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if navigationAction.navigationType == .linkActivated  {
@@ -360,10 +372,11 @@ let overrideConsole = """
 
 struct WebView: UIViewRepresentable {
     let js: JavaScript;
-    let navigationDelegate = OpenLinkDelegate();
+    let navigationDelegate: OpenLinkDelegate;
     
     init(js: JavaScript) {
         self.js = js
+        self.navigationDelegate = OpenLinkDelegate(js: js)
         
         let userContentController = WKUserContentController()
         userContentController.add(LoggingMessageHandler(), name: "logging")

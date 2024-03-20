@@ -227,6 +227,8 @@ export class Project {
         this.project = project;
         this.gitWidget.project = project;
 
+        this.packagesView = false;
+
         this.fileTree.instance.setBaseDirectory(project.location);
 
         this.editors = [];

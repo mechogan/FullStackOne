@@ -27,7 +27,6 @@ projectsView.newProjectAction = async () => {
 };
 projectsView.selectProjectAction = async (projectPath) => {
     clearView();
-    projectView.packagesView = false;
     projectView.setProject(projectPath);
     main.append(await projectView.render());
 };
@@ -40,12 +39,12 @@ projectsView.goToSettings = async () => {
 const settings = new Settings();
 settings.goToPackages = async () => {
     clearView();
-    projectView.packagesView = true;
     projectView.setProject({
         title: "Packages",
         location: await rpc().packages.directory(),
         createdDate: null
     });
+    projectView.packagesView = true;
 
     main.append(await projectView.render());
 };
@@ -62,7 +61,6 @@ projectNewView.cancelAction = async () => {
 };
 projectNewView.didCreateProjectAction = async (newProjectPath) => {
     clearView();
-    projectView.packagesView = false;
     projectView.setProject(newProjectPath);
     main.append(await projectView.render());
 };

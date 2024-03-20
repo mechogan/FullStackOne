@@ -40,7 +40,8 @@ module.exports = {
             name: "@electron-forge/maker-deb",
             config: {
                 options: {
-                    icon: "icons/icon.png"
+                    icon: "icons/icon.png",
+                    mimeType: ["x-scheme-handler/fullstacked"]
                 }
             }
         },

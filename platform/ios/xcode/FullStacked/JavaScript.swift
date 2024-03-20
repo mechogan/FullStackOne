@@ -3,11 +3,11 @@ import JavaScriptCore
 import WebKit
 
 class JavaScript {
-    private var requestId = 0
     let ctx = JSContext()!
-    var webview: WKWebView? = nil
-    var push:  (@convention (block) (String, String) -> Void)?
     let logFn: (String) -> Void
+    var push:  (@convention (block) (String, String) -> Void)?
+    var webview: WKWebView? = nil
+    var unsentMessages: [(String, String)] = []
     
     var privileged = false
     
@@ -19,6 +19,11 @@ class JavaScript {
     ) {
         self.logFn = logFn;
         self.push = { messageType, message in
+            if(self.webview == nil || self.webview!.isLoading) {
+                self.unsentMessages.append((messageType, message));
+                return;
+            }
+            
             DispatchQueue.main.async {
                 self.webview?.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
             }
