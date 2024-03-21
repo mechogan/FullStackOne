@@ -7,14 +7,12 @@ import {
     DELETE_ALL_PACKAGES_ID,
     PROJECT_TITLE_ID,
     RUN_PROJECT_ID
-} from "../../../constants";
+} from "../../constants";
 import GitWidget from "./git-widget";
 
-import type { Project as TypeProject } from "../../../api/projects/types";
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import type { Project as TypeProject } from "../../api/projects/types";
+import rpc from "../../rpc";
+import api from "../../api";
 
 export class Project {
     backAction: () => void;
@@ -264,7 +262,7 @@ export class Project {
             container.append(status);
 
             const installPromise = new Promise<void>((resolve) => {
-                rpc()
+                api
                     .packages.install(packageName)
                     .then(() => {
                         status.innerText = "installed";
@@ -301,7 +299,7 @@ export class Project {
         this.renderEditors();
         this.console.term.clear();
         setTimeout(async () => {
-            await rpc().projects.run(this.project);
+            await api.projects.run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");
         }, 200);
@@ -327,7 +325,7 @@ export class Project {
                 await fetch("/assets/icons/share.svg")
             ).text();
             shareButton.addEventListener("click", async () => {
-                await rpc().projects.zip(this.project);
+                await api.projects.zip(this.project);
                 const refreshedFileTree = await this.fileTree.instance.render();
                 this.fileTree.element?.replaceWith(refreshedFileTree);
                 this.fileTree.element = refreshedFileTree;

@@ -1,16 +1,12 @@
 import "./index.css";
-
-import type { Project } from "../../../api/projects/types";
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
+import type { Project } from "../../api/projects/types";
 import {
     NEW_PROJECT_ID,
-    PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
     SETTINGS_BUTTON_ID
-} from "../../../constants";
+} from "../../constants";
+import api from "../../api";
 
-declare var rpc: typeof typeRPC<typeof api>;
 
 export class Projects {
     newProjectAction: () => void;
@@ -38,7 +34,7 @@ export class Projects {
         ).text();
         deleteButton.addEventListener("click", async (e) => {
             e.stopPropagation();
-            await rpc().projects.delete(project);
+            await api.projects.delete(project);
             this.container.replaceWith(await this.render());
         });
         container.append(deleteButton);
@@ -77,7 +73,7 @@ export class Projects {
 
         const projectsContainer = document.createElement("div");
 
-        const projects = (await rpc().projects.list()).sort(
+        const projects = (await api.projects.list()).sort(
             (projectA, projectB) => projectB.createdDate - projectA.createdDate
         );
 

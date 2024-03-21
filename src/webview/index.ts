@@ -15,7 +15,7 @@ async function fetchCall(pathComponents: string[], ...args) {
     return contentType?.startsWith("application/json")
         ? response.json()
         : contentType?.startsWith("application/octet-stream")
-          ? response.arrayBuffer()
+          ? new Uint8Array(await response.arrayBuffer())
           : response.text();
 }
 
@@ -36,6 +36,8 @@ export default function rpc<T>() {
 }
 (window as any).rpc = rpc;
 
+type MakeFunction<T> = T extends string ? () => Promise<T> : T
+
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
@@ -45,7 +47,9 @@ type AwaitAll<T> = {
           ) => OnlyOnePromise<
               T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
           >
-        : AwaitAll<T[K]>;
+        : T[K] extends object 
+            ? AwaitAll<T[K]>
+            : () => Promise<T[K]>;
 };
 
 (window as any).onPush = {} as {

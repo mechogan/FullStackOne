@@ -21,7 +21,7 @@ type Stat = {
 
 export type Dirent = {
     name: string;
-    isDirectory: boolean;
+    isDirectory: boolean | (() => boolean);
 };
 
 export type fs = {
@@ -30,37 +30,29 @@ export type fs = {
         options?: { encoding?: string; absolutePath?: boolean }
     ): Promise<string | Uint8Array>;
 
-    writeFile(file: string, data: string | Uint8Array): Promise<void>;
+    writeFile(file: string, data: string | Uint8Array, options?: { absolutePath: boolean }): Promise<void>;
 
-    unlink(path: string): Promise<void>;
+    unlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
     readdir(
         path: string,
-        options?: { withFileTypes: boolean }
+        options?: { withFileTypes: boolean, absolutePath?: boolean }
     ): Promise<string[] | Dirent[]>;
 
-    mkdir(path: string): Promise<void>;
+    mkdir(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
-    rmdir(path: string): Promise<void>;
+    rmdir(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
-    stat(path: string): Promise<Stat>;
-    lstat(path: string): Promise<Stat>;
+    stat(path: string, options?: { absolutePath?: boolean }): Promise<Stat>;
+    lstat(path: string, options?: { absolutePath?: boolean }): Promise<Stat>;
 
-    readlink(path: string): Promise<string>;
-    symlink(path: string): Promise<void>;
+    readlink(path: string, options?: { absolutePath?: boolean }): Promise<string>;
+    symlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
-    chmod(path: string, uid: number, gid: number): Promise<void>;
+    chmod(path: string, uid: number, gid: number, options?: { absolutePath?: boolean }): Promise<void>;
 
     exists(
         path: string,
         options?: { absolutePath?: boolean }
-    ): Promise<boolean>;
-    isFile(
-        path: string,
-        options?: { absolutePath?: boolean }
-    ): Promise<boolean>;
-    isDirectory(
-        path: string,
-        options?: { absolutePath?: boolean }
-    ): Promise<boolean>;
+    ): Promise<null | { isFile: boolean }>;
 };

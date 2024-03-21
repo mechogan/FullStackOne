@@ -1,9 +1,5 @@
 import "./index.css";
-
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import api from "../../api";
 
 export class GitAuth {
     private static async githubDeviceFlow(done: () => void) {
@@ -16,7 +12,7 @@ export class GitAuth {
             interval: number;
             user_code: string;
             verification_uri: string;
-        } = JSON.parse(await rpc().git.github.deviceFlowStart());
+        } = JSON.parse(await api.git.github.deviceFlowStart());
 
         const ol = document.createElement("ol");
 
@@ -66,7 +62,7 @@ export class GitAuth {
                 if (waitTime === 0) {
                     step3.innerText = `Validating authentication...`;
 
-                    const poll = await rpc().git.github.deviceFlowPoll(
+                    const poll = await api.git.github.deviceFlowPoll(
                         start.device_code
                     );
 
@@ -177,7 +173,7 @@ export class GitAuth {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            await rpc().git.auth(
+            await api.git.auth(
                 auth?.host || hostnameInput.value,
                 usernameInput.value,
                 emailInput.value,

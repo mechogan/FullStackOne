@@ -1,3 +1,5 @@
+import rpc from "../../rpc";
+
 import projects from "../projects";
 
 import { Project, GitAuths } from "../projects/types";
@@ -12,10 +14,11 @@ type DATA_TYPE = {
 
 export default {
     async init() {
-        if (await fs.exists(configdir)) return;
+        if (await rpc().fs.exists(configdir, { absolutePath: true })) 
+            return;
 
-        await fs.mkdir(configdir);
-        projects.import(
+        await rpc().fs.mkdir(configdir, { absolutePath: true });
+        await projects.import(
             {
                 title: "Demo",
                 location: "fullstackedorg/editor-sample-demo"
@@ -24,22 +27,21 @@ export default {
                 //     url: "https://github.com/fullstackedorg/editor-sample-demo.git"
                 // }
             },
-            (await fs.readFile(demoZIP, { absolutePath: true })) as Uint8Array
+            (await rpc().fs.readFile("Demo.zip")) as Uint8Array
         );
     },
     async load<T extends CONFIG_TYPE>(type: T): Promise<DATA_TYPE[T] | null> {
         const configFile = configdir + "/" + type + ".json";
-        try {
-            await fs.stat(configFile);
+        if((await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile){
             return JSON.parse(
-                (await fs.readFile(configFile, { encoding: "utf8" })) as string
+                (await rpc().fs.readFile(configFile, { encoding: "utf8", absolutePath: true })) as string
             );
-        } catch (e) {}
+        }
 
         return null;
     },
     async save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configFile = configdir + "/" + type + ".json";
-        fs.writeFile(configFile, JSON.stringify(data, null, 2));
+        rpc().fs.writeFile(configFile, JSON.stringify(data, null, 2), { absolutePath: true });
     }
 };

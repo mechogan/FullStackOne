@@ -1,19 +1,14 @@
 import git from "isomorphic-git";
-import type { fs as globalFS } from "../../../src/adapter/fs";
-import type { fetch as globalFetch } from "../../../src/adapter/fetch";
 import { Buffer as globalBuffer } from "buffer";
 import { Project } from "../projects/types";
 import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
-
-declare var fs: typeof globalFS;
-declare var fetch: typeof globalFetch;
-declare var push: (messageType: string, data: string) => void;
+import rpc from "../../rpc";
 
 // for isomorphic-git
-globalThis.Buffer = globalBuffer;
+window.Buffer = globalBuffer;
 
 async function awaitBody(body: AsyncIterableIterator<Uint8Array>) {
     let size = 0;
@@ -36,7 +31,7 @@ const http = {
     async request({ url, method, headers, body, onProgress }) {
         body = body ? await awaitBody(body) : undefined;
 
-        const response = await fetch(url, {
+        const response = await rpc().fetch(url, {
             method,
             headers,
             body
@@ -78,7 +73,7 @@ function parseChangesMatrix(
 async function getParsedChanges(project: Project) {
     return parseChangesMatrix(
         await git.statusMatrix({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             // always ignore .build and data directories
             filter: (file) =>
@@ -106,7 +101,7 @@ const requestGitAuth = async (url: string) => {
     const auth = await new Promise<{ username: string; password: string }>(
         (resolve) => {
             gitAuthPromiseResolveCallbacks.set(hostname, [resolve]);
-            push("gitAuth", JSON.stringify({ hostname }));
+            // push("gitAuth", JSON.stringify({ hostname }));
         }
     );
 
@@ -179,13 +174,13 @@ export default {
     },
     currentBranch(project: Project) {
         return git.currentBranch({
-            fs,
+            fs: rpc().fs,
             dir: project.location
         });
     },
     log(project: Project, depth: number) {
         return git.log({
-            fs,
+            fs: rpc().fs,
             depth,
             dir: project.location
         });
@@ -194,7 +189,7 @@ export default {
         let unreacheable = false;
         try {
             await git.fetch({
-                fs,
+                fs: rpc().fs,
                 http,
                 dir: project.location,
                 prune: true,
@@ -216,7 +211,7 @@ export default {
         let fetch: Awaited<ReturnType<typeof git.fetch>>;
         try {
             fetch = await git.fetch({
-                fs,
+                fs: rpc().fs,
                 http,
                 dir: project.location,
                 prune: true,
@@ -234,11 +229,11 @@ export default {
 
         const [currentBranch, remoteBranches] = await Promise.all([
             git.currentBranch({
-                fs,
+                fs: rpc().fs,
                 dir: project.location
             }),
             git.listBranches({
-                fs,
+                fs: rpc().fs,
                 dir: project.location,
                 remote: "origin"
             })
@@ -256,7 +251,7 @@ export default {
 
             try {
                 const response = await git.pull({
-                    fs,
+                    fs: rpc().fs,
                     http,
                     dir: project.location,
                     singleBranch: true,
@@ -276,7 +271,7 @@ export default {
                 } else if (e.code === "MergeConflictError") {
                     try {
                         await git.merge({
-                            fs,
+                            fs: rpc().fs,
                             dir: project.location,
                             ours: currentBranch,
                             theirs: fetch.fetchHead,
@@ -312,7 +307,7 @@ export default {
         } else {
             try {
                 await git.fastForward({
-                    fs,
+                    fs: rpc().fs,
                     http,
                     dir: project.location,
                     singleBranch: true,
@@ -342,7 +337,7 @@ export default {
         }
 
         await git.add({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             filepath
         });
@@ -350,7 +345,7 @@ export default {
         await Promise.all(
             changes.deleted.map((filepath) =>
                 git.remove({
-                    fs,
+                    fs: rpc().fs,
                     dir: project.location,
                     filepath
                 })
@@ -360,7 +355,7 @@ export default {
         const parent = merging?.theirs
             ? [
                   (await git.currentBranch({
-                      fs,
+                        fs: rpc().fs,
                       dir: project.location
                   })) as string,
                   merging.theirs
@@ -368,7 +363,7 @@ export default {
             : undefined;
 
         return git.commit({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             message: commitMessage,
             author: {
@@ -380,7 +375,7 @@ export default {
     },
     async push(project: Project) {
         return git.push({
-            fs,
+            fs: rpc().fs,
             http,
             dir: project.location,
             onAuth: requestGitAuth
@@ -388,7 +383,7 @@ export default {
     },
     clone(url: string, dir: string) {
         return git.clone({
-            fs,
+            fs: rpc().fs,
             http,
             dir,
             url,
@@ -399,7 +394,7 @@ export default {
     },
     checkout(project: Project, branchOrCommit: string) {
         return git.checkout({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             ref: branchOrCommit
         });
@@ -411,7 +406,7 @@ export default {
         force: boolean = false
     ) {
         return git.checkout({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             ref: branchOrCommit,
             force,
@@ -420,7 +415,7 @@ export default {
     },
     revertFileChanges(project: Project, files: string[]) {
         return git.checkout({
-            fs,
+            fs: rpc().fs,
             dir: project.location,
             filepaths: files,
             force: true
@@ -430,7 +425,7 @@ export default {
         async getAll(project: Project) {
             try {
                 await git.fetch({
-                    fs,
+                    fs: rpc().fs,
                     http,
                     dir: project.location,
                     prune: true,
@@ -440,11 +435,11 @@ export default {
 
             const [local, remote] = await Promise.all([
                 git.listBranches({
-                    fs,
+                    fs: rpc().fs,
                     dir: project.location
                 }),
                 git.listBranches({
-                    fs,
+                    fs: rpc().fs,
                     dir: project.location,
                     remote: "origin"
                 })
@@ -454,7 +449,7 @@ export default {
         },
         create(project: Project, branch: string) {
             return git.branch({
-                fs,
+                fs: rpc().fs,
                 dir: project.location,
                 ref: branch,
                 checkout: true
@@ -462,7 +457,7 @@ export default {
         },
         delete(project: Project, branch: string) {
             return git.deleteBranch({
-                fs,
+                fs: rpc().fs,
                 dir: project.location,
                 ref: branch
             });

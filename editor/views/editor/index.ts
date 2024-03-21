@@ -11,11 +11,7 @@ import {
     Diagnostic
 } from "@codemirror/lint";
 import { Extension } from "@codemirror/state";
-
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import rpc from "../../rpc";
 
 enum UTF8_Ext {
     JAVASCRIPT = ".js",
@@ -109,7 +105,8 @@ export class Editor {
         ) {
             this.editor = new EditorView({
                 doc: (await rpc().fs.readFile(this.filePath.join("/"), {
-                    encoding: "utf8"
+                    encoding: "utf8",
+                    absolutePath: true
                 })) as string,
                 extensions: this.extensions.concat(
                     await this.loadLanguageExtensions()
@@ -125,7 +122,7 @@ export class Editor {
             imageContainer.classList.add("img-container");
 
             const img = document.createElement("img");
-            const imageData = await rpc().fs.readFile(this.filePath.join("/"));
+            const imageData = await rpc().fs.readFile(this.filePath.join("/"), { absolutePath: true });
             const imageBlob = new Blob([imageData]);
             img.src = window.URL.createObjectURL(imageBlob);
             imageContainer.append(img);
@@ -144,10 +141,10 @@ export class Editor {
         const contents = this.editor?.state?.doc?.toString();
         if (!contents) return;
 
-        const exists = await rpc().fs.exists(this.filePath.join("/"));
+        const exists = await rpc().fs.exists(this.filePath.join("/"), { absolutePath: true });
         if (!exists) return;
 
-        rpc().fs.writeFile(this.filePath.join("/"), contents);
+        rpc().fs.writeFile(this.filePath.join("/"), contents, { absolutePath: true });
     }
 
     private updateFileContents() {

@@ -1,9 +1,5 @@
+import rpc from "../../rpc";
 import "./index.css";
-
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
 
 export class EsbuildInstall {
     onComplete: () => void;
@@ -23,10 +19,6 @@ export class EsbuildInstall {
             if (step === this.stepsList.children.length - 1 && progress === 1)
                 this.onComplete();
         };
-    }
-
-    install() {
-        rpc().esbuild.install();
     }
 
     render() {

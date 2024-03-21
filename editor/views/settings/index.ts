@@ -1,11 +1,7 @@
 import "./index.css";
-
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-import { BACK_BUTTON_ID, PACKAGES_BUTTON_ID } from "../../../constants";
+import { BACK_BUTTON_ID, PACKAGES_BUTTON_ID } from "../../constants";
 import { GitAuth } from "../git-auth";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import api from "../../api";
 
 export class Settings {
     backAction: () => void;
@@ -33,7 +29,7 @@ export class Settings {
 
         container.append(settingRow);
 
-        const gitAuths = await rpc().git.getAllAuths();
+        const gitAuths = await api.git.getAllAuths();
 
         const [editIcon, deleteIcon] = await Promise.all([
             (await fetch("/assets/icons/edit.svg")).text(),
@@ -79,7 +75,7 @@ export class Settings {
             deleteButton.classList.add("text", "small", "danger");
             deleteButton.innerHTML = deleteIcon;
             deleteButton.addEventListener("click", async () => {
-                await rpc().git.deleteAuthForHost(host);
+                await api.git.deleteAuthForHost(host);
                 li.remove();
             });
             buttonGroup.append(deleteButton);
@@ -118,7 +114,7 @@ export class Settings {
         packagesButton.id = PACKAGES_BUTTON_ID;
         packagesButton.classList.add("text", "text-and-icon");
         const [packagesCount, packageIcon] = await Promise.all([
-            rpc().packages.count(),
+            api.packages.count(),
             (await fetch("assets/icons/package.svg")).text()
         ]);
         packagesButton.innerHTML = `<span>${packagesCount || 0} package${packagesCount > 1 ? "s" : ""}</span> ${packageIcon}`;

@@ -1,11 +1,7 @@
 import "./index.css";
 
-import type { Project as TypeProject } from "../../../../api/projects/types";
-
-import type typeRPC from "../../../../../src/webview";
-import type api from "../../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import type { Project as TypeProject } from "../../../api/projects/types";
+import api from "../../../api";
 
 export default class GitWidget {
     reloadContent: () => void;
@@ -29,8 +25,8 @@ export default class GitWidget {
 
     private async getCurrentBranchAndCommit() {
         const [branch, commit] = await Promise.all([
-            rpc().git.currentBranch(this.project),
-            rpc().git.log(this.project, 1)
+            api.git.currentBranch(this.project),
+            api.git.log(this.project, 1)
         ]);
 
         return {
@@ -106,7 +102,7 @@ export default class GitWidget {
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 form.innerHTML = `Creating <b>${branchNameInput.value}</b> branch...`;
-                await rpc().git.branch.create(
+                await api.git.branch.create(
                     this.project,
                     branchNameInput.value
                 );
@@ -136,9 +132,9 @@ export default class GitWidget {
         const renderBranchList = async () => {
             const [currentBranch, branches, { changes, unreacheable }] =
                 await Promise.all([
-                    rpc().git.currentBranch(this.project),
-                    rpc().git.branch.getAll(this.project),
-                    rpc().git.changes(this.project)
+                    api.git.currentBranch(this.project),
+                    api.git.branch.getAll(this.project),
+                    api.git.changes(this.project)
                 ]);
 
             const hasUncommittedChanges = Object.values(changes).some(
@@ -171,7 +167,7 @@ export default class GitWidget {
                     deleteButton.classList.add("text", "danger", "small");
                     deleteButton.innerHTML = deleteIcon;
                     deleteButton.addEventListener("click", async () => {
-                        await rpc().git.branch.delete(this.project, branch);
+                        await api.git.branch.delete(this.project, branch);
                         li.remove();
                         ul.replaceWith(await renderBranchList());
                     });
@@ -203,7 +199,7 @@ export default class GitWidget {
                         checkoutButton.disabled = true;
                         checkoutButton.innerText = "Checking out...";
                         setTimeout(async () => {
-                            await rpc().git.checkout(this.project, branch);
+                            await api.git.checkout(this.project, branch);
                             ul.replaceWith(await renderBranchList());
                             this.btn.replaceWith(
                                 await this.renderButton(!branchIsLocalOnly)
@@ -315,7 +311,7 @@ export default class GitWidget {
                 this.project.gitRepository.name = nameInput.value;
                 this.project.gitRepository.email = emailInput.value;
                 renderAuthorInfo();
-                await rpc().projects.update(this.project);
+                await api.projects.update(this.project);
                 this.btn.replaceWith(await this.renderButton());
             });
             confirmButton.innerHTML = checkIcon;
@@ -398,7 +394,7 @@ export default class GitWidget {
         if (!elements) this.parentContainer.append(dialog);
 
         const getChanges = async () => {
-            const { changes, unreacheable } = await rpc().git.changes(
+            const { changes, unreacheable } = await api.git.changes(
                 this.project
             );
             changesContainer.innerText = "";
@@ -444,7 +440,7 @@ export default class GitWidget {
                         revertButton.classList.add("text", "small");
                         revertButton.innerHTML = revertIcon;
                         revertButton.addEventListener("click", async () => {
-                            await rpc().git.checkoutFile(
+                            await api.git.checkoutFile(
                                 this.project,
                                 branch,
                                 [file],
@@ -482,7 +478,7 @@ export default class GitWidget {
                 const commit = async () => {
                     if (!commitMessageInput.value) return;
 
-                    await rpc().git.commit(
+                    await api.git.commit(
                         this.project,
                         commitMessageInput.value,
                         this.merging
@@ -493,7 +489,7 @@ export default class GitWidget {
 
                 const commitAndPush = async () => {
                     await commit();
-                    return rpc().git.push(this.project);
+                    return api.git.push(this.project);
                 };
 
                 const commitButtonCb = async () => {
@@ -587,7 +583,7 @@ export default class GitWidget {
             newBranchButton.disabled = true;
             revertAndPullButton.disabled = true;
             setTimeout(async () => {
-                await rpc().git.branch.create(this.project, branchName);
+                await api.git.branch.create(this.project, branchName);
                 dialog.remove();
                 this.btn.replaceWith(await this.renderButton(true));
             }, 200);
@@ -612,7 +608,7 @@ export default class GitWidget {
             revertAndPullButton.disabled = true;
             newBranchButton.disabled = true;
             setTimeout(async () => {
-                await rpc().git.revertFileChanges(this.project, files);
+                await api.git.revertFileChanges(this.project, files);
                 dialog.remove();
                 this.btn.replaceWith(await this.renderButton(true));
             }, 200);
@@ -662,7 +658,7 @@ export default class GitWidget {
             this.btn.prepend(pullIcon);
 
             setTimeout(async () => {
-                const maybeError = await rpc().git.pull(this.project);
+                const maybeError = await api.git.pull(this.project);
                 pullIcon.remove();
                 if (maybeError && maybeError?.error) {
                     if (maybeError.error === "Conflicts") {

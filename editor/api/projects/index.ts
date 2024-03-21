@@ -1,12 +1,9 @@
-import type { fs as globalFS } from "../../../src/adapter/fs";
-
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import { nodeModulesDir } from "../packages/install";
-import { mingleAPI, mingleWebview } from "./mingle";
 import { scan } from "./scan";
 import { Project } from "./types";
-
+import rpc from "../../rpc";
+import * as zip from "@zip.js/zip.js";
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
@@ -17,7 +14,7 @@ const create = async (project: Omit<Project, "createdDate">) => {
     };
     projects.push(newProject);
     await config.save(CONFIG_TYPE.PROJECTS, projects);
-    await fs.mkdir(project.location);
+    await rpc().fs.mkdir(project.location, { absolutePath: true });
     return newProject;
 };
 const deleteProject = async (project: Project) => {
@@ -27,7 +24,7 @@ const deleteProject = async (project: Project) => {
     );
     projects.splice(indexOf, 1);
     await config.save(CONFIG_TYPE.PROJECTS, projects);
-    return fs.rmdir(project.location);
+    return rpc().fs.rmdir(project.location, { absolutePath: true });
 };
 
 export default {
@@ -43,76 +40,17 @@ export default {
     },
     delete: deleteProject,
     async run(project: Project) {
-        const buildDir = project.location + "/.build";
-
-        // clean
-        if (await fs.exists(buildDir)) await fs.rmdir(buildDir);
-
-        const maybeWebviewEntrypoints = [
-            project.location + "/index.js",
-            project.location + "/index.jsx"
-        ];
-
-        const existsWebviewPromises = maybeWebviewEntrypoints.map(
-            (maybeWebviewJS) => fs.exists(maybeWebviewJS)
-        );
-        const foundWebviewEntrypointIndex = (
-            await Promise.all(existsWebviewPromises)
-        ).findIndex((exists) => exists);
-
-        const foundWebviewEntrypoint =
-            foundWebviewEntrypointIndex >= 0
-                ? maybeWebviewEntrypoints.at(foundWebviewEntrypointIndex)
-                : null;
-
-        let hasErrors = false;
-        if (foundWebviewEntrypoint) {
-            const entrypointWebview = await mingleWebview(
-                foundWebviewEntrypoint
-            );
-            hasErrors = !buildWebview(
-                entrypointWebview,
-                buildDir,
-                resolvePath(nodeModulesDir)
-            );
-            await fs.unlink(entrypointWebview);
-        }
-
-        const maybeAPIEntrypoint = [
-            project.location + "/api/index.js",
-            project.location + "/api/index.jsx"
-        ];
-
-        const existsAPIEntrypointPromises = maybeAPIEntrypoint.map(
-            (maybeWebviewJS) => fs.exists(maybeWebviewJS)
-        );
-        const foundAPIEntrypointIndex = (
-            await Promise.all(existsAPIEntrypointPromises)
-        ).findIndex((exists) => exists);
-
-        const foundAPIEntrypoint =
-            foundAPIEntrypointIndex >= 0
-                ? maybeAPIEntrypoint.at(foundAPIEntrypointIndex)
-                : null;
-
-        const entrypointAPI = await mingleAPI(foundAPIEntrypoint);
-        run(
-            project.location,
-            "",
-            entrypointAPI,
-            resolvePath(nodeModulesDir),
-            hasErrors
-        );
-        await fs.unlink(entrypointAPI);
+        if(await rpc().build(project))
+            return rpc().run(project);
     },
     async zip(project: Project) {
         const out = project.location + "/" + project.title + ".zip";
 
-        if (await fs.exists(out)) {
-            await fs.unlink(out);
+        if (await rpc().fs.exists(out)) {
+            await rpc().fs.unlink(out);
         }
 
-        const items = (await scan(project.location))
+        const items = (await scan(project.location, async (...args) => rpc().fs.readdir(...args)))
             // filter out data items, build items and git directory
             .filter(
                 (item) =>
@@ -123,7 +61,7 @@ export default {
             // convert to relative path to project.location
             .map((item) => item.slice(project.location.length + 1));
 
-        zip(project.location, items, out);
+        // zip(project.location, items, out);
     },
     async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
         const newProject = {
@@ -131,13 +69,28 @@ export default {
             createdDate: Date.now()
         };
 
-        if (await fs.exists(project.location)) {
+        if (await rpc().fs.exists(project.location, { absolutePath: true })) {
             await deleteProject(newProject);
         }
 
-        create(newProject);
-        unzip(project.location, zipData);
+        await create(newProject);
+        await unzip(project.location, zipData);
 
         return newProject;
     }
 };
+
+
+async function unzip(to: string, zipData: Uint8Array) {
+    const entries = await (new zip.ZipReader(new zip.Uint8ArrayReader(zipData))).getEntries();
+    if (entries && entries.length) {
+        for(const entry of entries) {
+            const pathComponents = entry.filename.split("/");
+            const filename = pathComponents.pop();
+            const directory = pathComponents.join("/");
+            await rpc().fs.mkdir(to + "/" + directory, { absolutePath: true });
+            const data = await entry.getData(new zip.Uint8ArrayWriter())
+            await rpc().fs.writeFile(to + "/" + directory + "/" + filename, data, { absolutePath: true } );
+        }
+    }
+}

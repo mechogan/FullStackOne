@@ -1,12 +1,9 @@
 import "./index.css";
 import { FileTree } from "../file-tree";
-import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../../constants";
+import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 
-import type { Project } from "../../../api/projects/types";
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-
-declare var rpc: typeof typeRPC<typeof api>;
+import type { Project } from "../../api/projects/types";
+import api from "../../api";
 
 export class ProjectNew {
     didCreateProjectAction: (newProject: Project) => void;
@@ -97,7 +94,7 @@ export class ProjectNew {
             importButton.innerText = "Importing...";
             importButton.disabled = true;
 
-            const importedProject = await rpc().projects.import(
+            const importedProject = await api.projects.import(
                 project,
                 new Uint8Array(await zipFile.arrayBuffer())
             );
@@ -139,9 +136,9 @@ export class ProjectNew {
                 createButton.innerText = "Cloning...";
                 createButton.disabled = true;
 
-                await rpc().git.clone(gitUrl, location);
+                await api.git.clone(gitUrl, location);
                 const usernameAndEmail =
-                    await rpc().git.getUsernameAndEmailForHost(gitUrl);
+                    await api.git.getUsernameAndEmailForHost(gitUrl);
                 project.gitRepository = {
                     url: gitUrl,
                     name: usernameAndEmail?.username,
@@ -149,7 +146,7 @@ export class ProjectNew {
                 };
             }
 
-            this.didCreateProjectAction(await rpc().projects.create(project));
+            this.didCreateProjectAction(await api.projects.create(project));
         });
         buttonContainer.append(createButton);
 

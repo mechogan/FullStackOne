@@ -1,11 +1,8 @@
 import "./index.css";
+import { NEW_FILE_ID } from "../../constants";
+import rpc from "../../rpc";
+import type { Dirent } from "../../../src/adapter/fs";
 
-import type typeRPC from "../../../../src/webview";
-import type api from "../../../api";
-import { NEW_FILE_ID } from "../../../constants";
-import type { Dirent } from "../../../../src/adapter/fs";
-
-declare var rpc: typeof typeRPC<typeof api>;
 
 export class FileTree {
     allowDeletion = false;
@@ -68,7 +65,8 @@ export class FileTree {
         const ul = document.createElement("ul");
 
         let items = (await rpc().fs.readdir(pathComponents.join("/"), {
-            withFileTypes: true
+            withFileTypes: true,
+            absolutePath: true
         })) as Dirent[];
         items = items.filter(({ name, isDirectory }) => {
             if (name.startsWith(".")) return false;
@@ -175,7 +173,8 @@ export class FileTree {
                 : this.baseDirectory;
 
             await rpc().fs.mkdir(
-                parentDirectoryPathComponents.join("/") + "/" + newDirectoryName
+                parentDirectoryPathComponents.join("/") + "/" + newDirectoryName,
+                { absolutePath: true }
             );
 
             const updatedChildrenList = await this.openDirectory(
@@ -221,7 +220,8 @@ export class FileTree {
 
             await rpc().fs.writeFile(
                 parentDirectoryPathComponents.join("/") + "/" + newFileName,
-                "\n"
+                "\n",
+                { absolutePath: true }
             );
 
             const updatedChildrenList = await this.openDirectory(
@@ -261,7 +261,8 @@ export class FileTree {
 
         await rpc().fs.writeFile(
             filePath,
-            new Uint8Array(await file.arrayBuffer())
+            new Uint8Array(await file.arrayBuffer()),
+            { absolutePath: true }
         );
 
         const ul = this.itemSelected

@@ -1,24 +1,41 @@
-import type esbuildType from "esbuild";
+import fs from "fs";
+import type esbuild from "esbuild";
 
-export function buildWebview(
+export async function merge(
+    baseFile: string,
     entryPoint: string,
+    cacheDirectory: string
+){
+    const mergedContent = `${await fs.promises.readFile(baseFile)}\nimport("${entryPoint}");`;
+    await fs.promises.mkdir(cacheDirectory, {recursive: true});
+    const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
+    await fs.promises.writeFile(tmpFile, mergedContent);
+    return tmpFile;
+}
+
+export function build(
+    buildSync: typeof esbuild.buildSync,
+    entryPoints: {
+        in: string,
+        out: string
+    }[],
     outdir: string,
-    nodePath?: string,
+    nodePaths?: string[],
+    sourcemap: esbuild.BuildOptions["sourcemap"] = "inline",
     splitting = true
 ) {
-    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
-
     try {
-        (global.esbuild as typeof esbuildType).buildSync({
-            entryPoints: [{ out: "index", in: entryPoint }],
+        buildSync({
+            entryPoints,
             outdir,
             splitting,
             bundle: true,
             format: "esm",
-            sourcemap: "inline",
+            minify: true,
+            sourcemap,
             write: true,
             logLevel: "silent",
-            nodePaths: nodePath ? [nodePath] : undefined
+            nodePaths
         });
     } catch (e) {
         return { errors: e.errors };

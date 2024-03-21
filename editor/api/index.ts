@@ -1,16 +1,14 @@
 import projects from "./projects";
 import config from "./config";
-import esbuild from "./esbuild";
 import git from "./git";
 import packages from "./packages";
 import URL from "url-parse";
 import SearchParams from "fast-querystring";
+import rpc from "../rpc";
 
 export default {
     projects,
-    fs,
     config,
-    esbuild,
     git,
     packages,
     async launchURL(deeplink: string) {
@@ -33,7 +31,7 @@ export default {
                 .slice(1) // remove forward /
                 .split(".")
                 .shift(); // remove .git at the end;
-            await fs.mkdir(projectDir);
+            await rpc().fs.mkdir(projectDir);
 
             await git.clone(gitUrl, projectDir);
             const usernameAndEmail =
@@ -51,6 +49,6 @@ export default {
             });
         }
 
-        push("launchURL", JSON.stringify(launchProject));
+        // push("launchURL", JSON.stringify(launchProject));
     }
 };

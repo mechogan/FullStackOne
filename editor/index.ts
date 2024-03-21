@@ -7,8 +7,7 @@ import { EsbuildInstall } from "./views/esbuild";
 import { GitAuth } from "./views/git-auth";
 import { Settings } from "./views/settings";
 import api from "./api";
-
-
+import rpc from "./rpc";
 
 /// utils ///
 const main = document.querySelector("main") as HTMLElement;
@@ -84,8 +83,8 @@ projectView.backAction = async () => {
 };
 
 // pre-init
-await rpc().config.init();
-const esbuildInstall = await rpc().esbuild.checkInstall();
+await api.config.init();
+const esbuildInstall = await rpc().esbuild.check();
 
 // start app
 const app = async () => {
@@ -96,14 +95,14 @@ const app = async () => {
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has("demo")) {
-        const demoProject = (await rpc().projects.list()).find(
+        const demoProject = (await api.projects.list()).find(
             ({ title }) => title === "Demo"
         );
         if (demoProject) {
             projectView.setProject(demoProject);
             clearView();
             main.append(await projectView.render());
-            await rpc().projects.run(demoProject);
+            await api.projects.run(demoProject);
         }
     }
 };
@@ -113,7 +112,7 @@ if (!esbuildInstall) {
     const esbuildInstall = new EsbuildInstall();
     esbuildInstall.onComplete = app;
     main.append(esbuildInstall.render());
-    esbuildInstall.install();
+    rpc().esbuild.install();
 } else {
     await app();
 }
