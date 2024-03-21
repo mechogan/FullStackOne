@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import open from "open";
 import { InstanceEditor } from "./instanceEditor";
 

@@ -17,6 +17,8 @@ type Stat = {
     mtime: Date;
     ctime: Date;
     birthtime: Date;
+    isDirectory: boolean,
+    isFile: boolean
 };
 
 export type Dirent = {
@@ -30,7 +32,7 @@ export type fs = {
         options?: { encoding?: string; absolutePath?: boolean }
     ): Promise<string | Uint8Array>;
 
-    writeFile(file: string, data: string | Uint8Array, options?: { absolutePath: boolean }): Promise<void>;
+    writeFile(file: string, data: string | Uint8Array, options?: { encoding?: "utf8", absolutePath: boolean }): Promise<void>;
 
     unlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 

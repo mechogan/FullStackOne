@@ -1,5 +1,4 @@
 import "./index.css";
-
 import { Editor } from "../editor";
 import { FileTree } from "../file-tree";
 import { Console } from "../console";
@@ -9,7 +8,7 @@ import {
     RUN_PROJECT_ID
 } from "../../constants";
 import GitWidget from "./git-widget";
-
+import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
@@ -62,74 +61,7 @@ export class Project {
         };
 
         (window as any).onPush["buildError"] = (message: string) => {
-            const errors = JSON.parse(message);
-
-            const packagesMissing = new Map<string, Set<string>>();
-            errors.forEach((error) => {
-                const file = error.location?.file || error.Location?.File;
-
-                const filename = file.split(this.project.location).pop();
-                let filePath = this.project.location + filename;
-
-                const message = error.text || error.Text;
-
-                if (message.startsWith("Could not resolve")) {
-                    const moduleName: string[] = message
-                        .match(/\".*\"/)
-                        ?.at(0)
-                        ?.slice(1, -1)
-                        .split("/");
-
-                    if (!moduleName.at(0)?.startsWith(".")) {
-                        const dependency = moduleName.at(0)?.startsWith("@")
-                            ? moduleName.slice(0, 2).join("/")
-                            : moduleName.at(0);
-
-                        if (dependency) {
-                            let fileRequiringPackage =
-                                packagesMissing.get(dependency);
-                            if (!fileRequiringPackage)
-                                fileRequiringPackage = new Set();
-                            fileRequiringPackage.add(
-                                filename.includes("node_modules")
-                                    ? "node_modules" +
-                                          filename.split("node_modules").pop()
-                                    : filename.slice(1)
-                            );
-                            packagesMissing.set(
-                                dependency,
-                                fileRequiringPackage
-                            );
-                        }
-
-                        return;
-                    }
-                }
-
-                let editor = this.editors.find(
-                    (activeEditor) =>
-                        activeEditor.filePath.join("/") === filePath
-                );
-                if (!editor) {
-                    editor = new Editor(filePath.split("/"));
-                    this.editors.push(editor);
-                }
-
-                editor.addBuildError({
-                    line: error.location?.line || error.Location?.Line,
-                    col: error.location?.column || error.Location?.Column,
-                    length: error.location?.length || error.Location?.Length,
-                    message
-                });
-
-                this.currentFile = filename;
-            });
-
-            this.renderEditors();
-
-            if (packagesMissing.size > 0) {
-                this.installPackages(packagesMissing);
-            }
+            
         };
 
         (window as any).onPush["download"] = async (message: string) => {
@@ -284,6 +216,79 @@ export class Project {
         });
     }
 
+    private processBuildErrors(errors: esbuild.BuildResult["errors"]){
+        const packagesMissing = new Map<string, Set<string>>();
+        errors.forEach((error) => {
+            error = uncapitalizeKeys(error);
+
+            const file = error.location?.file;
+
+            const filename = file.split(this.project.location).pop();
+            let filePath = this.project.location + filename;
+
+            const message = error.text;
+
+            if (message.startsWith("Could not resolve")) {
+                const moduleName: string[] = message
+                    .match(/\".*\"/)
+                    ?.at(0)
+                    ?.slice(1, -1)
+                    .split("/");
+
+                if (!moduleName.at(0)?.startsWith(".")) {
+                    const dependency = moduleName.at(0)?.startsWith("@")
+                        ? moduleName.slice(0, 2).join("/")
+                        : moduleName.at(0);
+
+                    if (dependency) {
+                        let fileRequiringPackage =
+                            packagesMissing.get(dependency);
+                        if (!fileRequiringPackage)
+                            fileRequiringPackage = new Set();
+                        fileRequiringPackage.add(
+                            filename.includes("node_modules")
+                                ? "node_modules" +
+                                        filename.split("node_modules").pop()
+                                : filename.slice(1)
+                        );
+                        packagesMissing.set(
+                            dependency,
+                            fileRequiringPackage
+                        );
+                    }
+
+                    return;
+                }
+            }
+
+            let editor = this.editors.find(
+                (activeEditor) =>
+                    activeEditor.filePath.join("/") === filePath
+            );
+            if (!editor) {
+                editor = new Editor(filePath.split("/"));
+                this.editors.push(editor);
+            }
+
+            editor.addBuildError({
+                line: error.location?.line,
+                col: error.location?.column,
+                length: error.location?.length,
+                message
+            });
+
+            this.currentFile = filename;
+        });
+
+        this.renderEditors();
+
+        console.log(packagesMissing);
+
+        if (packagesMissing.size > 0) {
+            this.installPackages(packagesMissing);
+        }
+    }
+
     async runProject() {
         if (this.runButton.getAttribute("loading")) return;
 
@@ -299,7 +304,9 @@ export class Project {
         this.renderEditors();
         this.console.term.clear();
         setTimeout(async () => {
-            await api.projects.run(this.project);
+            const buildErrors = await rpc().build(this.project);
+            if(buildErrors) this.processBuildErrors(buildErrors)
+            else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");
         }, 200);
@@ -314,7 +321,7 @@ export class Project {
             deleteAllPackagesButton.classList.add("danger", "text");
             deleteAllPackagesButton.innerText = "Delete All";
             deleteAllPackagesButton.addEventListener("click", async () => {
-                await rpc().fs.rmdir(this.project.location);
+                await rpc().fs.rmdir(this.project.location, { absolutePath: true });
                 this.backAction();
             });
             container.append(deleteAllPackagesButton);
@@ -480,3 +487,16 @@ export class Project {
         return this.container;
     }
 }
+
+
+function isPlainObject(input: any) {
+    return input && !Array.isArray(input) && typeof input === 'object';
+ }
+ 
+ function uncapitalizeKeys<T>(obj: T) {
+   const final = {};
+   for (const [key, value] of Object.entries(obj)) {
+     final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value) ? uncapitalizeKeys(value) : value;
+   }
+   return final as T;
+ }

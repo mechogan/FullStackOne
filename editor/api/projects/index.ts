@@ -39,10 +39,6 @@ export default {
         return config.save(CONFIG_TYPE.PROJECTS, projects);
     },
     delete: deleteProject,
-    async run(project: Project) {
-        if(await rpc().build(project))
-            return rpc().run(project);
-    },
     async zip(project: Project) {
         const out = project.location + "/" + project.title + ".zip";
 

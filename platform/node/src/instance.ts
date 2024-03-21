@@ -4,6 +4,7 @@ import { TextEncoder, TextDecoder } from "util";
 import mime from "mime";
 import type { Adapter } from "../../../src/adapter";
 import { initAdapter } from "./adapter";
+import { decodeUint8Array } from "../../../src/Uint8Array";
 
 
 type Response = {
@@ -80,6 +81,18 @@ export class Instance {
             pathname = maybeIndexHTML;
         }
 
+        // we'll check for a built file
+        if (
+            pathname.endsWith(".js") ||
+            pathname.endsWith(".css") ||
+            pathname.endsWith(".map")
+        ) {
+            const maybeBuiltFile = ".build/" + pathname;
+            if ((await this.adapter.fs.exists(maybeBuiltFile))?.isFile) {
+                pathname = maybeBuiltFile;
+            }
+        }
+
         // static file serving
         if ((await this.adapter.fs.exists(pathname))?.isFile) {
             const data = await this.adapter.fs.readFile(pathname) as Uint8Array;
@@ -101,20 +114,27 @@ export class Instance {
                 response.status = 200;
                 
                 const body = await readBody(req);
-                const args = body && body.length ? JSON.parse(td.decode(body), (key: string, value: any) => {
-                    if(typeof value === "object" && value.hasOwnProperty("type") && value.type === "Uint8Array"){
-                        return new Uint8Array(value.data);
+                const args = body && body.length ? JSON.parse(td.decode(body), decodeUint8Array) : [];
+        
+                let responseBody = method;
+                
+                if(typeof responseBody === "function") {
+                    try {
+                        responseBody = responseBody(...args);
+                    } catch (e) {
+                        response.status = 299;
+                        responseBody = e;
                     }
-                    return value;
-                }) : [];
+                }
         
-                let responseBody = typeof method === "function" 
-                    ? method(...args) 
-                    : method;
-        
-                // await all promises
+                // await all promises and functions
                 while (responseBody instanceof Promise) {
-                    responseBody = await responseBody;
+                    try {
+                        responseBody = await responseBody;
+                    } catch (e) {
+                        response.status = 299;
+                        responseBody = e;
+                    }
                 }
         
                 let type = "text/plain";

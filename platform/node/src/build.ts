@@ -38,6 +38,6 @@ export function build(
             nodePaths
         });
     } catch (e) {
-        return { errors: e.errors };
+        return { errors: e.errors as esbuild.ResolveResult["errors"] };
     }
 }

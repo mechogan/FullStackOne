@@ -39,7 +39,7 @@ settings.goToPackages = async () => {
     clearView();
     projectView.setProject({
         title: "Packages",
-        location: await api.packages.directory(),
+        location: await rpc().directories.nodeModules(),
         createdDate: null
     });
     projectView.packagesView = true;
@@ -102,7 +102,7 @@ const app = async () => {
             projectView.setProject(demoProject);
             clearView();
             main.append(await projectView.render());
-            await api.projects.run(demoProject);
+            // await api.projects.run(demoProject);
         }
     }
 };

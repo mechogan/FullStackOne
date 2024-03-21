@@ -1,14 +1,22 @@
-import type rpcFn from "../src/webview/index";
+import type rpcFn from "../src/index";
 import type { Adapter } from "../src/adapter";
 import type { Project } from "./api/projects/types";
+import type esbuild from "esbuild";
 
 export type AdapterEditor = Adapter & { 
+    directories: {
+        root: string,
+        cache: string,
+        config: string,
+        nodeModules: string
+    },
+
     esbuild: {
         check(): boolean;
         install(): void;
     };
 
-    build(project: Project): boolean;
+    build(project: Project): Promise<esbuild.BuildResult["errors"]>;
     run(project: Project): void;
  }
 

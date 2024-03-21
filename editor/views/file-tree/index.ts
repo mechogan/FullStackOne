@@ -50,8 +50,8 @@ export class FileTree {
                 }
 
                 const path = itemPath.join("/");
-                if (isDirectory) await rpc().fs.rmdir(path);
-                else await rpc().fs.unlink(path);
+                if (isDirectory) await rpc().fs.rmdir(path, { absolutePath: true });
+                else await rpc().fs.unlink(path, { absolutePath: true });
 
                 parentLi.remove();
             });

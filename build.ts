@@ -9,7 +9,7 @@ import * as zip from "@zip.js/zip.js";
 const baseFile = "src/js/index.js";
 
 esbuild.buildSync({
-    entryPoints: ["src/webview/index.ts"],
+    entryPoints: ["src/index.ts"],
     bundle: true,
     format: "esm",
     outfile: baseFile
