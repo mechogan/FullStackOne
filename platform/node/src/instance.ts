@@ -1,10 +1,11 @@
-import http, { IncomingMessage } from "http";
+import http from "http";
 import ws, { WebSocketServer } from "ws";
 import { TextEncoder, TextDecoder } from "util";
 import mime from "mime";
 import type { Adapter } from "../../../src/adapter";
 import { initAdapter } from "./adapter";
 import { decodeUint8Array } from "../../../src/Uint8Array";
+import open from "open"
 
 
 type Response = {
@@ -22,7 +23,7 @@ const notFound: Response = {
     mimeType: "text/plain"
 };
 
-const readBody = (request: IncomingMessage) => new Promise<Uint8Array>((resolve) => {
+const readBody = (request: http.IncomingMessage) => new Promise<Uint8Array>((resolve) => {
     const contentLengthStr = request.headers["content-length"] || "0";
     const contentLength = parseInt(contentLengthStr);
     if (!contentLength) {
@@ -167,5 +168,7 @@ export class Instance {
 
     start(){
         this.server.listen(this.port);
+        if(!process.env.NO_OPEN)
+            open(`http://localhost:${this.port}`);
     }
 }

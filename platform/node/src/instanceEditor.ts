@@ -140,7 +140,6 @@ export class InstanceEditor extends Instance {
             run: (project: Project) => {
                 const instance = new Instance(this.rootDirectory + "/" + project.location);
                 instance.start();
-                open(`http://localhost:${instance.port}`);
             },
         }
     }
