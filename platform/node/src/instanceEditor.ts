@@ -8,7 +8,6 @@ import { Project } from "../../../editor/api/projects/types";
 import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
-import open from "open";
 import { WebSocket } from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -133,10 +132,12 @@ export class InstanceEditor extends Instance {
                 const mergedFile = await merge(this.baseJS, entryPoint, this.rootDirectory + "/" + this.cacheDirectory);
 
                 const outdir = this.rootDirectory + "/" + project.location + "/.build";
-                const result = build(esbuild.buildSync, [{
-                    in: mergedFile,
-                    out: "index"
-                }], outdir, [this.rootDirectory + "/" + this.nodeModulesDirectory]);
+                const result = build(
+                    esbuild.buildSync, 
+                    mergedFile,
+                    "index", 
+                    outdir, 
+                    this.rootDirectory + "/" + this.nodeModulesDirectory);
 
                 await fs.promises.unlink(mergedFile);
 
@@ -146,9 +147,8 @@ export class InstanceEditor extends Instance {
                 const instance = new Instance(this.rootDirectory + "/" + project.location);
                 instance.start();
             },
-            open(project: Project) {
-                open(this.rootDirectory + "/" + project.location);
-            }
+
+            open: () => {}
         }
     }
     

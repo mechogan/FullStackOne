@@ -8,8 +8,8 @@ import (
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-//export buildWebview
-func buildWebview(entryPoint *C.char, Outdir *C.char, NodePath *C.char, errors **C.char) {
+//export build
+func build(entryPoint *C.char, Outdir *C.char, NodePath *C.char, errors **C.char) {
 	result := api.Build(api.BuildOptions{
 		EntryPointsAdvanced: []api.EntryPoint{{
 			OutputPath: "index",
@@ -28,24 +28,4 @@ func buildWebview(entryPoint *C.char, Outdir *C.char, NodePath *C.char, errors *
 		errorsJSON, _ := json.Marshal(result.Errors)
 		*errors = C.CString(string(errorsJSON))
 	}
-}
-
-//export buildAPI
-func buildAPI(entryPoint *C.char, NodePath *C.char, errors **C.char) *C.char {
-	result := api.Build(api.BuildOptions{
-		EntryPoints: []string{C.GoString(entryPoint)},
-		Bundle:      true,
-		GlobalName:  "api",
-		Format:      api.FormatIIFE,
-		Write:       false,
-		NodePaths:   []string{C.GoString(NodePath)},
-	})
-
-	if len(result.Errors) > 0 {
-		errorsJSON, _ := json.Marshal(result.Errors)
-		*errors = C.CString(string(errorsJSON))
-		return nil
-	}
-
-	return C.CString(string(result.OutputFiles[0].Contents[:]))
 }

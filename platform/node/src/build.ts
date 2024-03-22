@@ -15,18 +15,19 @@ export async function merge(
 
 export function build(
     buildSync: typeof esbuild.buildSync,
-    entryPoints: {
-        in: string,
-        out: string
-    }[],
+    input: string,
+    out: string,
     outdir: string,
-    nodePaths?: string[],
+    nodePath: string,
     sourcemap: esbuild.BuildOptions["sourcemap"] = "inline",
     splitting = true
 ) {
     try {
         buildSync({
-            entryPoints,
+            entryPoints: [{
+                in: input,
+                out
+            }],
             outdir,
             splitting,
             bundle: true,
@@ -35,7 +36,7 @@ export function build(
             sourcemap,
             write: true,
             logLevel: "silent",
-            nodePaths
+            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors as esbuild.ResolveResult["errors"] };

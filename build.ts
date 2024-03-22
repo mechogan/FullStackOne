@@ -34,10 +34,8 @@ await Promise.all(compilePromises);
 const editorEntry = await merge(baseFile, path.resolve("editor/index.ts"), ".cache");
 const buildErrors = build(
     esbuild.buildSync, 
-    [{
-        in: editorEntry,
-        out: "index"
-    }],
+    editorEntry,
+    "index",
     "editor/build",
     undefined,
     false,
