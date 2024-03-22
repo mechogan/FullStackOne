@@ -1,9 +1,9 @@
 import type { Adapter } from "../../../src/adapter";
 import fs from "fs";
 
-export function initAdapter(baseDirectory: string): Adapter {
+export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
     return {
-        platform: "node",
+        platform,
         fs: {
             readFile: (path, options?: { encoding?: "utf8" }) => {
                 return fs.promises.readFile(baseDirectory + "/" + path, options);

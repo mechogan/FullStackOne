@@ -6,6 +6,8 @@ import type { Adapter } from "../../../src/adapter";
 import { initAdapter } from "./adapter";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import open from "open"
+import type { Project } from "../../../editor/api/projects/types";
+import { InstanceEditor } from "./instanceEditor";
 
 
 type Response = {
@@ -43,8 +45,6 @@ const readBody = (request: http.IncomingMessage) => new Promise<Uint8Array>((res
 });
 
 export class Instance {
-    static platform = "node";
-
     static port = 9000;
     port: number;
 
@@ -54,10 +54,8 @@ export class Instance {
 
     adapter: Adapter;
 
-    constructor(
-        baseDirectory: string
-    ) {
-        this.adapter = initAdapter(baseDirectory);
+    constructor(project: Project) {
+        this.adapter = initAdapter(InstanceEditor.rootDirectory + "/" + project.location);
         this.port = Instance.port;
         Instance.port++;
 
@@ -167,7 +165,7 @@ export class Instance {
         }
 
         res.writeHead(response.status, {
-            "content-length": response.data?.byteLength || "0",
+            "content-length": response.data?.byteLength?.toString() || "0",
             "content-type": response.mimeType
         });
         res.end(response.data);

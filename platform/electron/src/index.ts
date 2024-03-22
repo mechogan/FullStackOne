@@ -1,52 +1,11 @@
-import { app } from "electron";
-import path from "path";
-import { JavaScript } from "../../node/src/javascript";
+import { app, protocol } from "electron";
+import { InstanceEditor } from "./instanceEditor";
 
-if (require("electron-squirrel-startup")) app.quit();
-
-const deepLinksScheme = "fullstacked";
-
-if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient(deepLinksScheme, process.execPath, [
-            path.resolve(process.argv[1])
-        ]);
-    }
-} else {
-    app.setAsDefaultProtocolClient(deepLinksScheme);
-}
-
-let js: JavaScript;
-let urlToLaunch = process.argv.find(arg => arg.startsWith(deepLinksScheme));
-
-const launchURL = () => {
-    js.processRequest(
-        {},
-        "launchURL",
-        new Uint8Array(Buffer.from(JSON.stringify([urlToLaunch]))),
-        () => {}
-    );
-    urlToLaunch = null;
-};
-
-// deeplink
-app.on("open-url", (event, url) => {
-    urlToLaunch = url;
-    if (js) launchURL();
-});
-
-if (!app.requestSingleInstanceLock()) {
-    app.quit();
-} else {
-    app.on("second-instance", (_, commandLine) => {
-        urlToLaunch = commandLine.pop();
-        if (js) launchURL();
-    });
-}
 
 app.on("window-all-closed", () => app.quit());
 
-app.whenReady().then(async () => {
-    js = (await import("./start")).default;
-    if (urlToLaunch) launchURL();
+app.whenReady().then(() => {
+    const editorInstance = new InstanceEditor();
+    protocol.handle("http", editorInstance.requestListener.bind(editorInstance));
+    editorInstance.start("app-0");
 });
