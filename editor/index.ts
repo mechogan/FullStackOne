@@ -15,7 +15,6 @@ const clearView = () => Array.from(main.children).forEach((e) => e.remove());
 
 /// Git Auth View ///
 const gitAuth = new GitAuth();
-(window as any).onPush["gitAuth"] = gitAuth.receivedMessage;
 
 /// Projects View ///
 const projectsView = new Projects();

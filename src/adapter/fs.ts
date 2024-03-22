@@ -38,7 +38,7 @@ export type fs = {
 
     readdir(
         path: string,
-        options?: { withFileTypes: boolean, absolutePath?: boolean }
+        options?: { withFileTypes?: boolean, absolutePath?: boolean }
     ): Promise<string[] | Dirent[]>;
 
     mkdir(path: string, options?: { absolutePath?: boolean }): Promise<void>;

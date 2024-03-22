@@ -141,6 +141,9 @@ export class InstanceEditor extends Instance {
                 const instance = new Instance(this.rootDirectory + "/" + project.location);
                 instance.start();
             },
+            open(project: Project) {
+                open(this.rootDirectory + "/" + project.location);
+            }
         }
     }
 }

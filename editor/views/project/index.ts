@@ -60,32 +60,6 @@ export class Project {
             this.renderEditors();
         };
 
-        (window as any).onPush["buildError"] = (message: string) => {
-            
-        };
-
-        (window as any).onPush["download"] = async (message: string) => {
-            const uint8Arr = new Uint8Array(
-                (await rpc().fs.readFile(message)) as Uint8Array
-            );
-            const blob = new Blob([uint8Arr]);
-            const url = window.URL.createObjectURL(blob);
-
-            const element = document.createElement("a");
-            element.setAttribute("href", url);
-            element.setAttribute(
-                "download",
-                message.split("/").pop() ?? "unnamed.zip"
-            );
-            element.style.display = "none";
-
-            document.body.appendChild(element);
-
-            element.click();
-            document.body.removeChild(element);
-            window.URL.revokeObjectURL(url);
-        };
-
         const openConsole = () => {
             this.console.fitAddon.fit();
             this.container.classList.add("console-opened");
@@ -332,10 +306,30 @@ export class Project {
                 await fetch("/assets/icons/share.svg")
             ).text();
             shareButton.addEventListener("click", async () => {
-                await api.projects.zip(this.project);
+                const zipData = await api.projects.export(this.project);
                 const refreshedFileTree = await this.fileTree.instance.render();
                 this.fileTree.element?.replaceWith(refreshedFileTree);
                 this.fileTree.element = refreshedFileTree;
+                if(await rpc().platform() === "node"){
+                    const blob = new Blob([zipData]);
+                    const url = window.URL.createObjectURL(blob);
+        
+                    const element = document.createElement("a");
+                    element.setAttribute("href", url);
+                    element.setAttribute(
+                        "download",
+                        this.project.title + ".zip"
+                    );
+                    element.style.display = "none";
+        
+                    document.body.appendChild(element);
+        
+                    element.click();
+                    document.body.removeChild(element);
+                    window.URL.revokeObjectURL(url);
+                }else {
+                    rpc().open(this.project)
+                }
             });
             container.append(shareButton);
 

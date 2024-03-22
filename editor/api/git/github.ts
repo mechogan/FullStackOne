@@ -1,4 +1,3 @@
-import { auth } from ".";
 import rpc from "../../rpc";
 
 const client_id = "175231928f47d8d36b2d";
@@ -73,6 +72,10 @@ export default {
 
         const email = emails?.find((emailEntry) => emailEntry?.primary)?.email;
 
-        await auth("github.com", username, email, access_token);
+        return {
+            username, 
+            email, 
+            password: access_token
+        }
     }
 };

@@ -6,6 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
+import { GitAuth } from "../../views/git-auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -44,7 +45,6 @@ const fs = {
         return rpc().fs.mkdir(args[0], { absolutePath: true });
     },
     rmdir: async (...args) => {
-        console.log("rmdir", args)
         return rpc().fs.rmdir(args[0], { absolutePath: true });
     },
     stat: async (...args) => {
@@ -65,6 +65,7 @@ const fs = {
         stats.birthtime = new Date(stats.birthtime);
         stats.isDirectory = stats.isDirectory ? returnTrue : returnFalse;
         stats.isFile = stats.isFile ? returnTrue : returnFalse;
+        stats.isSymbolicLink = returnFalse;
         return stats;
     },
     readlink: async () => {
@@ -156,12 +157,6 @@ async function getParsedChanges(project: Project) {
     );
 }
 
-// hostname => onAuthPromises
-const gitAuthPromiseResolveCallbacks = new Map<
-    string,
-    ((auth: { username: string; password: string }) => void)[]
->();
-
 const requestGitAuth = async (url: string) => {
     const { hostname } = new URL(url);
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
@@ -169,53 +164,51 @@ const requestGitAuth = async (url: string) => {
         return gitAuths?.[hostname];
     }
 
-    const auth = await new Promise<{ username: string; password: string }>(
-        (resolve) => {
-            gitAuthPromiseResolveCallbacks.set(hostname, [resolve]);
-            // push("gitAuth", JSON.stringify({ hostname }));
-        }
-    );
+    try {
+        const auth = await new Promise<{ host: string, username: string; password: string, email: string }>(
+            (resolve, reject) => {
+                GitAuth.requestAuth(hostname, resolve, reject)
+            }
+        );
 
-    return auth;
+        console.log(auth);
+
+        await saveGitAuth(auth)
+    
+        return auth;
+    }catch(e) {
+        return null;
+    }
 };
 
-export async function auth(
-    hostname: string,
-    username: string,
-    email: string,
-    password: string
+export async function saveGitAuth(
+    gitAuth: {
+        host: string,
+        username: string,
+        email: string,
+        password: string
+    }
 ) {
-    hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
+    const hostname = gitAuth.host.includes("://") ? new URL(gitAuth.host).hostname : gitAuth.host;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
     // exists
     if (gitAuths?.[hostname]) {
         gitAuths[hostname] = {
+            ...gitAuth,
             password: gitAuths[hostname].password,
-            username,
-            email
         };
     }
     // new
     else {
-        gitAuths[hostname] = {
-            username,
-            email,
-            password
-        };
+        gitAuths[hostname] = gitAuth;
     }
     await config.save(CONFIG_TYPE.GIT, gitAuths);
-
-    const gitAuthPromiseResolves = gitAuthPromiseResolveCallbacks.get(hostname);
-
-    gitAuthPromiseResolves?.forEach((resolver) =>
-        resolver({ username, password })
-    );
 }
 
 export default {
-    auth,
+    saveGitAuth,
     async getAllAuths() {
         const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 

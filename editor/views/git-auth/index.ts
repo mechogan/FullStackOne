@@ -1,8 +1,15 @@
 import "./index.css";
 import api from "../../api";
 
+type requestedGitAuthCallback = (gitAuth: {
+    host: string,
+    username: string,
+    email: string,
+    password: string
+}) => void
+
 export class GitAuth {
-    private static async githubDeviceFlow(done: () => void) {
+    private static async githubDeviceFlow(confirm: requestedGitAuthCallback) {
         const container = document.createElement("div");
         container.classList.add("github-device-flow");
 
@@ -66,9 +73,14 @@ export class GitAuth {
                         start.device_code
                     );
 
-                    if (!poll) {
+                    if (poll.password) {
                         authenticated = true;
                         step3.innerText = `Authenticated`;
+                        console.log(poll);
+                        confirm({
+                            host: "github.com",
+                            ...poll
+                        } as any);
                         break;
                     } else if (poll.error) {
                         step3.innerText = poll.error;
@@ -78,8 +90,6 @@ export class GitAuth {
                     waitTime = poll.wait || start.interval;
                 }
             }
-
-            done();
         };
 
         container.append(ol);
@@ -90,7 +100,8 @@ export class GitAuth {
     }
 
     static async renderGitAuthForm(
-        done: () => void,
+        confirm: requestedGitAuthCallback,
+        cancel: () => void,
         auth?: {
             host?: string;
             username?: string;
@@ -99,7 +110,7 @@ export class GitAuth {
         create = true
     ) {
         if (auth?.host === "github.com" && create) {
-            return this.githubDeviceFlow(done);
+            return this.githubDeviceFlow(confirm);
         }
 
         const form = document.createElement("form");
@@ -164,7 +175,7 @@ export class GitAuth {
         cancelButton.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            done();
+            cancel();
         });
         buttonGroup.append(cancelButton);
 
@@ -173,37 +184,37 @@ export class GitAuth {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            await api.git.auth(
-                auth?.host || hostnameInput.value,
-                usernameInput.value,
-                emailInput.value,
-                passwordInput?.value
-            );
+            const host = hostnameInput?.value || auth.host;
+            const username = usernameInput.value;
+            const email = emailInput.value;
+            const password = passwordInput?.value;
 
-            done();
+            confirm({
+                host,
+                username,
+                email,
+                password
+            });
         });
 
         return form;
     }
 
-    async receivedMessage(rawMessage: string) {
-        const message = JSON.parse(rawMessage);
-
-        if (!message.hostname) return;
-
+    static async requestAuth(host: string, confirm: requestedGitAuthCallback, cancel: () => void) {
         const dialog = document.createElement("div");
         dialog.classList.add("dialog", "git-auth");
 
         const container = document.createElement("div");
 
         const text = document.createElement("p");
-        text.innerHTML = `Authenticate for <b>${message.hostname}<b>`;
+        text.innerHTML = `Authenticate for <b>${host}<b>`;
         container.append(text);
 
         container.append(
-            await GitAuth.renderGitAuthForm(() => dialog.remove(), {
-                host: message.hostname
-            })
+            await GitAuth.renderGitAuthForm((gitAuth) => {
+                confirm(gitAuth);
+                dialog.remove();
+            }, cancel, {host})
         );
 
         dialog.append(container);

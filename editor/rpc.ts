@@ -18,6 +18,8 @@ export type AdapterEditor = Adapter & {
 
     build(project: Project): Promise<esbuild.BuildResult["errors"]>;
     run(project: Project): void;
+
+    open(project: Project): void
  }
 
 const rpc = (window as any).rpc as typeof rpcFn<AdapterEditor>;

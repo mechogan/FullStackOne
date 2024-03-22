@@ -4,7 +4,7 @@ import * as sass from "sass";
 import { build, merge } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
-import * as zip from "@zip.js/zip.js";
+import zip from "./editor/api/projects/zip";
 
 const baseFile = "src/js/index.js";
 
@@ -61,16 +61,10 @@ fs.cpSync("editor/assets", "editor/build/assets", {
 
 const sampleDemoDir = "editor-sample-demo";
 if (fs.existsSync(sampleDemoDir)) {
-    const demoFiles = ((await scan("editor-sample-demo", fs.promises.readdir)) as string[]);
-    
-    const uint8ArrayWriter = new zip.Uint8ArrayWriter();
-    const zipWriter = new zip.ZipWriter(uint8ArrayWriter);
-    for(const file of demoFiles) {
-        const filename = file.slice(sampleDemoDir.length + 1);
-        if(filename.startsWith(".git")) continue;
-        zipWriter.add(filename, new zip.Uint8ArrayReader(new Uint8Array(await fs.promises.readFile(file))));
-    }
-
-    await zipWriter.close();
-    await fs.promises.writeFile("Demo.zip", await uint8ArrayWriter.getData());
+    const zipData = await zip(
+        sampleDemoDir, 
+        async (file) => new Uint8Array(await fs.promises.readFile(file)), 
+        (path) => fs.promises.readdir(path, { withFileTypes: true }),
+        (file) => file.startsWith(".git"))
+    await fs.promises.writeFile("Demo.zip", zipData);
 }

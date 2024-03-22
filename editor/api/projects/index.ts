@@ -1,9 +1,9 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import { scan } from "./scan";
 import { Project } from "./types";
 import rpc from "../../rpc";
 import * as zip from "@zip.js/zip.js";
+import zipDirectory from "./zip";
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
@@ -39,25 +39,23 @@ export default {
         return config.save(CONFIG_TYPE.PROJECTS, projects);
     },
     delete: deleteProject,
-    async zip(project: Project) {
+    async export(project: Project) {
         const out = project.location + "/" + project.title + ".zip";
 
         if (await rpc().fs.exists(out)) {
             await rpc().fs.unlink(out);
         }
 
-        const items = (await scan(project.location, async (...args) => rpc().fs.readdir(...args)))
-            // filter out data items, build items and git directory
-            .filter(
-                (item) =>
-                    !item.startsWith(project.location + "/data") &&
-                    !item.startsWith(project.location + "/.build") &&
-                    !item.startsWith(project.location + "/.git")
-            )
-            // convert to relative path to project.location
-            .map((item) => item.slice(project.location.length + 1));
+        const zipData = await zipDirectory(
+            project.location, 
+            (file) => rpc().fs.readFile(file, {absolutePath: true}),
+            (path) => rpc().fs.readdir(path, { withFileTypes: true, absolutePath: true }),
+            (file) => file.startsWith(".git") || file.startsWith(".build") || file.startsWith("data")
+        )
 
-        // zip(project.location, items, out);
+        await rpc().fs.writeFile(out, zipData, {absolutePath: true});
+
+        return zipData;
     },
     async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
         const newProject = {
