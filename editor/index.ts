@@ -64,9 +64,10 @@ projectNewView.didCreateProjectAction = async (newProjectPath) => {
 
 /// Project View ///
 const projectView = new Project();
-(window as any).onPush["launchURL"] = async (projectStr: string) => {
-    const lauchedProject = JSON.parse(projectStr);
-    projectView.setProject(lauchedProject);
+(window as any).onPush["launchURL"] = async (deeplink: string) => {
+    console.log(deeplink);
+    const project = await api.getProjectFromDeepLink(deeplink);
+    projectView.setProject(project);
     const projectRendered = await projectView.render();
     clearView();
     main.append(projectRendered);
@@ -101,7 +102,7 @@ const app = async () => {
             projectView.setProject(demoProject);
             clearView();
             main.append(await projectView.render());
-            // await api.projects.run(demoProject);
+            await projectView.runProject()
         }
     }
 };

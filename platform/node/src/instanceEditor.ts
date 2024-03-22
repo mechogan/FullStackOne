@@ -9,6 +9,7 @@ import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
 import open from "open";
+import { WebSocket } from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
@@ -22,9 +23,13 @@ export class InstanceEditor extends Instance {
 
     adapter: AdapterEditor = null;
 
-    constructor(){
+    launchURL: string;
+
+    constructor(launchURL: string){
         super(editorDirectory);
-        
+
+        this.launchURL = launchURL; 
+
         const defaultAdapter = initAdapter(editorDirectory);
         this.adapter = {
             ...defaultAdapter,
@@ -144,6 +149,17 @@ export class InstanceEditor extends Instance {
             open(project: Project) {
                 open(this.rootDirectory + "/" + project.location);
             }
+        }
+    }
+    
+    override wsOnConnection(ws: WebSocket): void {
+        super.wsOnConnection(ws);
+        if(this.launchURL) {
+            this.webSockets.forEach(ws => ws.send(JSON.stringify({
+                messageType: "launchURL",
+                message: this.launchURL
+            })));
+            this.launchURL = null;
         }
     }
 }

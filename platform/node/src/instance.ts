@@ -60,6 +60,13 @@ export class Instance {
         this.adapter = initAdapter(baseDirectory);
         this.port = Instance.port;
         Instance.port++;
+
+        this.wss.on("connection", this.wsOnConnection.bind(this));
+    }
+
+    wsOnConnection(ws: ws.WebSocket) {
+        this.webSockets.add(ws);
+        ws.on("close", () => this.webSockets.delete(ws));
     }
 
     protected async requestListener(req: http.IncomingMessage, res: http.ServerResponse) {

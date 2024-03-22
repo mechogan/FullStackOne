@@ -11,7 +11,7 @@ export default {
     config,
     git,
     packages,
-    async launchURL(deeplink: string) {
+    async getProjectFromDeepLink(deeplink: string) {
         let urlStr = deeplink
             .slice("fullstacked://".length) // remove scheme in front
             .replace(/https?\/\//, (value) => value.slice(0, -2) + "://"); // add : in http(s) protocol
@@ -23,10 +23,10 @@ export default {
 
         const gitUrl = urlStr.split("?").shift();
 
-        let launchProject = (await projects.list()).find(
+        let project = (await projects.list()).find(
             ({ gitRepository }) => gitRepository?.url === gitUrl
         );
-        if (!launchProject) {
+        if (!project) {
             const projectDir = url.pathname
                 .slice(1) // remove forward /
                 .split(".")
@@ -38,7 +38,7 @@ export default {
                 await git.getUsernameAndEmailForHost(gitUrl);
 
             const searchParams = SearchParams.parse(url.query.slice(1));
-            launchProject = await projects.create({
+            project = await projects.create({
                 location: projectDir,
                 title: searchParams.title || projectDir,
                 gitRepository: {
@@ -49,6 +49,6 @@ export default {
             });
         }
 
-        // push("launchURL", JSON.stringify(launchProject));
+        return project;
     }
 };
