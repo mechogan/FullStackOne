@@ -35,8 +35,8 @@ export function build(
             minify: true,
             sourcemap,
             write: true,
+            nodePaths: nodePath ? [nodePath] : undefined,
             logLevel: "silent",
-            nodePaths: nodePath ? [nodePath] : undefined
         });
     } catch (e) {
         return { errors: e.errors as esbuild.ResolveResult["errors"] };

@@ -9,19 +9,28 @@ import (
 )
 
 //export build
-func build(entryPoint *C.char, Outdir *C.char, NodePath *C.char, errors **C.char) {
+func build(
+	Input *C.char, 
+	Out *C.char,
+	Outdir *C.char, 
+	NodePath *C.char, 
+	errors **C.char,
+) {
 	result := api.Build(api.BuildOptions{
 		EntryPointsAdvanced: []api.EntryPoint{{
-			OutputPath: "index",
-			InputPath:  C.GoString(entryPoint),
+			InputPath:     C.GoString(Input),
+			OutputPath:    C.GoString(Out),
 		  }},
-		Outdir:      C.GoString(Outdir),
-		Splitting:	 true,
-		Sourcemap:   api.SourceMapInlineAndExternal,
-		Bundle:      true,
-		Format:      api.FormatESModule,
-		Write:       true,
-		NodePaths:   []string{C.GoString(NodePath)},
+		Outdir:      	   C.GoString(Outdir),
+		Splitting:	 	   true,
+		Bundle:      	   true,
+		Format:      	   api.FormatESModule,
+		MinifyWhitespace:  true,
+		MinifyIdentifiers: true,
+		MinifySyntax:      true,
+		Sourcemap:   	   api.SourceMapInlineAndExternal,
+		Write:       	   true,
+		NodePaths:   	   []string{C.GoString(NodePath)},
 	})
 
 	if len(result.Errors) > 0 {
