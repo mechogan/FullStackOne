@@ -33,11 +33,6 @@ struct Response {
     var mimeType: String
 }
 
-struct Uint8ArrayJSON: Codable {
-    let type = "Uint8Array"
-    var data: [UInt8]
-}
-
 let notFound = Response(
     data: "Not Found".data(using: .utf8)!,
     status: 404,

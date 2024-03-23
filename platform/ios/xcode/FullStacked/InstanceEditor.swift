@@ -72,7 +72,9 @@ class AdapterEditor: Adapter {
                         case "rmdir": return self.fsEditor.rmdir(path: json[0].stringValue);
                         case "stat": return self.fsEditor.stat(path: json[0].stringValue);
                         case "lstat": return self.fsEditor.lstat(path: json[0].stringValue);
-                        case "exists": return self.fsEditor.exists(path: json[0].stringValue);
+                        case "exists":
+                            let exists = self.fsEditor.exists(path: json[0].stringValue)
+                            return exists == nil ? false : exists
                         default: break;
                     }
                 }

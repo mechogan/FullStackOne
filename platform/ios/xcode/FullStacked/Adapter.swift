@@ -58,7 +58,9 @@ class Adapter {
                     case "rmdir": return self.fs.rmdir(path: json[0].stringValue)
                     case "stat": return self.fs.stat(path: json[0].stringValue)
                     case "lstat": return self.fs.lstat(path: json[0].stringValue)
-                    case "exists": return self.fs.exists(path: json[0].stringValue)
+                    case "exists": 
+                        let exists = self.fs.exists(path: json[0].stringValue)
+                        return exists == nil ? false : exists
                     default: break
                 }
                 break
