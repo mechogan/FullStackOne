@@ -361,7 +361,7 @@ export class FileTree {
         });
 
         // make sure dir exists
-        await rpc().fs.mkdir(this.baseDirectory.join("/"));
+        await rpc().fs.mkdir(this.baseDirectory.join("/"), { absolutePath: true });
 
         this.ulRoot = await this.openDirectory(this.baseDirectory);
         this.ulRoot.classList.add("file-tree");

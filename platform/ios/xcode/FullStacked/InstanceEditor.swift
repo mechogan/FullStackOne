@@ -50,16 +50,28 @@ class AdapterEditor: Adapter {
                 }
                 break
             case "fs":
-                if (json[1]["absolutePath"].boolValue) {
+                if (json[1]["absolutePath"].boolValue || json[2]["absolutePath"].boolValue) {
                     switch(methodPath[1]){
                         case "readFile": return self.fsEditor.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8")
-                        case "writeFile": return self.fsEditor.writeFile(file: json[0].stringValue, data: Data())
-                        case "unlink": return nil;
+                        case "writeFile":
+                            var data: Data;
+                            
+                            if(json[1]["type"].stringValue == "Uint8Array") {
+                                let uint8array = json[1]["data"].arrayValue.map({ number in
+                                    return number.uInt8!
+                                })
+                                data = Data(uint8array)
+                            } else {
+                                data = json[1].stringValue.data(using: .utf8)!
+                            }
+                        
+                            return self.fsEditor.writeFile(file: json[0].stringValue, data: data)
+                        case "unlink": return self.fsEditor.unlink(path: json[0].stringValue)
                         case "readdir": return self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue);
-                        case "mkdir": return nil;
-                        case "rmdir": return nil;
-                        case "stat": return nil;
-                        case "lstat": return nil;
+                        case "mkdir": return self.fsEditor.mkdir(path: json[0].stringValue);
+                        case "rmdir": return self.fsEditor.rmdir(path: json[0].stringValue);
+                        case "stat": return self.fsEditor.stat(path: json[0].stringValue);
+                        case "lstat": return self.fsEditor.lstat(path: json[0].stringValue);
                         case "exists": return self.fsEditor.exists(path: json[0].stringValue);
                         default: break;
                     }

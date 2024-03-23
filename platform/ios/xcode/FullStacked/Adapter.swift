@@ -12,8 +12,9 @@ import SwiftyJSON
 struct AdapterError {
     let code: String
     let path: String
-    var toJSON: [String: String] {
-        return ["code": code, "path": path]
+    let syscall: String
+    var toJSON: [String: Any] {
+        return ["code": code, "path": path, "errno": -2, "syscall": syscall]
     }
 }
 
@@ -34,8 +35,37 @@ class Adapter {
         
         switch(methodPath.first) {
             case "platform": return self.platform
+            case "fs":
+                switch(methodPath[1]){
+                    case "readFile": return self.fs.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8")
+                    case "writeFile":
+                        var data: Data;
+                        
+                        if(json[1]["type"].stringValue == "Uint8Array") {
+                            let uint8array = json[1]["data"].arrayValue.map({ number in
+                                return number.uInt8!
+                            })
+                            data = Data(uint8array)
+                        } else {
+                            data = json[1].stringValue.data(using: .utf8)!
+                        }
+                        
+                        return self.fs.writeFile(file: json[0].stringValue, data: data)
+                    
+                    case "unlink": return self.fs.unlink(path: json[0].stringValue)
+                    case "readdir": return self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue)
+                    case "mkdir": return self.fs.mkdir(path: json[0].stringValue)
+                    case "rmdir": return self.fs.rmdir(path: json[0].stringValue)
+                    case "stat": return self.fs.stat(path: json[0].stringValue)
+                    case "lstat": return self.fs.lstat(path: json[0].stringValue)
+                    case "exists": return self.fs.exists(path: json[0].stringValue)
+                    default: break
+                }
+                break
             default: return nil
         }
+        
+        return nil
     }
     
     func fetch(urlStr: String,
@@ -111,7 +141,8 @@ class AdapterFS {
         if(existsAndIsDirectory == nil || existsAndIsDirectory!) {
             return AdapterError(
                 code: existsAndIsDirectory != nil ? "EISDIR" : "ENOENT",
-                path: path
+                path: path,
+                syscall: "open"
             )
         }
         
@@ -132,11 +163,12 @@ class AdapterFS {
         } catch {
             return AdapterError(
                 code: "ENOENT",
-                path: file
+                path: file,
+                syscall: "open"
             )
         }
         
-        return nil
+        return true
     }
     
     func unlink(path: String) {
@@ -157,7 +189,8 @@ class AdapterFS {
         if(existsAndIsDirectory == nil || !existsAndIsDirectory!) {
             return AdapterError(
                 code: existsAndIsDirectory != nil ? "ENOTDIR" : "ENOENT",
-                path: path
+                path: path,
+                syscall: "open"
             )
         }
         
@@ -195,11 +228,12 @@ class AdapterFS {
     func stat (path: String) -> Any {
         let itemPath = self.baseDirectory + "/" + path;
         
-        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(path);
+        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(itemPath);
         if(existsAndIsDirectory == nil) {
             return AdapterError(
                 code: "ENOENT",
-                path: path
+                path: path,
+                syscall: "stat"
             )
         }
         
@@ -209,21 +243,22 @@ class AdapterFS {
             "size": stats[FileAttributeKey.size],
             "isDirectory": existsAndIsDirectory!,
             "isFile": !existsAndIsDirectory!,
-            "ctime": stats[FileAttributeKey.creationDate],
+            "ctime": (stats[FileAttributeKey.creationDate] as! Date).ISO8601Format() ,
             "ctimeMs": (stats[FileAttributeKey.creationDate] as! Date).timeIntervalSince1970 * 1000,
-            "mtime": stats[FileAttributeKey.modificationDate],
-            "mtimeMs": (stats[FileAttributeKey.modificationDate] as! Date).timeIntervalSince1970 * 1000,
+            "mtime": (stats[FileAttributeKey.modificationDate] as! Date).ISO8601Format(),
+            "mtimeMs": (stats[FileAttributeKey.modificationDate] as! Date).timeIntervalSince1970 * 1000
         ]
     }
     
     func lstat(path: String) -> Any {
         let itemPath = self.baseDirectory + "/" + path;
         
-        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(path);
+        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(itemPath);
         if(existsAndIsDirectory == nil) {
             return AdapterError(
                 code: "ENOENT",
-                path: path
+                path: path,
+                syscall: "stat"
             )
         }
         
@@ -233,10 +268,10 @@ class AdapterFS {
             "size": stats[FileAttributeKey.size],
             "isDirectory": existsAndIsDirectory!,
             "isFile": !existsAndIsDirectory!,
-            "ctime": stats[FileAttributeKey.creationDate],
+            "ctime": (stats[FileAttributeKey.creationDate] as! Date).ISO8601Format() ,
             "ctimeMs": (stats[FileAttributeKey.creationDate] as! Date).timeIntervalSince1970 * 1000,
-            "mtime": stats[FileAttributeKey.modificationDate],
-            "mtimeMs": (stats[FileAttributeKey.modificationDate] as! Date).timeIntervalSince1970 * 1000,
+            "mtime": (stats[FileAttributeKey.modificationDate] as! Date).ISO8601Format(),
+            "mtimeMs": (stats[FileAttributeKey.modificationDate] as! Date).timeIntervalSince1970 * 1000
         ]
     }
     

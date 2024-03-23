@@ -131,7 +131,19 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             response.status = 200
         } else {
             if let maybeResponseData = self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: request.httpBody ?? Data()) {
-                if(maybeResponseData is String) {
+                if(maybeResponseData is Void){
+                    response = Response(
+                        data: Data(),
+                        status: 200,
+                        mimeType: "text/plain"
+                    )
+                } else if (maybeResponseData is Bool) {
+                    response = Response(
+                        data: ((maybeResponseData as! Bool) ? "1" : "0").data(using: .utf8)!,
+                        status: 200,
+                        mimeType: "application/json"
+                    )
+                } else if(maybeResponseData is String) {
                     response = Response(
                         data: (maybeResponseData as! String).data(using: .utf8)!,
                         status: 200,
@@ -139,7 +151,7 @@ class RequestListener: NSObject, WKURLSchemeHandler {
                     )
                 } else if(maybeResponseData is Data) {
                     response = Response(
-                        data: try! JSONSerialization.data(withJSONObject: ["type": "Uint8Array", "data": [UInt8](maybeResponseData as! Data)]),
+                        data: maybeResponseData as! Data,
                         status: 200,
                         mimeType: "application/octet-stream"
                     )

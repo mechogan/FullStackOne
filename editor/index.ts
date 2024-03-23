@@ -14,7 +14,7 @@ const main = document.querySelector("main") as HTMLElement;
 const clearView = () => Array.from(main.children).forEach((e) => e.remove());
 
 /// Git Auth View ///
-const gitAuth = new GitAuth();
+new GitAuth();
 
 /// Projects View ///
 const projectsView = new Projects();
