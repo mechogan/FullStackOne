@@ -15,6 +15,7 @@ class InstanceEditor: Instance {
     init(){
         let editorDirectory = Bundle.main.bundlePath + "/build"
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
+        self.webview.isOpaque = false
     }
 }
 
@@ -32,9 +33,9 @@ class AdapterEditor: Adapter {
         super.init(baseDirectory: baseDirectory)
     }
     
-    override func callAdapterMethod(methodPath: [String.SubSequence], body: Data) -> Any? {
+    override func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping (_ maybeData: Any?) -> Void) {
         if(methodPath.count == 0) {
-            return nil
+            return done(nil)
         }
         
         let json = try! JSON(data: body)
@@ -42,17 +43,17 @@ class AdapterEditor: Adapter {
         switch(methodPath.first) {
             case "directories":
                 switch(methodPath[1]) {
-                    case "root": return self.rootDirectory
-                    case "cache": return self.cacheDirectory
-                    case "config": return self.configDirectory
-                    case "nodeModules": return self.nodeModulesDirectory
+                    case "root": return done(self.rootDirectory)
+                    case "cache": return done(self.cacheDirectory)
+                    case "config": return done(self.configDirectory)
+                    case "nodeModules": return done(self.nodeModulesDirectory)
                     default: break
                 }
                 break
             case "fs":
                 if (json[1]["absolutePath"].boolValue || json[2]["absolutePath"].boolValue) {
                     switch(methodPath[1]){
-                        case "readFile": return self.fsEditor.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8")
+                        case "readFile": return done(self.fsEditor.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8"))
                         case "writeFile":
                             var data: Data;
                             
@@ -65,30 +66,30 @@ class AdapterEditor: Adapter {
                                 data = json[1].stringValue.data(using: .utf8)!
                             }
                         
-                            return self.fsEditor.writeFile(file: json[0].stringValue, data: data)
-                        case "unlink": return self.fsEditor.unlink(path: json[0].stringValue)
-                        case "readdir": return self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue);
-                        case "mkdir": return self.fsEditor.mkdir(path: json[0].stringValue);
-                        case "rmdir": return self.fsEditor.rmdir(path: json[0].stringValue);
-                        case "stat": return self.fsEditor.stat(path: json[0].stringValue);
-                        case "lstat": return self.fsEditor.lstat(path: json[0].stringValue);
+                            return done(self.fsEditor.writeFile(file: json[0].stringValue, data: data))
+                        case "unlink": return done(self.fsEditor.unlink(path: json[0].stringValue))
+                        case "readdir": return done(self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue))
+                        case "mkdir": return done(self.fsEditor.mkdir(path: json[0].stringValue))
+                        case "rmdir": return done(self.fsEditor.rmdir(path: json[0].stringValue))
+                        case "stat": return done(self.fsEditor.stat(path: json[0].stringValue))
+                        case "lstat": return done(self.fsEditor.lstat(path: json[0].stringValue))
                         case "exists":
                             let exists = self.fsEditor.exists(path: json[0].stringValue)
-                            return exists == nil ? false : exists
+                            return done(exists == nil ? false : exists)
                         default: break;
                     }
                 }
                 break
             case "esbuild":
                 switch(methodPath[1]) {
-                    case "check": return "1"
-                    case "install": return nil
+                    case "check": return done("1")
+                    case "install": break
                     default: break
                 }
-                break;
+                break
             default: break
         }
         
-        return super.callAdapterMethod(methodPath: methodPath, body: body)
+        return super.callAdapterMethod(methodPath: methodPath, body: body, done: done)
     }
 }

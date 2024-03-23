@@ -100,6 +100,22 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             mimeType: notFound.mimeType
         )
         
+        let send = {
+            let responseHTTP = HTTPURLResponse(
+                url: request.url!,
+                statusCode: response.status,
+                httpVersion: "HTTP/1.1",
+                headerFields: [
+                    "Content-Type": response.mimeType,
+                    "Content-Length": String(response.data.count)
+                ]
+            )!
+            
+            urlSchemeTask.didReceive(responseHTTP)
+            urlSchemeTask.didReceive(response.data)
+            urlSchemeTask.didFinish()
+        }
+        
         var pathname = request.url!.pathComponents.joined(separator: "/")
         
         // remove trailing slash
@@ -124,63 +140,50 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             response.data = self.adapter.fs.readFile(path: pathname, utf8: false) as! Data
             response.mimeType = AdapterFS.mimeType(filePath: pathname)
             response.status = 200
-        } else {
-            if let maybeResponseData = self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: request.httpBody ?? Data()) {
-                if(maybeResponseData is Void){
-                    response = Response(
-                        data: Data(),
-                        status: 200,
-                        mimeType: "text/plain"
-                    )
-                } else if (maybeResponseData is Bool) {
-                    response = Response(
-                        data: ((maybeResponseData as! Bool) ? "1" : "0").data(using: .utf8)!,
-                        status: 200,
-                        mimeType: "application/json"
-                    )
-                } else if(maybeResponseData is String) {
-                    response = Response(
-                        data: (maybeResponseData as! String).data(using: .utf8)!,
-                        status: 200,
-                        mimeType: "text/plain"
-                    )
-                } else if(maybeResponseData is Data) {
-                    response = Response(
-                        data: maybeResponseData as! Data,
-                        status: 200,
-                        mimeType: "application/octet-stream"
-                    )
-                } else if(maybeResponseData is AdapterError) {
-                    response = Response(
-                        data: try! JSONSerialization.data(withJSONObject: (maybeResponseData as! AdapterError).toJSON),
-                        status: 299,
-                        mimeType: "application/json"
-                    )
-                } else {
-                    response = Response(
-                        data: try! JSONSerialization.data(withJSONObject: maybeResponseData),
-                        status: 200,
-                        mimeType: "application/json"
-                    )
-                }
+            return send()
+        }
+        
+        self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: request.httpBody ?? Data(), done: { maybeResponseData in
+            if(maybeResponseData is Void){
+                response = Response(
+                    data: Data(),
+                    status: 200,
+                    mimeType: "text/plain"
+                )
+            } else if (maybeResponseData is Bool) {
+                response = Response(
+                    data: ((maybeResponseData as! Bool) ? "1" : "0").data(using: .utf8)!,
+                    status: 200,
+                    mimeType: "application/json"
+                )
+            } else if(maybeResponseData is String) {
+                response = Response(
+                    data: (maybeResponseData as! String).data(using: .utf8)!,
+                    status: 200,
+                    mimeType: "text/plain"
+                )
+            } else if(maybeResponseData is Data) {
+                response = Response(
+                    data: maybeResponseData as! Data,
+                    status: 200,
+                    mimeType: "application/octet-stream"
+                )
+            } else if(maybeResponseData is AdapterError) {
+                response = Response(
+                    data: try! JSONSerialization.data(withJSONObject: (maybeResponseData as! AdapterError).toJSON),
+                    status: 299,
+                    mimeType: "application/json"
+                )
+            } else if(maybeResponseData != nil) {
+                response = Response(
+                    data: try! JSONSerialization.data(withJSONObject: maybeResponseData!),
+                    status: 200,
+                    mimeType: "application/json"
+                )
             }
-        }
-        
-        let responseHTTP = HTTPURLResponse(
-            url: request.url!,
-            statusCode: response.status,
-            httpVersion: "HTTP/1.1",
-            headerFields: [
-                "Content-Type": response.mimeType,
-                "Content-Length": String(response.data.count)
-            ]
-        )!
-        
-        DispatchQueue.main.async {
-            urlSchemeTask.didReceive(responseHTTP)
-            urlSchemeTask.didReceive(response.data)
-            urlSchemeTask.didFinish()
-        }
+            
+            send()
+        })
     }
     
     func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {

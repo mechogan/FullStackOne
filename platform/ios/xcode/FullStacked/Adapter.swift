@@ -26,18 +26,18 @@ class Adapter {
         self.fs = AdapterFS(baseDirectory: baseDirectory);
     }
     
-    func callAdapterMethod(methodPath: [String.SubSequence], body: Data) -> Any? {
+    func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping  (_ maybeData: Any?) -> Void)  {
         if(methodPath.count == 0) {
-            return nil
+            return done(nil)
         }
         
         let json = try! JSON(data: body)
         
         switch(methodPath.first) {
-            case "platform": return self.platform
+            case "platform": return done(self.platform)
             case "fs":
                 switch(methodPath[1]){
-                    case "readFile": return self.fs.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8")
+                    case "readFile": return done(self.fs.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8"))
                     case "writeFile":
                         var data: Data;
                         
@@ -50,36 +50,73 @@ class Adapter {
                             data = json[1].stringValue.data(using: .utf8)!
                         }
                         
-                        return self.fs.writeFile(file: json[0].stringValue, data: data)
+                        return done(self.fs.writeFile(file: json[0].stringValue, data: data))
                     
-                    case "unlink": return self.fs.unlink(path: json[0].stringValue)
-                    case "readdir": return self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue)
-                    case "mkdir": return self.fs.mkdir(path: json[0].stringValue)
-                    case "rmdir": return self.fs.rmdir(path: json[0].stringValue)
-                    case "stat": return self.fs.stat(path: json[0].stringValue)
-                    case "lstat": return self.fs.lstat(path: json[0].stringValue)
-                    case "exists": 
+                    case "unlink": return done(self.fs.unlink(path: json[0].stringValue))
+                    case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue))
+                    case "mkdir": return done(self.fs.mkdir(path: json[0].stringValue))
+                    case "rmdir": return done(self.fs.rmdir(path: json[0].stringValue))
+                    case "stat": return done(self.fs.stat(path: json[0].stringValue))
+                    case "lstat": return done(self.fs.lstat(path: json[0].stringValue))
+                    case "exists":
                         let exists = self.fs.exists(path: json[0].stringValue)
-                        return exists == nil ? false : exists
+                        return done(exists == nil ? false : exists)
                     default: break
                 }
                 break
-            default: return nil
+            case "fetch":
+                var body: Data;
+                
+                if(json[1]["body"]["type"].stringValue == "Uint8Array") {
+                    let uint8array = json[1]["body"]["data"].arrayValue.map({ number in
+                        return number.uInt8!
+                    })
+                    body = Data(uint8array)
+                } else {
+                    body = json[1]["body"].stringValue.data(using: .utf8)!
+                }
+            
+                let headersJSON = json[1]["headers"].dictionaryValue
+                var headers: [String: String] = [:]
+                headersJSON.keys.forEach { header in
+                    headers[header] = headersJSON[header]!.stringValue
+                }
+                
+                return self.fetch(
+                    urlStr: json[0].stringValue,
+                    headers: headers,
+                    method: json[1]["method"].stringValue,
+                    body: body) { headers, statusCode, statusMessage, data in
+                        var body: Any?
+                        
+                        if (json[1]["encoding"].stringValue == "utf8") {
+                            body = String(data: data, encoding: .utf8)
+                        } else {
+                            body = ["type": "Uint8Array", "data": [UInt8](data)]
+                        }
+                        
+                        done([
+                            "headers": headers,
+                            "statusCode": statusCode,
+                            "statusMessage": statusMessage,
+                            "body": body
+                        ])
+                    }
+            default: break
         }
         
-        return nil
+        return done(nil)
     }
     
     func fetch(urlStr: String,
-               headers: Dictionary<String, String>,
+               headers: [String: String],
                method: String,
                body: Data,
-               utf8: Bool,
                onCompletion: @escaping (
-                  _ headers: Dictionary<String, String>,
+                    _ headers: [String: String],
                   _ statusCode: Int,
                   _ statusMessage: String,
-                  _ data: Any?
+                  _ data: Data
                ) -> Void) {
                    let url = URL(string: urlStr)!
                    var request = URLRequest(url: url)
@@ -101,13 +138,7 @@ class Adapter {
                        let statusCode = (response as! HTTPURLResponse).statusCode
                        let statusMessage = "OK"
                        
-                       if (data == nil) {
-                           onCompletion(headers, statusCode, statusMessage, nil)
-                       } else if (utf8) {
-                           onCompletion(headers, statusCode, statusMessage, String(data: data!, encoding: .utf8)!)
-                       } else {
-                           onCompletion(headers, statusCode, statusMessage, data)
-                       }
+                       onCompletion(headers, statusCode, statusMessage, data ?? Data())
                    }
                    task.resume()
                }
