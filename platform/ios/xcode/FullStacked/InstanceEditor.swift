@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftyJSON
+import UIKit
 
 let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true);
 let documentsDirectory = paths.first!
@@ -137,7 +138,10 @@ class AdapterEditor: Adapter {
                                       title: json[0]["title"].stringValue)
                 self.runInstance!(Instance(project: project))
                 return done(true)
-            case "open": break
+            case "open": 
+                let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue
+                UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
+                return done(true)
             default: break
         }
         
