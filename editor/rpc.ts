@@ -16,7 +16,7 @@ export type AdapterEditor = Adapter & {
         install(): void;
     };
 
-    build(project: Project): Promise<esbuild.BuildResult["errors"]>;
+    build(project: Project): Promise<esbuild.BuildResult["errors"]> | 1;
     run(project: Project): void;
 
     open(project: Project): void

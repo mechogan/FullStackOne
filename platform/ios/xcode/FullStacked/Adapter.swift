@@ -95,12 +95,14 @@ class Adapter {
                             body = ["type": "Uint8Array", "data": [UInt8](data)]
                         }
                         
-                        done([
-                            "headers": headers,
-                            "statusCode": statusCode,
-                            "statusMessage": statusMessage,
-                            "body": body
-                        ])
+                        DispatchQueue.main.async {
+                            done([
+                                "headers": headers,
+                                "statusCode": statusCode,
+                                "statusMessage": statusMessage,
+                                "body": body
+                            ])
+                        }
                     }
             default: break
         }
@@ -121,7 +123,7 @@ class Adapter {
                    let url = URL(string: urlStr)!
                    var request = URLRequest(url: url)
                    
-                   request.httpMethod = method
+                   request.httpMethod = method.isEmpty ? "GET" : method
                    
                    for (headerName, headerValue) in headers {
                        request.setValue(headerValue, forHTTPHeaderField: headerName)

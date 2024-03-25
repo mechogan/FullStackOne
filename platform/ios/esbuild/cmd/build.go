@@ -4,7 +4,6 @@ import "C"
 
 import (
 	"encoding/json"
-
 	"github.com/evanw/esbuild/pkg/api"
 )
 

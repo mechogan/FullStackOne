@@ -15,7 +15,7 @@ export default {
         const tarballData = (await rpc().fetch(tarbalUrl)).body as Uint8Array;
         const tarData = new Uint8Array(gzip.unzip(tarballData));
         const nodeModulesDirectory = await rpc().directories.nodeModules();
-        await rpc().fs.mkdir(nodeModulesDirectory + "/" + packageName);
+        await rpc().fs.mkdir(nodeModulesDirectory + "/" + packageName, { absolutePath: true });
         const files: {
             name: string,
             buffer: ArrayBufferLike

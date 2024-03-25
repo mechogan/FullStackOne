@@ -21,8 +21,8 @@ class InstanceEditor: Instance {
 
 class AdapterEditor: Adapter {
     let rootDirectory = documentsDirectory
-    let baseJS = Bundle.main.bundlePath + "/js/index.js"
-    let cacheDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("fullstacked")
+    private let baseJS = Bundle.main.bundlePath + "/js/index.js"
+    let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
     let fsEditor: AdapterFS;
@@ -87,9 +87,62 @@ class AdapterEditor: Adapter {
                     default: break
                 }
                 break
+            case "build":
+                let project = json[0]
+                
+                var entryPoint: String? = nil;
+                [
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.js"
+                ].forEach { file in
+                    let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file)
+                    if(existsAndIsDirectory != nil && !existsAndIsDirectory!){
+                        entryPoint = file
+                    }
+                }
+            
+                if(entryPoint == nil){
+                    return done(nil)
+                }
+                
+                let mergedFile = self.merge(entryPoint: entryPoint!)
+            
+                let outdir = self.rootDirectory + "/" + project["location"].stringValue + "/.build"
+                
+                let inputPtr = UnsafeMutablePointer<Int8>(mutating: (String(mergedFile.dropFirst("file://".count)) as NSString).utf8String)
+                let outPtr = UnsafeMutablePointer<Int8>(mutating: ("index" as NSString).utf8String)
+                let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (outdir as NSString).utf8String)
+                let nodePathPtr = UnsafeMutablePointer<Int8>(mutating: (self.rootDirectory + "/" + self.nodeModulesDirectory as NSString).utf8String)
+                
+                var errorsPtr = UnsafeMutablePointer<Int8>(nil)
+                
+                build(inputPtr,
+                      outPtr,
+                      outdirPtr,
+                      nodePathPtr,
+                      &errorsPtr)
+                
+                try! FileManager.default.removeItem(at: URL(string: mergedFile)!)
+            
+                if(errorsPtr != nil) {
+                    let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
+                    return done(JSON(parseJSON: errorsJSONStr))
+                }
+            
+                return done(true)
+            case "run": break
+            case "open": break
             default: break
         }
         
         return super.callAdapterMethod(methodPath: methodPath, body: body, done: done)
+    }
+    
+    func merge(entryPoint: String) -> String {
+        var contents = String(data: FileManager.default.contents(atPath: self.baseJS)!, encoding: .utf8)!
+        contents += "\n" + "import(\"\(entryPoint)\")"
+        let tmpFile = self.cacheDirectory + "tmp-" + String(Int(Date().timeIntervalSince1970 * 1000)) + ".js"
+        try! contents.write(to: URL(string: tmpFile)!, atomically: true, encoding: .utf8)
+        return tmpFile
     }
 }

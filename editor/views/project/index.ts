@@ -279,7 +279,7 @@ export class Project {
         this.console.term.clear();
         setTimeout(async () => {
             const buildErrors = await rpc().build(this.project);
-            if(buildErrors) this.processBuildErrors(buildErrors)
+            if(buildErrors && buildErrors !== 1) this.processBuildErrors(buildErrors)
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");

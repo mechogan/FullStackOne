@@ -8,6 +8,7 @@
 import Foundation
 import WebKit
 import SwiftUI
+import SwiftyJSON
 
 class FullScreenWKWebView: WKWebView {
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
@@ -172,6 +173,12 @@ class RequestListener: NSObject, WKURLSchemeHandler {
                 response = Response(
                     data: try! JSONSerialization.data(withJSONObject: (maybeResponseData as! AdapterError).toJSON),
                     status: 299,
+                    mimeType: "application/json"
+                )
+            } else if(maybeResponseData is JSON) {
+                response = Response(
+                    data: try! (maybeResponseData as! JSON).rawData(),
+                    status: 200,
                     mimeType: "application/json"
                 )
             } else if(maybeResponseData != nil) {
