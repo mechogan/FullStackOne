@@ -169,7 +169,7 @@ export class Project {
 
             const installPromise = new Promise<void>((resolve) => {
                 api
-                    .packages.install(packageName)
+                    .packages.install(packageName, (current, total) => { status.innerText = `${Math.floor((current / total * 10000)) / 100}% [${current}/${total}] installing...`; })
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
@@ -255,8 +255,6 @@ export class Project {
         });
 
         this.renderEditors();
-
-        console.log(packagesMissing);
 
         if (packagesMissing.size > 0) {
             this.installPackages(packagesMissing);

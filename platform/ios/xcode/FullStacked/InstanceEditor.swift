@@ -27,6 +27,8 @@ class AdapterEditor: Adapter {
     let nodeModulesDirectory: String
     let fsEditor: AdapterFS;
     
+    var runInstance: ((_ instance: Instance) -> Void)?
+    
     override init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
@@ -102,7 +104,7 @@ class AdapterEditor: Adapter {
                 }
             
                 if(entryPoint == nil){
-                    return done(nil)
+                    return done(true)
                 }
                 
                 let mergedFile = self.merge(entryPoint: entryPoint!)
@@ -130,7 +132,11 @@ class AdapterEditor: Adapter {
                 }
             
                 return done(true)
-            case "run": break
+            case "run":
+            let project = Project(location: self.rootDirectory + "/" + json[0]["location"].stringValue,
+                                      title: json[0]["title"].stringValue)
+                self.runInstance!(Instance(project: project))
+                return done(true)
             case "open": break
             default: break
         }

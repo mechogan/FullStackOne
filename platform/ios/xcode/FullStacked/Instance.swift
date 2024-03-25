@@ -46,6 +46,7 @@ struct Project {
 }
 
 struct InstanceRepresentable: UIViewRepresentable {
+    let id = UUID();
     let instance: Instance;
     
     init(instance: Instance) {
@@ -131,9 +132,22 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             
         // check for [path]/index.html
         let maybeIndexHTML = pathname + "/index.html";
-        let indexHTMLExists = self.adapter.fs.exists(path: maybeIndexHTML);
+        let indexHTMLExists = self.adapter.fs.exists(path: maybeIndexHTML)
         if (indexHTMLExists != nil && (indexHTMLExists as! Dictionary<String, Bool>)["isFile"]!) {
             pathname = maybeIndexHTML
+        }
+        
+        // we'll check for a built file
+        if (
+            pathname.hasSuffix(".js") ||
+            pathname.hasSuffix(".css") ||
+            pathname.hasSuffix(".map")
+        ) {
+            let maybeBuiltFile = ".build/" + pathname;
+            let builtFileExists = self.adapter.fs.exists(path: maybeBuiltFile)
+            if (builtFileExists != nil && (builtFileExists as! Dictionary<String, Bool>)["isFile"]!) {
+                pathname = maybeBuiltFile
+            }
         }
         
         let fileExists = self.adapter.fs.exists(path: pathname)

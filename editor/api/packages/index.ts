@@ -4,7 +4,7 @@ import untar from "js-untar";
 
 
 export default {
-    async install(packageName: string, version = "latest"){
+    async install(packageName: string, progress: (current: number, total: number) => void, version = "latest"){
         const packageInfoStr = (
             await rpc().fetch(`https://registry.npmjs.org/${packageName}/${version}`, {
                 encoding: "utf8"
@@ -18,14 +18,19 @@ export default {
         await rpc().fs.mkdir(nodeModulesDirectory + "/" + packageName, { absolutePath: true });
         const files: {
             name: string,
-            buffer: ArrayBufferLike
+            buffer: ArrayBufferLike,
+            type: string // https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
         }[] = await untar(tarData.buffer);
-        for(const file of files) {
-            const pathComponents = file.name.slice("package/". length).split("/");
+        for(let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if(file.type === "5" ) continue;
+            const pathComponents = file.name.slice("package/".length).split("/");
             const filename = pathComponents.pop();
             const directory = pathComponents.join("/");
             await rpc().fs.mkdir(nodeModulesDirectory + "/" + packageName + "/" + directory, { absolutePath: true });
             await rpc().fs.writeFile(nodeModulesDirectory + "/" + packageName + "/" + directory + "/" + filename, new Uint8Array(file.buffer), { absolutePath: true });
+            if(progress)
+                progress(i, files.length);
         }
     },
     async count() {
