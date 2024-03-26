@@ -18,6 +18,12 @@ export class Instance {
         );
     }
 
+    push = (messageType: string, message: string) => {
+        this.window.webContents.executeJavaScript(
+            `window.push("${ messageType }", \`${ message.replace(/\\/g, "\\\\") }\`)`
+        );
+    };
+
     restart(){
         this.window.reload();
         this.window.focus();
@@ -31,6 +37,6 @@ export class Instance {
             icon: "icons/icon.png"
         });
 
-        this.window.loadURL(`http://${hostname}`);
+        return this.window.loadURL(`http://${hostname}`);
     }
 }

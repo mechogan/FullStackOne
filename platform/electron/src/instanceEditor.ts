@@ -308,9 +308,8 @@ export class InstanceEditor extends Instance {
         });
     }
 
-
     async start(hostname: string) {
         this.esbuild = await loadEsbuild(InstanceEditor.rootDirectory + "/" + this.configDirectory)
-        super.start(hostname);
+        return super.start(hostname);
     }
 }

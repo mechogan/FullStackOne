@@ -1,11 +1,47 @@
 import { app, protocol } from "electron";
 import { InstanceEditor } from "./instanceEditor";
+import path from "path";
 
+if (require("electron-squirrel-startup")) app.quit();
+
+let editorInstance: InstanceEditor;
+
+const deepLinksScheme = "fullstacked";
+let launchURL: string = process.argv.find(arg => arg.startsWith(deepLinksScheme));
+const maybeLaunchURL = (maybeURL: string) => {
+    if(!maybeURL || !maybeURL.startsWith(deepLinksScheme))
+        return;
+
+    if(editorInstance){
+        editorInstance.push("launchURL", maybeURL);
+        launchURL = null;
+    } else
+        launchURL = maybeURL;
+}
+
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient(deepLinksScheme, process.execPath, [
+            path.resolve(process.argv[1])
+        ]);
+    }
+} else {
+    app.setAsDefaultProtocolClient(deepLinksScheme);
+}
+
+app.on("open-url", (event, url) => maybeLaunchURL(url));
+
+if (!app.requestSingleInstanceLock()) {
+    app.quit();
+} else {
+    app.on("second-instance", (_, commandLine) => maybeLaunchURL(commandLine.pop()));
+}
 
 app.on("window-all-closed", () => app.quit());
 
-app.whenReady().then(() => {
-    const editorInstance = new InstanceEditor();
+app.whenReady().then(async () => {
+    editorInstance = new InstanceEditor();
     protocol.handle("http", editorInstance.requestListener.bind(editorInstance));
-    editorInstance.start("app-0");
+    await editorInstance.start("app-0");
+    maybeLaunchURL(launchURL);
 });

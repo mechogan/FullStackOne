@@ -67,6 +67,10 @@ export class Instance {
         ws.on("close", () => this.webSockets.delete(ws));
     }
 
+    push(messageType: string, message: any){
+        this.webSockets.forEach(ws => ws.send(JSON.stringify({messageType, message})));
+    }
+
     protected async requestListener(req: http.IncomingMessage, res: http.ServerResponse) {
         let response: Response = { ...notFound };
 

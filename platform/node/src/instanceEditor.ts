@@ -159,10 +159,7 @@ export class InstanceEditor extends Instance {
     override wsOnConnection(ws: WebSocket): void {
         super.wsOnConnection(ws);
         if(this.launchURL) {
-            this.webSockets.forEach(ws => ws.send(JSON.stringify({
-                messageType: "launchURL",
-                message: this.launchURL
-            })));
+            this.push("launchURL", this.launchURL);
             this.launchURL = null;
         }
     }

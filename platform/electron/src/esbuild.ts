@@ -6,7 +6,6 @@ import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/no
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
 import url from "url";
-import os from "os";
 
 
 const directories = (configDirectory: string) => {
@@ -29,10 +28,10 @@ const directories = (configDirectory: string) => {
 
 export const loadEsbuild = async (configDirectory: string) => {
     // dont download in dev
-    // try {
-    //     const esbuild = await import("esbuild");
-    //     return esbuild
-    // } catch (e) {}
+    try {
+        const esbuild = await import("esbuild");
+        return esbuild
+    } catch (e) {}
 
 
     const {
