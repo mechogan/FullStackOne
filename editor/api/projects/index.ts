@@ -40,7 +40,8 @@ export default {
     },
     delete: deleteProject,
     async export(project: Project) {
-        const out = project.location + "/" + project.title.replace(/\//, "-") + ".zip";
+        const zipFilename = project.title.replace(/\//, "-") + ".zip";
+        const out = project.location + "/" + zipFilename;
 
         if (await rpc().fs.exists(out)) {
             await rpc().fs.unlink(out);
@@ -54,7 +55,7 @@ export default {
                 file.startsWith(".git") || 
                 file.startsWith(".build") || 
                 file.startsWith("data") ||
-                file.endsWith(project.title + ".zip")
+                file.endsWith(zipFilename + ".zip")
         )
 
         await rpc().fs.writeFile(out, zipData, {absolutePath: true});

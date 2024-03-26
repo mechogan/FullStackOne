@@ -18,6 +18,10 @@ export class Console {
         );
     }
 
+    log(text: string){
+        text.split("\n").forEach((ln) => this.term.writeln(ln));
+    }
+
     render() {
         this.term.clear();
         this.container.classList.add("console-container");

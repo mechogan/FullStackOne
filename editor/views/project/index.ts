@@ -12,6 +12,7 @@ import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
+import { isReadable } from "stream";
 
 export class Project {
     backAction: () => void;
@@ -58,39 +59,6 @@ export class Project {
             this.currentFile = joinedPath;
 
             this.renderEditors();
-        };
-
-        const openConsole = () => {
-            this.console.fitAddon.fit();
-            this.container.classList.add("console-opened");
-            setTimeout(() => {
-                this.console.fitAddon.fit();
-            }, 350);
-        };
-
-        const writeParagraph = (contents: string) => {
-            contents.split("\n").forEach((ln) => this.console.term.writeln(ln));
-        };
-
-        (window as any).onPush["log"] = (message: string) => {
-            const logs = JSON.parse(message);
-            if (logs.length) {
-                openConsole();
-            }
-            const str = logs
-                .map((log) =>
-                    typeof log === "string" ? log : JSON.stringify(log, null, 2)
-                )
-                .join("  ");
-            writeParagraph(str);
-        };
-        (window as any).onPush["error"] = (message: string) => {
-            openConsole();
-            const error: { message: string; name: string; stack: string } =
-                JSON.parse(message);
-            writeParagraph(error.message);
-            writeParagraph(error.name);
-            writeParagraph(error.stack);
         };
     }
 
@@ -167,12 +135,20 @@ export class Project {
             status.innerText = "installing...";
             container.append(status);
 
-            const installPromise = new Promise<void>((resolve) => {
+            const installPromise = new Promise<void>((resolve, reject) => {
                 api
                     .packages.install(packageName, (current, total) => { status.innerText = `${Math.floor((current / total * 10000)) / 100}% [${current}/${total}] installing...`; })
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
+                    })
+                    .catch((e) => {
+                        status.innerText = "error";
+                        reject({
+                            error: `Failed to install [${packageName}]`,
+                            location: Array.from(filesRequiringPackage).join("\n"),
+                            message: e.message
+                        })
                     });
             });
             installPromises.push(installPromise);
@@ -184,11 +160,27 @@ export class Project {
         dialog.append(container);
         this.container.append(dialog);
 
-        Promise.all(installPromises).then(() => {
+        Promise.allSettled(installPromises).then((results) => {
+            results.forEach((fulfillment) => {
+                if(fulfillment.status === "fulfilled") return;
+
+                this.openConsole();
+                this.console.log(JSON.stringify(fulfillment.reason, null, 4));
+            })
             dialog.remove();
-            this.runProject();
+
+            if(!results.find((fulfillment) => fulfillment.status !== "fulfilled"))
+                this.runProject();
         });
     }
+
+    openConsole() {
+        this.console.fitAddon.fit();
+        this.container.classList.add("console-opened");
+        setTimeout(() => {
+            this.console.fitAddon.fit();
+        }, 350);
+    };
 
     private processBuildErrors(errors: esbuild.BuildResult["errors"]){
         const packagesMissing = new Map<string, Set<string>>();
@@ -196,6 +188,12 @@ export class Project {
             error = uncapitalizeKeys(error);
 
             const file = error.location?.file;
+
+            if(!file) {
+                this.openConsole();
+                this.console.log(JSON.stringify(error, null, 4));
+                return;
+            }
 
             const filename = file.split(this.project.location).pop();
             let filePath = this.project.location + filename;
