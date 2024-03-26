@@ -16,6 +16,7 @@ class InstanceEditor: Instance {
     init(){
         let editorDirectory = Bundle.main.bundlePath + "/build"
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
+        self.webview.isOpaque = false
     }
 }
 

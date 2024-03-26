@@ -14,15 +14,16 @@ struct FullStackedApp: App {
 }
 
 struct WindowView: View {
+    let originalInstanceId: UUID
     var instanceRepresentable: InstanceRepresentable
     
     init(instanceId: UUID) {
+        self.originalInstanceId = instanceId;
         let instanceRepresentableIndex = RunningInstances.singleton!.instances.firstIndex { instanceRepresentable in
             return instanceRepresentable.id == instanceId
         }!
         self.instanceRepresentable = InstanceRepresentable(instance: Instance(adapter: RunningInstances.singleton!.instances[instanceRepresentableIndex].instance.adapter))
         RunningInstances.singleton?.instancesInWindows.append(self.instanceRepresentable)
-        RunningInstances.singleton?.removeInstance(id: instanceId)
     }
     
     var body: some View {
@@ -52,7 +53,10 @@ struct WindowView: View {
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
                 .ignoresSafeArea()
-                .onDisappear() {
+                .onAppear {
+                    RunningInstances.singleton?.removeInstance(id: self.originalInstanceId)
+                }
+                .onDisappear {
                     RunningInstances.singleton?.removeInstance(id: self.instanceRepresentable.id)
                 }
         }

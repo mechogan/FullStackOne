@@ -65,7 +65,6 @@ projectNewView.didCreateProjectAction = async (newProjectPath) => {
 /// Project View ///
 const projectView = new Project();
 (window as any).onPush["launchURL"] = async (deeplink: string) => {
-    console.log(deeplink);
     const project = await api.getProjectFromDeepLink(deeplink);
     projectView.setProject(project);
     const projectRendered = await projectView.render();
