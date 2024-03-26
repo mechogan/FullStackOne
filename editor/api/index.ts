@@ -31,7 +31,7 @@ export default {
                 .slice(1) // remove forward /
                 .split(".")
                 .shift(); // remove .git at the end;
-            await rpc().fs.mkdir(projectDir);
+            await rpc().fs.mkdir(projectDir, { absolutePath: true });
 
             await git.clone(gitUrl, projectDir);
             const usernameAndEmail =

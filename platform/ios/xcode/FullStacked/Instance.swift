@@ -83,6 +83,10 @@ class Instance  {
         wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs");
         self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
     }
+    
+    func push(messageType: String, message: String) {
+        self.webview.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+    }
 }
 
 class RequestListener: NSObject, WKURLSchemeHandler {

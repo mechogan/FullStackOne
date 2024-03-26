@@ -74,6 +74,9 @@ struct ContentView: View {
             }
             
         }
+        .onOpenURL { url in
+            self.instanceRepresentableEditor.instance.push(messageType: "launchURL", message: url.absoluteString)
+        }
     }
 }
 
