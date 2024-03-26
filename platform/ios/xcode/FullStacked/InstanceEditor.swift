@@ -16,7 +16,6 @@ class InstanceEditor: Instance {
     init(){
         let editorDirectory = Bundle.main.bundlePath + "/build"
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
-        self.webview.isOpaque = false
     }
 }
 
@@ -134,9 +133,18 @@ class AdapterEditor: Adapter {
             
                 return done(true)
             case "run":
-            let project = Project(location: self.rootDirectory + "/" + json[0]["location"].stringValue,
-                                      title: json[0]["title"].stringValue)
-                self.runInstance!(Instance(project: project))
+                let projectDirectory = self.rootDirectory + "/" + json[0]["location"].stringValue
+                    
+                let runningInstance = RunningInstances.singleton?.getInstance(projectDirectory: projectDirectory)
+            
+                if(runningInstance != nil) {
+                    runningInstance!.webview.reload()
+                } else {
+                    let project = Project(location: projectDirectory,
+                                              title: json[0]["title"].stringValue)
+                    self.runInstance!(Instance(project: project))
+                }
+            
                 return done(true)
             case "open": 
                 let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue

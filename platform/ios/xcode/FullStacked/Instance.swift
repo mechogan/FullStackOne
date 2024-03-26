@@ -10,9 +10,10 @@ import WebKit
 import SwiftUI
 import SwiftyJSON
 
-class FullScreenWKWebView: WKWebView {
+class FullScreenWKWebView: WKWebView, WKNavigationDelegate {
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
         super.init(frame: frame, configuration: configuration)
+        self.navigationDelegate = self
         
         if #available(iOS 16.4, *) {
             self.isInspectable = true
@@ -25,6 +26,19 @@ class FullScreenWKWebView: WKWebView {
     
     override var safeAreaInsets: UIEdgeInsets {
         return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
+    }
+        
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.navigationType == .linkActivated  {
+            if let url = navigationAction.request.url, "localhost" != url.host, UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            } else {
+                decisionHandler(.allow)
+            }
+        } else {
+            decisionHandler(.allow)
+        }
     }
 }
 
@@ -46,8 +60,9 @@ struct Project {
 }
 
 struct InstanceRepresentable: UIViewRepresentable {
-    let id = UUID();
-    let instance: Instance;
+    let id = UUID()
+    var inWindow: Bool = false
+    let instance: Instance
     
     init(instance: Instance) {
         self.instance = instance
@@ -67,20 +82,20 @@ struct InstanceRepresentable: UIViewRepresentable {
 
 
 class Instance  {
-    var webview: FullScreenWKWebView;
-    let adapter: Adapter;
+    var webview: FullScreenWKWebView
+    let adapter: Adapter
     
     init(project: Project){
-        self.adapter = Adapter(baseDirectory: project.location);
+        self.adapter = Adapter(baseDirectory: project.location)
         let wkWebViewConfig = WKWebViewConfiguration()
-        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs");
+        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs")
         self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
     }
     
     init(adapter: Adapter) {
         self.adapter = adapter
         let wkWebViewConfig = WKWebViewConfiguration()
-        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs");
+        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs")
         self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
     }
     
