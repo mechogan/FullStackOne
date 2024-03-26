@@ -28,8 +28,6 @@ class AdapterEditor: Adapter {
     let nodeModulesDirectory: String
     let fsEditor: AdapterFS;
     
-    var runInstance: ((_ instance: Instance) -> Void)?
-    
     override init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
@@ -143,7 +141,7 @@ class AdapterEditor: Adapter {
                 } else {
                     let project = Project(location: projectDirectory,
                                               title: json[0]["title"].stringValue)
-                    self.runInstance!(Instance(project: project))
+                    RunningInstances.singleton?.addInstance(instance: Instance(project: project))
                 }
             
                 return done(true)

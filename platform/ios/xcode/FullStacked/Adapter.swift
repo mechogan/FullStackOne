@@ -31,7 +31,7 @@ class Adapter {
             return done(nil)
         }
         
-        let json = try! JSON(data: body)
+        let json = body.count == 0 ? JSON("{}") : try! JSON(data: body)
         
         switch(methodPath.first) {
             case "platform": return done(self.platform)

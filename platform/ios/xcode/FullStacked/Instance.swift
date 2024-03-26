@@ -10,9 +10,18 @@ import WebKit
 import SwiftUI
 import SwiftyJSON
 
-class FullScreenWKWebView: WKWebView, WKNavigationDelegate {
+class FullScreenWKWebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
+    var logFn: ((_ log: String) -> Void)?
+    
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
+        let userContentController = WKUserContentController()
+        configuration.userContentController = userContentController
+        
         super.init(frame: frame, configuration: configuration)
+        
+        userContentController.add(self, name: "logging")
+        userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        
         self.navigationDelegate = self
         
         if #available(iOS 16.4, *) {
@@ -40,6 +49,14 @@ class FullScreenWKWebView: WKWebView, WKNavigationDelegate {
             decisionHandler(.allow)
         }
     }
+    
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if(self.logFn == nil){
+            print(message.body as! String)
+        } else {
+            self.logFn!(message.body as! String)
+        }
+    }
 }
 
 struct Response {
@@ -60,8 +77,6 @@ struct Project {
 }
 
 struct InstanceRepresentable: UIViewRepresentable {
-    let id = UUID()
-    var inWindow: Bool = false
     let instance: Instance
     
     init(instance: Instance) {
@@ -79,9 +94,8 @@ struct InstanceRepresentable: UIViewRepresentable {
     }
 }
 
-
-
 class Instance  {
+    let id = UUID()
     var webview: FullScreenWKWebView
     let adapter: Adapter
     
@@ -230,3 +244,91 @@ class RequestListener: NSObject, WKURLSchemeHandler {
 
     }
 }
+
+// source: https://stackoverflow.com/a/61489361
+let overrideConsole = """
+    function log(type, args) {
+        const logStr = `${type ? type + ": " : ""}${Object.values(args)
+          .map(v => typeof(v) === "undefined" ? "undefined" : typeof(v) === "object" ? JSON.stringify(v, null, 2) : v.toString())
+          .map(v => v.substring(0, 3000)) // Limit msg to 3000 chars
+          .join(", ")}`
+
+        tryToMap(logStr).then(str => window.webkit.messageHandlers.logging.postMessage(str));
+    }
+
+    let originalLog = console.log
+    let originalWarn = console.warn
+    let originalError = console.error
+    let originalDebug = console.debug
+
+    console.log = function() { log("", arguments); originalLog.apply(null, arguments) }
+    console.warn = function() { log("warn", arguments); originalWarn.apply(null, arguments) }
+    console.error = function() { log("Error", arguments); originalError.apply(null, arguments) }
+    console.debug = function() { log("debug", arguments); originalDebug.apply(null, arguments) }
+
+    const sourceMaps = {};
+
+    async function tryToMap(str){
+        const itemsToMap = str?.match(/\\b([0-z]*@)?[0-z]*:\\/\\/.*:\\d+:\\d+\\b/g)
+        
+        if(!itemsToMap?.length) return str;
+
+        for(const item of itemsToMap) {
+            str = str.replace(item, await mapFunction(item) + ` (${item})`);
+        }
+        return str;
+    }
+
+    async function getSourceMap(file){
+        if(!sourceMaps[file]){
+            sourceMaps[file] = new window.sourceMapConsumer(await (await fetch(file + ".map")).json())
+        }
+        return sourceMaps[file];
+    }
+
+    async function mapLocation(location) {
+        const [file, ln, col] = location.slice("fs://localhost/".length).split(":");
+
+        const sourceMap = await getSourceMap(file);
+        const mappedPosition = sourceMap.originalPositionFor({
+          line: parseInt(ln),
+          column: parseInt(col)
+        })
+
+        const originalFile = mappedPosition.source.split("/").filter(part => part !== "..").join("/");
+
+        return originalFile + ":" + mappedPosition.line + ":" + mappedPosition.column;
+    }
+
+    async function mapFunction(line) {
+        let [fn, location] = line.split("@");
+
+        if(!location)
+            return mapLocation(fn);
+
+        const [file, ln, col] = location.slice("fs://localhost/".length).split(":");
+
+        const sourceMap = await getSourceMap(file);
+        const mappedPosition = sourceMap.originalPositionFor({
+          line: parseInt(ln),
+          column: parseInt(col)
+        })
+
+        const name = mappedPosition.name.trim()
+            ? mappedPosition.name + "@"
+            : fn.trim()
+                ? fn + "@"
+                : "";
+
+        const originalFile = mappedPosition.source.split("/").filter(part => part !== "..").join("/");
+
+        return name + originalFile + ":" + mappedPosition.line + ":" + mappedPosition.column;
+    }
+
+    window.addEventListener("unhandledrejection", (e) => {
+        log("Unhandled Rejection", [`${e.reason.message} at ${e.reason.stack}`]);
+    });
+    window.addEventListener("error", function(e) {
+       log("Uncaught", [`${e.message} at ${e.filename}:${e.lineno}:${e.colno}`]);
+    })
+"""
