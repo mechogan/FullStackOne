@@ -14,8 +14,7 @@ export default {
     async init() {
         const configDir = await rpc().directories.config();
 
-        if (await rpc().fs.exists(configDir, { absolutePath: true })) 
-            return;
+        if (await rpc().fs.exists(configDir, { absolutePath: true })) return;
 
         await rpc().fs.mkdir(configDir, { absolutePath: true });
         await projects.import(
@@ -33,9 +32,14 @@ export default {
     async load<T extends CONFIG_TYPE>(type: T): Promise<DATA_TYPE[T] | null> {
         const configDir = await rpc().directories.config();
         const configFile = configDir + "/" + type + ".json";
-        if((await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile){
+        if (
+            (await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile
+        ) {
             return JSON.parse(
-                (await rpc().fs.readFile(configFile, { encoding: "utf8", absolutePath: true })) as string
+                (await rpc().fs.readFile(configFile, {
+                    encoding: "utf8",
+                    absolutePath: true
+                })) as string
             );
         }
 
@@ -44,6 +48,8 @@ export default {
     async save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configDir = await rpc().directories.config();
         const configFile = configDir + "/" + type + ".json";
-        rpc().fs.writeFile(configFile, JSON.stringify(data, null, 2), { absolutePath: true });
+        rpc().fs.writeFile(configFile, JSON.stringify(data, null, 2), {
+            absolutePath: true
+        });
     }
 };

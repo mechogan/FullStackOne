@@ -101,7 +101,7 @@ const app = async () => {
             projectView.setProject(demoProject);
             clearView();
             main.append(await projectView.render());
-            await projectView.runProject()
+            await projectView.runProject();
         }
     }
 };

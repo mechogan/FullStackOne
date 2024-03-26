@@ -1,7 +1,7 @@
 import { BrowserWindow } from "electron";
 import type { Project } from "../../../editor/api/projects/types";
 import { Adapter } from "../../../src/adapter";
-import {initAdapter} from "../../node/src/adapter";
+import { initAdapter } from "../../node/src/adapter";
 import { InstanceEditor } from "./instanceEditor";
 
 export class Instance {
@@ -13,23 +13,23 @@ export class Instance {
         this.project = project;
 
         this.adapter = initAdapter(
-            InstanceEditor.rootDirectory + "/" + this.project.location, 
+            InstanceEditor.rootDirectory + "/" + this.project.location,
             "electron"
         );
     }
 
     push = (messageType: string, message: string) => {
         this.window.webContents.executeJavaScript(
-            `window.push("${ messageType }", \`${ message.replace(/\\/g, "\\\\") }\`)`
+            `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
         );
     };
 
-    restart(){
+    restart() {
         this.window.reload();
         this.window.focus();
     }
 
-    start(hostname: string){
+    start(hostname: string) {
         this.window = new BrowserWindow({
             width: 800,
             height: 600,

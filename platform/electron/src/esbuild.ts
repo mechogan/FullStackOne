@@ -7,7 +7,6 @@ import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/no
 import esbuildVersion from "../../../lib/esbuild/version.txt";
 import url from "url";
 
-
 const directories = (configDirectory: string) => {
     const out = path.resolve(configDirectory, "esbuild");
     const esbuildDir = path.join(out, "esbuild");
@@ -22,32 +21,26 @@ const directories = (configDirectory: string) => {
         esbuildBin,
         esbuildBinSub,
         versionFile
-    }
-}
-
+    };
+};
 
 export const loadEsbuild = async (configDirectory: string) => {
     // dont download in dev
     try {
         const esbuild = await import("esbuild");
-        return esbuild
+        return esbuild;
     } catch (e) {}
 
+    const { esbuildDir, esbuildBinSub, versionFile } =
+        directories(configDirectory);
 
-    const {
-        esbuildDir,
-        esbuildBinSub,
-        versionFile
-    } = directories(configDirectory);
-    
-
-    const installedVersion = fs.existsSync(versionFile) 
+    const installedVersion = fs.existsSync(versionFile)
         ? fs.readFileSync(versionFile).toString().trim()
         : null;
 
-    console.log(installedVersion, esbuildVersion)
-    
-    if(installedVersion?.trim() !== esbuildVersion?.trim()) {
+    console.log(installedVersion, esbuildVersion);
+
+    if (installedVersion?.trim() !== esbuildVersion?.trim()) {
         return;
     }
 
@@ -59,14 +52,16 @@ export const loadEsbuild = async (configDirectory: string) => {
                 .toString()
         );
         return esbuild;
-    } catch(e) {
-        console.log(e)
+    } catch (e) {
+        console.log(e);
     }
 };
 
-export const installEsbuild = async (configDirectory: string, progressListener: (data: {step: number, progress: number}) => void) => {
+export const installEsbuild = async (
+    configDirectory: string,
+    progressListener: (data: { step: number; progress: number }) => void
+) => {
     const dir = directories(configDirectory);
-
 
     if (!fs.existsSync(dir.out)) fs.mkdirSync(dir.out, { recursive: true });
 
@@ -115,7 +110,7 @@ export const installEsbuild = async (configDirectory: string, progressListener: 
             progressListener({
                 step: 1,
                 progress
-            })
+            });
 
             if (progress === 1) resolve();
         });
@@ -167,7 +162,7 @@ export const installEsbuild = async (configDirectory: string, progressListener: 
             progressListener({
                 step: 3,
                 progress
-            })
+            });
 
             if (progress === 1) resolve();
         });

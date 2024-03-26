@@ -6,38 +6,55 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
         platform,
         fs: {
             readFile: (path, options?: { encoding?: "utf8" }) => {
-                return fs.promises.readFile(baseDirectory + "/" + path, options);
+                return fs.promises.readFile(
+                    baseDirectory + "/" + path,
+                    options
+                );
             },
             writeFile: (file, data, options) => {
-                return fs.promises.writeFile(baseDirectory + "/" + file, data, options);
+                return fs.promises.writeFile(
+                    baseDirectory + "/" + file,
+                    data,
+                    options
+                );
             },
             unlink: (path) => {
                 return fs.promises.unlink(baseDirectory + "/" + path);
             },
-            readdir: async (path, options?: { withFileTypes: true; }) => {
-                const items = await fs.promises.readdir(baseDirectory + "/" + path, options);
-                if(!options?.withFileTypes)
-                    return items;
-                
-                return items.map(item => ({
-                    ...item, 
+            readdir: async (path, options?: { withFileTypes: true }) => {
+                const items = await fs.promises.readdir(
+                    baseDirectory + "/" + path,
+                    options
+                );
+                if (!options?.withFileTypes) return items;
+
+                return items.map((item) => ({
+                    ...item,
                     isDirectory: item.isDirectory()
-                }))
+                }));
             },
             mkdir: async (path) => {
-                await fs.promises.mkdir(baseDirectory + "/" + path, { recursive: true });
+                await fs.promises.mkdir(baseDirectory + "/" + path, {
+                    recursive: true
+                });
             },
             rmdir: (path) => {
-                return fs.promises.rm(baseDirectory + "/" + path, { recursive: true });
+                return fs.promises.rm(baseDirectory + "/" + path, {
+                    recursive: true
+                });
             },
             stat: async (path) => {
-                const stats: any = await fs.promises.stat(baseDirectory + "/" + path);
+                const stats: any = await fs.promises.stat(
+                    baseDirectory + "/" + path
+                );
                 stats.isDirectory = stats.isDirectory();
                 stats.isFile = stats.isFile();
                 return stats;
             },
             lstat: async (path) => {
-                const stats: any = await fs.promises.lstat(baseDirectory + "/" + path);
+                const stats: any = await fs.promises.lstat(
+                    baseDirectory + "/" + path
+                );
                 stats.isDirectory = stats.isDirectory();
                 stats.isFile = stats.isFile();
                 return stats;
@@ -52,10 +69,12 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                 throw new Error("Function not implemented.");
             },
             exists: async (path) => {
-                try{
-                    const stats = await fs.promises.stat(baseDirectory + "/" + path);
+                try {
+                    const stats = await fs.promises.stat(
+                        baseDirectory + "/" + path
+                    );
                     return { isFile: stats.isFile() };
-                }catch(e){
+                } catch (e) {
                     return null;
                 }
             }
@@ -68,7 +87,7 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                 body?: string | Uint8Array;
                 encoding?: string;
             }
-        ){
+        ) {
             const response = await fetch(url, {
                 method: options?.method || "GET",
                 headers: options?.headers || {},
@@ -77,7 +96,8 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
 
             const headers = convertHeadersToObj(response.headers);
 
-            const body = options?.encoding === "utf8"
+            const body =
+                options?.encoding === "utf8"
                     ? await response.text()
                     : new Uint8Array(await response.arrayBuffer());
 
@@ -88,14 +108,13 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                 body
             };
         }
-    }
+    };
 }
 
 const convertHeadersToObj = (headers: Headers) => {
     let headersObj: Record<string, string> = {};
     headers.forEach(
-        (headerValue, headerName) =>
-            (headersObj[headerName] = headerValue)
+        (headerValue, headerName) => (headersObj[headerName] = headerValue)
     );
     return headersObj;
 };

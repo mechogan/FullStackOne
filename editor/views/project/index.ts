@@ -136,8 +136,10 @@ export class Project {
             container.append(status);
 
             const installPromise = new Promise<void>((resolve, reject) => {
-                api
-                    .packages.install(packageName, (current, total) => { status.innerText = `${Math.floor((current / total * 10000)) / 100}% [${current}/${total}] installing...`; })
+                api.packages
+                    .install(packageName, (current, total) => {
+                        status.innerText = `${Math.floor((current / total) * 10000) / 100}% [${current}/${total}] installing...`;
+                    })
                     .then(() => {
                         status.innerText = "installed";
                         resolve();
@@ -146,9 +148,11 @@ export class Project {
                         status.innerText = "error";
                         reject({
                             error: `Failed to install [${packageName}]`,
-                            location: Array.from(filesRequiringPackage).join("\n"),
+                            location: Array.from(filesRequiringPackage).join(
+                                "\n"
+                            ),
                             message: e.message
-                        })
+                        });
                     });
             });
             installPromises.push(installPromise);
@@ -162,14 +166,18 @@ export class Project {
 
         Promise.allSettled(installPromises).then((results) => {
             results.forEach((fulfillment) => {
-                if(fulfillment.status === "fulfilled") return;
+                if (fulfillment.status === "fulfilled") return;
 
                 this.openConsole();
                 this.console.log(JSON.stringify(fulfillment.reason, null, 4));
-            })
+            });
             dialog.remove();
 
-            if(!results.find((fulfillment) => fulfillment.status !== "fulfilled"))
+            if (
+                !results.find(
+                    (fulfillment) => fulfillment.status !== "fulfilled"
+                )
+            )
                 this.runProject();
         });
     }
@@ -180,16 +188,16 @@ export class Project {
         setTimeout(() => {
             this.console.fitAddon.fit();
         }, 350);
-    };
+    }
 
-    private processBuildErrors(errors: esbuild.BuildResult["errors"]){
+    private processBuildErrors(errors: esbuild.BuildResult["errors"]) {
         const packagesMissing = new Map<string, Set<string>>();
         errors.forEach((error) => {
             error = uncapitalizeKeys(error);
 
             const file = error.location?.file;
 
-            if(!file) {
+            if (!file) {
                 this.openConsole();
                 this.console.log(JSON.stringify(error, null, 4));
                 return;
@@ -220,13 +228,10 @@ export class Project {
                         fileRequiringPackage.add(
                             filename.includes("node_modules")
                                 ? "node_modules" +
-                                        filename.split("node_modules").pop()
+                                      filename.split("node_modules").pop()
                                 : filename.slice(1)
                         );
-                        packagesMissing.set(
-                            dependency,
-                            fileRequiringPackage
-                        );
+                        packagesMissing.set(dependency, fileRequiringPackage);
                     }
 
                     return;
@@ -234,8 +239,7 @@ export class Project {
             }
 
             let editor = this.editors.find(
-                (activeEditor) =>
-                    activeEditor.filePath.join("/") === filePath
+                (activeEditor) => activeEditor.filePath.join("/") === filePath
             );
             if (!editor) {
                 editor = new Editor(filePath.split("/"));
@@ -275,7 +279,8 @@ export class Project {
         this.console.term.clear();
         setTimeout(async () => {
             const buildErrors = await rpc().build(this.project);
-            if(buildErrors && buildErrors !== 1) this.processBuildErrors(buildErrors)
+            if (buildErrors && buildErrors !== 1)
+                this.processBuildErrors(buildErrors);
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");
@@ -291,7 +296,9 @@ export class Project {
             deleteAllPackagesButton.classList.add("danger", "text");
             deleteAllPackagesButton.innerText = "Delete All";
             deleteAllPackagesButton.addEventListener("click", async () => {
-                await rpc().fs.rmdir(this.project.location, { absolutePath: true });
+                await rpc().fs.rmdir(this.project.location, {
+                    absolutePath: true
+                });
                 this.backAction();
             });
             container.append(deleteAllPackagesButton);
@@ -306,10 +313,10 @@ export class Project {
                 const refreshedFileTree = await this.fileTree.instance.render();
                 this.fileTree.element?.replaceWith(refreshedFileTree);
                 this.fileTree.element = refreshedFileTree;
-                if(await rpc().platform() === "node"){
+                if ((await rpc().platform()) === "node") {
                     const blob = new Blob([zipData]);
                     const url = window.URL.createObjectURL(blob);
-        
+
                     const element = document.createElement("a");
                     element.setAttribute("href", url);
                     element.setAttribute(
@@ -317,14 +324,14 @@ export class Project {
                         this.project.title + ".zip"
                     );
                     element.style.display = "none";
-        
+
                     document.body.appendChild(element);
-        
+
                     element.click();
                     document.body.removeChild(element);
                     window.URL.revokeObjectURL(url);
-                }else {
-                    rpc().open(this.project)
+                } else {
+                    rpc().open(this.project);
                 }
             });
             container.append(shareButton);
@@ -478,15 +485,16 @@ export class Project {
     }
 }
 
-
 function isPlainObject(input: any) {
-    return input && !Array.isArray(input) && typeof input === 'object';
- }
- 
- function uncapitalizeKeys<T>(obj: T) {
-   const final = {};
-   for (const [key, value] of Object.entries(obj)) {
-     final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value) ? uncapitalizeKeys(value) : value;
-   }
-   return final as T;
- }
+    return input && !Array.isArray(input) && typeof input === "object";
+}
+
+function uncapitalizeKeys<T>(obj: T) {
+    const final = {};
+    for (const [key, value] of Object.entries(obj)) {
+        final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value)
+            ? uncapitalizeKeys(value)
+            : value;
+    }
+    return final as T;
+}

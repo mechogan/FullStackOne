@@ -17,8 +17,8 @@ type Stat = {
     mtime: Date;
     ctime: Date;
     birthtime: Date;
-    isDirectory: boolean,
-    isFile: boolean
+    isDirectory: boolean;
+    isFile: boolean;
 };
 
 export type Dirent = {
@@ -32,13 +32,17 @@ export type fs = {
         options?: { encoding?: string; absolutePath?: boolean }
     ): Promise<string | Uint8Array>;
 
-    writeFile(file: string, data: string | Uint8Array, options?: { encoding?: "utf8", absolutePath: boolean }): Promise<void>;
+    writeFile(
+        file: string,
+        data: string | Uint8Array,
+        options?: { encoding?: "utf8"; absolutePath: boolean }
+    ): Promise<void>;
 
     unlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
     readdir(
         path: string,
-        options?: { withFileTypes?: boolean, absolutePath?: boolean }
+        options?: { withFileTypes?: boolean; absolutePath?: boolean }
     ): Promise<string[] | Dirent[]>;
 
     mkdir(path: string, options?: { absolutePath?: boolean }): Promise<void>;
@@ -48,10 +52,18 @@ export type fs = {
     stat(path: string, options?: { absolutePath?: boolean }): Promise<Stat>;
     lstat(path: string, options?: { absolutePath?: boolean }): Promise<Stat>;
 
-    readlink(path: string, options?: { absolutePath?: boolean }): Promise<string>;
+    readlink(
+        path: string,
+        options?: { absolutePath?: boolean }
+    ): Promise<string>;
     symlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
-    chmod(path: string, uid: number, gid: number, options?: { absolutePath?: boolean }): Promise<void>;
+    chmod(
+        path: string,
+        uid: number,
+        gid: number,
+        options?: { absolutePath?: boolean }
+    ): Promise<void>;
 
     exists(
         path: string,

@@ -16,21 +16,32 @@ const returnFalse = () => false;
 
 const fs = {
     readFile: async (...args) => {
-        if(args?.[1] === "utf8" || args?.[1].encoding === "utf8"){
-            return rpc().fs.readFile(args[0], { encoding: "utf8", absolutePath: true });
-        }
-
-        return Buffer.from(await rpc().fs.readFile(args[0], { absolutePath: true }));
-    },
-    writeFile: async (...args) => {
-        if(args?.[2] === "utf8" || args?.[2].encoding === "utf8" || typeof args[1] === "string") {
-            return rpc().fs.writeFile(args[0], args[1], { 
+        if (args?.[1] === "utf8" || args?.[1].encoding === "utf8") {
+            return rpc().fs.readFile(args[0], {
                 encoding: "utf8",
                 absolutePath: true
-             });
+            });
         }
 
-        return rpc().fs.writeFile(args[0], new Uint8Array(args[1]), { absolutePath: true });
+        return Buffer.from(
+            await rpc().fs.readFile(args[0], { absolutePath: true })
+        );
+    },
+    writeFile: async (...args) => {
+        if (
+            args?.[2] === "utf8" ||
+            args?.[2].encoding === "utf8" ||
+            typeof args[1] === "string"
+        ) {
+            return rpc().fs.writeFile(args[0], args[1], {
+                encoding: "utf8",
+                absolutePath: true
+            });
+        }
+
+        return rpc().fs.writeFile(args[0], new Uint8Array(args[1]), {
+            absolutePath: true
+        });
     },
     unlink: async (...args) => {
         return rpc().fs.unlink(args[0], { absolutePath: true });
@@ -58,7 +69,9 @@ const fs = {
         return stats;
     },
     lstat: async (...args) => {
-        const stats: any = await rpc().fs.lstat(args[0], { absolutePath: true });
+        const stats: any = await rpc().fs.lstat(args[0], {
+            absolutePath: true
+        });
         stats.atime = new Date(stats.atime);
         stats.mtime = new Date(stats.mtime);
         stats.ctime = new Date(stats.ctime);
@@ -76,9 +89,8 @@ const fs = {
     },
     chmod: async () => {
         throw Error("Not Implemented");
-    },
-}
-
+    }
+};
 
 async function awaitBody(body: AsyncIterableIterator<Uint8Array>) {
     let size = 0;
@@ -165,31 +177,34 @@ const requestGitAuth = async (url: string) => {
     }
 
     try {
-        const auth = await new Promise<{ host: string, username: string; password: string, email: string }>(
-            (resolve, reject) => {
-                GitAuth.requestAuth(hostname, resolve, reject)
-            }
-        );
+        const auth = await new Promise<{
+            host: string;
+            username: string;
+            password: string;
+            email: string;
+        }>((resolve, reject) => {
+            GitAuth.requestAuth(hostname, resolve, reject);
+        });
 
         console.log(auth);
 
-        await saveGitAuth(auth)
-    
+        await saveGitAuth(auth);
+
         return auth;
-    }catch(e) {
+    } catch (e) {
         return null;
     }
 };
 
-export async function saveGitAuth(
-    gitAuth: {
-        host: string,
-        username: string,
-        email: string,
-        password: string
-    }
-) {
-    const hostname = gitAuth.host.includes("://") ? new URL(gitAuth.host).hostname : gitAuth.host;
+export async function saveGitAuth(gitAuth: {
+    host: string;
+    username: string;
+    email: string;
+    password: string;
+}) {
+    const hostname = gitAuth.host.includes("://")
+        ? new URL(gitAuth.host).hostname
+        : gitAuth.host;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
@@ -197,7 +212,7 @@ export async function saveGitAuth(
     if (gitAuths?.[hostname]) {
         gitAuths[hostname] = {
             ...gitAuth,
-            password: gitAuths[hostname].password,
+            password: gitAuths[hostname].password
         };
     }
     // new
@@ -419,7 +434,7 @@ export default {
         const parent = merging?.theirs
             ? [
                   (await git.currentBranch({
-                        fs,
+                      fs,
                       dir: project.location
                   })) as string,
                   merging.theirs

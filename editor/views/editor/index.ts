@@ -122,7 +122,9 @@ export class Editor {
             imageContainer.classList.add("img-container");
 
             const img = document.createElement("img");
-            const imageData = await rpc().fs.readFile(this.filePath.join("/"), { absolutePath: true });
+            const imageData = await rpc().fs.readFile(this.filePath.join("/"), {
+                absolutePath: true
+            });
             const imageBlob = new Blob([imageData]);
             img.src = window.URL.createObjectURL(imageBlob);
             imageContainer.append(img);
@@ -141,10 +143,14 @@ export class Editor {
         const contents = this.editor?.state?.doc?.toString();
         if (!contents) return;
 
-        const exists = await rpc().fs.exists(this.filePath.join("/"), { absolutePath: true });
+        const exists = await rpc().fs.exists(this.filePath.join("/"), {
+            absolutePath: true
+        });
         if (!exists) return;
 
-        rpc().fs.writeFile(this.filePath.join("/"), contents, { absolutePath: true });
+        rpc().fs.writeFile(this.filePath.join("/"), contents, {
+            absolutePath: true
+        });
     }
 
     private updateFileContents() {

@@ -3,7 +3,6 @@ import { NEW_FILE_ID } from "../../constants";
 import rpc from "../../rpc";
 import type { Dirent } from "../../../src/adapter/fs";
 
-
 export class FileTree {
     allowDeletion = false;
     directoryOnly = false;
@@ -50,7 +49,8 @@ export class FileTree {
                 }
 
                 const path = itemPath.join("/");
-                if (isDirectory) await rpc().fs.rmdir(path, { absolutePath: true });
+                if (isDirectory)
+                    await rpc().fs.rmdir(path, { absolutePath: true });
                 else await rpc().fs.unlink(path, { absolutePath: true });
 
                 parentLi.remove();
@@ -173,7 +173,9 @@ export class FileTree {
                 : this.baseDirectory;
 
             await rpc().fs.mkdir(
-                parentDirectoryPathComponents.join("/") + "/" + newDirectoryName,
+                parentDirectoryPathComponents.join("/") +
+                    "/" +
+                    newDirectoryName,
                 { absolutePath: true }
             );
 
@@ -361,7 +363,9 @@ export class FileTree {
         });
 
         // make sure dir exists
-        await rpc().fs.mkdir(this.baseDirectory.join("/"), { absolutePath: true });
+        await rpc().fs.mkdir(this.baseDirectory.join("/"), {
+            absolutePath: true
+        });
 
         this.ulRoot = await this.openDirectory(this.baseDirectory);
         this.ulRoot.classList.add("file-tree");

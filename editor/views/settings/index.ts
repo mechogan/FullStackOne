@@ -41,10 +41,12 @@ export class Settings {
         addButton.addEventListener("click", async () => {
             addButton.remove();
             const li = document.createElement("li");
-            li.append(await GitAuth.renderGitAuthForm(async (gitAuth) => {
-                await api.git.saveGitAuth(gitAuth)
-                refresh();
-            }, refresh));
+            li.append(
+                await GitAuth.renderGitAuthForm(async (gitAuth) => {
+                    await api.git.saveGitAuth(gitAuth);
+                    refresh();
+                }, refresh)
+            );
             ul.prepend(li);
         });
 
@@ -68,7 +70,7 @@ export class Settings {
                     await GitAuth.renderGitAuthForm(
                         async (gitAuth) => {
                             await api.git.saveGitAuth(gitAuth);
-                            refresh()
+                            refresh();
                         },
                         refresh,
                         { host, ...auth },

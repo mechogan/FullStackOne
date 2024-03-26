@@ -5,9 +5,9 @@ export async function merge(
     baseFile: string,
     entryPoint: string,
     cacheDirectory: string
-){
+) {
     const mergedContent = `${await fs.promises.readFile(baseFile)}\nimport("${entryPoint}");`;
-    await fs.promises.mkdir(cacheDirectory, {recursive: true});
+    await fs.promises.mkdir(cacheDirectory, { recursive: true });
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
     await fs.promises.writeFile(tmpFile, mergedContent);
     return tmpFile;
@@ -24,10 +24,12 @@ export function build(
 ) {
     try {
         buildSync({
-            entryPoints: [{
-                in: input,
-                out
-            }],
+            entryPoints: [
+                {
+                    in: input,
+                    out
+                }
+            ],
             outdir,
             splitting,
             bundle: true,
@@ -35,7 +37,7 @@ export function build(
             sourcemap,
             write: true,
             nodePaths: nodePath ? [nodePath] : undefined,
-            logLevel: "silent",
+            logLevel: "silent"
         });
     } catch (e) {
         return { errors: e.errors as esbuild.ResolveResult["errors"] };

@@ -18,7 +18,7 @@ export class Console {
         );
     }
 
-    log(text: string){
+    log(text: string) {
         text.split("\n").forEach((ln) => this.term.writeln(ln));
     }
 

@@ -2,11 +2,11 @@ import "./index.css";
 import api from "../../api";
 
 type requestedGitAuthCallback = (gitAuth: {
-    host: string,
-    username: string,
-    email: string,
-    password: string
-}) => void
+    host: string;
+    username: string;
+    email: string;
+    password: string;
+}) => void;
 
 export class GitAuth {
     private static async githubDeviceFlow(confirm: requestedGitAuthCallback) {
@@ -200,7 +200,11 @@ export class GitAuth {
         return form;
     }
 
-    static async requestAuth(host: string, confirm: requestedGitAuthCallback, cancel: () => void) {
+    static async requestAuth(
+        host: string,
+        confirm: requestedGitAuthCallback,
+        cancel: () => void
+    ) {
         const dialog = document.createElement("div");
         dialog.classList.add("dialog", "git-auth");
 
@@ -211,10 +215,14 @@ export class GitAuth {
         container.append(text);
 
         container.append(
-            await GitAuth.renderGitAuthForm((gitAuth) => {
-                confirm(gitAuth);
-                dialog.remove();
-            }, cancel, {host})
+            await GitAuth.renderGitAuthForm(
+                (gitAuth) => {
+                    confirm(gitAuth);
+                    dialog.remove();
+                },
+                cancel,
+                { host }
+            )
         );
 
         dialog.append(container);

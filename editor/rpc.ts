@@ -3,13 +3,13 @@ import type { Adapter } from "../src/adapter";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
 
-export type AdapterEditor = Adapter & { 
+export type AdapterEditor = Adapter & {
     directories: {
-        root: string,
-        cache: string,
-        config: string,
-        nodeModules: string
-    },
+        root: string;
+        cache: string;
+        config: string;
+        nodeModules: string;
+    };
 
     esbuild: {
         check(): boolean;
@@ -19,8 +19,8 @@ export type AdapterEditor = Adapter & {
     build(project: Project): Promise<esbuild.BuildResult["errors"]> | 1;
     run(project: Project): void;
 
-    open(project: Project): void
- }
+    open(project: Project): void;
+};
 
 const rpc = (window as any).rpc as typeof rpcFn<AdapterEditor>;
 

@@ -5,16 +5,15 @@ import mime from "mime";
 import type { Adapter } from "../../../src/adapter";
 import { initAdapter } from "./adapter";
 import { decodeUint8Array } from "../../../src/Uint8Array";
-import open from "open"
+import open from "open";
 import type { Project } from "../../../editor/api/projects/types";
 import { InstanceEditor } from "./instanceEditor";
 
-
 type Response = {
-    data: Uint8Array,
-    status: number,
-    mimeType: string
-}
+    data: Uint8Array;
+    status: number;
+    mimeType: string;
+};
 
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -25,24 +24,25 @@ const notFound: Response = {
     mimeType: "text/plain"
 };
 
-const readBody = (request: http.IncomingMessage) => new Promise<Uint8Array>((resolve) => {
-    const contentLengthStr = request.headers["content-length"] || "0";
-    const contentLength = parseInt(contentLengthStr);
-    if (!contentLength) {
-        resolve(new Uint8Array());
-        return;
-    }
-
-    const body = new Uint8Array(contentLength);
-    let i = 0;
-    request.on("data", (chunk: Buffer) => {
-        for (let j = 0; j < chunk.byteLength; j++) {
-            body[j + i] = chunk[j];
+const readBody = (request: http.IncomingMessage) =>
+    new Promise<Uint8Array>((resolve) => {
+        const contentLengthStr = request.headers["content-length"] || "0";
+        const contentLength = parseInt(contentLengthStr);
+        if (!contentLength) {
+            resolve(new Uint8Array());
+            return;
         }
-        i += chunk.length;
+
+        const body = new Uint8Array(contentLength);
+        let i = 0;
+        request.on("data", (chunk: Buffer) => {
+            for (let j = 0; j < chunk.byteLength; j++) {
+                body[j + i] = chunk[j];
+            }
+            i += chunk.length;
+        });
+        request.on("end", () => resolve(body));
     });
-    request.on("end", () => resolve(body));
-});
 
 export class Instance {
     static port = 9000;
@@ -55,7 +55,9 @@ export class Instance {
     adapter: Adapter;
 
     constructor(project: Project) {
-        this.adapter = initAdapter(InstanceEditor.rootDirectory + "/" + project.location);
+        this.adapter = initAdapter(
+            InstanceEditor.rootDirectory + "/" + project.location
+        );
         this.port = Instance.port;
         Instance.port++;
 
@@ -67,23 +69,26 @@ export class Instance {
         ws.on("close", () => this.webSockets.delete(ws));
     }
 
-    push(messageType: string, message: any){
-        this.webSockets.forEach(ws => ws.send(JSON.stringify({messageType, message})));
+    push(messageType: string, message: any) {
+        this.webSockets.forEach((ws) =>
+            ws.send(JSON.stringify({ messageType, message }))
+        );
     }
 
-    protected async requestListener(req: http.IncomingMessage, res: http.ServerResponse) {
+    protected async requestListener(
+        req: http.IncomingMessage,
+        res: http.ServerResponse
+    ) {
         let response: Response = { ...notFound };
 
         // remove query params
         let pathname = req.url.split("?").shift();
 
         // remove trailing slash
-        if (pathname?.endsWith("/")) 
-            pathname = pathname.slice(0, -1);
+        if (pathname?.endsWith("/")) pathname = pathname.slice(0, -1);
 
         // remove leading slash
-        if (pathname?.startsWith("/")) 
-            pathname = pathname.slice(1);
+        if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
         // check for [path]/index.html
         let maybeIndexHTML = pathname + "/index.html";
@@ -105,13 +110,15 @@ export class Instance {
 
         // static file serving
         if ((await this.adapter.fs.exists(pathname))?.isFile) {
-            const data = await this.adapter.fs.readFile(pathname) as Uint8Array;
+            const data = (await this.adapter.fs.readFile(
+                pathname
+            )) as Uint8Array;
             response = {
                 status: 200,
                 mimeType: mime.getType(pathname) || "text/plain",
                 data
             };
-        } 
+        }
         // rpc methods
         else {
             const methodPath = pathname.split("/");
@@ -122,13 +129,16 @@ export class Instance {
 
             if (method) {
                 response.status = 200;
-                
+
                 const body = await readBody(req);
-                const args = body && body.length ? JSON.parse(td.decode(body), decodeUint8Array) : [];
-        
+                const args =
+                    body && body.length
+                        ? JSON.parse(td.decode(body), decodeUint8Array)
+                        : [];
+
                 let responseBody = method;
-                
-                if(typeof responseBody === "function") {
+
+                if (typeof responseBody === "function") {
                     try {
                         responseBody = responseBody(...args);
                     } catch (e) {
@@ -136,7 +146,7 @@ export class Instance {
                         responseBody = e;
                     }
                 }
-        
+
                 // await all promises and functions
                 while (responseBody instanceof Promise) {
                     try {
@@ -146,7 +156,7 @@ export class Instance {
                         responseBody = e;
                     }
                 }
-        
+
                 let type = "text/plain";
                 if (responseBody) {
                     if (ArrayBuffer.isView(responseBody)) {
@@ -163,7 +173,7 @@ export class Instance {
                 } else {
                     delete response.data;
                 }
-        
+
                 response.mimeType = type;
             }
         }
@@ -175,9 +185,8 @@ export class Instance {
         res.end(response.data);
     }
 
-    start(){
+    start() {
         this.server.listen(this.port);
-        if(!process.env.NO_OPEN)
-            open(`http://localhost:${this.port}`);
+        if (!process.env.NO_OPEN) open(`http://localhost:${this.port}`);
     }
 }

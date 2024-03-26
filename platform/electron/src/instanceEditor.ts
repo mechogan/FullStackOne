@@ -3,20 +3,20 @@ import path from "path";
 import type { AdapterEditor } from "../../../editor/rpc";
 import mime from "mime";
 import { decodeUint8Array } from "../../../src/Uint8Array";
-import {initAdapter} from "../../node/src/adapter";
+import { initAdapter } from "../../node/src/adapter";
 import os from "os";
 import fs from "fs";
 import { Project } from "../../../editor/api/projects/types";
 import { build, merge } from "../../node/src/build";
 import type esbuild from "esbuild";
-import {shell} from "electron";
+import { shell } from "electron";
 import { installEsbuild, loadEsbuild } from "./esbuild";
 
 type Response = {
-    data: Uint8Array,
-    status: number,
-    mimeType: string
-}
+    data: Uint8Array;
+    status: number;
+    mimeType: string;
+};
 
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -43,7 +43,7 @@ export class InstanceEditor extends Instance {
 
     esbuild: typeof esbuild;
 
-    constructor(){
+    constructor() {
         super({
             title: "FullStacked Editor",
             location: editorDirectory,
@@ -55,53 +55,78 @@ export class InstanceEditor extends Instance {
             ...defaultAdapter,
             fs: {
                 ...defaultAdapter.fs,
-                readFile: (path, options?: { encoding?: "utf8"; absolutePath?: boolean; }) => {
-                    if(options?.absolutePath){
-                        return fs.promises.readFile(InstanceEditor.rootDirectory + "/" + path, options);
+                readFile: (
+                    path,
+                    options?: { encoding?: "utf8"; absolutePath?: boolean }
+                ) => {
+                    if (options?.absolutePath) {
+                        return fs.promises.readFile(
+                            InstanceEditor.rootDirectory + "/" + path,
+                            options
+                        );
                     }
                     return defaultAdapter.fs.readFile(path, options);
                 },
                 writeFile: (file, data, options) => {
-                    if(options?.absolutePath){
-                        return fs.promises.writeFile(InstanceEditor.rootDirectory + "/" + file, data, options);
+                    if (options?.absolutePath) {
+                        return fs.promises.writeFile(
+                            InstanceEditor.rootDirectory + "/" + file,
+                            data,
+                            options
+                        );
                     }
                     return defaultAdapter.fs.writeFile(file, data, options);
                 },
                 unlink: (path, options) => {
-                    if(options?.absolutePath){
-                        return fs.promises.unlink(InstanceEditor.rootDirectory + "/" + path);
+                    if (options?.absolutePath) {
+                        return fs.promises.unlink(
+                            InstanceEditor.rootDirectory + "/" + path
+                        );
                     }
                     return defaultAdapter.fs.unlink(path);
                 },
-                readdir: async (path, options?: { withFileTypes: true, absolutePath?: boolean }) => {
-                    if(options?.absolutePath){
-                        const items = await fs.promises.readdir(InstanceEditor.rootDirectory + "/" + path, options);
-                        if(!options?.withFileTypes)
-                            return items;
-                        
-                        return items.map(item => ({
-                            ...item, 
+                readdir: async (
+                    path,
+                    options?: { withFileTypes: true; absolutePath?: boolean }
+                ) => {
+                    if (options?.absolutePath) {
+                        const items = await fs.promises.readdir(
+                            InstanceEditor.rootDirectory + "/" + path,
+                            options
+                        );
+                        if (!options?.withFileTypes) return items;
+
+                        return items.map((item) => ({
+                            ...item,
                             isDirectory: item.isDirectory()
-                        }))
+                        }));
                     }
                     return defaultAdapter.fs.readdir(path, options);
                 },
                 mkdir: async (path, options) => {
-                    if(options?.absolutePath){
-                        await fs.promises.mkdir(InstanceEditor.rootDirectory + "/" + path, { recursive: true });
+                    if (options?.absolutePath) {
+                        await fs.promises.mkdir(
+                            InstanceEditor.rootDirectory + "/" + path,
+                            { recursive: true }
+                        );
                         return;
                     }
                     return defaultAdapter.fs.mkdir(path);
                 },
                 rmdir: (path, options) => {
-                    if(options?.absolutePath){
-                        return fs.promises.rm(InstanceEditor.rootDirectory + "/" + path, { recursive: true });
+                    if (options?.absolutePath) {
+                        return fs.promises.rm(
+                            InstanceEditor.rootDirectory + "/" + path,
+                            { recursive: true }
+                        );
                     }
                     return defaultAdapter.fs.rmdir(path);
                 },
                 stat: async (path, options) => {
-                    if(options?.absolutePath){
-                        const stats: any = await fs.promises.stat(InstanceEditor.rootDirectory + "/" + path);
+                    if (options?.absolutePath) {
+                        const stats: any = await fs.promises.stat(
+                            InstanceEditor.rootDirectory + "/" + path
+                        );
                         stats.isDirectory = stats.isDirectory();
                         stats.isFile = stats.isFile();
                         return stats;
@@ -109,20 +134,27 @@ export class InstanceEditor extends Instance {
                     return defaultAdapter.fs.stat(path);
                 },
                 lstat: async (path, options) => {
-                    if(options?.absolutePath){
-                        const stats: any = await fs.promises.lstat(InstanceEditor.rootDirectory + "/" + path);
+                    if (options?.absolutePath) {
+                        const stats: any = await fs.promises.lstat(
+                            InstanceEditor.rootDirectory + "/" + path
+                        );
                         stats.isDirectory = stats.isDirectory();
                         stats.isFile = stats.isFile();
                         return stats;
                     }
                     return defaultAdapter.fs.lstat(path);
                 },
-                exists: async (path: string, options?: { absolutePath?: boolean; }) => {
-                    if(options?.absolutePath){
-                        try{
-                            const stats = await fs.promises.stat(InstanceEditor.rootDirectory + "/" + path);
+                exists: async (
+                    path: string,
+                    options?: { absolutePath?: boolean }
+                ) => {
+                    if (options?.absolutePath) {
+                        try {
+                            const stats = await fs.promises.stat(
+                                InstanceEditor.rootDirectory + "/" + path
+                            );
                             return { isFile: stats.isFile() };
-                        }catch(e){
+                        } catch (e) {
                             return null;
                         }
                     }
@@ -140,33 +172,57 @@ export class InstanceEditor extends Instance {
             esbuild: {
                 check: () => !!this.esbuild,
                 install: () => {
-                    const progressListener = (data: {step: number, progress: number}) => {
+                    const progressListener = (data: {
+                        step: number;
+                        progress: number;
+                    }) => {
                         this.window.webContents.executeJavaScript(
                             `window.push("esbuildInstall", \`${JSON.stringify(data).replace(/\\/g, "\\\\")}\`)`
                         );
-                    }
-                    installEsbuild(InstanceEditor.rootDirectory + "/" + this.configDirectory, progressListener.bind(this))
-                        .then(esbuild => this.esbuild = esbuild)
+                    };
+                    installEsbuild(
+                        InstanceEditor.rootDirectory +
+                            "/" +
+                            this.configDirectory,
+                        progressListener.bind(this)
+                    ).then((esbuild) => (this.esbuild = esbuild));
                 }
             },
 
             build: async (project: Project) => {
                 const entryPoint = [
-                    InstanceEditor.rootDirectory + "/" + project.location + "/index.js",
-                    InstanceEditor.rootDirectory + "/" + project.location + "/index.jsx"
-                ].find(file => fs.existsSync(file));
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
+                        "/index.js",
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
+                        "/index.jsx"
+                ].find((file) => fs.existsSync(file));
 
-                if(!entryPoint) return null;
+                if (!entryPoint) return null;
 
-                const mergedFile = await merge(this.baseJS, entryPoint, InstanceEditor.rootDirectory + "/" + this.cacheDirectory);
+                const mergedFile = await merge(
+                    this.baseJS,
+                    entryPoint,
+                    InstanceEditor.rootDirectory + "/" + this.cacheDirectory
+                );
 
-                const outdir = InstanceEditor.rootDirectory + "/" + project.location + "/.build";
+                const outdir =
+                    InstanceEditor.rootDirectory +
+                    "/" +
+                    project.location +
+                    "/.build";
                 const result = build(
-                    this.esbuild.buildSync, 
+                    this.esbuild.buildSync,
                     mergedFile,
-                    "index", 
-                    outdir, 
-                    InstanceEditor.rootDirectory + "/" + this.nodeModulesDirectory);
+                    "index",
+                    outdir,
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        this.nodeModulesDirectory
+                );
 
                 await fs.promises.unlink(mergedFile);
 
@@ -174,7 +230,7 @@ export class InstanceEditor extends Instance {
             },
             run: (project: Project) => {
                 for (const activeInstance of this.instances.values()) {
-                    if(activeInstance.project.location === project.location){
+                    if (activeInstance.project.location === project.location) {
                         activeInstance.restart();
                         return;
                     }
@@ -184,19 +240,22 @@ export class InstanceEditor extends Instance {
                 const hostname = `app-` + this.instancesCount;
                 this.instances.set(hostname, instance);
                 instance.start(hostname);
-                instance.window.on("close", () => this.instances.delete(hostname))
+                instance.window.on("close", () =>
+                    this.instances.delete(hostname)
+                );
             },
 
             open: (project: Project) => {
-                let directory = InstanceEditor.rootDirectory + "/" + project.location;
-                if (os.platform() === "win32") 
+                let directory =
+                    InstanceEditor.rootDirectory + "/" + project.location;
+                if (os.platform() === "win32")
                     directory = directory.split("/").join("\\");
                 shell.openPath(directory);
             }
-        }
+        };
     }
 
-    async requestListener(request: Request){
+    async requestListener(request: Request) {
         let response: Response = { ...notFound };
 
         const url = new URL(request.url);
@@ -208,14 +267,11 @@ export class InstanceEditor extends Instance {
         let pathname = url.pathname.split("?").shift();
 
         // remove trailing slash
-        if (pathname?.endsWith("/")) 
-            pathname = pathname.slice(0, -1);
+        if (pathname?.endsWith("/")) pathname = pathname.slice(0, -1);
 
         // remove leading slash
-        if (pathname?.startsWith("/")) 
-            pathname = pathname.slice(1);
+        if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
-        
         // check for [path]/index.html
         let maybeIndexHTML = pathname + "/index.html";
         if ((await instance.adapter.fs.exists(maybeIndexHTML))?.isFile) {
@@ -236,7 +292,9 @@ export class InstanceEditor extends Instance {
 
         // static file serving
         if ((await instance.adapter.fs.exists(pathname))?.isFile) {
-            const data = await instance.adapter.fs.readFile(pathname) as Uint8Array;
+            const data = (await instance.adapter.fs.readFile(
+                pathname
+            )) as Uint8Array;
             response = {
                 status: 200,
                 mimeType: mime.getType(pathname) || "text/plain",
@@ -253,13 +311,16 @@ export class InstanceEditor extends Instance {
 
             if (method) {
                 response.status = 200;
-                
+
                 const body = await request.arrayBuffer();
-                const args = body && body.byteLength ? JSON.parse(td.decode(body), decodeUint8Array) : [];
-        
+                const args =
+                    body && body.byteLength
+                        ? JSON.parse(td.decode(body), decodeUint8Array)
+                        : [];
+
                 let responseBody = method;
-                
-                if(typeof responseBody === "function") {
+
+                if (typeof responseBody === "function") {
                     try {
                         responseBody = responseBody(...args);
                     } catch (e) {
@@ -267,7 +328,7 @@ export class InstanceEditor extends Instance {
                         responseBody = e;
                     }
                 }
-        
+
                 // await all promises and functions
                 while (responseBody instanceof Promise) {
                     try {
@@ -277,7 +338,7 @@ export class InstanceEditor extends Instance {
                         responseBody = e;
                     }
                 }
-        
+
                 let type = "text/plain";
                 if (responseBody) {
                     if (ArrayBuffer.isView(responseBody)) {
@@ -294,7 +355,7 @@ export class InstanceEditor extends Instance {
                 } else {
                     delete response.data;
                 }
-        
+
                 response.mimeType = type;
             }
         }
@@ -309,7 +370,9 @@ export class InstanceEditor extends Instance {
     }
 
     async start(hostname: string) {
-        this.esbuild = await loadEsbuild(InstanceEditor.rootDirectory + "/" + this.configDirectory)
+        this.esbuild = await loadEsbuild(
+            InstanceEditor.rootDirectory + "/" + this.configDirectory
+        );
         return super.start(hostname);
     }
 }

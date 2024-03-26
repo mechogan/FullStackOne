@@ -7,7 +7,6 @@ import {
 } from "../../constants";
 import api from "../../api";
 
-
 export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;

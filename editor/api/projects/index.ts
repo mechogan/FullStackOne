@@ -48,17 +48,21 @@ export default {
         }
 
         const zipData = await zipDirectory(
-            project.location, 
-            (file) => rpc().fs.readFile(file, {absolutePath: true}),
-            (path) => rpc().fs.readdir(path, { withFileTypes: true, absolutePath: true }),
-            (file) => 
-                file.startsWith(".git") || 
-                file.startsWith(".build") || 
+            project.location,
+            (file) => rpc().fs.readFile(file, { absolutePath: true }),
+            (path) =>
+                rpc().fs.readdir(path, {
+                    withFileTypes: true,
+                    absolutePath: true
+                }),
+            (file) =>
+                file.startsWith(".git") ||
+                file.startsWith(".build") ||
                 file.startsWith("data") ||
                 file.endsWith(zipFilename + ".zip")
-        )
+        );
 
-        await rpc().fs.writeFile(out, zipData, {absolutePath: true});
+        await rpc().fs.writeFile(out, zipData, { absolutePath: true });
 
         return zipData;
     },
@@ -79,17 +83,22 @@ export default {
     }
 };
 
-
 async function unzip(to: string, zipData: Uint8Array) {
-    const entries = await (new zip.ZipReader(new zip.Uint8ArrayReader(zipData))).getEntries();
+    const entries = await new zip.ZipReader(
+        new zip.Uint8ArrayReader(zipData)
+    ).getEntries();
     if (entries && entries.length) {
-        for(const entry of entries) {
+        for (const entry of entries) {
             const pathComponents = entry.filename.split("/");
             const filename = pathComponents.pop();
             const directory = pathComponents.join("/");
             await rpc().fs.mkdir(to + "/" + directory, { absolutePath: true });
-            const data = await entry.getData(new zip.Uint8ArrayWriter())
-            await rpc().fs.writeFile(to + "/" + directory + "/" + filename, data, { absolutePath: true } );
+            const data = await entry.getData(new zip.Uint8ArrayWriter());
+            await rpc().fs.writeFile(
+                to + "/" + directory + "/" + filename,
+                data,
+                { absolutePath: true }
+            );
         }
     }
 }

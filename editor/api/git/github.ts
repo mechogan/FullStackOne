@@ -4,18 +4,21 @@ const client_id = "175231928f47d8d36b2d";
 
 export default {
     async deviceFlowStart() {
-        const response = await rpc().fetch("https://github.com/login/device/code", {
-            method: "POST",
-            headers: {
-                "content-type": "application/json",
-                accept: "application/json"
-            },
-            body: JSON.stringify({
-                client_id,
-                scope: "repo,user:email"
-            }),
-            encoding: "utf8"
-        });
+        const response = await rpc().fetch(
+            "https://github.com/login/device/code",
+            {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json"
+                },
+                body: JSON.stringify({
+                    client_id,
+                    scope: "repo,user:email"
+                }),
+                encoding: "utf8"
+            }
+        );
         return response.body as string;
     },
     async deviceFlowPoll(device_code: string) {
@@ -73,9 +76,9 @@ export default {
         const email = emails?.find((emailEntry) => emailEntry?.primary)?.email;
 
         return {
-            username, 
-            email, 
+            username,
+            email,
             password: access_token
-        }
+        };
     }
 };
