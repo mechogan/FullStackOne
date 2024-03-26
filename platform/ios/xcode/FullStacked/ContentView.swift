@@ -143,6 +143,13 @@ struct ContentView: View {
                         .ignoresSafeArea(edges: .top)
                         .frame(height: 0)
                 }
+                .onOpenURL { url in
+                    DispatchQueue.main.async {
+                        self.instanceEditor.push(messageType: "launchURL", message: url.absoluteString)
+                    }
+                }
+            
+            
             if self.runningInstances.instances.count > 0 {
                 ForEach(self.runningInstances.instances, id: \.id) { instanceRepresentable in
                     RunningInstanceView(instanceRepresentable)
@@ -150,9 +157,7 @@ struct ContentView: View {
             }
             
         }
-        .onOpenURL { url in
-            self.instanceEditor.push(messageType: "launchURL", message: url.absoluteString)
-        }
+        
     }
 }
 

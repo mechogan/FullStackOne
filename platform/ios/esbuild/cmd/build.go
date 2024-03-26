@@ -21,6 +21,7 @@ func build(
 			OutputPath:    C.GoString(Out),
 		  }},
 		Outdir:      	   C.GoString(Outdir),
+		Splitting:	 	   true,
 		Bundle:      	   true,
 		Format:      	   api.FormatESModule,
 		Sourcemap:   	   api.SourceMapInlineAndExternal,

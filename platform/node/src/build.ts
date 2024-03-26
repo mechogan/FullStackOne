@@ -32,7 +32,6 @@ export function build(
             splitting,
             bundle: true,
             format: "esm",
-            minify: true,
             sourcemap,
             write: true,
             nodePaths: nodePath ? [nodePath] : undefined,
