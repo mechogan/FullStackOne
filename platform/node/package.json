@@ -2,7 +2,7 @@
     "name": "@fullstacked/editor",
     "description": "Build and run full-stack JS web apps on any platform.",
     "author": "FullStacked Org.",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"
@@ -23,8 +23,6 @@
         "esbuild": "^0.20.2"
     },
     "devDependencies": {
-        "@types/adm-zip": "^0.5.5",
-        "adm-zip": "^0.5.10",
         "mime": "^4.0.1",
         "ws": "^8.16.0"
     }

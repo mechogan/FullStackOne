@@ -1,20 +1,22 @@
-import type { fs as globalFS } from "../../../src/api/fs";
+import type { Adapter } from "../../../src/adapter";
+import { Dirent } from "../../../src/adapter/fs";
 
-declare var fs: typeof globalFS;
-
-const scanRecursive = (
-    parent: string,
-    item: { name: string; isDirectory: boolean }
-) => {
-    const itemPath = parent + "/" + item.name;
-    if (!item.isDirectory) return itemPath;
-    return scan(itemPath);
-};
-
-export const scan = async (directory: string): Promise<string[]> => {
-    const items = await fs.readdir(directory, { withFileTypes: true });
+export const scan = async (
+    directory: string,
+    scanFn: Adapter["fs"]["readdir"]
+): Promise<string[]> => {
+    const items = (await scanFn(directory, {
+        withFileTypes: true
+    })) as Dirent[];
     const itemsChilds = await Promise.all(
-        items.map((item) => scanRecursive(directory, item))
+        items.map((item) => {
+            const path = directory + "/" + item.name;
+            const isDirectory =
+                typeof item.isDirectory === "function"
+                    ? item.isDirectory()
+                    : item.isDirectory;
+            return isDirectory ? scan(path, scanFn) : path;
+        })
     );
     return itemsChilds.flat();
 };

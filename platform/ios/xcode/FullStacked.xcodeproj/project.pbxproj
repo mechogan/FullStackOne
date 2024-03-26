@@ -9,15 +9,16 @@
 /* Begin PBXBuildFile section */
 		9C2FB2642B7C7F180010EB72 /* Demo.zip in Resources */ = {isa = PBXBuildFile; fileRef = 9C2FB2632B7C7F180010EB72 /* Demo.zip */; };
 		9C3089342B571C5600C179A6 /* esbuild.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C3089332B571C5600C179A6 /* esbuild.a */; };
-		9C3911512B6B54C800C4E3EF /* JavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3911502B6B54C800C4E3EF /* JavaScript.swift */; };
+		9C46D3C22BADD35F00A3EE86 /* Adapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C46D3C12BADD35F00A3EE86 /* Adapter.swift */; };
+		9C46D3C52BAE072F00A3EE86 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 9C46D3C42BAE072F00A3EE86 /* SwiftyJSON */; };
 		9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */; };
+		9C7E8A652BADCDEE00CE9660 /* Instance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7E8A642BADCDEE00CE9660 /* Instance.swift */; };
+		9C7E8A672BADCE1300CE9660 /* InstanceEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7E8A662BADCE1300CE9660 /* InstanceEditor.swift */; };
 		9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */; };
 		9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* ContentView.swift */; };
 		9CA03E542B5715AC002D2D9F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
 		9CA03E572B5715AC002D2D9F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E562B5715AC002D2D9F /* Preview Assets.xcassets */; };
-		9CA112012B73DFC2005D3E50 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 9CA112002B73DFC2005D3E50 /* ZIPFoundation */; };
 		9CB389912B863B0A00FB783E /* build in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* build */; };
-		9CBA300E2B88EEA3009B4648 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 9CBA300D2B88EEA3009B4648 /* SWCompression */; };
 		9CE5E40E2B6FEEC600EDE034 /* js in Resources */ = {isa = PBXBuildFile; fileRef = 9CE5E40D2B6FEEC600EDE034 /* js */; };
 /* End PBXBuildFile section */
 
@@ -25,8 +26,10 @@
 		9C2FB2632B7C7F180010EB72 /* Demo.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = Demo.zip; path = ../../../../Demo.zip; sourceTree = "<group>"; };
 		9C3089322B571C5600C179A6 /* esbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esbuild.h; path = ../../../esbuild/out/esbuild.h; sourceTree = "<group>"; };
 		9C3089332B571C5600C179A6 /* esbuild.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = esbuild.a; path = ../../../esbuild/out/esbuild.a; sourceTree = "<group>"; };
-		9C3911502B6B54C800C4E3EF /* JavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JavaScript.swift; sourceTree = "<group>"; };
+		9C46D3C12BADD35F00A3EE86 /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
 		9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9C7E8A642BADCDEE00CE9660 /* Instance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instance.swift; sourceTree = "<group>"; };
+		9C7E8A662BADCE1300CE9660 /* InstanceEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstanceEditor.swift; sourceTree = "<group>"; };
 		9CA03E4C2B5715AA002D2D9F /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullStackedApp.swift; sourceTree = "<group>"; };
 		9CA03E512B5715AA002D2D9F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -43,9 +46,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9CBA300E2B88EEA3009B4648 /* SWCompression in Frameworks */,
+				9C46D3C52BAE072F00A3EE86 /* SwiftyJSON in Frameworks */,
 				9C3089342B571C5600C179A6 /* esbuild.a in Frameworks */,
-				9CA112012B73DFC2005D3E50 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,9 +81,11 @@
 				9CA03E512B5715AA002D2D9F /* ContentView.swift */,
 				9CA03E532B5715AC002D2D9F /* Assets.xcassets */,
 				9CA03E552B5715AC002D2D9F /* Preview Content */,
-				9C3911502B6B54C800C4E3EF /* JavaScript.swift */,
 				9C2FB2632B7C7F180010EB72 /* Demo.zip */,
 				9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */,
+				9C7E8A642BADCDEE00CE9660 /* Instance.swift */,
+				9C46D3C12BADD35F00A3EE86 /* Adapter.swift */,
+				9C7E8A662BADCE1300CE9660 /* InstanceEditor.swift */,
 			);
 			path = FullStacked;
 			sourceTree = "<group>";
@@ -121,8 +125,7 @@
 			);
 			name = FullStacked;
 			packageProductDependencies = (
-				9CA112002B73DFC2005D3E50 /* ZIPFoundation */,
-				9CBA300D2B88EEA3009B4648 /* SWCompression */,
+				9C46D3C42BAE072F00A3EE86 /* SwiftyJSON */,
 			);
 			productName = FullStacked;
 			productReference = 9CA03E4C2B5715AA002D2D9F /* FullStacked.app */;
@@ -153,8 +156,7 @@
 			);
 			mainGroup = 9CA03E432B5715A9002D2D9F;
 			packageReferences = (
-				9CA111FF2B73DFC2005D3E50 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				9CBA300C2B88EEA3009B4648 /* XCRemoteSwiftPackageReference "SWCompression" */,
+				9C46D3C32BAE072F00A3EE86 /* XCRemoteSwiftPackageReference "SwiftyJSON" */,
 			);
 			productRefGroup = 9CA03E4D2B5715AA002D2D9F /* Products */;
 			projectDirPath = "";
@@ -186,8 +188,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9C3911512B6B54C800C4E3EF /* JavaScript.swift in Sources */,
+				9C7E8A672BADCE1300CE9660 /* InstanceEditor.swift in Sources */,
+				9C46D3C22BADD35F00A3EE86 /* Adapter.swift in Sources */,
 				9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */,
+				9C7E8A652BADCDEE00CE9660 /* Instance.swift in Sources */,
 				9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -341,7 +345,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -381,7 +385,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -418,34 +422,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		9CA111FF2B73DFC2005D3E50 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+		9C46D3C32BAE072F00A3EE86 /* XCRemoteSwiftPackageReference "SwiftyJSON" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			repositoryURL = "https://github.com/SwiftyJSON/SwiftyJSON.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.18;
-			};
-		};
-		9CBA300C2B88EEA3009B4648 /* XCRemoteSwiftPackageReference "SWCompression" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.8.5;
+				minimumVersion = 5.0.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		9CA112002B73DFC2005D3E50 /* ZIPFoundation */ = {
+		9C46D3C42BAE072F00A3EE86 /* SwiftyJSON */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 9CA111FF2B73DFC2005D3E50 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
-			productName = ZIPFoundation;
-		};
-		9CBA300D2B88EEA3009B4648 /* SWCompression */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9CBA300C2B88EEA3009B4648 /* XCRemoteSwiftPackageReference "SWCompression" */;
-			productName = SWCompression;
+			package = 9C46D3C32BAE072F00A3EE86 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

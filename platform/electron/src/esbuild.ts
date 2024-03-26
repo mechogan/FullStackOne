@@ -5,50 +5,72 @@ import tar from "tar";
 import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/node-platform";
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
-import { JavaScript } from "../../node/src/javascript";
 import url from "url";
-import os from "os";
 
-const outdir = path.resolve(os.homedir(), ".config", "fullstacked", "esbuild");
-const esbuildOutdir = path.join(outdir, "esbuild");
-
-const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
-const esbuildBinOutdir = path.join(outdir, pkg);
-
-const versionFile = path.resolve(outdir, "version.txt");
-
-export const getVersion = () => {
-    if (fs.existsSync(versionFile))
-        return fs.readFileSync(versionFile).toString();
-
-    return null;
+const directories = (configDirectory: string) => {
+    const out = path.resolve(configDirectory, "esbuild");
+    const esbuildDir = path.join(out, "esbuild");
+    const { pkg, subpath } = pkgAndSubpathForCurrentPlatform();
+    const esbuildBin = path.join(out, pkg);
+    const esbuildBinSub = path.join(esbuildBin, subpath);
+    const versionFile = path.resolve(out, "version.txt");
+    return {
+        out,
+        pkg,
+        esbuildDir,
+        esbuildBin,
+        esbuildBinSub,
+        versionFile
+    };
 };
 
-export const loadEsbuild = async () => {
+export const loadEsbuild = async (configDirectory: string) => {
     // dont download in dev
     try {
-        global.esbuild = await import("esbuild");
+        const esbuild = await import("esbuild");
+        return esbuild;
     } catch (e) {}
 
-    if (global.esbuild) return;
+    const { esbuildDir, esbuildBinSub, versionFile } =
+        directories(configDirectory);
 
-    process.env.ESBUILD_BINARY_PATH = path.resolve(esbuildBinOutdir, subpath);
-    global.esbuild = await import(
-        url
-            .pathToFileURL(path.resolve(esbuildOutdir, "lib", "main.js"))
-            .toString()
-    );
+    const installedVersion = fs.existsSync(versionFile)
+        ? fs.readFileSync(versionFile).toString().trim()
+        : null;
+
+    console.log(installedVersion, esbuildVersion);
+
+    if (installedVersion?.trim() !== esbuildVersion?.trim()) {
+        return;
+    }
+
+    try {
+        process.env.ESBUILD_BINARY_PATH = esbuildBinSub;
+        const esbuild = await import(
+            url
+                .pathToFileURL(path.resolve(esbuildDir, "lib", "main.js"))
+                .toString()
+        );
+        return esbuild;
+    } catch (e) {
+        console.log(e);
+    }
 };
 
-export const installEsbuild = async (js: JavaScript) => {
-    if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
+export const installEsbuild = async (
+    configDirectory: string,
+    progressListener: (data: { step: number; progress: number }) => void
+) => {
+    const dir = directories(configDirectory);
+
+    if (!fs.existsSync(dir.out)) fs.mkdirSync(dir.out, { recursive: true });
 
     const esbuildResponse = await fetch(
         `https://registry.npmjs.org/esbuild/${esbuildVersion}`
     );
     const esbuildPackage = await esbuildResponse.json();
     const esbuildtarballUrl = esbuildPackage.dist.tarball;
-    const esbuildTarball = path.join(outdir, "esbuild.tgz");
+    const esbuildTarball = path.join(dir.out, "esbuild.tgz");
     const esbuildWiteStream = fs.createWriteStream(esbuildTarball);
 
     await new Promise((resolve) => {
@@ -60,26 +82,22 @@ export const installEsbuild = async (js: JavaScript) => {
                 esbuildWiteStream.write(chunk);
                 const progress = received / size;
 
-                js.push(
-                    "esbuildInstall",
-                    JSON.stringify({
-                        step: 0,
-                        progress
-                    })
-                );
+                progressListener({
+                    step: 0,
+                    progress
+                });
 
                 if (progress === 1) esbuildWiteStream.close(resolve);
             });
         });
     });
 
-    const esbuildOutdir = path.join(outdir, "esbuild");
-    fs.mkdirSync(esbuildOutdir, { recursive: true });
+    fs.mkdirSync(dir.esbuildDir, { recursive: true });
     const size = fs.statSync(esbuildTarball).size;
     const esbuildTarReadStream = fs.createReadStream(esbuildTarball);
     const untarWriteStream = tar.x({
         strip: 1,
-        C: esbuildOutdir
+        C: dir.esbuildDir
     });
     await new Promise<void>((resolve) => {
         let read = 0;
@@ -89,13 +107,10 @@ export const installEsbuild = async (js: JavaScript) => {
 
             untarWriteStream.write(chunk);
 
-            js.push(
-                "esbuildInstall",
-                JSON.stringify({
-                    step: 1,
-                    progress
-                })
-            );
+            progressListener({
+                step: 1,
+                progress
+            });
 
             if (progress === 1) resolve();
         });
@@ -103,11 +118,11 @@ export const installEsbuild = async (js: JavaScript) => {
     fs.rmSync(esbuildTarball);
 
     const npmResponse = await fetch(
-        `https://registry.npmjs.org/${pkg}/${esbuildVersion}`
+        `https://registry.npmjs.org/${dir.pkg}/${esbuildVersion}`
     );
     const latestEsbuild = await npmResponse.json();
     const tarballUrl = latestEsbuild.dist.tarball;
-    const tarball = path.join(outdir, "esbuild-bin.tgz");
+    const tarball = path.join(dir.out, "esbuild-bin.tgz");
     const writeStream = fs.createWriteStream(tarball);
 
     await new Promise((resolve) => {
@@ -119,26 +134,22 @@ export const installEsbuild = async (js: JavaScript) => {
                 writeStream.write(chunk);
                 const progress = received / size;
 
-                js.push(
-                    "esbuildInstall",
-                    JSON.stringify({
-                        step: 2,
-                        progress
-                    })
-                );
+                progressListener({
+                    step: 2,
+                    progress
+                });
 
                 if (progress === 1) writeStream.close(resolve);
             });
         });
     });
 
-    const esbuildBinOutdir = path.join(outdir, pkg);
-    fs.mkdirSync(esbuildBinOutdir, { recursive: true });
+    fs.mkdirSync(dir.esbuildBin, { recursive: true });
     const binSize = fs.statSync(tarball).size;
     const binTarReadStream = fs.createReadStream(tarball);
     const untarBinWriteStream = tar.x({
         strip: 1,
-        C: esbuildBinOutdir
+        C: dir.esbuildBin
     });
     await new Promise<void>((resolve) => {
         let read = 0;
@@ -148,19 +159,16 @@ export const installEsbuild = async (js: JavaScript) => {
 
             untarBinWriteStream.write(chunk);
 
-            js.push(
-                "esbuildInstall",
-                JSON.stringify({
-                    step: 3,
-                    progress
-                })
-            );
+            progressListener({
+                step: 3,
+                progress
+            });
 
             if (progress === 1) resolve();
         });
     });
     fs.rmSync(tarball);
 
-    fs.writeFileSync(versionFile, esbuildVersion);
-    await loadEsbuild();
+    fs.writeFileSync(dir.versionFile, esbuildVersion);
+    return loadEsbuild(configDirectory);
 };

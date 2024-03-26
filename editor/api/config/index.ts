@@ -1,13 +1,9 @@
-import type { fs as globalFS } from "../../../src/api/fs";
+import rpc from "../../rpc";
+
 import projects from "../projects";
 
 import { Project, GitAuths } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
-
-declare var fs: typeof globalFS;
-declare var demoZIP: string;
-
-export const configdir = ".config/fullstacked";
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[];
@@ -16,10 +12,12 @@ type DATA_TYPE = {
 
 export default {
     async init() {
-        if (await fs.exists(configdir)) return;
+        const configDir = await rpc().directories.config();
 
-        await fs.mkdir(configdir);
-        projects.import(
+        if (await rpc().fs.exists(configDir, { absolutePath: true })) return;
+
+        await rpc().fs.mkdir(configDir, { absolutePath: true });
+        await projects.import(
             {
                 title: "Demo",
                 location: "fullstackedorg/editor-sample-demo"
@@ -28,22 +26,30 @@ export default {
                 //     url: "https://github.com/fullstackedorg/editor-sample-demo.git"
                 // }
             },
-            (await fs.readFile(demoZIP, { absolutePath: true })) as Uint8Array
+            (await rpc().fs.readFile("Demo.zip")) as Uint8Array
         );
     },
     async load<T extends CONFIG_TYPE>(type: T): Promise<DATA_TYPE[T] | null> {
-        const configFile = configdir + "/" + type + ".json";
-        try {
-            await fs.stat(configFile);
+        const configDir = await rpc().directories.config();
+        const configFile = configDir + "/" + type + ".json";
+        if (
+            (await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile
+        ) {
             return JSON.parse(
-                (await fs.readFile(configFile, { encoding: "utf8" })) as string
+                (await rpc().fs.readFile(configFile, {
+                    encoding: "utf8",
+                    absolutePath: true
+                })) as string
             );
-        } catch (e) {}
+        }
 
         return null;
     },
     async save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
-        const configFile = configdir + "/" + type + ".json";
-        fs.writeFile(configFile, JSON.stringify(data, null, 2));
+        const configDir = await rpc().directories.config();
+        const configFile = configDir + "/" + type + ".json";
+        rpc().fs.writeFile(configFile, JSON.stringify(data, null, 2), {
+            absolutePath: true
+        });
     }
 };

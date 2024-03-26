@@ -1,10 +1,23 @@
-import { app } from "electron";
+import { app, protocol } from "electron";
+import { InstanceEditor } from "./instanceEditor";
 import path from "path";
-import { JavaScript } from "../../node/src/javascript";
 
 if (require("electron-squirrel-startup")) app.quit();
 
+let editorInstance: InstanceEditor;
+
 const deepLinksScheme = "fullstacked";
+let launchURL: string = process.argv.find((arg) =>
+    arg.startsWith(deepLinksScheme)
+);
+const maybeLaunchURL = (maybeURL: string) => {
+    if (!maybeURL || !maybeURL.startsWith(deepLinksScheme)) return;
+
+    if (editorInstance) {
+        editorInstance.push("launchURL", maybeURL);
+        launchURL = null;
+    } else launchURL = maybeURL;
+};
 
 if (process.defaultApp) {
     if (process.argv.length >= 2) {
@@ -16,37 +29,24 @@ if (process.defaultApp) {
     app.setAsDefaultProtocolClient(deepLinksScheme);
 }
 
-let js: JavaScript;
-let urlToLaunch = process.argv.find(arg => arg.startsWith(deepLinksScheme));
-
-const launchURL = () => {
-    js.processRequest(
-        {},
-        "launchURL",
-        new Uint8Array(Buffer.from(JSON.stringify([urlToLaunch]))),
-        () => {}
-    );
-    urlToLaunch = null;
-};
-
-// deeplink
-app.on("open-url", (event, url) => {
-    urlToLaunch = url;
-    if (js) launchURL();
-});
+app.on("open-url", (event, url) => maybeLaunchURL(url));
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
-    app.on("second-instance", (_, commandLine) => {
-        urlToLaunch = commandLine.pop();
-        if (js) launchURL();
-    });
+    app.on("second-instance", (_, commandLine) =>
+        maybeLaunchURL(commandLine.pop())
+    );
 }
 
 app.on("window-all-closed", () => app.quit());
 
 app.whenReady().then(async () => {
-    js = (await import("./start")).default;
-    if (urlToLaunch) launchURL();
+    editorInstance = new InstanceEditor();
+    protocol.handle(
+        "http",
+        editorInstance.requestListener.bind(editorInstance)
+    );
+    await editorInstance.start("app-0");
+    maybeLaunchURL(launchURL);
 });

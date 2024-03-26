@@ -1,28 +1,28 @@
-import { auth } from ".";
-import type { fetch as globalFetch } from "../../../src/api/fetch";
-
-declare var fetch: typeof globalFetch;
+import rpc from "../../rpc";
 
 const client_id = "175231928f47d8d36b2d";
 
 export default {
     async deviceFlowStart() {
-        const response = await fetch("https://github.com/login/device/code", {
-            method: "POST",
-            headers: {
-                "content-type": "application/json",
-                accept: "application/json"
-            },
-            body: JSON.stringify({
-                client_id,
-                scope: "repo,user:email"
-            }),
-            encoding: "utf8"
-        });
+        const response = await rpc().fetch(
+            "https://github.com/login/device/code",
+            {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json"
+                },
+                body: JSON.stringify({
+                    client_id,
+                    scope: "repo,user:email"
+                }),
+                encoding: "utf8"
+            }
+        );
         return response.body as string;
     },
     async deviceFlowPoll(device_code: string) {
-        const response = await fetch(
+        const response = await rpc().fetch(
             "https://github.com/login/oauth/access_token",
             {
                 method: "POST",
@@ -48,7 +48,7 @@ export default {
 
         const { access_token } = json;
 
-        const userResponse = await fetch("https://api.github.com/user", {
+        const userResponse = await rpc().fetch("https://api.github.com/user", {
             headers: {
                 authorization: `Bearer ${access_token}`,
                 accept: "application/json"
@@ -60,7 +60,7 @@ export default {
 
         const username = user.login;
 
-        const emailsResponse = await fetch(
+        const emailsResponse = await rpc().fetch(
             "https://api.github.com/user/emails",
             {
                 headers: {
@@ -75,6 +75,10 @@ export default {
 
         const email = emails?.find((emailEntry) => emailEntry?.primary)?.email;
 
-        await auth("github.com", username, email, access_token);
+        return {
+            username,
+            email,
+            password: access_token
+        };
     }
 };

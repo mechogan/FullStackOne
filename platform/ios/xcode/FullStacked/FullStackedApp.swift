@@ -7,62 +7,75 @@ struct FullStackedApp: App {
             ContentView()
         }
         
-        WindowGroup(id: "running-app", for: Project.ID.self) { $projectID in
-            WindowView(js: RunningProject.instance!.project!.js)
+        WindowGroup(id: "FullStacked", for: UUID.self) { instanceId in
+            WindowView(instanceId: instanceId.wrappedValue!)
         }
     }
 }
 
-
 struct WindowView: View {
-    @State private var jsConsole: Bool = false
-    @ObservedObject private var runningProject = RunningProject.instance!
-    let webview: WebView
+    let originalInstanceId: UUID
+    var instance: Instance
     
-    init(js: JavaScript) {
-        self.webview = WebView(js: RunningProject.instance!.project!.js)
+    @ObservedObject var jsLogs = JsLogs()
+    @State private var jsConsole: Bool = false
+    
+    init(instanceId: UUID) {
+        self.originalInstanceId = instanceId;
+        let instanceIndex = RunningInstances.singleton!.instances.firstIndex { $0.id == instanceId }!
+        self.instance = Instance(adapter: RunningInstances.singleton!.instances[instanceIndex].adapter)
+        RunningInstances.singleton?.instancesInWindows.append(self.instance)
+        
+        self.instance.webview.logFn = { [self] log in
+            self.jsLogs.logs += "\n\n" + log
+        }
     }
     
     var body: some View {
         VStack {
             HStack {
-                
                 Button {
-                    self.webview.js.webview!.reload()
-                    RunningProject.instance!.jsLogs = ""
+                    self.jsLogs.logs = "";
+                    self.instance.webview.reload()
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .keyboardShortcut("r", modifiers: .command)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
-                
+                    .keyboardShortcut("r", modifiers: .command)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+                    
                 Button {
-                    jsConsole = !jsConsole
+                    self.jsConsole = !self.jsConsole
                 } label: {
                     Image(systemName: "square.topthird.inset.filled")
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
-                
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
             }
             
             ScrollView {
-                Text(self.runningProject.jsLogs)
+                Text(self.jsLogs.logs)
                     .lineLimit(.max)
                     .font(.system(size: 10, design: .monospaced))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
                     .rotationEffect(.degrees(180.0))
             }
-            .frame(maxWidth: .infinity, maxHeight: jsConsole ? 200 : 0)
-            .rotationEffect(.degrees(180.0))
+                .frame(maxWidth: .infinity, maxHeight: self.jsConsole ? 200 : 0)
+                .rotationEffect(.degrees(180.0))
             
             
-            self.webview
+            InstanceRepresentable(instance: self.instance)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
                 .ignoresSafeArea()
+                
         }
+            .onAppear {
+                RunningInstances.singleton?.removeInstance(id: self.originalInstanceId)
+            }
+            .onDisappear {
+                RunningInstances.singleton?.removeInstance(id: self.instance.id)
+            }
     }
 }

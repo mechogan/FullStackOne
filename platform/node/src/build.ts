@@ -1,47 +1,45 @@
-import type esbuildType from "esbuild";
+import fs from "fs";
+import type esbuild from "esbuild";
 
-export function buildWebview(
+export async function merge(
+    baseFile: string,
     entryPoint: string,
+    cacheDirectory: string
+) {
+    const mergedContent = `${await fs.promises.readFile(baseFile)}\nimport("${entryPoint}");`;
+    await fs.promises.mkdir(cacheDirectory, { recursive: true });
+    const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
+    await fs.promises.writeFile(tmpFile, mergedContent);
+    return tmpFile;
+}
+
+export function build(
+    buildSync: typeof esbuild.buildSync,
+    input: string,
+    out: string,
     outdir: string,
-    nodePath?: string,
+    nodePath: string,
+    sourcemap: esbuild.BuildOptions["sourcemap"] = "inline",
     splitting = true
 ) {
-    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
-
     try {
-        (global.esbuild as typeof esbuildType).buildSync({
-            entryPoints: [{ out: "index", in: entryPoint }],
+        buildSync({
+            entryPoints: [
+                {
+                    in: input,
+                    out
+                }
+            ],
             outdir,
             splitting,
             bundle: true,
             format: "esm",
-            sourcemap: "inline",
+            sourcemap,
             write: true,
-            logLevel: "silent",
-            nodePaths: nodePath ? [nodePath] : undefined
+            nodePaths: nodePath ? [nodePath] : undefined,
+            logLevel: "silent"
         });
     } catch (e) {
-        return { errors: e.errors };
+        return { errors: e.errors as esbuild.ResolveResult["errors"] };
     }
-}
-
-export function buildAPI(entryPoint: string, nodePath?: string) {
-    if (!global.esbuild) return { errors: "Cannot find esbuild module" };
-
-    let result: esbuildType.BuildResult;
-    try {
-        result = global.esbuild.buildSync({
-            entryPoints: [entryPoint],
-            bundle: true,
-            globalName: "api",
-            format: "iife",
-            write: false,
-            logLevel: "silent",
-            nodePaths: nodePath ? [nodePath] : undefined
-        });
-    } catch (e) {
-        return { errors: e.errors };
-    }
-
-    return result?.outputFiles?.at(0)?.text;
 }

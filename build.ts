@@ -1,34 +1,25 @@
 import fs from "fs";
 import path from "path";
 import * as sass from "sass";
-import { buildAPI, buildWebview } from "./platform/node/src/build";
-import { buildSync } from "esbuild";
-import { mingleAPI, mingleWebview } from "./editor/api/projects/mingle";
+import { build, merge } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
-import AdmZip from "adm-zip";
+import zip from "./editor/api/projects/zip";
+
+const baseFile = "src/js/index.js";
+
+esbuild.buildSync({
+    entryPoints: ["src/index.ts"],
+    bundle: true,
+    format: "esm",
+    outfile: baseFile
+});
 
 if (fs.existsSync("editor/build"))
     fs.rmSync("editor/build", { recursive: true });
 
-global.fs = {
-    readdir: (directory: string) =>
-        fs.readdirSync(directory, { withFileTypes: true }).map((item) => ({
-            name: item.name,
-            isDirectory: item.isDirectory()
-        })),
-    readFile: (file: string) => fs.readFileSync(file, { encoding: "utf-8" }),
-    writeFile: (file: string, contents: string) =>
-        fs.writeFileSync(file, contents),
-    exists: (itemPath: string) => fs.existsSync(itemPath),
-    mkdir: (itemPath: string) => fs.mkdirSync(itemPath, { recursive: true })
-};
-global.jsDirectory = "src/js";
-global.resolvePath = (entrypoint: string) => entrypoint.split("\\").join("/");
-global.esbuild = esbuild;
-
-const scssFiles = (await scan("editor/webview")).filter((filePath) =>
-    filePath.endsWith(".scss")
+const scssFiles = (await scan("editor", fs.promises.readdir as any)).filter(
+    (filePath) => filePath.endsWith(".scss")
 );
 
 const compileScss = async (scssFile: string) => {
@@ -38,23 +29,21 @@ const compileScss = async (scssFile: string) => {
 const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
 
-buildSync({
-    entryPoints: ["src/api/index.ts"],
-    bundle: true,
-    format: "esm",
-    outfile: "src/js/api.js"
-});
-
-buildSync({
-    entryPoints: ["src/webview/index.ts"],
-    bundle: true,
-    format: "esm",
-    outfile: "src/js/webview.js"
-});
-
-const entrypointWebview = await mingleWebview("../../editor/webview/index.ts");
-buildWebview(entrypointWebview, "editor/build/webview", undefined, false);
-fs.rmSync(entrypointWebview);
+const editorEntry = await merge(
+    baseFile,
+    path.resolve("editor/index.ts"),
+    ".cache"
+);
+const buildErrors = build(
+    esbuild.buildSync,
+    editorEntry,
+    "index",
+    "editor/build",
+    undefined,
+    false,
+    false
+);
+fs.rmSync(editorEntry);
 
 // cleanup
 scssFiles.forEach((scssFile) => {
@@ -62,25 +51,20 @@ scssFiles.forEach((scssFile) => {
     if (fs.existsSync(cssFile)) fs.rmSync(cssFile);
 });
 
-fs.cpSync("editor/webview/index.html", "editor/build/webview/index.html");
-fs.cpSync("editor/webview/assets", "editor/build/webview/assets", {
+if (buildErrors) throw buildErrors;
+
+fs.cpSync("editor/index.html", "editor/build/index.html");
+fs.cpSync("editor/assets", "editor/build/assets", {
     recursive: true
 });
 
-const entrypointAPI = await mingleAPI(path.resolve("editor/api/index.ts"));
-const api = buildAPI(entrypointAPI);
-fs.rmSync(entrypointAPI);
-fs.mkdirSync("editor/build/api", { recursive: true });
-fs.writeFileSync("editor/build/api/index.js", api as string);
-
-if (fs.existsSync("editor-sample-demo")) {
-    const demoFiles = await scan("editor-sample-demo");
-    var zip = new AdmZip();
-    demoFiles.forEach((item) => {
-        const itemPathComponents = item.split("/");
-        const itemName = itemPathComponents.pop();
-        const itemDirectory = itemPathComponents.slice(1).join("/");
-        zip.addLocalFile(item, itemDirectory, itemName);
-    });
-    zip.writeZip("Demo.zip");
+const sampleDemoDir = "editor-sample-demo";
+if (fs.existsSync(sampleDemoDir)) {
+    const zipData = await zip(
+        sampleDemoDir,
+        async (file) => new Uint8Array(await fs.promises.readFile(file)),
+        (path) => fs.promises.readdir(path, { withFileTypes: true }),
+        (file) => file.startsWith(".git")
+    );
+    await fs.promises.writeFile("Demo.zip", zipData);
 }
