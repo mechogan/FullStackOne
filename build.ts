@@ -66,5 +66,5 @@ if (fs.existsSync(sampleDemoDir)) {
         (path) => fs.promises.readdir(path, { withFileTypes: true }),
         (file) => file.startsWith(".git")
     );
-    await fs.promises.writeFile("Demo.zip", zipData);
+    await fs.promises.writeFile("editor/build/Demo.zip", zipData);
 }

@@ -5,7 +5,6 @@ module.exports = {
         icon: "icons/icon",
         asar: false,
         ignore: [],
-        extraResource: ["../../Demo.zip"],
         osxSign: {
             identity: process.env.APPLE_ID
         },

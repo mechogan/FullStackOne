@@ -23,8 +23,3 @@ fs.cpSync(path.resolve("..", "..", "editor", "build"), editorOut, {
     recursive: true
 });
 fs.cpSync(path.resolve("..", "..", "src", "js"), "js", { recursive: true });
-
-fs.cpSync(
-    path.resolve("..", "..", "Demo.zip"),
-    path.resolve("editor", "Demo.zip")
-);
