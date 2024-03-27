@@ -1,4 +1,4 @@
-<img height=100 width=100 src="editor/webview/assets/dev-icon.png" />
+<img height=100 width=100 src="editor/assets/dev-icon.png" />
 
 # FullStacked Editor
 
