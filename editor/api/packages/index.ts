@@ -29,6 +29,7 @@ export default {
             buffer: ArrayBufferLike;
             type: string; // https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
         }[] = await untar(tarData.buffer);
+        const directoriesToCreate = new Set<string>();
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (file.type === "5") continue;
@@ -37,10 +38,14 @@ export default {
                 .split("/");
             const filename = pathComponents.pop();
             const directory = pathComponents.join("/");
-            await rpc().fs.mkdir(
-                nodeModulesDirectory + "/" + packageName + "/" + directory,
-                { absolutePath: true }
-            );
+
+            const directoryToCreate =
+                nodeModulesDirectory + "/" + packageName + "/" + directory;
+            if (!directoriesToCreate.has(directoryToCreate)) {
+                directoriesToCreate.add(directoryToCreate);
+                await rpc().fs.mkdir(directoryToCreate, { absolutePath: true });
+            }
+
             await rpc().fs.writeFile(
                 nodeModulesDirectory +
                     "/" +

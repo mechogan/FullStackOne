@@ -54,6 +54,61 @@ class JsLogs: ObservableObject {
     @Published var logs: String = "";
 }
 
+struct RunningInstanceViewLegacy: View {
+    @ObservedObject var jsLogs = JsLogs()
+    @State private var jsConsole: Bool = false
+    
+    let instance: Instance;
+    
+    init(_ instance: Instance){
+        self.instance = instance
+        self.instance.webview.logFn = { [self] log in
+            self.jsLogs.logs += "\n\n" + log
+        }
+    }
+    
+    var body: some View {
+        VStack {
+            HStack {
+                Button {
+                    RunningInstances.singleton?.removeInstance(id: self.instance.id)
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .keyboardShortcut("w", modifiers: .command)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(EdgeInsets(top: 5, leading: 10, bottom: 2, trailing: 10))
+                
+                Button {
+                    self.jsConsole = !self.jsConsole
+                } label: {
+                    Image(systemName: "square.topthird.inset.filled")
+                }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+            }
+            
+            ScrollView {
+                Text(self.jsLogs.logs)
+                    .lineLimit(.max)
+                    .font(.system(size: 10, design: .monospaced))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 3, leading: 0, bottom: 0, trailing: 0))
+                    .rotationEffect(.degrees(180.0))
+            }
+                .frame(maxWidth: .infinity, maxHeight: self.jsConsole ? 200 : 0)
+                .rotationEffect(.degrees(180.0))
+            
+            InstanceRepresentable(instance: self.instance)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
+        }
+        .background(Color.black)
+    }
+}
+
+@available(iOS 16.0, *)
 struct RunningInstanceView: View {
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
     @Environment(\.openWindow) private var openWindow
@@ -144,15 +199,25 @@ struct ContentView: View {
                         .frame(height: 0)
                 }
                 .onOpenURL { url in
-                    DispatchQueue.main.async {
+                    let loadURL = {
                         self.instanceEditor.push(messageType: "launchURL", message: url.absoluteString)
                     }
+                    if(self.instanceEditor.webview.isLoading){
+                        self.instanceEditor.webview.didLoad = loadURL
+                    } else {
+                        loadURL()
+                    }
+                    
                 }
             
             
             if self.runningInstances.instances.count > 0 {
                 ForEach(self.runningInstances.instances, id: \.id) { instanceRepresentable in
-                    RunningInstanceView(instanceRepresentable)
+                    if #available(iOS 16.0, *) {
+                        RunningInstanceView(instanceRepresentable)
+                    } else {
+                        RunningInstanceViewLegacy(instanceRepresentable)
+                    }
                 }
             }
             

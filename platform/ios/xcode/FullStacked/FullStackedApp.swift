@@ -7,8 +7,10 @@ struct FullStackedApp: App {
             ContentView()
         }
         
-        WindowGroup(id: "FullStacked", for: UUID.self) { instanceId in
-            WindowView(instanceId: instanceId.wrappedValue!)
+        if #available(iOS 16.0, *) {
+            WindowGroup(id: "FullStacked", for: UUID.self) { instanceId in
+                WindowView(instanceId: instanceId.wrappedValue!)
+            }
         }
     }
 }

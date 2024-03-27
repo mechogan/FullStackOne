@@ -11,6 +11,7 @@ import SwiftUI
 import SwiftyJSON
 
 class FullScreenWKWebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
+    var didLoad: (() -> Void)?
     var logFn: ((_ log: String) -> Void)?
     
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
@@ -56,6 +57,14 @@ class FullScreenWKWebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandl
         } else {
             self.logFn!(message.body as! String)
         }
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if(self.didLoad == nil) {
+            return;
+        }
+        self.didLoad!()
+        self.didLoad = nil;
     }
 }
 
