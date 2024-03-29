@@ -6,7 +6,7 @@ export async function merge(
     entryPoint: string,
     cacheDirectory: string
 ) {
-    const mergedContent = `${await fs.promises.readFile(baseFile)}\nimport("${entryPoint}");`;
+    const mergedContent = `${await fs.promises.readFile(baseFile)}\nimport("${entryPoint.split("\\").join("/")}");`;
     await fs.promises.mkdir(cacheDirectory, { recursive: true });
     const tmpFile = `${cacheDirectory}/tmp-${Date.now()}.js`;
     await fs.promises.writeFile(tmpFile, mergedContent);
