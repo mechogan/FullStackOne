@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9C2FB2642B7C7F180010EB72 /* Demo.zip in Resources */ = {isa = PBXBuildFile; fileRef = 9C2FB2632B7C7F180010EB72 /* Demo.zip */; };
 		9C3089342B571C5600C179A6 /* esbuild.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C3089332B571C5600C179A6 /* esbuild.a */; };
 		9C46D3C22BADD35F00A3EE86 /* Adapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C46D3C12BADD35F00A3EE86 /* Adapter.swift */; };
 		9C46D3C52BAE072F00A3EE86 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 9C46D3C42BAE072F00A3EE86 /* SwiftyJSON */; };
@@ -23,7 +22,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9C2FB2632B7C7F180010EB72 /* Demo.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = Demo.zip; path = ../../../../Demo.zip; sourceTree = "<group>"; };
 		9C3089322B571C5600C179A6 /* esbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esbuild.h; path = ../../../esbuild/out/esbuild.h; sourceTree = "<group>"; };
 		9C3089332B571C5600C179A6 /* esbuild.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = esbuild.a; path = ../../../esbuild/out/esbuild.a; sourceTree = "<group>"; };
 		9C46D3C12BADD35F00A3EE86 /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
@@ -81,7 +79,6 @@
 				9CA03E512B5715AA002D2D9F /* ContentView.swift */,
 				9CA03E532B5715AC002D2D9F /* Assets.xcassets */,
 				9CA03E552B5715AC002D2D9F /* Preview Content */,
-				9C2FB2632B7C7F180010EB72 /* Demo.zip */,
 				9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */,
 				9C7E8A642BADCDEE00CE9660 /* Instance.swift */,
 				9C46D3C12BADD35F00A3EE86 /* Adapter.swift */,
@@ -173,7 +170,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */,
-				9C2FB2642B7C7F180010EB72 /* Demo.zip in Resources */,
 				9CE5E40E2B6FEEC600EDE034 /* js in Resources */,
 				9CB389912B863B0A00FB783E /* build in Resources */,
 				9CA03E572B5715AC002D2D9F /* Preview Assets.xcassets in Resources */,

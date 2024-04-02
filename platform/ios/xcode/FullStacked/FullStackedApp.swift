@@ -28,9 +28,9 @@ struct WindowView: View {
         self.instance = Instance(adapter: RunningInstances.singleton!.instances[instanceIndex].adapter)
         RunningInstances.singleton?.instancesInWindows.append(self.instance)
         
-        self.instance.webview.logFn = { [self] log in
-            self.jsLogs.logs += "\n\n" + log
-        }
+//        self.instance.webview.logFn = { [self] log in
+//            self.jsLogs.logs += "\n\n" + log
+//        }
     }
     
     var body: some View {
