@@ -77,6 +77,7 @@ struct WindowView: View {
                 RunningInstances.singleton?.removeInstance(id: self.originalInstanceId)
             }
             .onDisappear {
+                self.instance.webview.logFn = nil
                 RunningInstances.singleton?.removeInstance(id: self.instance.id)
             }
     }

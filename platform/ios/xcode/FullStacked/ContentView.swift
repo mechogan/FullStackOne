@@ -38,15 +38,8 @@ class RunningInstances: ObservableObject {
     }
     
     func removeInstance(id: UUID) {
-        let index = self.instances.firstIndex(where: { $0.id == id })
-        if(index != nil){
-            self.instances.remove(at: index!)
-        }
-            
-        let indexInWindow = self.instancesInWindows.firstIndex(where: { $0.id == id })
-        if(indexInWindow != nil){
-            self.instancesInWindows.remove(at: indexInWindow!)
-        }
+        self.instances = self.instances.filter { $0.id != id }
+        self.instancesInWindows = self.instancesInWindows.filter { $0.id != id }
     }
 }
 
@@ -105,6 +98,9 @@ struct RunningInstanceViewLegacy: View {
                 .ignoresSafeArea()
         }
         .background(Color.black)
+        .onDisappear {
+            self.instance.webview.logFn = nil
+        }
     }
 }
 
@@ -173,6 +169,9 @@ struct RunningInstanceView: View {
                 .ignoresSafeArea()
         }
         .background(Color.black)
+        .onDisappear {
+            self.instance.webview.logFn = nil
+        }
     }
 }
 

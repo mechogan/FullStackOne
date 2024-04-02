@@ -122,6 +122,10 @@ class Instance  {
         self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
     }
     
+    deinit {
+        self.webview.configuration.userContentController.removeAllScriptMessageHandlers()
+    }
+    
     func push(messageType: String, message: String) {
         self.webview.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
     }
