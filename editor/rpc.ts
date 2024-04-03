@@ -22,6 +22,6 @@ export type AdapterEditor = Adapter & {
     open(project: Project): void;
 };
 
-const rpc = (window as any).rpc as typeof rpcFn<AdapterEditor>;
+const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 
 export default rpc;

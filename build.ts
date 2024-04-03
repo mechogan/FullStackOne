@@ -29,21 +29,38 @@ const compileScss = async (scssFile: string) => {
 const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
 
-const editorEntry = await merge(
-    baseFile,
-    path.resolve("editor/index.ts"),
-    ".cache"
-);
-const buildErrors = build(
-    esbuild.buildSync,
-    editorEntry,
-    "index",
-    "editor/build",
-    undefined,
-    false,
-    false
-);
-fs.rmSync(editorEntry);
+const toBuild = [
+    [
+        "editor/index.ts",
+        "index"
+    ],
+    [
+        "editor/typescript/worker.ts",
+        "worker"
+    ]
+]
+
+let buildErrors = [];
+for(const [input, output] of toBuild) {
+    const editorEntry = await merge(
+        baseFile,
+        path.resolve(input),
+        ".cache"
+    );
+    const errors = build(
+        esbuild.buildSync,
+        editorEntry,
+        output,
+        "editor/build",
+        undefined,
+        false,
+        false
+    );
+    fs.rmSync(editorEntry);
+    if(errors)
+        buildErrors.push(errors);
+}
+
 
 // cleanup
 scssFiles.forEach((scssFile) => {
@@ -51,7 +68,7 @@ scssFiles.forEach((scssFile) => {
     if (fs.existsSync(cssFile)) fs.rmSync(cssFile);
 });
 
-if (buildErrors) throw buildErrors;
+if (buildErrors.length) throw buildErrors;
 
 fs.cpSync("editor/index.html", "editor/build/index.html");
 fs.cpSync("editor/assets", "editor/build/assets", {
