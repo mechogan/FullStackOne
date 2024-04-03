@@ -1,9 +1,10 @@
 import "./index.css";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, hoverTooltip } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
+import { autocompletion } from "@codemirror/autocomplete";
 import {
     linter,
     lintGutter,
@@ -12,6 +13,7 @@ import {
 } from "@codemirror/lint";
 import { Extension } from "@codemirror/state";
 import rpc from "../../rpc";
+import { tsWorker } from "../../typescript";
 
 enum UTF8_Ext {
     JAVASCRIPT = ".js",
@@ -42,6 +44,8 @@ enum IMAGE_Ext {
 }
 
 export class Editor {
+    static tsWorker: tsWorker;
+
     private extensions = [
         basicSetup,
         oneDark,
@@ -103,11 +107,17 @@ export class Editor {
                 this.filePath.at(-1)?.endsWith(ext)
             )
         ) {
+            const doc = (await rpc().fs.readFile(this.filePath.join("/"), {
+                encoding: "utf8",
+                absolutePath: true
+            })) as string;
+
+            if (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT)) {
+                Editor.tsWorker.call().updateFile(this.filePath.join("/"), doc);
+            }
+
             this.editor = new EditorView({
-                doc: (await rpc().fs.readFile(this.filePath.join("/"), {
-                    encoding: "utf8",
-                    absolutePath: true
-                })) as string,
+                doc,
                 extensions: this.extensions.concat(
                     await this.loadLanguageExtensions()
                 ),
@@ -136,12 +146,18 @@ export class Editor {
 
     private updateThrottler: ReturnType<typeof setTimeout> | null;
     async updateFile() {
+        const contents = this.editor?.state?.doc?.toString();
+        if (!contents) return;
+
+        if (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT)) {
+            return Editor.tsWorker
+                .call()
+                .updateFile(this.filePath.join("/"), contents);
+        }
+
         if (this.updateThrottler) clearTimeout(this.updateThrottler);
 
         this.updateThrottler = null;
-
-        const contents = this.editor?.state?.doc?.toString();
-        if (!contents) return;
 
         const exists = await rpc().fs.exists(this.filePath.join("/"), {
             absolutePath: true
@@ -190,6 +206,126 @@ export class Editor {
                     jsLang.javascriptLanguage.data.of({
                         autocomplete: jsLang.scopeCompletionSource(globalThis)
                     })
+                );
+            }
+
+            // typescript
+            else {
+                const tsErrorLinter = async () => {
+                    await Editor.tsWorker
+                        .call()
+                        .updateFile(
+                            this.filePath.join("/"),
+                            this.editor.state.doc.toString()
+                        );
+
+                    const [semanticDiagnostics, syntacticDiagnostics] =
+                        await Promise.all([
+                            Editor.tsWorker
+                                .call()
+                                .getSemanticDiagnostics(
+                                    this.filePath.join("/")
+                                ),
+                            Editor.tsWorker
+                                .call()
+                                .getSyntacticDiagnostics(
+                                    this.filePath.join("/")
+                                )
+                        ]);
+
+                    const tsErrors =
+                        semanticDiagnostics.concat(syntacticDiagnostics);
+                    return tsErrors.map((tsError) => ({
+                        from: tsError.start,
+                        to: tsError.start + tsError.length,
+                        severity: "error",
+                        message:
+                            typeof tsError.messageText === "string"
+                                ? tsError.messageText
+                                : tsError.messageText.messageText
+                    }));
+                };
+
+                const tsComplete = async (ctx) => {
+                    const text = ctx.state.doc.toString();
+                    await Editor.tsWorker
+                        .call()
+                        .updateFile(this.filePath.join("/"), text);
+
+                    let tsCompletions = await Editor.tsWorker
+                        .call()
+                        .getCompletionsAtPosition(
+                            this.filePath.join("/"),
+                            ctx.pos,
+                            {}
+                        );
+
+                    if (!tsCompletions) return { from: ctx.pos, options: [] };
+
+                    let lastWord, from;
+                    for (let i = ctx.pos - 1; i >= 0; i--) {
+                        if (
+                            [" ", ".", "\n", ":", "{"].includes(text[i]) ||
+                            i === 0
+                        ) {
+                            from = i === 0 ? i : i + 1;
+                            lastWord = text.slice(from, ctx.pos).trim();
+                            break;
+                        }
+                    }
+
+                    if (lastWord) {
+                        tsCompletions.entries = tsCompletions.entries.filter(
+                            (completion) => completion.name.startsWith(lastWord)
+                        );
+                    }
+
+                    return {
+                        from: ctx.pos,
+                        options: tsCompletions.entries.map((completion) => ({
+                            label: completion.name,
+                            apply: (view) => {
+                                view.dispatch({
+                                    changes: {
+                                        from,
+                                        to: ctx.pos,
+                                        insert: completion.name
+                                    }
+                                });
+                            }
+                        }))
+                    };
+                };
+
+                const tsTypeDefinition = async (view, pos, side) => {
+                    let { from, to, text } = view.state.doc.lineAt(pos);
+                    let start = pos,
+                        end = pos;
+                    while (start > from && /\w/.test(text[start - from - 1]))
+                        start--;
+                    while (end < to && /\w/.test(text[end - from])) end++;
+                    if ((start == pos && side < 0) || (end == pos && side > 0))
+                        return null;
+
+                    const type = await Editor.tsWorker
+                        .call()
+                        .typecheck(this.filePath.join("/"), pos);
+                    return {
+                        pos: start,
+                        end,
+                        above: true,
+                        create(view) {
+                            let dom = document.createElement("div");
+                            dom.innerHTML = "<pre>" + type + "</pre>";
+                            return { dom };
+                        }
+                    };
+                };
+
+                extensions.push(
+                    linter(tsErrorLinter as () => Promise<Diagnostic[]>),
+                    autocompletion({ override: [tsComplete] }),
+                    hoverTooltip(tsTypeDefinition)
                 );
             }
         } else if (filename.endsWith(UTF8_Ext.HTML)) {

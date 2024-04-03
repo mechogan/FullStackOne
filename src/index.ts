@@ -1,7 +1,7 @@
 import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
 
-function syncRequest(pathComponents: string[], ...args){
+function syncRequest(pathComponents: string[], ...args) {
     const request = new XMLHttpRequest();
     request.open("POST", pathComponents.join("/"), false);
     request.send(JSON.stringify(args));
@@ -66,10 +66,12 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
     });
 }
 
-export default function rpc<T>(syncronous = false) {
-    if(syncronous) {
-        return recurseInProxy(syncRequest) as unknown as AwaitAll<T>;
-    }
+export function rpcSync<T>() {
+    return recurseInProxy(syncRequest) as unknown as AwaitNone<T>;
+}
+globalThis.rpcSync = rpcSync;
+
+export default function rpc<T>() {
     return recurseInProxy(fetchCall) as unknown as AwaitAll<T>;
 }
 globalThis.rpc = rpc;
@@ -86,6 +88,18 @@ type AwaitAll<T> = {
         : T[K] extends object
           ? AwaitAll<T[K]>
           : () => Promise<T[K]>;
+};
+
+type AwaitNone<T> = {
+    [K in keyof T]: T[K] extends (...args: any) => any
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => Awaited<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : T[K] extends object
+          ? AwaitNone<T[K]>
+          : () => T[K];
 };
 
 globalThis.onPush = {} as {

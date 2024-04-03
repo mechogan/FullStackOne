@@ -8,7 +8,7 @@ import { GitAuth } from "./views/git-auth";
 import { Settings } from "./views/settings";
 import api from "./api";
 import rpc from "./rpc";
-import "./typescript"
+import "./typescript";
 
 /// utils ///
 const main = document.querySelector("main") as HTMLElement;

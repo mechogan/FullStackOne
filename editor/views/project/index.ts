@@ -12,7 +12,7 @@ import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
-import { isReadable } from "stream";
+import { tsWorker } from "../../typescript";
 
 export class Project {
     backAction: () => void;
@@ -40,6 +40,8 @@ export class Project {
 
     private currentFile: string;
     private editors: Editor[] = [];
+
+    private ts: tsWorker;
 
     private runButton: HTMLButtonElement;
 
@@ -102,6 +104,12 @@ export class Project {
         this.packagesView = false;
 
         this.fileTree.instance.setBaseDirectory(project.location);
+
+        this.ts = new tsWorker();
+        setTimeout(async () => {
+            await this.ts.call().start("");
+            Editor.tsWorker = this.ts;
+        }, 500);
 
         this.editors = [];
         this.renderEditors();

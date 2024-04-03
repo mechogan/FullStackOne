@@ -30,23 +30,13 @@ const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
 
 const toBuild = [
-    [
-        "editor/index.ts",
-        "index"
-    ],
-    [
-        "editor/typescript/worker.ts",
-        "worker"
-    ]
-]
+    ["editor/index.ts", "index"],
+    ["editor/typescript/worker.ts", "worker"]
+];
 
 let buildErrors = [];
-for(const [input, output] of toBuild) {
-    const editorEntry = await merge(
-        baseFile,
-        path.resolve(input),
-        ".cache"
-    );
+for (const [input, output] of toBuild) {
+    const editorEntry = await merge(baseFile, path.resolve(input), ".cache");
     const errors = build(
         esbuild.buildSync,
         editorEntry,
@@ -57,10 +47,8 @@ for(const [input, output] of toBuild) {
         false
     );
     fs.rmSync(editorEntry);
-    if(errors)
-        buildErrors.push(errors);
+    if (errors) buildErrors.push(errors);
 }
-
 
 // cleanup
 scssFiles.forEach((scssFile) => {
@@ -85,3 +73,7 @@ if (fs.existsSync(sampleDemoDir)) {
     );
     await fs.promises.writeFile("editor/build/Demo.zip", zipData);
 }
+
+fs.cpSync("node_modules/typescript/lib", "editor/build/tsLib", {
+    recursive: true
+});
