@@ -14,6 +14,7 @@ import {
 import { Extension } from "@codemirror/state";
 import rpc from "../../rpc";
 import { tsWorker } from "../../typescript";
+import api from "../../api";
 
 enum UTF8_Ext {
     JAVASCRIPT = ".js",
@@ -112,8 +113,14 @@ export class Editor {
                 absolutePath: true
             })) as string;
 
-            if (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT)) {
-                Editor.tsWorker.call().updateFile(this.filePath.join("/"), doc);
+            if(
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) || 
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
+            ){
+                Editor.tsWorker = new tsWorker();
+                await new Promise(resolve => setTimeout(() => {
+                    Editor.tsWorker.call().start("").then(resolve)
+                } , 500))
             }
 
             this.editor = new EditorView({
@@ -149,7 +156,7 @@ export class Editor {
         const contents = this.editor?.state?.doc?.toString();
         if (!contents) return;
 
-        if (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT)) {
+        if (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) && Editor.tsWorker) {
             return Editor.tsWorker
                 .call()
                 .updateFile(this.filePath.join("/"), contents);
@@ -219,7 +226,7 @@ export class Editor {
                             this.editor.state.doc.toString()
                         );
 
-                    const [semanticDiagnostics, syntacticDiagnostics] =
+                    const [semanticDiagnostics, syntacticDiagnostics, suggestionDiagnostics] =
                         await Promise.all([
                             Editor.tsWorker
                                 .call()
@@ -230,11 +237,46 @@ export class Editor {
                                 .call()
                                 .getSyntacticDiagnostics(
                                     this.filePath.join("/")
-                                )
+                                ),
+                            Editor.tsWorker
+                                .call()
+                                .getSuggestionDiagnostics(this.filePath.join("/"))
                         ]);
 
                     const tsErrors =
-                        semanticDiagnostics.concat(syntacticDiagnostics);
+                        semanticDiagnostics
+                            .concat(syntacticDiagnostics)
+                            .concat(suggestionDiagnostics);
+
+                    
+                    tsErrors.forEach(async e => {
+                        if(e.code === 7016){
+                            const nodeModulesDirectory = await rpc().directories.nodeModules();
+                            const moduleName = this.editor.state.doc.toString()
+                                .slice(e.start, e.start + e.length)
+                                .slice(1, -1);
+                            let toInstall = [`@types/${moduleName}`];
+                            while(toInstall.length) {
+                                console.log("installing", ...toInstall)
+                                await Promise.all(toInstall.map(packageName => api.packages.install(packageName, (current, total) => {
+                                    if(current === total) console.log("done", packageName);
+                                })));
+                                let nextInstall = [];
+                                for(const packageName of toInstall) {
+                                    const packageJSONStr = await rpc().fs.readFile(nodeModulesDirectory + "/" + packageName + "/package.json", {
+                                        encoding: "utf8",
+                                        absolutePath: true
+                                    }) as string
+                                    const packageJSON = JSON.parse(packageJSONStr);
+                                    const deps = Object.keys(packageJSON.dependencies || {});
+                                    nextInstall.push(...deps);
+                                }
+                                toInstall = nextInstall;
+                            }
+
+                        }
+                    })
+
                     return tsErrors.map((tsError) => ({
                         from: tsError.start,
                         to: tsError.start + tsError.length,
@@ -284,7 +326,7 @@ export class Editor {
                         from: ctx.pos,
                         options: tsCompletions.entries.map((completion) => ({
                             label: completion.name,
-                            apply: (view) => {
+                            apply: (view: EditorView) => {
                                 view.dispatch({
                                     changes: {
                                         from,
@@ -292,6 +334,9 @@ export class Editor {
                                         insert: completion.name
                                     }
                                 });
+                                if(from === ctx.pos) {
+                                    view.dispatch({selection: {anchor: from + completion.name.length, head: from + completion.name.length}});
+                                }
                             }
                         }))
                     };
@@ -310,6 +355,7 @@ export class Editor {
                     const type = await Editor.tsWorker
                         .call()
                         .typecheck(this.filePath.join("/"), pos);
+
                     return {
                         pos: start,
                         end,

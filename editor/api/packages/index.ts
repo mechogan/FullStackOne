@@ -33,9 +33,8 @@ export default {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (file.type === "5") continue;
-            const pathComponents = file.name
-                .slice("package/".length)
-                .split("/");
+
+            const pathComponents = file.name.split("/").slice(1);
             const filename = pathComponents.pop();
             const directory = pathComponents.join("/");
 

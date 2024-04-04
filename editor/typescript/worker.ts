@@ -6,21 +6,18 @@ import type rpcFn from "../../src/index";
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
 
-function getCircularReplacer() {
-    const ancestors = [];
-    return function (key, value) {
-        if (typeof value !== "object" || value === null) {
+// source: https://stackoverflow.com/a/69881039/9777391
+function JSONCircularRemover(){
+    const visited = new WeakSet();
+    return (key, value) => {
+        if(typeof value !== "object" || value === null)
             return value;
-        }
-        // `this` is the object that value is contained in,
-        // i.e., its direct parent.
-        while (ancestors.length > 0 && ancestors.at(-1) !== this) {
-            ancestors.pop();
-        }
-        if (ancestors.includes(value)) {
+
+        if (visited.has(value)) {
             return "[Circular]";
         }
-        ancestors.push(value);
+
+        visited.add(value);
         return value;
     };
 }
@@ -38,7 +35,7 @@ self.onmessage = (message: MessageEvent) => {
         self.postMessage({
             id,
             data: data
-                ? JSON.parse(JSON.stringify(data, getCircularReplacer()))
+                ? JSON.parse(JSON.stringify(data, JSONCircularRemover()))
                 : undefined
         });
     }
@@ -48,7 +45,9 @@ const options: ts.CompilerOptions = {
     esModuleInterop: true,
     module: ts.ModuleKind.ES2022,
     target: ts.ScriptTarget.ES2022,
-    moduleResolution: ts.ModuleResolutionKind.Node10
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    lib: ["lib.dom.d.ts", "lib.es2023.d.ts"],
+    jsx: ts.JsxEmit.React
 };
 let services: ts.LanguageService;
 let sourceFiles: {
@@ -110,19 +109,22 @@ export let methods = {
 
 const libCache = {};
 
+const nodeModulesDirectory = await rpc().directories.nodeModules();
+const resolveNodeModulePath = (path: string) => nodeModulesDirectory + "/" + path.slice("node_modules/".length)
+
 function initLanguageServiceHost(
     currentDirectory: string
 ): ts.LanguageServiceHost {
     return {
         getCompilationSettings: () => options,
         getScriptFileNames: function (): string[] {
-            console.log("getScriptFileNames");
+            // console.log("getScriptFileNames");
             return Object.keys(sourceFiles);
         },
         getScriptVersion: function (fileName: string) {
-            console.log("getScriptVersion", fileName);
+            // console.log("getScriptVersion", fileName);
 
-            if (fileName.includes("tsLib")) {
+            if (fileName.includes("tsLib") || fileName.startsWith("node_modules")) {
                 return "1";
             }
 
@@ -136,13 +138,23 @@ function initLanguageServiceHost(
             return stats.mtimeMs.toString();
         },
         getScriptSnapshot: function (fileName: string) {
-            console.log("getScriptSnapshot", fileName);
+            // console.log("getScriptSnapshot", fileName);
 
             if (fileName.includes("tsLib")) {
                 if (!libCache[fileName]) {
                     libCache[fileName] = ts.ScriptSnapshot.fromString(
                         rpcSync().fs.readFile(fileName, {
                             encoding: "utf8"
+                        }) as string
+                    );
+                }
+                return libCache[fileName];
+            } else if (fileName.startsWith("node_modules")) {
+                if (!libCache[fileName]) {
+                    libCache[fileName] = ts.ScriptSnapshot.fromString(
+                        rpcSync().fs.readFile(resolveNodeModulePath(fileName), {
+                            encoding: "utf8",
+                            absolutePath: true
                         }) as string
                     );
                 }
@@ -162,19 +174,25 @@ function initLanguageServiceHost(
             );
         },
         getCurrentDirectory: function () {
-            console.log("getCurrentDirectory");
+            // console.log("getCurrentDirectory");
             return currentDirectory;
         },
         getDefaultLibFileName: function (options: ts.CompilerOptions) {
-            console.log("getDefaultLibFileName");
-            return "tsLib/lib.es2023.d.ts";
+            // console.log("getDefaultLibFileName");
+            return "tsLib/lib.d.ts";
         },
         readFile: function (path: string) {
-            console.log("readFile", path);
-            return rpcSync().fs.readFile(path, { encoding: "utf8" }) as string;
+            // console.log("readFile", path);
+            if(path.startsWith("node_modules")){
+                return  rpcSync().fs.readFile(resolveNodeModulePath(path), { absolutePath: true, encoding: "utf8" }) as string;
+            }
+            return rpcSync().fs.readFile(path, { absolutePath: true, encoding: "utf8" }) as string;
         },
         fileExists: function (path: string) {
-            console.log("fileExists", path);
+            // console.log("fileExists", path);
+            if(path.startsWith("node_modules")){
+                return  rpcSync().fs.exists(resolveNodeModulePath(path), { absolutePath: true })?.isFile;
+            }
             return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
         }
     };

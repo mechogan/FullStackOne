@@ -41,8 +41,6 @@ export class Project {
     private currentFile: string;
     private editors: Editor[] = [];
 
-    private ts: tsWorker;
-
     private runButton: HTMLButtonElement;
 
     constructor() {
@@ -104,12 +102,6 @@ export class Project {
         this.packagesView = false;
 
         this.fileTree.instance.setBaseDirectory(project.location);
-
-        this.ts = new tsWorker();
-        setTimeout(async () => {
-            await this.ts.call().start("");
-            Editor.tsWorker = this.ts;
-        }, 500);
 
         this.editors = [];
         this.renderEditors();
