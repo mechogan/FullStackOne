@@ -22,7 +22,10 @@ export class PackageInstaller {
     private static currentInstalls = new Map<string, HTMLDivElement>();
 
     private static async installPackage(packageInfo: PackageInfo) {
-        PackageInstaller.updateProgress(packageInfo.name, { progress: 0, total: 1 });
+        PackageInstaller.updateProgress(packageInfo.name, {
+            progress: 0,
+            total: 1
+        });
 
         const packageInfoStr = (
             await rpc().fetch(
@@ -44,46 +47,51 @@ export class PackageInstaller {
             name: string;
             buffer: ArrayBufferLike;
             type: string; // https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
-        }[] = await untar(tarData.buffer)
+        }[] = await untar(tarData.buffer);
 
-        let filesToWrite: {path: string, data: Uint8Array}[] = [];
+        let filesToWrite: { path: string; data: Uint8Array }[] = [];
 
         const writeFiles = async () => {
-            await rpc().fs.writeFileMulti(
-                filesToWrite,
-                { absolutePath: true, recursive: true }
-            );
+            await rpc().fs.writeFileMulti(filesToWrite, {
+                absolutePath: true,
+                recursive: true
+            });
             filesToWrite = [];
-        }
+        };
 
-        
-        for(let i = 0; i < files.length; i++) {
+        for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            if(file.type === "5") continue;
+            if (file.type === "5") continue;
 
             const pathComponents = file.name.split("/").slice(1); // strip 1
             const path = pathComponents.join("/");
 
-            let currentPayloadSize = filesToWrite.reduce((sum, { data }) => sum + data.byteLength, 0);
+            let currentPayloadSize = filesToWrite.reduce(
+                (sum, { data }) => sum + data.byteLength,
+                0
+            );
 
-            if(currentPayloadSize >= maxPayloadSize || filesToWrite.length >= maxFilesPerPaylod) {
+            if (
+                currentPayloadSize >= maxPayloadSize ||
+                filesToWrite.length >= maxFilesPerPaylod
+            ) {
                 await writeFiles();
-            } 
+            }
 
             filesToWrite.push({
-                path: nodeModulesDirectory +
-                    "/" +
-                    packageInfo.name + 
-                    "/" +
-                    path,
+                path:
+                    nodeModulesDirectory + "/" + packageInfo.name + "/" + path,
                 data: new Uint8Array(file.buffer)
             });
 
-            PackageInstaller.updateProgress(packageInfo.name, { progress: i, total: files.length });
+            PackageInstaller.updateProgress(packageInfo.name, {
+                progress: i,
+                total: files.length
+            });
         }
 
         // maybe leftovers
-        if(filesToWrite.length) {
+        if (filesToWrite.length) {
             await writeFiles();
         }
 
@@ -127,11 +135,10 @@ export class PackageInstaller {
             PackageInstaller.currentInstalls.set(packageName, progressElement);
         }
 
-        if(state.progress === -1) {
+        if (state.progress === -1) {
             progressElement.innerText = "...waiting";
-            return
-        }
-        else if (state.progress === 0) {
+            return;
+        } else if (state.progress === 0) {
             progressElement.innerText = "...installing";
             return;
         } else if (state.progress === state.total) {
@@ -144,9 +151,12 @@ export class PackageInstaller {
         progressElement.innerText = `${state.progress}/${state.total} [${percent}%] installing`;
     }
 
-    static async install(packages: PackageInfo[], previousInstalls: string[] = []) {
+    static async install(
+        packages: PackageInfo[],
+        previousInstalls: string[] = []
+    ) {
         const packagesToInstall: PackageInfo[] = [];
-        packages.forEach(packageInfo => {
+        packages.forEach((packageInfo) => {
             const packageNameComponents = packageInfo.name.split("/");
             // @some/package
             if (packageNameComponents.at(0).startsWith("@"))
@@ -155,7 +165,7 @@ export class PackageInstaller {
             else packageInfo.name = packageNameComponents.at(0);
 
             // remove duplicates
-            if(packagesToInstall.find(({name}) => name === packageInfo.name))
+            if (packagesToInstall.find(({ name }) => name === packageInfo.name))
                 return;
 
             PackageInstaller.updateProgress(packageInfo.name, {
@@ -163,10 +173,10 @@ export class PackageInstaller {
                 total: 0
             });
 
-            packagesToInstall.push(packageInfo)
-        })
+            packagesToInstall.push(packageInfo);
+        });
 
-        for(const pacakgeInfo of packagesToInstall) {
+        for (const pacakgeInfo of packagesToInstall) {
             await PackageInstaller.installPackage(pacakgeInfo);
         }
 
@@ -177,19 +187,19 @@ export class PackageInstaller {
         const deepInstalls = packagesToInstall.filter(({ deep }) => deep);
         if (deepInstalls.length === 0) return;
 
-        previousInstalls.push(...deepInstalls.map(({ name }) => name))
+        previousInstalls.push(...deepInstalls.map(({ name }) => name));
 
         const depsPromises = deepInstalls.map(
             PackageInstaller.getPackageDependencies
         );
         const nextInstall = Array.from(
             new Set((await Promise.all(depsPromises)).flat())
-        ).filter(name => !previousInstalls.includes(name))
+        ).filter((name) => !previousInstalls.includes(name));
 
-        if(nextInstall.length)
+        if (nextInstall.length)
             return PackageInstaller.install(
-                nextInstall.map((name) => ({ 
-                    name, 
+                nextInstall.map((name) => ({
+                    name,
                     deep: true
                 })),
                 previousInstalls

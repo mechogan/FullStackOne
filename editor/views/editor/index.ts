@@ -99,12 +99,16 @@ export class Editor {
     }
 
     private async restartTSWorker(contents?: string) {
-        if(Editor.tsWorker)
-            Editor.tsWorker.worker.terminate();
+        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
         Editor.tsWorker = new tsWorker();
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start("");
-        await Editor.tsWorker.call().updateFile(this.filePath.join("/"), contents || this.editor.state.doc.toString());
+        await Editor.tsWorker
+            .call()
+            .updateFile(
+                this.filePath.join("/"),
+                contents || this.editor.state.doc.toString()
+            );
     }
 
     async loadFileContents() {
@@ -243,46 +247,57 @@ export class Editor {
                         ] = await Promise.all([
                             Editor.tsWorker
                                 .call()
-                                .getSemanticDiagnostics(this.filePath.join("/")),
+                                .getSemanticDiagnostics(
+                                    this.filePath.join("/")
+                                ),
                             Editor.tsWorker
                                 .call()
-                                .getSyntacticDiagnostics(this.filePath.join("/")),
+                                .getSyntacticDiagnostics(
+                                    this.filePath.join("/")
+                                ),
                             Editor.tsWorker
                                 .call()
-                                .getSuggestionDiagnostics(this.filePath.join("/"))
+                                .getSuggestionDiagnostics(
+                                    this.filePath.join("/")
+                                )
                         ]);
-    
+
                         return semanticDiagnostics
                             .concat(syntacticDiagnostics)
                             .concat(suggestionDiagnostics);
-                    }
-                    
+                    };
+
                     let tsErrors = await getAllTsError();
 
-                    const needsTypes = tsErrors.filter(e => {
-                        if(e.code !== 7016) return false;
+                    const needsTypes = tsErrors.filter((e) => {
+                        if (e.code !== 7016) return false;
 
-                        const text = e.file?.text || this.editor.state.doc.toString();
+                        const text =
+                            e.file?.text || this.editor.state.doc.toString();
 
                         const moduleName = text
                             .toString()
                             .slice(e.start, e.start + e.length)
                             .slice(1, -1);
 
-                        return !moduleName.startsWith(".")
+                        return !moduleName.startsWith(".");
                     });
-                    if(needsTypes.length) {
-                        await PackageInstaller.install(needsTypes.map(e => {
-                            const text = e.file?.text || this.editor.state.doc.toString();
-                            const moduleName = text
-                                .toString()
-                                .slice(e.start, e.start + e.length)
-                                .slice(1, -1);
-                            return {
-                                name: `@types/${moduleName}`,
-                                deep: true
-                            }
-                        }));
+                    if (needsTypes.length) {
+                        await PackageInstaller.install(
+                            needsTypes.map((e) => {
+                                const text =
+                                    e.file?.text ||
+                                    this.editor.state.doc.toString();
+                                const moduleName = text
+                                    .toString()
+                                    .slice(e.start, e.start + e.length)
+                                    .slice(1, -1);
+                                return {
+                                    name: `@types/${moduleName}`,
+                                    deep: true
+                                };
+                            })
+                        );
 
                         await this.restartTSWorker();
                         tsErrors = await getAllTsError();
@@ -318,7 +333,17 @@ export class Editor {
                     let lastWord, from;
                     for (let i = ctx.pos - 1; i >= 0; i--) {
                         if (
-                            [" ", ".", "\n", ":", "{", "<", "\"", "'", "("].includes(text[i]) ||
+                            [
+                                " ",
+                                ".",
+                                "\n",
+                                ":",
+                                "{",
+                                "<",
+                                '"',
+                                "'",
+                                "("
+                            ].includes(text[i]) ||
                             i === 0
                         ) {
                             from = i === 0 ? i : i + 1;

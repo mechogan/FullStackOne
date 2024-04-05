@@ -30,9 +30,9 @@ export class tsWorker {
     constructor() {
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
-            if(message.data.ready) {
+            if (message.data.ready) {
                 this.isReady = true;
-                this.readyAwaiter.forEach(resolve => resolve());
+                this.readyAwaiter.forEach((resolve) => resolve());
                 return;
             }
 
@@ -42,12 +42,12 @@ export class tsWorker {
         };
     }
 
-    async ready(): Promise<void>{
-        if(this.isReady) return;
+    async ready(): Promise<void> {
+        if (this.isReady) return;
 
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.readyAwaiter.push(resolve);
-        })
+        });
     }
 
     call = () =>

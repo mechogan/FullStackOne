@@ -82,15 +82,23 @@ export let methods = {
 
         setTimeout(() => {
             Promise.all(
-                Object.entries(sourceFiles).map(([filename, { contents }]) => new Promise<void>(async res => {
-                    if(await rpc().fs.exists(filename, { absolutePath: true })){
-                        await rpc().fs.writeFile(filename, contents, { absolutePath: true })
-                    }
-                    else {
-                        delete sourceFiles[sourceFile];
-                    }
-                    res();
-                }))
+                Object.entries(sourceFiles).map(
+                    ([filename, { contents }]) =>
+                        new Promise<void>(async (res) => {
+                            if (
+                                await rpc().fs.exists(filename, {
+                                    absolutePath: true
+                                })
+                            ) {
+                                await rpc().fs.writeFile(filename, contents, {
+                                    absolutePath: true
+                                });
+                            } else {
+                                delete sourceFiles[sourceFile];
+                            }
+                            res();
+                        })
+                )
             ).then(() => (updateThrottler = null));
         }, 2000);
     },
@@ -214,25 +222,34 @@ function initLanguageServiceHost(
                 const directory = resolvedPathComponents.join("/");
 
                 let files = fsMap.get(directory);
-                if(files === undefined) {
-                    const exists = rpcSync().fs.exists(directory, { absolutePath: true });
-                    if(!exists){
+                if (files === undefined) {
+                    const exists = rpcSync().fs.exists(directory, {
+                        absolutePath: true
+                    });
+                    if (!exists) {
                         fsMap.set(directory, false);
                         return false;
                     }
-                    
+
                     try {
-                        files = (rpcSync().fs.readdir(directory, { withFileTypes: true, absolutePath: true }) as Dirent[])
-                            .filter(({isDirectory}) => !isDirectory)
+                        files = (
+                            rpcSync().fs.readdir(directory, {
+                                withFileTypes: true,
+                                absolutePath: true
+                            }) as Dirent[]
+                        )
+                            .filter(({ isDirectory }) => !isDirectory)
                             .map(({ name }) => name);
-                    } catch(e) {
+                    } catch (e) {
                         files = false;
                     }
-                    
+
                     fsMap.set(directory, files);
                 }
 
-                return typeof files === 'boolean' ? files : files.includes(filename);
+                return typeof files === "boolean"
+                    ? files
+                    : files.includes(filename);
             }
             return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
         }
