@@ -147,24 +147,4 @@ $transition: 0.3s all;
             padding-bottom: $console-height;
         }
     }
-
-    .dialog {
-        dl {
-            dd,
-            div {
-                font-size: $font-size-s;
-                color: colorOpacity(white, 0.7);
-            }
-
-            div {
-                text-align: right;
-
-                &:not(:last-child) {
-                    padding-bottom: spacing(2);
-                    border-bottom: $border-width solid $dark;
-                    margin-bottom: spacing(2);
-                }
-            }
-        }
-    }
 }

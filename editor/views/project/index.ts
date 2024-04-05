@@ -12,7 +12,7 @@ import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
-import { tsWorker } from "../../typescript";
+import { PackageInstaller } from "../../packages/installer";
 
 export class Project {
     backAction: () => void;
@@ -191,7 +191,7 @@ export class Project {
     }
 
     private processBuildErrors(errors: esbuild.BuildResult["errors"]) {
-        const packagesMissing = new Map<string, Set<string>>();
+        const packagesMissing = new Set<string>();
         errors.forEach((error) => {
             error = uncapitalizeKeys(error);
 
@@ -209,31 +209,13 @@ export class Project {
             const message = error.text;
 
             if (message.startsWith("Could not resolve")) {
-                const moduleName: string[] = message
+                const moduleName: string = message
                     .match(/\".*\"/)
                     ?.at(0)
-                    ?.slice(1, -1)
-                    .split("/");
+                    ?.slice(1, -1);
 
-                if (!moduleName.at(0)?.startsWith(".")) {
-                    const dependency = moduleName.at(0)?.startsWith("@")
-                        ? moduleName.slice(0, 2).join("/")
-                        : moduleName.at(0);
-
-                    if (dependency) {
-                        let fileRequiringPackage =
-                            packagesMissing.get(dependency);
-                        if (!fileRequiringPackage)
-                            fileRequiringPackage = new Set();
-                        fileRequiringPackage.add(
-                            filename.includes("node_modules")
-                                ? "node_modules" +
-                                      filename.split("node_modules").pop()
-                                : filename.slice(1)
-                        );
-                        packagesMissing.set(dependency, fileRequiringPackage);
-                    }
-
+                if (!moduleName.startsWith(".")) {
+                    packagesMissing.add(moduleName);
                     return;
                 }
             }
@@ -259,7 +241,9 @@ export class Project {
         this.renderEditors();
 
         if (packagesMissing.size > 0) {
-            this.installPackages(packagesMissing);
+            PackageInstaller.install(
+                Array.from(packagesMissing).map((name) => ({ name }))
+            ).then(() => this.runProject());
         }
     }
 

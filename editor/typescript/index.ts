@@ -26,7 +26,7 @@ export class tsWorker {
     }
 
     constructor() {
-        this.worker = new Worker("worker.js", { type: "module" });
+        this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
             const { id, data } = message.data;
             const promiseResolve = this.reqs.get(id);

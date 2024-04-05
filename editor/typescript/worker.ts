@@ -7,11 +7,10 @@ const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
 
 // source: https://stackoverflow.com/a/69881039/9777391
-function JSONCircularRemover(){
+function JSONCircularRemover() {
     const visited = new WeakSet();
     return (key, value) => {
-        if(typeof value !== "object" || value === null)
-            return value;
+        if (typeof value !== "object" || value === null) return value;
 
         if (visited.has(value)) {
             return "[Circular]";
@@ -110,7 +109,8 @@ export let methods = {
 const libCache = {};
 
 const nodeModulesDirectory = await rpc().directories.nodeModules();
-const resolveNodeModulePath = (path: string) => nodeModulesDirectory + "/" + path.slice("node_modules/".length)
+const resolveNodeModulePath = (path: string) =>
+    nodeModulesDirectory + "/" + path.slice("node_modules/".length);
 
 function initLanguageServiceHost(
     currentDirectory: string
@@ -124,7 +124,10 @@ function initLanguageServiceHost(
         getScriptVersion: function (fileName: string) {
             // console.log("getScriptVersion", fileName);
 
-            if (fileName.includes("tsLib") || fileName.startsWith("node_modules")) {
+            if (
+                fileName.includes("tsLib") ||
+                fileName.startsWith("node_modules")
+            ) {
                 return "1";
             }
 
@@ -183,15 +186,23 @@ function initLanguageServiceHost(
         },
         readFile: function (path: string) {
             // console.log("readFile", path);
-            if(path.startsWith("node_modules")){
-                return  rpcSync().fs.readFile(resolveNodeModulePath(path), { absolutePath: true, encoding: "utf8" }) as string;
+            if (path.startsWith("node_modules")) {
+                return rpcSync().fs.readFile(resolveNodeModulePath(path), {
+                    absolutePath: true,
+                    encoding: "utf8"
+                }) as string;
             }
-            return rpcSync().fs.readFile(path, { absolutePath: true, encoding: "utf8" }) as string;
+            return rpcSync().fs.readFile(path, {
+                absolutePath: true,
+                encoding: "utf8"
+            }) as string;
         },
         fileExists: function (path: string) {
             // console.log("fileExists", path);
-            if(path.startsWith("node_modules")){
-                return  rpcSync().fs.exists(resolveNodeModulePath(path), { absolutePath: true })?.isFile;
+            if (path.startsWith("node_modules")) {
+                return rpcSync().fs.exists(resolveNodeModulePath(path), {
+                    absolutePath: true
+                })?.isFile;
             }
             return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
         }

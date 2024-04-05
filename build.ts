@@ -31,7 +31,7 @@ await Promise.all(compilePromises);
 
 const toBuild = [
     ["editor/index.ts", "index"],
-    ["editor/typescript/worker.ts", "worker"]
+    ["editor/typescript/worker.ts", "worker-ts"]
 ];
 
 let buildErrors = [];
@@ -43,7 +43,7 @@ for (const [input, output] of toBuild) {
         output,
         "editor/build",
         undefined,
-        false,
+        "external",
         false
     );
     fs.rmSync(editorEntry);
