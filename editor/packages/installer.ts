@@ -30,7 +30,6 @@ export class PackageInstaller {
         // react-dom/client
         else packageInfo.name = packageNameComponents.at(0);
 
-        // const worker = new Worker("/worker-package.js", { type: "module" });
         PackageInstaller.updateProgress(packageInfo.name, {
             progress: 0,
             total: 1
