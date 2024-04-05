@@ -2,6 +2,21 @@ import type { Adapter } from "../../../src/adapter";
 import fs from "fs";
 
 export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
+    const writeFile: Adapter["fs"]["writeFile"] = async (file, data, options) => {
+        const filePath = baseDirectory + "/" + file;
+    
+        if (options?.recursive) {
+            const directory = filePath.split("/").slice(0, -1);
+            await fs.promises.mkdir(directory.join("/"), { recursive: true });
+        }
+    
+        return fs.promises.writeFile(
+            baseDirectory + "/" + file,
+            data,
+            options
+        );
+    }
+
     return {
         platform,
         fs: {
@@ -11,12 +26,13 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                     options
                 );
             },
-            writeFile: (file, data, options) => {
-                return fs.promises.writeFile(
-                    baseDirectory + "/" + file,
+            writeFile,
+            writeFileMulti(files, options) {
+                return Promise.all(files.map(({ path, data }) => writeFile(
+                    path,
                     data,
                     options
-                );
+                )))
             },
             unlink: (path) => {
                 return fs.promises.unlink(baseDirectory + "/" + path);

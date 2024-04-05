@@ -241,3 +241,5 @@ function getTokenAtPositionWorker(
         return;
     }
 }
+
+self.postMessage({ ready: true });

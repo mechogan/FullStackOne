@@ -98,6 +98,15 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
+    private async restartTSWorker(contents?: string) {
+        if(Editor.tsWorker)
+            Editor.tsWorker.worker.terminate();
+        Editor.tsWorker = new tsWorker();
+        await Editor.tsWorker.ready();
+        await Editor.tsWorker.call().start("");
+        await Editor.tsWorker.call().updateFile(this.filePath.join("/"), contents || this.editor.state.doc.toString());
+    }
+
     async loadFileContents() {
         if (this.editor) {
             this.editor.dom.remove();
@@ -117,12 +126,7 @@ export class Editor {
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
             ) {
-                Editor.tsWorker = new tsWorker();
-                await new Promise((resolve) =>
-                    setTimeout(() => {
-                        Editor.tsWorker.call().start("").then(resolve);
-                    }, 500)
-                );
+                await this.restartTSWorker(doc);
             }
 
             this.editor = new EditorView({
@@ -257,19 +261,18 @@ export class Editor {
 
                     const needsTypes = tsErrors.filter(({code}) => code === 7016);
                     if(needsTypes.length) {
-                        await Promise.all(needsTypes.map(e => {
+                        await PackageInstaller.install(needsTypes.map(e => {
                             const moduleName = this.editor.state.doc
                                 .toString()
                                 .slice(e.start, e.start + e.length)
                                 .slice(1, -1);
-                            return PackageInstaller.install([
-                                {
-                                    name: `@types/${moduleName}`,
-                                    deep: true
-                                }
-                            ]);
+                            return {
+                                name: `@types/${moduleName}`,
+                                deep: true
+                            }
                         }));
 
+                        await this.restartTSWorker();
                         tsErrors = await getAllTsError();
                     }
 
