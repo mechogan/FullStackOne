@@ -184,6 +184,14 @@ export class InstanceEditor extends Instance {
                     InstanceEditor.rootDirectory +
                         "/" +
                         project.location +
+                        "/index.ts",
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
+                        "/index.tsx",
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
                         "/index.js",
                     InstanceEditor.rootDirectory +
                         "/" +
