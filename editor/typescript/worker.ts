@@ -2,6 +2,7 @@ import ts from "typescript";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
+import type { Dirent } from "../../src/adapter/fs";
 
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
@@ -81,11 +82,15 @@ export let methods = {
 
         setTimeout(() => {
             Promise.all(
-                Object.entries(sourceFiles).map(([filename, { contents }]) =>
-                    rpc().fs.writeFile(filename, contents, {
-                        absolutePath: true
-                    })
-                )
+                Object.entries(sourceFiles).map(([filename, { contents }]) => new Promise<void>(async res => {
+                    if(await rpc().fs.exists(filename, { absolutePath: true })){
+                        await rpc().fs.writeFile(filename, contents, { absolutePath: true })
+                    }
+                    else {
+                        delete sourceFiles[sourceFile];
+                    }
+                    res();
+                }))
             ).then(() => (updateThrottler = null));
         }, 2000);
     },
@@ -107,6 +112,8 @@ export let methods = {
 };
 
 const libCache = {};
+
+const fsMap = new Map<string, string[] | boolean>();
 
 const nodeModulesDirectory = await rpc().directories.nodeModules();
 const resolveNodeModulePath = (path: string) =>
@@ -200,9 +207,32 @@ function initLanguageServiceHost(
         fileExists: function (path: string) {
             // console.log("fileExists", path);
             if (path.startsWith("node_modules")) {
-                return rpcSync().fs.exists(resolveNodeModulePath(path), {
-                    absolutePath: true
-                })?.isFile;
+                const resolvedPath = resolveNodeModulePath(path);
+
+                const resolvedPathComponents = resolvedPath.split("/");
+                const filename = resolvedPathComponents.pop();
+                const directory = resolvedPathComponents.join("/");
+
+                let files = fsMap.get(directory);
+                if(files === undefined) {
+                    const exists = rpcSync().fs.exists(directory, { absolutePath: true });
+                    if(!exists){
+                        fsMap.set(directory, false);
+                        return false;
+                    }
+                    
+                    try {
+                        files = (rpcSync().fs.readdir(directory, { withFileTypes: true, absolutePath: true }) as Dirent[])
+                            .filter(({isDirectory}) => !isDirectory)
+                            .map(({ name }) => name);
+                    } catch(e) {
+                        files = false;
+                    }
+                    
+                    fsMap.set(directory, files);
+                }
+
+                return typeof files === 'boolean' ? files : files.includes(filename);
             }
             return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
         }

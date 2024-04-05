@@ -259,10 +259,22 @@ export class Editor {
                     
                     let tsErrors = await getAllTsError();
 
-                    const needsTypes = tsErrors.filter(({code}) => code === 7016);
+                    const needsTypes = tsErrors.filter(e => {
+                        if(e.code !== 7016) return false;
+
+                        const text = e.file?.text || this.editor.state.doc.toString();
+
+                        const moduleName = text
+                            .toString()
+                            .slice(e.start, e.start + e.length)
+                            .slice(1, -1);
+
+                        return !moduleName.startsWith(".")
+                    });
                     if(needsTypes.length) {
                         await PackageInstaller.install(needsTypes.map(e => {
-                            const moduleName = this.editor.state.doc
+                            const text = e.file?.text || this.editor.state.doc.toString();
+                            const moduleName = text
                                 .toString()
                                 .slice(e.start, e.start + e.length)
                                 .slice(1, -1);
@@ -306,7 +318,7 @@ export class Editor {
                     let lastWord, from;
                     for (let i = ctx.pos - 1; i >= 0; i--) {
                         if (
-                            [" ", ".", "\n", ":", "{"].includes(text[i]) ||
+                            [" ", ".", "\n", ":", "{", "<", "\"", "'", "("].includes(text[i]) ||
                             i === 0
                         ) {
                             from = i === 0 ? i : i + 1;

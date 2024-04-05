@@ -122,7 +122,9 @@ class AdapterEditor: Adapter {
                 var entryPoint: String? = nil;
                 [
                     self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.js"
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.js",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts"
                 ].forEach { file in
                     let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file)
                     if(existsAndIsDirectory != nil && !existsAndIsDirectory!){
