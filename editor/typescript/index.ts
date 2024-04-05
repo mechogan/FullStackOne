@@ -1,4 +1,3 @@
-import { resolve } from "path";
 import type { methods } from "./worker";
 
 function recurseInProxy(target: Function, methodPath: string[] = []) {

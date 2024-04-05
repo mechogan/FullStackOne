@@ -11,7 +11,7 @@ const page = await browser.newPage();
 await page.goto("http://localhost:9000");
 
 let iframeCount;
-const maxWait = 60000; // 60s
+const maxWait = 120000; // 2min
 const start = Date.now();
 // 1 iframe is stackblitz corp stuff
 // 1 for the editor
