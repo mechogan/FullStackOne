@@ -231,40 +231,47 @@ export class Editor {
                             this.editor.state.doc.toString()
                         );
 
-                    const [
-                        semanticDiagnostics,
-                        syntacticDiagnostics,
-                        suggestionDiagnostics
-                    ] = await Promise.all([
-                        Editor.tsWorker
-                            .call()
-                            .getSemanticDiagnostics(this.filePath.join("/")),
-                        Editor.tsWorker
-                            .call()
-                            .getSyntacticDiagnostics(this.filePath.join("/")),
-                        Editor.tsWorker
-                            .call()
-                            .getSuggestionDiagnostics(this.filePath.join("/"))
-                    ]);
+                    const getAllTsError = async () => {
+                        const [
+                            semanticDiagnostics,
+                            syntacticDiagnostics,
+                            suggestionDiagnostics
+                        ] = await Promise.all([
+                            Editor.tsWorker
+                                .call()
+                                .getSemanticDiagnostics(this.filePath.join("/")),
+                            Editor.tsWorker
+                                .call()
+                                .getSyntacticDiagnostics(this.filePath.join("/")),
+                            Editor.tsWorker
+                                .call()
+                                .getSuggestionDiagnostics(this.filePath.join("/"))
+                        ]);
+    
+                        return semanticDiagnostics
+                            .concat(syntacticDiagnostics)
+                            .concat(suggestionDiagnostics);
+                    }
+                    
+                    let tsErrors = await getAllTsError();
 
-                    const tsErrors = semanticDiagnostics
-                        .concat(syntacticDiagnostics)
-                        .concat(suggestionDiagnostics);
-
-                    tsErrors.forEach(async (e) => {
-                        if (e.code === 7016) {
+                    const needsTypes = tsErrors.filter(({code}) => code === 7016);
+                    if(needsTypes.length) {
+                        await Promise.all(needsTypes.map(e => {
                             const moduleName = this.editor.state.doc
                                 .toString()
                                 .slice(e.start, e.start + e.length)
                                 .slice(1, -1);
-                            PackageInstaller.install([
+                            return PackageInstaller.install([
                                 {
                                     name: `@types/${moduleName}`,
                                     deep: true
                                 }
                             ]);
-                        }
-                    });
+                        }));
+
+                        tsErrors = await getAllTsError();
+                    }
 
                     return tsErrors.map((tsError) => ({
                         from: tsError.start,

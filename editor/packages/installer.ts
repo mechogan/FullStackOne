@@ -20,21 +20,7 @@ export class PackageInstaller {
     private static currentInstalls = new Map<string, HTMLDivElement>();
 
     private static async installPackage(packageInfo: PackageInfo) {
-        if (packageInfo.name.startsWith("."))
-            throw `Package name starts with ".". [${packageInfo.name}]`;
-
-        const packageNameComponents = packageInfo.name.split("/");
-        // @some/package
-        if (packageNameComponents.at(0).startsWith("@"))
-            packageInfo.name = packageNameComponents.slice(0, 2).join("/");
-        // react-dom/client
-        else packageInfo.name = packageNameComponents.at(0);
-
-        PackageInstaller.updateProgress(packageInfo.name, {
-            progress: 0,
-            total: 1
-        });
-
+        PackageInstaller.updateProgress(packageInfo.name, { progress: 0, total: 1 });
 
         const packageInfoStr = (
             await rpc().fetch(
@@ -127,7 +113,11 @@ export class PackageInstaller {
             PackageInstaller.currentInstalls.set(packageName, progressElement);
         }
 
-        if (state.progress === 0) {
+        if(state.progress === -1) {
+            progressElement.innerText = "...waiting";
+            return
+        }
+        else if (state.progress === 0) {
             progressElement.innerText = "...installing";
             return;
         } else if (state.progress === state.total) {
@@ -141,12 +131,31 @@ export class PackageInstaller {
     }
 
     static async install(packages: PackageInfo[]) {
-        const installPromises = packages.map(PackageInstaller.installPackage);
-        try {
-            await Promise.all(installPromises);
-        } catch (e) {
-            throw e;
+        packages = packages.map(packageInfo => {
+            const packageNameComponents = packageInfo.name.split("/");
+            // @some/package
+            if (packageNameComponents.at(0).startsWith("@"))
+                packageInfo.name = packageNameComponents.slice(0, 2).join("/");
+            // react-dom/client
+            else packageInfo.name = packageNameComponents.at(0);
+
+            PackageInstaller.updateProgress(packageInfo.name, {
+                progress: -1,
+                total: 0
+            });
+
+            return packageInfo;
+        })
+
+        for(const pacakgeInfo of packages) {
+            await PackageInstaller.installPackage(pacakgeInfo);
         }
+        // const installPromises = packages.map(PackageInstaller.installPackage);
+        // try {
+        //     await Promise.all(installPromises);
+        // } catch (e) {
+        //     throw e;
+        // }
         PackageInstaller.progressDialog.container.remove();
         PackageInstaller.progressDialog = null;
         PackageInstaller.currentInstalls = new Map();
