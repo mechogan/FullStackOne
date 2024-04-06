@@ -342,7 +342,8 @@ export class Editor {
                                 "<",
                                 '"',
                                 "'",
-                                "("
+                                "(",
+                                "["
                             ].includes(text[i]) ||
                             i === 0
                         ) {

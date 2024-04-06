@@ -167,7 +167,7 @@ export class Project {
 
         if (packagesMissing.size > 0) {
             PackageInstaller.install(
-                Array.from(packagesMissing).map((name) => ({ name }))
+                Array.from(packagesMissing).map((name) => ({ name, deep: true }))
             ).then(() => this.runProject());
         }
     }

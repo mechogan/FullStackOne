@@ -47,7 +47,10 @@ const options: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2022,
     moduleResolution: ts.ModuleResolutionKind.Node10,
     lib: ["lib.dom.d.ts", "lib.es2023.d.ts"],
-    jsx: ts.JsxEmit.React
+    jsx: ts.JsxEmit.React,
+    noImplicitAny: true,
+    noImplicitThis: true,
+    strictNullChecks: true
 };
 let services: ts.LanguageService;
 let sourceFiles: {
