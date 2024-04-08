@@ -47,10 +47,7 @@ const options: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2022,
     moduleResolution: ts.ModuleResolutionKind.Node10,
     lib: ["lib.dom.d.ts", "lib.es2023.d.ts"],
-    jsx: ts.JsxEmit.React,
-    noImplicitAny: true,
-    noImplicitThis: true,
-    strictNullChecks: true
+    jsx: ts.JsxEmit.React
 };
 let services: ts.LanguageService;
 let sourceFiles: {
@@ -63,6 +60,8 @@ let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
     start(currentDirectory: string) {
+        if(services) return;
+
         const servicesHost = initLanguageServiceHost(currentDirectory);
         services = ts.createLanguageService(
             servicesHost,
@@ -105,20 +104,6 @@ export let methods = {
             ).then(() => (updateThrottler = null));
         }, 2000);
     },
-    typecheck(sourceFile: string, pos: number) {
-        const program = services.getProgram();
-        const typeChecker = program.getTypeChecker();
-        const token = getTokenAtPosition(
-            program.getSourceFile(sourceFile),
-            pos
-        );
-        const type = typeChecker.getTypeAtLocation(token);
-        return typeChecker.typeToString(
-            type,
-            undefined,
-            ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.InTypeAlias
-        );
-    },
     ...services
 };
 
@@ -149,14 +134,17 @@ function initLanguageServiceHost(
                 return "1";
             }
 
-            if (sourceFiles[fileName]) {
-                return sourceFiles[fileName].version.toString();
+            if (!sourceFiles[fileName]) {
+                sourceFiles[fileName] = {
+                    version: 0,
+                    contents: rpcSync().fs.readFile(fileName, {
+                        encoding: "utf8",
+                        absolutePath: true
+                    }) as string
+                }
             }
 
-            const stats = rpcSync().fs.stat(fileName, {
-                absolutePath: true
-            });
-            return stats.mtimeMs.toString();
+            return sourceFiles[fileName].version.toString();
         },
         getScriptSnapshot: function (fileName: string) {
             // console.log("getScriptSnapshot", fileName);
@@ -182,16 +170,18 @@ function initLanguageServiceHost(
                 return libCache[fileName];
             }
 
-            if (sourceFiles[fileName])
-                return ts.ScriptSnapshot.fromString(
-                    sourceFiles[fileName].contents
-                );
+            if (!sourceFiles[fileName]) {
+                sourceFiles[fileName] = {
+                    version: 0,
+                    contents: rpcSync().fs.readFile(fileName, {
+                        encoding: "utf8",
+                        absolutePath: true
+                    }) as string
+                }
+            }
 
             return ts.ScriptSnapshot.fromString(
-                rpcSync().fs.readFile(fileName, {
-                    encoding: "utf8",
-                    absolutePath: true
-                }) as string
+                sourceFiles[fileName].contents
             );
         },
         getCurrentDirectory: function () {
@@ -257,39 +247,6 @@ function initLanguageServiceHost(
             return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
         }
     };
-}
-
-function isTokenKind(kind: ts.SyntaxKind) {
-    return kind >= ts.SyntaxKind.FirstToken && kind <= ts.SyntaxKind.LastToken;
-}
-
-function getTokenAtPosition(
-    parent: ts.Node,
-    pos: number,
-    sourceFile?: ts.SourceFile
-) {
-    if (pos < parent.pos || pos >= parent.end) return;
-    if (isTokenKind(parent.kind)) return parent;
-    if (sourceFile === undefined) sourceFile = parent.getSourceFile();
-    return getTokenAtPositionWorker(parent, pos, sourceFile);
-}
-
-function getTokenAtPositionWorker(
-    node: ts.Node,
-    pos: number,
-    sourceFile: ts.SourceFile
-) {
-    outer: while (true) {
-        for (const child of node.getChildren(sourceFile)) {
-            if (child.end > pos && child.kind !== ts.SyntaxKind.JSDocComment) {
-                if (isTokenKind(child.kind)) return child;
-                // next token is nested in another node
-                node = child;
-                continue outer;
-            }
-        }
-        return;
-    }
 }
 
 self.postMessage({ ready: true });

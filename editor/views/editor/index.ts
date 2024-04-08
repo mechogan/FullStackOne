@@ -386,26 +386,20 @@ export class Editor {
                 };
 
                 const tsTypeDefinition = async (view, pos, side) => {
-                    let { from, to, text } = view.state.doc.lineAt(pos);
-                    let start = pos,
-                        end = pos;
-                    while (start > from && /\w/.test(text[start - from - 1]))
-                        start--;
-                    while (end < to && /\w/.test(text[end - from])) end++;
-                    if ((start == pos && side < 0) || (end == pos && side > 0))
-                        return null;
+                    const info = await Editor.tsWorker.call().getQuickInfoAtPosition(this.filePath.join("/"), pos)
+                    const text = info?.displayParts?.map(({text}) => text).join("");
 
-                    const type = await Editor.tsWorker
-                        .call()
-                        .typecheck(this.filePath.join("/"), pos);
+                    if(!text) return null;
 
                     return {
-                        pos: start,
-                        end,
+                        pos: info.textSpan.start,
+                        end: info.textSpan.start + info.textSpan.length,
                         above: true,
                         create(view) {
                             let dom = document.createElement("div");
-                            dom.innerHTML = "<pre>" + type + "</pre>";
+                            const pre = document.createElement("pre");
+                            pre.innerText = text;
+                            dom.append(pre);
                             return { dom };
                         }
                     };
