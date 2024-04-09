@@ -18,6 +18,7 @@ export class tsWorker {
     private reqs = new Map<number, Function>();
     private isReady = false;
     private readyAwaiter: Function[] = [];
+    workingDirectory: string;
 
     private postMessage(methodPath: string[], ...args: any) {
         const id = ++this.reqsCount;
@@ -27,7 +28,9 @@ export class tsWorker {
         });
     }
 
-    constructor() {
+    constructor(workingDirectory: string) {
+        this.workingDirectory = workingDirectory;
+        
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
             if (message.data.ready) {

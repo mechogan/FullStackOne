@@ -97,7 +97,7 @@ class AdapterEditor: Adapter {
                             }
                             return done(true)
                         case "unlink": return done(self.fsEditor.unlink(path: json[0].stringValue))
-                        case "readdir": return done(self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue))
+                        case "readdir": return done(self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue, recursive: json[1]["recursive"].boolValue))
                         case "mkdir": return done(self.fsEditor.mkdir(path: json[0].stringValue))
                         case "rmdir": return done(self.fsEditor.rmdir(path: json[0].stringValue))
                         case "stat": return done(self.fsEditor.stat(path: json[0].stringValue))

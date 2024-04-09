@@ -46,6 +46,7 @@ enum IMAGE_Ext {
 
 export class Editor {
     static tsWorker: tsWorker;
+    static currentDirectory: string;
 
     private extensions = [
         basicSetup,
@@ -99,10 +100,12 @@ export class Editor {
     }
 
     private async restartTSWorker(contents?: string) {
-        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
-        Editor.tsWorker = new tsWorker();
-        await Editor.tsWorker.ready();
-        await Editor.tsWorker.call().start("");
+        if(Editor.currentDirectory !== Editor.tsWorker?.workingDirectory) {
+            if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
+            Editor.tsWorker = new tsWorker(Editor.currentDirectory);
+            await Editor.tsWorker.ready();
+            await Editor.tsWorker.call().start(Editor.currentDirectory);
+        }
         await Editor.tsWorker
             .call()
             .updateFile(
@@ -311,7 +314,7 @@ export class Editor {
                         message:
                             typeof tsError.messageText === "string"
                                 ? tsError.messageText
-                                : tsError.messageText.messageText
+                                : tsError?.messageText?.messageText ?? ""
                     }));
                 };
 
@@ -328,6 +331,8 @@ export class Editor {
                             ctx.pos,
                             {}
                         );
+
+                    console.log(tsCompletions)
 
                     if (!tsCompletions) return { from: ctx.pos, options: [] };
 

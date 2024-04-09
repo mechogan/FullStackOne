@@ -96,6 +96,8 @@ export class Project {
     setProject(project: TypeProject) {
         if (project === this.project) return;
 
+        Editor.currentDirectory = project.location;
+
         this.project = project;
         this.gitWidget.project = project;
 

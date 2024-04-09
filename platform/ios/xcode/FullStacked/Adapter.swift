@@ -80,7 +80,7 @@ class Adapter {
                         }
                         return done(true)
                     case "unlink": return done(self.fs.unlink(path: json[0].stringValue))
-                    case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue))
+                    case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue, recursive: json[1]["recursive"].boolValue))
                     case "mkdir": return done(self.fs.mkdir(path: json[0].stringValue))
                     case "rmdir": return done(self.fs.rmdir(path: json[0].stringValue))
                     case "stat": return done(self.fs.stat(path: json[0].stringValue))
@@ -244,7 +244,7 @@ class AdapterFS {
         }
     }
     
-    func readdir(path: String, withFileTypes: Bool) -> Any {
+    func readdir(path: String, withFileTypes: Bool, recursive: Bool) -> Any {
         let itemPath = self.baseDirectory + "/" + path;
         
         let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(itemPath);
@@ -256,7 +256,16 @@ class AdapterFS {
             )
         }
         
-        let items = try! FileManager.default.contentsOfDirectory(atPath: itemPath)
+        var items = recursive
+            ? []
+            : try! FileManager.default.contentsOfDirectory(atPath: itemPath)
+        
+        if(recursive) {
+            let enumarator = FileManager.default.enumerator(atPath: itemPath)
+            while let element = enumarator?.nextObject() as? String {
+                items.append(element)
+            }
+        }
         
         if(withFileTypes){
             let itemsWithFileTypes = items.map { childItem in

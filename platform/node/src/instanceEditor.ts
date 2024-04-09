@@ -93,7 +93,11 @@ export class InstanceEditor extends Instance {
                 },
                 readdir: async (
                     path,
-                    options?: { withFileTypes: true; absolutePath?: boolean }
+                    options?: { 
+                        withFileTypes: true;
+                        absolutePath?: boolean;
+                        recursive?: boolean
+                    }
                 ) => {
                     if (options?.absolutePath) {
                         const items = await fs.promises.readdir(

@@ -1,8 +1,7 @@
-import ts from "typescript";
+import { IScriptSnapshot, createLanguageService, createDocumentRegistry, CompilerOptions, JsxEmit, LanguageService, LanguageServiceHost, ModuleKind, ModuleResolutionKind, ScriptSnapshot, ScriptTarget } from "../../lib/TypeScript/src/typescript/_namespaces/ts";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
-import type { Dirent } from "../../src/adapter/fs";
 
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
@@ -41,21 +40,15 @@ self.onmessage = (message: MessageEvent) => {
     }
 };
 
-const options: ts.CompilerOptions = {
+const options: CompilerOptions = {
     esModuleInterop: true,
-    module: ts.ModuleKind.ES2022,
-    target: ts.ScriptTarget.ES2022,
-    moduleResolution: ts.ModuleResolutionKind.Node10,
+    module: ModuleKind.ES2022,
+    target: ScriptTarget.ES2022,
+    moduleResolution: ModuleResolutionKind.Node10,
     lib: ["lib.dom.d.ts", "lib.es2023.d.ts"],
-    jsx: ts.JsxEmit.React
+    jsx: JsxEmit.React
 };
-let services: ts.LanguageService;
-let sourceFiles: {
-    [filename: string]: {
-        contents: string;
-        version: number;
-    };
-} = {};
+let services: LanguageService;
 let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
@@ -63,9 +56,9 @@ export let methods = {
         if(services) return;
 
         const servicesHost = initLanguageServiceHost(currentDirectory);
-        services = ts.createLanguageService(
+        services = createLanguageService(
             servicesHost,
-            ts.createDocumentRegistry()
+            createDocumentRegistry()
         );
         methods = {
             ...methods,
@@ -75,6 +68,9 @@ export let methods = {
     updateFile(sourceFile: string, contents: string) {
         sourceFiles[sourceFile] = {
             contents,
+            lastVersionSaved: sourceFiles?.[sourceFile]?.lastVersionSaved
+                ? sourceFiles?.[sourceFile]?.lastVersionSaved
+                : 0,
             version: sourceFiles?.[sourceFile]?.version
                 ? sourceFiles?.[sourceFile]?.version + 1
                 : 1
@@ -85,8 +81,10 @@ export let methods = {
         updateThrottler = setTimeout(() => {
             Promise.all(
                 Object.entries(sourceFiles).map(
-                    ([filename, { contents }]) =>
+                    ([filename, { contents, lastVersionSaved, version }]) =>
                         new Promise<void>(async (res) => {
+                            if(lastVersionSaved === version) return res();
+
                             if (
                                 await rpc().fs.exists(filename, {
                                     absolutePath: true
@@ -95,6 +93,7 @@ export let methods = {
                                 await rpc().fs.writeFile(filename, contents, {
                                     absolutePath: true
                                 });
+                                sourceFiles[sourceFile].lastVersionSaved = version;
                             } else {
                                 delete sourceFiles[sourceFile];
                             }
@@ -107,9 +106,18 @@ export let methods = {
     ...services
 };
 
-const libCache = {};
-
-const fsMap = new Map<string, string[] | boolean>();
+let sourceFiles: {
+    [filename: string]: {
+        contents: string;
+        lastVersionSaved: number;
+        version: number;
+    };
+} = {};
+const scriptSnapshotCache: {
+    [path: string]: IScriptSnapshot
+} = {};
+let files: string[];
+let nodeModules: string[];
 
 const nodeModulesDirectory = await rpc().directories.nodeModules();
 const resolveNodeModulePath = (path: string) =>
@@ -117,7 +125,7 @@ const resolveNodeModulePath = (path: string) =>
 
 function initLanguageServiceHost(
     currentDirectory: string
-): ts.LanguageServiceHost {
+): LanguageServiceHost {
     return {
         getCompilationSettings: () => options,
         getScriptFileNames: function (): string[] {
@@ -137,6 +145,7 @@ function initLanguageServiceHost(
             if (!sourceFiles[fileName]) {
                 sourceFiles[fileName] = {
                     version: 0,
+                    lastVersionSaved: 0,
                     contents: rpcSync().fs.readFile(fileName, {
                         encoding: "utf8",
                         absolutePath: true
@@ -150,29 +159,30 @@ function initLanguageServiceHost(
             // console.log("getScriptSnapshot", fileName);
 
             if (fileName.includes("tsLib")) {
-                if (!libCache[fileName]) {
-                    libCache[fileName] = ts.ScriptSnapshot.fromString(
+                if (!scriptSnapshotCache[fileName]) {
+                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
                         rpcSync().fs.readFile(fileName, {
                             encoding: "utf8"
                         }) as string
                     );
                 }
-                return libCache[fileName];
+                return scriptSnapshotCache[fileName];
             } else if (fileName.startsWith("node_modules")) {
-                if (!libCache[fileName]) {
-                    libCache[fileName] = ts.ScriptSnapshot.fromString(
+                if (!scriptSnapshotCache[fileName]) {
+                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
                         rpcSync().fs.readFile(resolveNodeModulePath(fileName), {
                             encoding: "utf8",
                             absolutePath: true
                         }) as string
                     );
                 }
-                return libCache[fileName];
+                return scriptSnapshotCache[fileName];
             }
 
             if (!sourceFiles[fileName]) {
                 sourceFiles[fileName] = {
                     version: 0,
+                    lastVersionSaved: 0,
                     contents: rpcSync().fs.readFile(fileName, {
                         encoding: "utf8",
                         absolutePath: true
@@ -180,25 +190,31 @@ function initLanguageServiceHost(
                 }
             }
 
-            return ts.ScriptSnapshot.fromString(
+            return ScriptSnapshot.fromString(
                 sourceFiles[fileName].contents
             );
         },
         getCurrentDirectory: function () {
             // console.log("getCurrentDirectory");
-            return currentDirectory;
+            return "";
         },
-        getDefaultLibFileName: function (options: ts.CompilerOptions) {
+        getDefaultLibFileName: function (options: CompilerOptions) {
             // console.log("getDefaultLibFileName");
             return "tsLib/lib.d.ts";
         },
         readFile: function (path: string) {
             // console.log("readFile", path);
             if (path.startsWith("node_modules")) {
-                return rpcSync().fs.readFile(resolveNodeModulePath(path), {
-                    absolutePath: true,
-                    encoding: "utf8"
-                }) as string;
+                if(!scriptSnapshotCache[path]) {
+                    scriptSnapshotCache[path] = ScriptSnapshot.fromString(
+                        rpcSync().fs.readFile(resolveNodeModulePath(path), {
+                            absolutePath: true,
+                            encoding: "utf8"
+                        }) as string
+                    )
+                }
+
+                return scriptSnapshotCache[path].getText(0, scriptSnapshotCache[path].getLength());
             }
             return rpcSync().fs.readFile(path, {
                 absolutePath: true,
@@ -208,43 +224,24 @@ function initLanguageServiceHost(
         fileExists: function (path: string) {
             // console.log("fileExists", path);
             if (path.startsWith("node_modules")) {
-                const resolvedPath = resolveNodeModulePath(path);
-
-                const resolvedPathComponents = resolvedPath.split("/");
-                const filename = resolvedPathComponents.pop();
-                const directory = resolvedPathComponents.join("/");
-
-                let files = fsMap.get(directory);
-                if (files === undefined) {
-                    const exists = rpcSync().fs.exists(directory, {
+                if(!nodeModules) {
+                    nodeModules = (rpcSync().fs.readdir(nodeModulesDirectory, { 
+                        recursive: true,
                         absolutePath: true
-                    });
-                    if (!exists) {
-                        fsMap.set(directory, false);
-                        return false;
-                    }
-
-                    try {
-                        files = (
-                            rpcSync().fs.readdir(directory, {
-                                withFileTypes: true,
-                                absolutePath: true
-                            }) as Dirent[]
-                        )
-                            .filter(({ isDirectory }) => !isDirectory)
-                            .map(({ name }) => name);
-                    } catch (e) {
-                        files = false;
-                    }
-
-                    fsMap.set(directory, files);
+                    }) as string[]).map((filename) => "node_modules/" + filename)
                 }
 
-                return typeof files === "boolean"
-                    ? files
-                    : files.includes(filename);
+                return nodeModules.includes(path);
             }
-            return rpcSync().fs.exists(path, { absolutePath: true })?.isFile;
+
+            if(!files) {
+                files = (rpcSync().fs.readdir(currentDirectory, {
+                    recursive: true,
+                    absolutePath: true
+                }) as string[]).map((filename) => currentDirectory + "/" + filename)
+            }
+
+            return files.includes(path);
         }
     };
 }
