@@ -82,7 +82,7 @@ export let methods = {
 
         if (updateThrottler) clearTimeout(updateThrottler);
 
-        setTimeout(() => {
+        updateThrottler = setTimeout(() => {
             Promise.all(
                 Object.entries(sourceFiles).map(
                     ([filename, { contents }]) =>
