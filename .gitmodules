@@ -4,3 +4,6 @@
 [submodule "editor-sample-demo"]
 	path = editor-sample-demo
 	url = https://github.com/fullstackedorg/editor-sample-demo.git
+[submodule "lib/TypeScript"]
+	path = lib/TypeScript
+	url = https://github.com/cplepage/TypeScript.git
