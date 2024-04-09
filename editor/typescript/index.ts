@@ -39,6 +39,7 @@ export class tsWorker {
             const { id, data } = message.data;
             const promiseResolve = this.reqs.get(id);
             promiseResolve(data);
+            this.reqs.delete(id);
         };
     }
 
