@@ -50,7 +50,7 @@ export class tsWorker {
             this.readyAwaiter.push(resolve);
         });
     }
-
+    
     call = () =>
         recurseInProxy(this.postMessage.bind(this)) as AwaitAll<typeof methods>;
 }
