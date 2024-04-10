@@ -142,7 +142,7 @@ class Adapter {
                method: String,
                body: Data,
                onCompletion: @escaping (
-                    _ headers: [String: String],
+                  _ headers: [String: String],
                   _ statusCode: Int,
                   _ statusMessage: String,
                   _ data: Data
@@ -160,6 +160,7 @@ class Adapter {
                    
                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
                        if error != nil {
+                           onCompletion([:], 500, "Fetch error", Data())
                            return
                        }
                        
