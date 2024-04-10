@@ -99,19 +99,11 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
-    private async restartTSWorker(contents?: string) {
-        if(Editor.currentDirectory !== Editor.tsWorker?.workingDirectory) {
-            if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
-            Editor.tsWorker = new tsWorker(Editor.currentDirectory);
-            await Editor.tsWorker.ready();
-            await Editor.tsWorker.call().start(Editor.currentDirectory);
-        }
-        await Editor.tsWorker
-            .call()
-            .updateFile(
-                this.filePath.join("/"),
-                contents || this.editor.state.doc.toString()
-            );
+    private async restartTSWorker() {
+        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
+        Editor.tsWorker = new tsWorker(Editor.currentDirectory);
+        await Editor.tsWorker.ready();
+        await Editor.tsWorker.call().start(Editor.currentDirectory);
     }
 
     async loadFileContents() {
@@ -133,7 +125,10 @@ export class Editor {
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
             ) {
-                await this.restartTSWorker(doc);
+                if(Editor.currentDirectory !== Editor.tsWorker?.workingDirectory)
+                    await this.restartTSWorker();
+
+                await Editor.tsWorker.call().updateFile(this.filePath.join("/"), doc);
             }
 
             this.editor = new EditorView({
@@ -331,8 +326,6 @@ export class Editor {
                             ctx.pos,
                             {}
                         );
-
-                    console.log(tsCompletions)
 
                     if (!tsCompletions) return { from: ctx.pos, options: [] };
 

@@ -117,7 +117,7 @@ const scriptSnapshotCache: {
     [path: string]: IScriptSnapshot
 } = {};
 let files: string[];
-let nodeModules: string[];
+let nodeModules: Map<string, string[]> = new Map();
 
 const nodeModulesDirectory = await rpc().directories.nodeModules();
 const resolveNodeModulePath = (path: string) =>
@@ -224,14 +224,27 @@ function initLanguageServiceHost(
         fileExists: function (path: string) {
             // console.log("fileExists", path);
             if (path.startsWith("node_modules")) {
-                if(!nodeModules) {
-                    nodeModules = (rpcSync().fs.readdir(nodeModulesDirectory, { 
-                        recursive: true,
-                        absolutePath: true
-                    }) as string[]).map((filename) => "node_modules/" + filename)
+                const pathComponents = path.split("/");
+                const moduleName = pathComponents.at(1).startsWith("@")
+                    ? pathComponents.at(1) + "/" + pathComponents.at(2)
+                    : pathComponents.at(1);
+
+                let moduleFiles = nodeModules.get(moduleName);
+
+                if(!moduleFiles) {
+                    try {
+                        moduleFiles = (rpcSync().fs.readdir(nodeModulesDirectory + "/" + moduleName, { 
+                            recursive: true,
+                            absolutePath: true
+                        }) as string[]).map(file => "node_modules/" + moduleName + "/" + file);
+                    } catch (e) {
+                        moduleFiles = [];
+                    }
+
+                    nodeModules.set(moduleName, moduleFiles);
                 }
 
-                return nodeModules.includes(path);
+                return moduleFiles.includes(path);
             }
 
             if(!files) {
