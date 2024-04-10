@@ -8,6 +8,7 @@ export type PackageInfo = {
     name: string;
     version?: string;
     deep?: boolean;
+    errored?: boolean;
 };
 
 const nodeModulesDirectory = await rpc().directories.nodeModules();
@@ -179,8 +180,6 @@ export class PackageInstaller {
             packagesToInstall.push(packageInfo);
         });
 
-        let errored: PackageInfo[] = [];
-
         for (const pacakgeInfo of packagesToInstall) {
             try {
                 await PackageInstaller.installPackage(pacakgeInfo);
@@ -190,12 +189,12 @@ export class PackageInstaller {
                     total: -1,
                     error
                 });
-                errored.push(pacakgeInfo);
+                pacakgeInfo.errored = error;
             }
         }
 
         let retry: boolean;
-        if (errored.length) {
+        if (packagesToInstall.some(({ errored }) => !!errored)) {
             retry = await new Promise<boolean>((resolve) => {
                 const buttonGroup = document.createElement("div");
                 buttonGroup.classList.add("button-group");
@@ -219,11 +218,15 @@ export class PackageInstaller {
         PackageInstaller.progressDialog = null;
         PackageInstaller.currentInstalls = new Map();
 
-        if (errored) {
-            return retry ? PackageInstaller.install(errored) : errored;
+        if(packagesToInstall.some(({ errored }) => errored) && retry) {
+            return PackageInstaller.install(packagesToInstall.filter(({ errored }) => errored))
         }
 
-        const deepInstalls = packagesToInstall.filter(({ deep }) => deep);
+        if(packagesToInstall.every(({ errored }) => errored) && !retry) {
+            return packagesToInstall;
+        }
+        
+        const deepInstalls = packagesToInstall.filter(({ errored, deep }) => deep && !errored);
         if (deepInstalls.length === 0) return;
 
         previousInstalls.push(...deepInstalls.map(({ name }) => name));

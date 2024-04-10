@@ -176,7 +176,8 @@ export class Editor {
         if (!contents) return;
 
         if (
-            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) &&
+            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) || 
+            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X))&&
             Editor.tsWorker
         ) {
             return Editor.tsWorker
@@ -288,6 +289,7 @@ export class Editor {
                             !Editor.ignoredTypes.has(`@types/${moduleName}`)
                         );
                     });
+                    console.log(needsTypes);
                     if (needsTypes.length) {
                         const ignored = await PackageInstaller.install(
                             needsTypes.map((e) => {
@@ -305,7 +307,7 @@ export class Editor {
                             })
                         );
 
-                        ignored.forEach(({ name }) =>
+                        ignored?.forEach(({ name }) =>
                             Editor.ignoredTypes.add(name)
                         );
 
