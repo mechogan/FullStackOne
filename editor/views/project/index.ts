@@ -97,6 +97,7 @@ export class Project {
         if (project === this.project) return;
 
         Editor.currentDirectory = project.location;
+        Editor.ignoredTypes = new Set();
 
         this.project = project;
         this.gitWidget.project = project;
@@ -169,7 +170,10 @@ export class Project {
 
         if (packagesMissing.size > 0) {
             PackageInstaller.install(
-                Array.from(packagesMissing).map((name) => ({ name, deep: true }))
+                Array.from(packagesMissing).map((name) => ({
+                    name,
+                    deep: true
+                }))
             ).then(() => this.runProject());
         }
     }

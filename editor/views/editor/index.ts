@@ -47,6 +47,7 @@ enum IMAGE_Ext {
 export class Editor {
     static tsWorker: tsWorker;
     static currentDirectory: string;
+    static ignoredTypes = new Set<string>();
 
     private extensions = [
         basicSetup,
@@ -125,10 +126,15 @@ export class Editor {
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
                 this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
             ) {
-                if(Editor.currentDirectory !== Editor.tsWorker?.workingDirectory)
+                if (
+                    Editor.currentDirectory !==
+                    Editor.tsWorker?.workingDirectory
+                )
                     await this.restartTSWorker();
 
-                await Editor.tsWorker.call().updateFile(this.filePath.join("/"), doc);
+                await Editor.tsWorker
+                    .call()
+                    .updateFile(this.filePath.join("/"), doc);
             }
 
             this.editor = new EditorView({
@@ -177,8 +183,6 @@ export class Editor {
                 .call()
                 .updateFile(this.filePath.join("/"), contents);
         }
-
-        
 
         this.updateThrottler = null;
 
@@ -279,10 +283,13 @@ export class Editor {
                             .slice(e.start, e.start + e.length)
                             .slice(1, -1);
 
-                        return !moduleName.startsWith(".");
+                        return (
+                            !moduleName.startsWith(".") &&
+                            !Editor.ignoredTypes.has(`@types/${moduleName}`)
+                        );
                     });
                     if (needsTypes.length) {
-                        await PackageInstaller.install(
+                        const ignored = await PackageInstaller.install(
                             needsTypes.map((e) => {
                                 const text =
                                     e.file?.text ||
@@ -298,14 +305,19 @@ export class Editor {
                             })
                         );
 
+                        ignored.forEach(({ name }) =>
+                            Editor.ignoredTypes.add(name)
+                        );
+
                         await this.restartTSWorker();
+                        await this.updateFile();
                         tsErrors = await getAllTsError();
                     }
 
                     return tsErrors.map((tsError) => ({
                         from: tsError.start,
                         to: tsError.start + tsError.length,
-                        severity: "error",
+                        severity: tsError.code === 7016 ? "warning" : "error",
                         message:
                             typeof tsError.messageText === "string"
                                 ? tsError.messageText
@@ -385,10 +397,14 @@ export class Editor {
                 };
 
                 const tsTypeDefinition = async (view, pos, side) => {
-                    const info = await Editor.tsWorker.call().getQuickInfoAtPosition(this.filePath.join("/"), pos)
-                    const text = info?.displayParts?.map(({text}) => text).join("");
+                    const info = await Editor.tsWorker
+                        .call()
+                        .getQuickInfoAtPosition(this.filePath.join("/"), pos);
+                    const text = info?.displayParts
+                        ?.map(({ text }) => text)
+                        .join("");
 
-                    if(!text) return null;
+                    if (!text) return null;
 
                     return {
                         pos: info.textSpan.start,

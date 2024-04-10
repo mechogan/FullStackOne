@@ -20,4 +20,9 @@
             margin-bottom: spacing(2);
         }
     }
+
+    .button-group {
+        display: flex;
+        justify-content: flex-end;
+    }
 }

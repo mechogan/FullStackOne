@@ -1,4 +1,16 @@
-import { IScriptSnapshot, createLanguageService, createDocumentRegistry, CompilerOptions, JsxEmit, LanguageService, LanguageServiceHost, ModuleKind, ModuleResolutionKind, ScriptSnapshot, ScriptTarget } from "../../lib/TypeScript/src/typescript/_namespaces/ts";
+import {
+    IScriptSnapshot,
+    createLanguageService,
+    createDocumentRegistry,
+    CompilerOptions,
+    JsxEmit,
+    LanguageService,
+    LanguageServiceHost,
+    ModuleKind,
+    ModuleResolutionKind,
+    ScriptSnapshot,
+    ScriptTarget
+} from "../../lib/TypeScript/src/typescript/_namespaces/ts";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
@@ -53,7 +65,7 @@ let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
     start(currentDirectory: string) {
-        if(services) return;
+        if (services) return;
 
         const servicesHost = initLanguageServiceHost(currentDirectory);
         services = createLanguageService(
@@ -83,7 +95,7 @@ export let methods = {
                 Object.entries(sourceFiles).map(
                     ([filename, { contents, lastVersionSaved, version }]) =>
                         new Promise<void>(async (res) => {
-                            if(lastVersionSaved === version) return res();
+                            if (lastVersionSaved === version) return res();
 
                             if (
                                 await rpc().fs.exists(filename, {
@@ -93,7 +105,8 @@ export let methods = {
                                 await rpc().fs.writeFile(filename, contents, {
                                     absolutePath: true
                                 });
-                                sourceFiles[sourceFile].lastVersionSaved = version;
+                                sourceFiles[sourceFile].lastVersionSaved =
+                                    version;
                             } else {
                                 delete sourceFiles[sourceFile];
                             }
@@ -114,7 +127,7 @@ let sourceFiles: {
     };
 } = {};
 const scriptSnapshotCache: {
-    [path: string]: IScriptSnapshot
+    [path: string]: IScriptSnapshot;
 } = {};
 let files: string[];
 let nodeModules: Map<string, string[]> = new Map();
@@ -150,7 +163,7 @@ function initLanguageServiceHost(
                         encoding: "utf8",
                         absolutePath: true
                     }) as string
-                }
+                };
             }
 
             return sourceFiles[fileName].version.toString();
@@ -187,12 +200,10 @@ function initLanguageServiceHost(
                         encoding: "utf8",
                         absolutePath: true
                     }) as string
-                }
+                };
             }
 
-            return ScriptSnapshot.fromString(
-                sourceFiles[fileName].contents
-            );
+            return ScriptSnapshot.fromString(sourceFiles[fileName].contents);
         },
         getCurrentDirectory: function () {
             // console.log("getCurrentDirectory");
@@ -205,16 +216,19 @@ function initLanguageServiceHost(
         readFile: function (path: string) {
             // console.log("readFile", path);
             if (path.startsWith("node_modules")) {
-                if(!scriptSnapshotCache[path]) {
+                if (!scriptSnapshotCache[path]) {
                     scriptSnapshotCache[path] = ScriptSnapshot.fromString(
                         rpcSync().fs.readFile(resolveNodeModulePath(path), {
                             absolutePath: true,
                             encoding: "utf8"
                         }) as string
-                    )
+                    );
                 }
 
-                return scriptSnapshotCache[path].getText(0, scriptSnapshotCache[path].getLength());
+                return scriptSnapshotCache[path].getText(
+                    0,
+                    scriptSnapshotCache[path].getLength()
+                );
             }
             return rpcSync().fs.readFile(path, {
                 absolutePath: true,
@@ -231,12 +245,19 @@ function initLanguageServiceHost(
 
                 let moduleFiles = nodeModules.get(moduleName);
 
-                if(!moduleFiles) {
+                if (!moduleFiles) {
                     try {
-                        moduleFiles = (rpcSync().fs.readdir(nodeModulesDirectory + "/" + moduleName, { 
-                            recursive: true,
-                            absolutePath: true
-                        }) as string[]).map(file => "node_modules/" + moduleName + "/" + file);
+                        moduleFiles = (
+                            rpcSync().fs.readdir(
+                                nodeModulesDirectory + "/" + moduleName,
+                                {
+                                    recursive: true,
+                                    absolutePath: true
+                                }
+                            ) as string[]
+                        ).map(
+                            (file) => "node_modules/" + moduleName + "/" + file
+                        );
                     } catch (e) {
                         moduleFiles = [];
                     }
@@ -247,11 +268,13 @@ function initLanguageServiceHost(
                 return moduleFiles.includes(path);
             }
 
-            if(!files) {
-                files = (rpcSync().fs.readdir(currentDirectory, {
-                    recursive: true,
-                    absolutePath: true
-                }) as string[]).map((filename) => currentDirectory + "/" + filename)
+            if (!files) {
+                files = (
+                    rpcSync().fs.readdir(currentDirectory, {
+                        recursive: true,
+                        absolutePath: true
+                    }) as string[]
+                ).map((filename) => currentDirectory + "/" + filename);
             }
 
             return files.includes(path);

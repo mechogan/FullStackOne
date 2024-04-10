@@ -93,10 +93,10 @@ export class InstanceEditor extends Instance {
                 },
                 readdir: async (
                     path,
-                    options?: { 
+                    options?: {
                         withFileTypes: true;
                         absolutePath?: boolean;
-                        recursive?: boolean
+                        recursive?: boolean;
                     }
                 ) => {
                     if (options?.absolutePath) {

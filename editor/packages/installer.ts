@@ -103,7 +103,7 @@ export class PackageInstaller {
 
     private static updateProgress(
         packageName: string,
-        state: { progress: number; total: number }
+        state: { progress: number; total: number; error?: string }
     ) {
         if (!PackageInstaller.progressDialog) {
             const container = document.createElement("div");
@@ -135,7 +135,10 @@ export class PackageInstaller {
             PackageInstaller.currentInstalls.set(packageName, progressElement);
         }
 
-        if (state.progress === -1) {
+        if (state.progress === 0 && state.total === -1) {
+            progressElement.innerText = state.error;
+            return;
+        } else if (state.progress === -1) {
             progressElement.innerText = "...waiting";
             return;
         } else if (state.progress === 0) {
@@ -176,13 +179,49 @@ export class PackageInstaller {
             packagesToInstall.push(packageInfo);
         });
 
+        let errored: PackageInfo[] = [];
+
         for (const pacakgeInfo of packagesToInstall) {
-            await PackageInstaller.installPackage(pacakgeInfo);
+            try {
+                await PackageInstaller.installPackage(pacakgeInfo);
+            } catch (error) {
+                PackageInstaller.updateProgress(pacakgeInfo.name, {
+                    progress: 0,
+                    total: -1,
+                    error
+                });
+                errored.push(pacakgeInfo);
+            }
+        }
+
+        let retry: boolean;
+        if (errored.length) {
+            retry = await new Promise<boolean>((resolve) => {
+                const buttonGroup = document.createElement("div");
+                buttonGroup.classList.add("button-group");
+
+                const ignoreButton = document.createElement("button");
+                ignoreButton.classList.add("text");
+                ignoreButton.innerText = "Ignore";
+                ignoreButton.addEventListener("click", () => resolve(false));
+                buttonGroup.append(ignoreButton);
+
+                const retryButton = document.createElement("button");
+                retryButton.innerText = "Retry";
+                retryButton.addEventListener("click", () => resolve(true));
+                buttonGroup.append(retryButton);
+
+                PackageInstaller.progressDialog.container.append(buttonGroup);
+            });
         }
 
         PackageInstaller.progressDialog.container.remove();
         PackageInstaller.progressDialog = null;
         PackageInstaller.currentInstalls = new Map();
+
+        if (errored) {
+            return retry ? PackageInstaller.install(errored) : errored;
+        }
 
         const deepInstalls = packagesToInstall.filter(({ deep }) => deep);
         if (deepInstalls.length === 0) return;

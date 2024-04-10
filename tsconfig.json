@@ -9,6 +9,7 @@
         "lib",
         "platform/electron",
         "platform/node/editor",
-        "editor/build"
+        "editor/build",
+        "editor/typescript"
     ]
 }

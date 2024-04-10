@@ -58,8 +58,8 @@ export type fs = {
 
     readdir(
         path: string,
-        options?: { 
-            withFileTypes?: boolean; 
+        options?: {
+            withFileTypes?: boolean;
             absolutePath?: boolean;
             recursive?: boolean;
         }
