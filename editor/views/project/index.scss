@@ -148,3 +148,19 @@ $transition: 0.3s all;
         }
     }
 }
+
+
+@keyframes flash {
+    from {
+      opacity: 1;
+    }
+  
+    to {
+        opacity: 0.3;
+    }
+}
+#typescript-icon {
+    &.loading {
+        animation: flash 1s infinite alternate;
+    }  
+}

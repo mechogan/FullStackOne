@@ -9,3 +9,4 @@ export const SETTINGS_BUTTON_ID = "settings";
 export const BACK_BUTTON_ID = "back-button";
 export const PROJECT_TITLE_ID = "project-title";
 export const PACKAGE_INSTALLER_ID = "package-installer";
+export const TYPESCRIPT_ICON_ID = "typescript-icon";

@@ -95,5 +95,14 @@ button {
         &:hover {
             background-color: colorOpacity(white, 0.05);
         }
+
+        &:disabled {
+            background-color: transparent!important;
+            border-color: transparent !important;
+            cursor: default;
+            &:active {
+                background-color: transparent !important;
+            }
+        }
     }
 }

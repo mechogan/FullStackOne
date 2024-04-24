@@ -13,7 +13,7 @@ import {
 } from "@codemirror/lint";
 import { Extension } from "@codemirror/state";
 import rpc from "../../rpc";
-import { tsWorker } from "../../typescript";
+import { tsWorker, tsWorkerDelegate } from "../../typescript";
 import { PackageInstaller } from "../../packages/installer";
 
 enum UTF8_Ext {
@@ -66,6 +66,8 @@ export class Editor {
     }[] = [];
     filePath: string[];
 
+    tsWorkerDelegate: tsWorkerDelegate;
+
     constructor(filePath: string[]) {
         this.filePath = filePath;
 
@@ -103,6 +105,8 @@ export class Editor {
     private async restartTSWorker() {
         if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
         Editor.tsWorker = new tsWorker(Editor.currentDirectory);
+        if(this.tsWorkerDelegate)
+            Editor.tsWorker.delegate = this.tsWorkerDelegate
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start(Editor.currentDirectory);
     }
@@ -289,7 +293,7 @@ export class Editor {
                             !Editor.ignoredTypes.has(`@types/${moduleName}`)
                         );
                     });
-                    console.log(needsTypes);
+                    
                     if (needsTypes.length) {
                         const ignored = await PackageInstaller.install(
                             needsTypes.map((e) => {

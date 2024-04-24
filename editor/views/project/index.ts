@@ -5,7 +5,8 @@ import { Console } from "../console";
 import {
     DELETE_ALL_PACKAGES_ID,
     PROJECT_TITLE_ID,
-    RUN_PROJECT_ID
+    RUN_PROJECT_ID,
+    TYPESCRIPT_ICON_ID
 } from "../../constants";
 import GitWidget from "./git-widget";
 import type esbuild from "esbuild";
@@ -13,8 +14,9 @@ import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";
+import { tsWorkerDelegate } from "../../typescript";
 
-export class Project {
+export class Project implements tsWorkerDelegate {
     backAction: () => void;
     packagesView: boolean = false;
 
@@ -60,6 +62,28 @@ export class Project {
 
             this.renderEditors();
         };
+    }
+
+    tsIcon = document.createElement("button");
+    activeReqs = new Set<number>();
+    onCreate(): void {
+        this.tsIcon.disabled = false;
+    }
+    checkForTsLoading = () => {
+        console.log(this.activeReqs);
+        if(this.activeReqs.size) {
+            this.tsIcon.classList.add("loading");
+        } else {
+            this.tsIcon.classList.remove("loading");
+        }
+    }
+    onReq(id: number): void {
+        this.activeReqs.add(id);
+        this.checkForTsLoading();
+    }
+    onReqEnd(id: number): void {
+        this.activeReqs.delete(id);
+        this.checkForTsLoading();
     }
 
     openFiles(filepaths: string[]) {
@@ -218,6 +242,15 @@ export class Project {
             });
             container.append(deleteAllPackagesButton);
         } else {
+            this.tsIcon = document.createElement("button");
+            this.tsIcon.id = TYPESCRIPT_ICON_ID;
+            this.tsIcon.disabled = true;
+            this.tsIcon.classList.add("text");
+            this.tsIcon.innerHTML = await (
+                await fetch("/assets/icons/typescript.svg")
+            ).text();
+            container.append(this.tsIcon);
+            
             const shareButton = document.createElement("button");
             shareButton.classList.add("text");
             shareButton.innerHTML = await (
@@ -318,6 +351,8 @@ export class Project {
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
+            editor.tsWorkerDelegate = this;
+            
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {
                 tab.classList.add("has-errors");

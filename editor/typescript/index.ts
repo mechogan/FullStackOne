@@ -12,9 +12,16 @@ function recurseInProxy(target: Function, methodPath: string[] = []) {
     });
 }
 
+export abstract class tsWorkerDelegate {
+    abstract onCreate(): void;
+    abstract onReq(id: number): void;
+    abstract onReqEnd(id: number): void;
+}
+
 export class tsWorker {
     worker: Worker;
     workingDirectory: string;
+    delegate?: tsWorkerDelegate;
     private reqsCount = 0;
     private reqs = new Map<number, Function>();
     private isReady = false;
@@ -22,6 +29,8 @@ export class tsWorker {
 
     private postMessage(methodPath: string[], ...args: any) {
         const id = ++this.reqsCount;
+        if(this.delegate)
+            this.delegate.onReq(id);
         return new Promise((resolve) => {
             this.reqs.set(id, resolve);
             this.worker.postMessage({ id, methodPath, args });
@@ -36,6 +45,8 @@ export class tsWorker {
             if (message.data.ready) {
                 this.isReady = true;
                 this.readyAwaiter.forEach((resolve) => resolve());
+                if(this.delegate)
+                    this.delegate.onCreate();
                 return;
             }
 
@@ -43,6 +54,8 @@ export class tsWorker {
             const promiseResolve = this.reqs.get(id);
             promiseResolve(data);
             this.reqs.delete(id);
+            if(this.delegate)
+                this.delegate.onReqEnd(id);
         };
     }
 
