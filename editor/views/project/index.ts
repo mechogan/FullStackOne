@@ -70,7 +70,6 @@ export class Project implements tsWorkerDelegate {
         this.tsIcon.disabled = false;
     }
     checkForTsLoading = () => {
-        console.log(this.activeReqs);
         if(this.activeReqs.size) {
             this.tsIcon.classList.add("loading");
         } else {
