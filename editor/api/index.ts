@@ -48,8 +48,10 @@ export default {
                 }
             });
 
-            if(searchParams.branch)
+            if(searchParams.branch){
+                await git.pull(project);
                 await git.checkout(project, searchParams.branch);
+            }
         }
 
         return project;
