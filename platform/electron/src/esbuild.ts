@@ -105,7 +105,7 @@ export const installEsbuild = async (
             read += chunk.length;
             const progress = read / size;
 
-            untarWriteStream.write(chunk);
+            untarWriteStream.write(chunk as Buffer);
 
             progressListener({
                 step: 1,
@@ -157,7 +157,7 @@ export const installEsbuild = async (
             read += chunk.length;
             const progress = read / binSize;
 
-            untarBinWriteStream.write(chunk);
+            untarBinWriteStream.write(chunk as Buffer);
 
             progressListener({
                 step: 3,
