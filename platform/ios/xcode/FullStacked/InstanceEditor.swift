@@ -14,7 +14,7 @@ let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
     init(){
-        let editorDirectory = Bundle.main.bundlePath + "/build"
+        let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
         self.webview.isOpaque = false
     }
@@ -22,7 +22,7 @@ class InstanceEditor: Instance {
 
 class AdapterEditor: Adapter {
     let rootDirectory = documentsDirectory
-    private let baseJS = Bundle.main.bundlePath + "/js/index.js"
+    private let baseJS = Bundle.main.path(forResource: "index", ofType: "js", inDirectory: "js")!
     let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
