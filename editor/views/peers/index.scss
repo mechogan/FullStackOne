@@ -1,0 +1,32 @@
+@import "../../style/spacing";
+@import "../../style/border";
+@import "../../style/colors";
+@import "../../style/typography";
+
+.peers {
+    @include full-width();
+
+    header{
+        display: flex;
+        align-items: center;
+        h1 {
+            margin: 0;
+        }
+        margin-bottom: spacing();
+    }
+
+    ul {
+        margin: 0;
+        padding: 0;
+
+        li {
+            background-color: colorOpacity(white, 0.1);
+            display: flex;
+            border-radius: $border-radius;
+            padding: spacing();
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: spacing();
+        }
+    }
+}

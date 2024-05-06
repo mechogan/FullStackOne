@@ -11,6 +11,7 @@ import { build, merge } from "../../node/src/build";
 import type esbuild from "esbuild";
 import { shell } from "electron";
 import { installEsbuild, loadEsbuild } from "./esbuild";
+import { Multipeer, Peer } from "../../node/src/multipeer";
 
 type Response = {
     data: Uint8Array;
@@ -38,6 +39,10 @@ export class InstanceEditor extends Instance {
     configDirectory: string = ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
+    multipeer = new Multipeer(data => {
+        for(const instance of this.instances.values())
+            instance.push("peerData", data);
+    });
 
     adapter: AdapterEditor = null;
 
@@ -282,6 +287,18 @@ export class InstanceEditor extends Instance {
                 if (os.platform() === "win32")
                     directory = directory.split("/").join("\\");
                 shell.openPath(directory);
+            },
+
+            peers: {
+                advertise: () => this.multipeer.advertise(),
+                browse: () => {
+                    this.multipeer.browse(peer => {
+                        this.push("nearbyPeer", JSON.stringify(peer));
+                    })
+                },
+                pair: (peer: Peer) => {
+                    return this.multipeer.pair(peer)
+                }
             }
         };
     }

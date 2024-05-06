@@ -29,6 +29,8 @@
 		9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* ContentView.swift */; };
 		9CA03E542B5715AC002D2D9F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
 		9CA03E572B5715AC002D2D9F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E562B5715AC002D2D9F /* Preview Assets.xcassets */; };
+		9CB060462BE87F8A008FC949 /* Multipeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB060452BE87F8A008FC949 /* Multipeer.swift */; };
+		9CB060472BE88145008FC949 /* Multipeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB060452BE87F8A008FC949 /* Multipeer.swift */; };
 		9CB389912B863B0A00FB783E /* build in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* build */; };
 		9CE5E40E2B6FEEC600EDE034 /* js in Resources */ = {isa = PBXBuildFile; fileRef = 9CE5E40D2B6FEEC600EDE034 /* js */; };
 /* End PBXBuildFile section */
@@ -51,6 +53,7 @@
 		9CA03E532B5715AC002D2D9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9CA03E562B5715AC002D2D9F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		9CA03E652B57168A002D2D9F /* esbuild-macos-bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "esbuild-macos-bridge.h"; sourceTree = "<group>"; };
+		9CB060452BE87F8A008FC949 /* Multipeer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Multipeer.swift; sourceTree = "<group>"; };
 		9CB389902B863B0A00FB783E /* build */ = {isa = PBXFileReference; lastKnownFileType = folder; name = build; path = ../../../../editor/build; sourceTree = "<group>"; };
 		9CE2142E2B5E17AA00B3F646 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9CE5E40D2B6FEEC600EDE034 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; name = js; path = ../../../../src/js; sourceTree = "<group>"; };
@@ -119,6 +122,7 @@
 				9C7E8A642BADCDEE00CE9660 /* Instance.swift */,
 				9C46D3C12BADD35F00A3EE86 /* Adapter.swift */,
 				9C7E8A662BADCE1300CE9660 /* InstanceEditor.swift */,
+				9CB060452BE87F8A008FC949 /* Multipeer.swift */,
 			);
 			path = FullStacked;
 			sourceTree = "<group>";
@@ -261,6 +265,7 @@
 				9C7081512BE6EF5700EF0A6B /* ContentView.swift in Sources */,
 				9C7081522BE6EF5700EF0A6B /* Instance.swift in Sources */,
 				9C7081532BE6EF5700EF0A6B /* FullStackedApp.swift in Sources */,
+				9CB060472BE88145008FC949 /* Multipeer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,6 +278,7 @@
 				9CA03E522B5715AA002D2D9F /* ContentView.swift in Sources */,
 				9C7E8A652BADCDEE00CE9660 /* Instance.swift in Sources */,
 				9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */,
+				9CB060462BE87F8A008FC949 /* Multipeer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

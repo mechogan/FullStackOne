@@ -8,6 +8,7 @@ import { GitAuth } from "./views/git-auth";
 import { Settings } from "./views/settings";
 import api from "./api";
 import rpc from "./rpc";
+import { Peers } from "./views/peers";
 
 /// utils ///
 const main = document.querySelector("main") as HTMLElement;
@@ -15,6 +16,13 @@ const clearView = () => Array.from(main.children).forEach((e) => e.remove());
 
 /// Git Auth View ///
 new GitAuth();
+
+/// Peers View ///
+const peersView = new Peers();
+peersView.backAction = async () => {
+    clearView();
+    main.append(await projectsView.render());
+}
 
 /// Projects View ///
 const projectsView = new Projects();
@@ -30,6 +38,10 @@ projectsView.selectProjectAction = async (projectPath) => {
 projectsView.goToSettings = async () => {
     clearView();
     main.append(await settings.render());
+};
+projectsView.goToUsers = async () => {
+    clearView();
+    main.append(await peersView.render());
 };
 
 /// Settings View ///

@@ -9,6 +9,7 @@ import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
+import { Multipeer, Peer } from "./multipeer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
@@ -19,6 +20,8 @@ export class InstanceEditor extends Instance {
     configDirectory: string = ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
+    multipeer = new Multipeer((data: any) => this.instances.forEach(instance => instance.push("peerData", data)));
+    instances: Instance[] = [];
 
     adapter: AdapterEditor = null;
 
@@ -187,21 +190,21 @@ export class InstanceEditor extends Instance {
             build: async (project: Project) => {
                 const entryPoint = [
                     InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.ts",
+                    "/" +
+                    project.location +
+                    "/index.ts",
                     InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.tsx",
+                    "/" +
+                    project.location +
+                    "/index.tsx",
                     InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.js",
+                    "/" +
+                    project.location +
+                    "/index.js",
                     InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.jsx"
+                    "/" +
+                    project.location +
+                    "/index.jsx"
                 ].find((file) => fs.existsSync(file));
 
                 if (!entryPoint) return null;
@@ -223,8 +226,8 @@ export class InstanceEditor extends Instance {
                     "index",
                     outdir,
                     InstanceEditor.rootDirectory +
-                        "/" +
-                        this.nodeModulesDirectory
+                    "/" +
+                    this.nodeModulesDirectory
                 );
 
                 await fs.promises.unlink(mergedFile);
@@ -234,9 +237,22 @@ export class InstanceEditor extends Instance {
             run: (project: Project) => {
                 const instance = new Instance(project);
                 instance.start();
+                this.instances.push(instance);
             },
 
-            open: () => {}
+            open: () => { },
+
+            peers: {
+                advertise: () => this.multipeer.advertise(),
+                browse: () => {
+                    this.multipeer.browse(peer => {
+                        this.push("nearbyPeer", JSON.stringify(peer));
+                    })
+                },
+                pair: (peer: Peer) => {
+                    return this.multipeer.pair(peer)
+                }
+            }
         };
     }
 

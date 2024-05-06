@@ -11,6 +11,7 @@ export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;
     goToSettings: () => void;
+    goToUsers: () => void;
 
     private container: HTMLDivElement;
 
@@ -52,6 +53,18 @@ export class Projects {
         topContainer.append(title);
 
         const buttonGroup = document.createElement("div");
+
+        const usersButton = document.createElement("button");
+        usersButton.classList.add("text");
+        const usersButtonIcon = await (
+            await fetch("assets/icons/users.svg")
+        ).text();
+        usersButton.innerHTML = usersButtonIcon;
+        usersButton.addEventListener("click", async () => {
+            this.goToUsers();
+        });
+
+        buttonGroup.append(usersButton);
 
         const settingsButton = document.createElement("button");
         settingsButton.id = SETTINGS_BUTTON_ID;

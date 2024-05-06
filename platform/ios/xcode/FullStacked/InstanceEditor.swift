@@ -13,6 +13,8 @@ let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainM
 let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
+    let multipeer = Multipeer()
+    
     init(){
         let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))

@@ -45,7 +45,7 @@ const readBody = (request: http.IncomingMessage) =>
     });
 
 export class Instance {
-    static port = 9000;
+    static port = parseInt(process.env.PORT) || 9000;
     port: number;
 
     server: http.Server = http.createServer(this.requestListener.bind(this));
