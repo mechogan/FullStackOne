@@ -1,5 +1,7 @@
 import { Bonjour } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
+import http from "http";
+import { randomUUID } from 'crypto';
 
 export type Peer = {
     connected: boolean,
@@ -27,18 +29,21 @@ export class Multipeer {
     }
 
     advertise(){
+        const name = randomUUID();
         const advertiser = this.bonjour.publish({ 
-            name: (Math.random() * 10000000).toFixed(0), 
-            type: 'ws', 
+            name, 
+            type: 'fullstacked', 
             port: this.port,
-            host: 'fullstacked'
+            txt: {
+                displayName:  name
+            }
         });
 
         setTimeout(() => { advertiser.stop() }, 5000);
     }
 
     browse(onService: (peer: Peer) => void){
-        this.bonjour.find({ type: 'ws' }, service => {
+        this.bonjour.find({ type: 'fullstacked' }, service => {
             if(service.port === this.port) return;
 
             onService({

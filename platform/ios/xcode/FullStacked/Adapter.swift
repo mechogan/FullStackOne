@@ -131,6 +131,11 @@ class Adapter {
                             ])
                         }
                     }
+            case "broadcast":
+                for ws in (InstanceEditor.singleton!.adapter as! AdapterEditor).bonjour.ws {
+                    ws.send(URLSessionWebSocketTask.Message.string(json[0].stringValue), completionHandler: {_ in })
+                }
+                return done(true)
             default: break
         }
         

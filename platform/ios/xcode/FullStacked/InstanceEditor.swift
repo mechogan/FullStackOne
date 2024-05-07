@@ -13,12 +13,14 @@ let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainM
 let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
+    static var singleton: InstanceEditor?
     let multipeer = Multipeer()
     
     init(){
         let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
         self.webview.isOpaque = false
+        InstanceEditor.singleton = self
     }
 }
 
@@ -28,7 +30,8 @@ class AdapterEditor: Adapter {
     let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
-    let fsEditor: AdapterFS;
+    let fsEditor: AdapterFS
+    let bonjour = Bonjour()
     
     override init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
@@ -181,6 +184,18 @@ class AdapterEditor: Adapter {
                 let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue
                 UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
                 return done(true)
+            case "peers":
+                switch(methodPath[1]) {
+                case "advertise":
+                    return done(true)
+                case "browse":
+                    self.bonjour.browse();
+                    return done(true)
+                case "pair":
+                    self.bonjour.pair(host: json[0]["addresses"].arrayValue[0].stringValue, port: Int(truncating: json[0]["port"].numberValue))
+                    return done(true)
+                default: break
+                }
             default: break
         }
         
