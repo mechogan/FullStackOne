@@ -1,7 +1,7 @@
 import { Bonjour } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
-import http from "http";
 import { randomUUID } from 'crypto';
+import os from "os";
 
 export type Peer = {
     connected: boolean,
@@ -29,13 +29,17 @@ export class Multipeer {
     }
 
     advertise(){
+        const networkInterfaces = os.networkInterfaces();
+        const addresses = networkInterfaces["en0"].map(({address}) => address);
         const name = randomUUID();
         const advertiser = this.bonjour.publish({ 
             name, 
             type: 'fullstacked', 
             port: this.port,
             txt: {
-                _d:  name
+                _d:  name,
+                addresses: addresses.join(","),
+                port: this.port
             }
         });
 

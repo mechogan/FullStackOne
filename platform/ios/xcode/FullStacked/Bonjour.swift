@@ -3,12 +3,18 @@ import Network
 import SwiftyJSON
 
 
-class Bonjour: NSObject, URLSessionWebSocketDelegate {
+struct Peer: Codable {
+    var name: String
+    var addresses: [String]
+    var port: Int
+}
+
+class Bonjour {
     static var singleton: Bonjour?
     var ws: [URLSessionWebSocketTask] = []
     
     func browse(){
-        let browser = NWBrowser(for: .bonjour(type: "_fullstacked._tcp", domain: nil), using: .tcp)
+        let browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_fullstacked._tcp", domain: nil), using: .tcp)
         browser.stateUpdateHandler = { newState in
             print("browser did change state, new: \(newState)")
         }
@@ -17,33 +23,17 @@ class Bonjour: NSObject, URLSessionWebSocketDelegate {
             for change in changes {
                 switch change {
                 case .added(let result):
-                    let connection = NWConnection(to: result.endpoint, using: .tcp)
-
-                    connection.stateUpdateHandler = { state in
-                        switch state {
-                        case .ready:
-                            if let innerEndpoint = connection.currentPath?.remoteEndpoint,
-                               case .hostPort(let host, let port) = innerEndpoint {
-                                print(host, port)
-                                if(host.debugDescription.hasPrefix("::1")) {
-                                    return
-                                }
-                                
-                                let peer = "{ \"name\": \"\(result.endpoint)\", \"addresses\": [\"\(host)\"], \"port\": \(port) }"
-                                
-                                DispatchQueue.main.async {
-                                    InstanceEditor.singleton?.push(messageType: "nearbyPeer", message: peer)
-                                }
-                                
-                                connection.cancel()
+                    switch result.metadata {
+                        case.bonjour(let record):
+                        if let addressesStr = record["addresses"], let portStr = record["port"] {
+                            let peer = Peer(name: result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
+                            let json = try! JSONEncoder().encode(peer)
+                            DispatchQueue.main.async {
+                                InstanceEditor.singleton?.push(messageType: "nearbyPeer", message: String(data: json, encoding: .utf8)!)
                             }
-                        default:
-                            break
                         }
+                        default: break
                     }
-                    
-                    connection.start(queue: .main)
-                    
                 case .removed(let result):
                     print("- \(result.endpoint)")
                 case .changed(old: let old, new: let new, flags: _):
@@ -79,20 +69,58 @@ class Bonjour: NSObject, URLSessionWebSocketDelegate {
         })
     }
     
-    func pair(host: String, port: Int) {
-        print(host, port)
-        let ip = String(host.split(separator: "%").first!)
-        let hostname = ip.split(separator: ":").count > 1
-            ? "[\(ip)]" // ipv6
-            : ip        // ipv4
-        let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
+    func pair(addresses: [String], port: Int, completionHandler: @escaping (_ success: Bool) -> Void) {
+        if (addresses.count == 0) {
+            completionHandler(false)
+            return
+        }
+        
+        var paired = false
+        
+        let address = addresses.dropFirst().first!
+        let hostname = address.split(separator: ":").count > 1
+            ? "[\(address)]" // ipv6
+            : address        // ipv4
         let urlString = "ws://" + hostname + ":" + String(port)
+        
+        print("Trying to pair with \(urlString)")
+        
+        let wsDelegate = WSDelegate(
+            onOpen: { ws in
+                print("Paired with \(urlString)")
+                paired = true
+                completionHandler(true)
+                self.ws.append(ws)
+                self.receive(ws: ws)
+            }
+        );
+        
+        let session = URLSession(configuration: .default, delegate: wsDelegate, delegateQueue: OperationQueue())
         let url = URL(string: urlString)
         let webSocket = session.webSocketTask(with: url!)
-        ws.append(webSocket)
-        self.receive(ws: webSocket)
         webSocket.resume()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if(paired) {
+                return;
+            }
+            
+            print("Failed to pair with \(urlString). Continuing...")
+
+            self.pair(addresses: addresses, port: port, completionHandler: completionHandler)
+        }
+    }
+}
+
+
+class WSDelegate: NSObject, URLSessionWebSocketDelegate {
+    let onOpen: (_ ws: URLSessionWebSocketTask) -> Void
+    
+    init(onOpen: @escaping (_ ws: URLSessionWebSocketTask) -> Void) {
+        self.onOpen = onOpen
     }
     
-    
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        self.onOpen(webSocketTask)
+    }
 }
