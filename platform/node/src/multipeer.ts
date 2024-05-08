@@ -4,7 +4,6 @@ import { randomUUID } from 'crypto';
 import os from "os";
 
 export type Peer = {
-    connected: boolean,
     name: string,
     port: number,
     addresses: string[]
@@ -40,18 +39,28 @@ export class Multipeer {
         });
 
         const name = randomUUID();
-        const advertiser = this.bonjour.publish({ 
-            name, 
-            type: 'fullstacked', 
-            port: this.port,
-            txt: {
-                _d:  name,
-                addresses: Array.from(addresses).join(","),
+        try {
+            const advertiser = this.bonjour.publish({ 
+                name, 
+                type: 'fullstacked', 
+                port: this.port,
+                txt: {
+                    _d:  name,
+                    addresses: Array.from(addresses).join(","),
+                    port: this.port
+                }
+            });
+    
+            setTimeout(() => { advertiser?.stop() }, 30000);
+        } catch (e) {
+            throw {
+                message: "Unable to advertise on network",
+                addresses: Array.from(addresses),
                 port: this.port
-            }
-        });
-
-        setTimeout(() => { advertiser.stop() }, 30000);
+            };
+        }
+        
+        return null;
     }
 
     browse(onService: (peer: Peer) => void){
@@ -60,7 +69,6 @@ export class Multipeer {
 
             onService({
                 ...service,
-                connected: false,
                 addresses: service.addresses || []
             });
         });
@@ -68,11 +76,13 @@ export class Multipeer {
 
     async pair(peer: Peer){
         let paired = false;
-        for(const addresse of peer.addresses) {
+        for(const address of peer.addresses) {
             if(paired) break;
             try {
                 await new Promise<void>(resolve => {
-                    const url = "ws://" + addresse + ":" + peer.port;
+                    const url = "ws://" + 
+                        (address.includes(":") ? `[${address}]` : address) + 
+                        (peer.port ?  ":" + peer.port : "");
                     console.log("Trying to pair to " + url);
                     const peerWS = new WebSocket(url);
                     setTimeout(resolve, 3000);

@@ -23,7 +23,7 @@ export type AdapterEditor = Adapter & {
     open(project: Project): void;
 
     peers: {
-        advertise(): void,
+        advertise(): void | { error: { message: string, addresses: string[] } },
         browse(): void,
         pair(peer: Peer): Promise<boolean> 
     }

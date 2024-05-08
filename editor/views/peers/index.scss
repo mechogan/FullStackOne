@@ -9,10 +9,15 @@
     header{
         display: flex;
         align-items: center;
+        justify-content: space-between;
         h1 {
             margin: 0;
         }
         margin-bottom: spacing();
+        > div:first-child {
+            display: flex;
+            align-items: center;
+        }
     }
 
     ul {
@@ -27,6 +32,22 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: spacing();
+        }
+    }
+}
+
+#manual-peer-pairing {
+
+    input {
+        margin: spacing() 0;
+        width: 100%;
+    }
+
+    .button-group {
+        display: flex;
+        justify-content: space-between;
+        button {
+            flex: 1
         }
     }
 }

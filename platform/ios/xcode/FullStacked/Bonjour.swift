@@ -75,10 +75,11 @@ class Bonjour {
             completionHandler(false)
             return
         }
-        
         var paired = false
         
-        let address = addresses.dropFirst().first!
+        var addrs = addresses
+        let address = addrs.removeFirst()
+        
         let hostname = address.split(separator: ":").count > 1
             ? "[\(address)]" // ipv6
             : address        // ipv4
@@ -108,7 +109,7 @@ class Bonjour {
             
             print("Failed to pair with \(urlString). Continuing...")
 
-            self.pair(addresses: addresses, port: port, completionHandler: completionHandler)
+            self.pair(addresses: addrs, port: port, completionHandler: completionHandler)
         }
     }
 }
