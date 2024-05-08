@@ -23,6 +23,7 @@ class Bonjour {
             for change in changes {
                 switch change {
                 case .added(let result):
+                    print(result)
                     switch result.metadata {
                         case.bonjour(let record):
                         if let addressesStr = record["addresses"], let portStr = record["port"] {

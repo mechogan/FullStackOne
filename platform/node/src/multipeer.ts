@@ -30,7 +30,15 @@ export class Multipeer {
 
     advertise(){
         const networkInterfaces = os.networkInterfaces();
-        const addresses = networkInterfaces["en0"].map(({address}) => address);
+        const addresses = new Set<string>();
+
+        const interfaces = ["en0", "wlan0"];
+
+        interfaces.forEach(netInterface => {
+            if(!networkInterfaces[netInterface]) return;
+            networkInterfaces[netInterface].forEach(({address}) => addresses.add(address));
+        });
+
         const name = randomUUID();
         const advertiser = this.bonjour.publish({ 
             name, 
@@ -38,7 +46,7 @@ export class Multipeer {
             port: this.port,
             txt: {
                 _d:  name,
-                addresses: addresses.join(","),
+                addresses: Array.from(addresses).join(","),
                 port: this.port
             }
         });
