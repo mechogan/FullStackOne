@@ -35,7 +35,7 @@ export class Multipeer {
             type: 'fullstacked', 
             port: this.port,
             txt: {
-                displayName:  name
+                _d:  name
             }
         });
 

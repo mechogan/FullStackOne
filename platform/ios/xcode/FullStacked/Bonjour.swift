@@ -8,8 +8,7 @@ class Bonjour: NSObject, URLSessionWebSocketDelegate {
     var ws: [URLSessionWebSocketTask] = []
     
     func browse(){
-        let descriptor = NWBrowser.Descriptor.bonjour(type: "_fullstacked._tcp", domain: nil)
-        let browser = NWBrowser(for: descriptor, using: .tcp)
+        let browser = NWBrowser(for: .bonjour(type: "_fullstacked._tcp", domain: nil), using: .tcp)
         browser.stateUpdateHandler = { newState in
             print("browser did change state, new: \(newState)")
         }
@@ -80,7 +79,11 @@ class Bonjour: NSObject, URLSessionWebSocketDelegate {
     }
     
     func pair(host: String, port: Int) {
-        let hostname = String(host.split(separator: "%").first!)
+        print(host, port)
+        let ip = String(host.split(separator: "%").first!)
+        let hostname = ip.split(separator: ":").count > 1
+            ? "[\(ip)]" // ipv6
+            : ip        // ipv4
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
         let urlString = "ws://" + hostname + ":" + String(port)
         let url = URL(string: urlString)
