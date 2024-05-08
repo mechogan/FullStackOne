@@ -24,6 +24,7 @@ class Bonjour: NSObject, URLSessionWebSocketDelegate {
                         case .ready:
                             if let innerEndpoint = connection.currentPath?.remoteEndpoint,
                                case .hostPort(let host, let port) = innerEndpoint {
+                                print(host, port)
                                 if(host.debugDescription.hasPrefix("::1")) {
                                     return
                                 }

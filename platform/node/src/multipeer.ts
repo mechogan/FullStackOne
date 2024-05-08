@@ -39,7 +39,7 @@ export class Multipeer {
             }
         });
 
-        setTimeout(() => { advertiser.stop() }, 5000);
+        setTimeout(() => { advertiser.stop() }, 30000);
     }
 
     browse(onService: (peer: Peer) => void){
