@@ -7,3 +7,6 @@
 [submodule "lib/TypeScript"]
 	path = lib/TypeScript
 	url = https://github.com/cplepage/TypeScript.git
+[submodule "lib/go"]
+	path = lib/go
+	url = https://github.com/golang/go.git
