@@ -72,7 +72,7 @@ export class Peers {
                 const dl = document.createElement("dl");
 
                 dl.innerHTML = `<dt>Port</dt>
-                <dd>${netInfo.port}<dd>`;
+                <dd>${netInfo.port}</dd>`;
 
                 netInfo.interfaces.forEach(({name, addresses}) => {
                     dl.innerHTML += `<dt>${name}</dt>

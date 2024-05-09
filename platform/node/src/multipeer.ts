@@ -30,15 +30,15 @@ export class Multipeer {
 
     info() {
         const networkInterfaces = os.networkInterfaces();
-        const interfaces = ["en0", "wlan0"];
+        const interfaces = ["en", "wlan", "WiFi", "Ethernet"];
 
         return {
             port: this.port,
-            interfaces: interfaces
-                .filter(netInterface => networkInterfaces[netInterface])
-                .map(netInterface => ({
+            interfaces: Object.entries(networkInterfaces)
+                .filter(([netInterface, _]) => interfaces.find(prefix => netInterface.startsWith(prefix)))
+                .map(([netInterface, infos]) => ({
                     name: netInterface,
-                    addresses: networkInterfaces[netInterface].map(({ address }) => address)
+                    addresses: infos.map(({address}) => address)
                 }))
         }
     }

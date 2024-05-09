@@ -62,11 +62,11 @@ class Bonjour {
                 default:
                     print("Unhandled WebSocket Binary Message")
                 }
+                self.receive(ws: ws)
                 break
-            default:
-                print("Unhandled WebSocket Message")
+            case .failure(let error):
+                print("WebSocket failed")
             }
-            self.receive(ws: ws)
         })
     }
     
