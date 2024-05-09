@@ -243,6 +243,7 @@ export class InstanceEditor extends Instance {
             open: () => { },
 
             peers: {
+                info: () => this.multipeer.info(),
                 advertise: () => this.multipeer.advertise(),
                 browse: () => {
                     this.multipeer.browse(peer => {

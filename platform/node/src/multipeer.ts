@@ -2,6 +2,7 @@ import { Bonjour } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
 import { randomUUID } from 'crypto';
 import os from "os";
+import { info } from 'console';
 
 export type Peer = {
     name: string,
@@ -27,40 +28,37 @@ export class Multipeer {
         });
     }
 
-    advertise(){
+    info() {
         const networkInterfaces = os.networkInterfaces();
-        const addresses = new Set<string>();
-
         const interfaces = ["en0", "wlan0"];
 
-        interfaces.forEach(netInterface => {
-            if(!networkInterfaces[netInterface]) return;
-            networkInterfaces[netInterface].forEach(({address}) => addresses.add(address));
-        });
+        return {
+            port: this.port,
+            interfaces: interfaces
+                .filter(netInterface => networkInterfaces[netInterface])
+                .map(netInterface => ({
+                    name: netInterface,
+                    addresses: networkInterfaces[netInterface].map(({ address }) => address)
+                }))
+        }
+    }
+
+    advertise(){
+        const info = this.info();
 
         const name = randomUUID();
-        try {
-            const advertiser = this.bonjour.publish({ 
-                name, 
-                type: 'fullstacked', 
-                port: this.port,
-                txt: {
-                    _d:  name,
-                    addresses: Array.from(addresses).join(","),
-                    port: this.port
-                }
-            });
-    
-            setTimeout(() => { advertiser?.stop() }, 30000);
-        } catch (e) {
-            throw {
-                message: "Unable to advertise on network",
-                addresses: Array.from(addresses),
+        const advertiser = this.bonjour.publish({ 
+            name, 
+            type: 'fullstacked', 
+            port: this.port,
+            txt: {
+                _d:  name,
+                addresses: info.interfaces.map(({addresses}) => addresses).flat().join(","),
                 port: this.port
-            };
-        }
-        
-        return null;
+            }
+        });
+
+        setTimeout(() => { advertiser?.stop() }, 30000);
     }
 
     browse(onService: (peer: Peer) => void){

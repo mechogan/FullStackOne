@@ -55,16 +55,46 @@ export class Peers {
 
         const container = document.createElement("div");
 
-        container.innerHTML = `<h2>Pair Manually</h2>
-        <p>Enter a peer url to pair to.</p>`;
+        container.innerHTML = `<h2>Pair Manually</h2>`;
 
-        const inputAddress = document.createElement("input");
-        inputAddress.placeholder = "IP or Host";
-        container.append(inputAddress);
+        const infos = document.createElement("div");
+        infos.classList.add("net-infos");
+        container.append(infos);
+
+        rpc().peers.info()
+            .then(async netInfo => {
+                if(!netInfo) return;
+
+                const netInfosContainer = document.createElement("div");
+
+                netInfosContainer.innerHTML = await (await fetch("assets/icons/info.svg")).text();
+
+                const dl = document.createElement("dl");
+
+                dl.innerHTML = `<dt>Port</dt>
+                <dd>${netInfo.port}<dd>`;
+
+                netInfo.interfaces.forEach(({name, addresses}) => {
+                    dl.innerHTML += `<dt>${name}</dt>
+                    <dd><ul>${addresses.map(address => `<li>${address}</li>`).join("")}</ul></dd>`;
+                });
+
+                netInfosContainer.append(dl)
+
+                infos.append(netInfosContainer);
+            });
+
+        const p = document.createElement("p");
+        p.innerText = "Pair with another peer manually";
+        container.append(p);
 
         const inputPort = document.createElement("input");
         inputPort.placeholder = "Port";
         container.append(inputPort);
+
+        const inputAddress = document.createElement("input");
+        inputAddress.placeholder = "IP or Host";
+        container.append(inputAddress);
 
         const buttonGroup = document.createElement("div");
         buttonGroup.classList.add("button-group");
@@ -149,11 +179,7 @@ export class Peers {
         container.append(this.peersList);
 
         rpc().peers.browse();
-        try {
-            await rpc().peers.advertise();
-        } catch (e) {
-            console.log(e)
-        }
+        rpc().peers.advertise();
 
         return container;
     }

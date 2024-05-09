@@ -2,7 +2,8 @@ import type rpcFn from "../src/index";
 import type { Adapter } from "../src/adapter";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
-import type { Peer } from "../platform/node/src/multipeer";
+import type { Multipeer, Peer } from "../platform/node/src/multipeer";
+import { info } from "console";
 
 export type AdapterEditor = Adapter & {
     directories: {
@@ -23,7 +24,8 @@ export type AdapterEditor = Adapter & {
     open(project: Project): void;
 
     peers: {
-        advertise(): void | { error: { message: string, addresses: string[] } },
+        info(): ReturnType<Multipeer["info"]>,
+        advertise(): void,
         browse(): void,
         pair(peer: Peer): Promise<boolean> 
     }

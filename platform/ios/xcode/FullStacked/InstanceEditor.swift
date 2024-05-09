@@ -186,10 +186,12 @@ class AdapterEditor: Adapter {
                 return done(true)
             case "peers":
                 switch(methodPath[1]) {
+                case "info":
+                    return done(false)
                 case "advertise":
                     return done(true)
                 case "browse":
-                    self.bonjour.browse();
+                    self.bonjour.browse()
                     return done(true)
                 case "pair":
                     return self.bonjour.pair(addresses: json[0]["addresses"].arrayValue.map({ $0.stringValue }),
