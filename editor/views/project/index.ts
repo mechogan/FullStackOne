@@ -63,12 +63,12 @@ export class Project implements tsWorkerDelegate {
             this.renderEditors();
         };
 
-        window.addEventListener("keydown", e => {
-            if(e.key === "s" && (e.metaKey || e.ctrlKey)) {
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                this.editors.forEach(editor => editor.format())
+                this.editors.forEach((editor) => editor.format());
             }
-        })
+        });
     }
 
     tsIcon = document.createElement("button");

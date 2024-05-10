@@ -77,22 +77,23 @@ export class Editor {
         this.loadFileContents().then(() => this.esbuildErrorLint());
     }
 
-
-
-    async format(){
-        const formatted = await prettier.format(this.editor.state.doc.toString(), {
-            parser: "typescript",
-            plugins: [prettierPluginTypeScript, prettierPluginEstree],
-            tabWidth: 4,
-            trailingComma: "none"
-        });
+    async format() {
+        const formatted = await prettier.format(
+            this.editor.state.doc.toString(),
+            {
+                parser: "typescript",
+                plugins: [prettierPluginTypeScript, prettierPluginEstree],
+                tabWidth: 4,
+                trailingComma: "none"
+            }
+        );
         this.editor.dispatch({
             changes: {
                 from: 0,
                 to: this.editor.state.doc.length,
                 insert: formatted
             }
-        })
+        });
     }
 
     addBuildError(error: Editor["errors"][0]) {
@@ -167,7 +168,7 @@ export class Editor {
                 extensions: this.extensions.concat(
                     await this.loadLanguageExtensions()
                 ),
-                parent: this.parent,
+                parent: this.parent
             });
         } else if (
             Object.values(IMAGE_Ext).find((ext) =>
