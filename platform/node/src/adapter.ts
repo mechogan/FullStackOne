@@ -1,4 +1,4 @@
-import type { Adapter } from "../../../src/adapter";
+import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
 export function initAdapter(baseDirectory: string, platform = "node"): Adapter {

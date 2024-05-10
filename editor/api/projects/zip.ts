@@ -1,4 +1,4 @@
-import { Adapter } from "../../../src/adapter";
+import { Adapter } from "../../../src/adapter/fullstacked";
 import { scan } from "./scan";
 import * as zip from "@zip.js/zip.js";
 

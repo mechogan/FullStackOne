@@ -1,5 +1,5 @@
 import type rpcFn from "../src/index";
-import type { Adapter } from "../src/adapter";
+import type { Adapter } from "../src/adapter/fullstacked";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
 

@@ -71,44 +71,16 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
 }
 
 export function rpcSync<T>() {
-    return recurseInProxy(syncRequest) as unknown as AwaitNone<T>;
+    return recurseInProxy(syncRequest);
 }
 globalThis.rpcSync = rpcSync;
 
 export default function rpc<T>() {
-    return recurseInProxy(fetchCall) as unknown as AwaitAll<T>;
+    return recurseInProxy(fetchCall);
 }
 globalThis.rpc = rpc;
 
-type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
-
-type AwaitAll<T> = {
-    [K in keyof T]: T[K] extends (...args: any) => any
-        ? (
-              ...args: T[K] extends (...args: infer P) => any ? P : never[]
-          ) => OnlyOnePromise<
-              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-          >
-        : T[K] extends object
-          ? AwaitAll<T[K]>
-          : () => Promise<T[K]>;
-};
-
-type AwaitNone<T> = {
-    [K in keyof T]: T[K] extends (...args: any) => any
-        ? (
-              ...args: T[K] extends (...args: infer P) => any ? P : never[]
-          ) => Awaited<
-              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-          >
-        : T[K] extends object
-          ? AwaitNone<T[K]>
-          : () => T[K];
-};
-
-globalThis.onPush = {} as {
-    [messageType: string]: (message: string) => void;
-};
+globalThis.onPush = {};
 
 const dispatchMessage = (messageType: string, message: string) => {
     const callback = globalThis.onPush[messageType];
