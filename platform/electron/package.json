@@ -25,8 +25,8 @@
         "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
         "@types/tar": "^6.1.13",
         "dotenv": "^16.4.5",
-        "electron": "30.0.1",
-        "esbuild": "^0.20.2",
-        "tar": "^7.0.1"
+        "electron": "30.0.3",
+        "esbuild": "^0.21.1",
+        "tar": "^7.1.0"
     }
 }

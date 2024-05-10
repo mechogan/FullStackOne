@@ -11,10 +11,13 @@ import {
     setDiagnostics,
     Diagnostic
 } from "@codemirror/lint";
-import { Extension } from "@codemirror/state";
+import { Extension, Prec } from "@codemirror/state";
 import rpc from "../../rpc";
 import { tsWorker, tsWorkerDelegate } from "../../typescript";
 import { PackageInstaller } from "../../packages/installer";
+import prettier from "prettier";
+import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginTypeScript from "prettier/plugins/typescript";
 
 enum UTF8_Ext {
     JAVASCRIPT = ".js",
@@ -74,6 +77,37 @@ export class Editor {
         this.loadFileContents().then(() => this.esbuildErrorLint());
     }
 
+    async format() {
+        if(
+            !(this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_X) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_M) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_C) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X))
+        ){
+            return;
+        }
+
+        const formatted = await prettier.format(
+            this.editor.state.doc.toString(),
+            {
+                parser: "typescript",
+                plugins: [prettierPluginTypeScript, prettierPluginEstree],
+                tabWidth: 4,
+                trailingComma: "none"
+            }
+        );
+        
+        this.editor.dispatch({
+            changes: {
+                from: 0,
+                to: this.editor.state.doc.length,
+                insert: formatted
+            }
+        });
+    }
+
     addBuildError(error: Editor["errors"][0]) {
         this.errors.push(error);
         this.esbuildErrorLint();
@@ -105,8 +139,8 @@ export class Editor {
     private async restartTSWorker() {
         if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
         Editor.tsWorker = new tsWorker(Editor.currentDirectory);
-        if(this.tsWorkerDelegate)
-            Editor.tsWorker.delegate = this.tsWorkerDelegate
+        if (this.tsWorkerDelegate)
+            Editor.tsWorker.delegate = this.tsWorkerDelegate;
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start(Editor.currentDirectory);
     }
@@ -180,8 +214,8 @@ export class Editor {
         if (!contents) return;
 
         if (
-            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) || 
-            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X))&&
+            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)) &&
             Editor.tsWorker
         ) {
             return Editor.tsWorker
@@ -293,7 +327,7 @@ export class Editor {
                             !Editor.ignoredTypes.has(`@types/${moduleName}`)
                         );
                     });
-                    
+
                     if (needsTypes.length) {
                         const ignored = await PackageInstaller.install(
                             needsTypes.map((e) => {

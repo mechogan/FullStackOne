@@ -1,6 +1,10 @@
 import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
 
+(globalThis as any).process = {
+    platform: "browser"
+};
+
 function syncRequest(pathComponents: string[], ...args) {
     const request = new XMLHttpRequest();
     request.open("POST", pathComponents.join("/"), false);

@@ -10,7 +10,7 @@ import {
     ModuleResolutionKind,
     ScriptSnapshot,
     ScriptTarget
-} from "../../lib/TypeScript/src/typescript/_namespaces/ts";
+} from "typescript";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
