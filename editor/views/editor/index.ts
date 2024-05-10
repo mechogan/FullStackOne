@@ -105,8 +105,8 @@ export class Editor {
     private async restartTSWorker() {
         if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
         Editor.tsWorker = new tsWorker(Editor.currentDirectory);
-        if(this.tsWorkerDelegate)
-            Editor.tsWorker.delegate = this.tsWorkerDelegate
+        if (this.tsWorkerDelegate)
+            Editor.tsWorker.delegate = this.tsWorkerDelegate;
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start(Editor.currentDirectory);
     }
@@ -180,8 +180,8 @@ export class Editor {
         if (!contents) return;
 
         if (
-            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) || 
-            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X))&&
+            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)) &&
             Editor.tsWorker
         ) {
             return Editor.tsWorker
@@ -293,7 +293,7 @@ export class Editor {
                             !Editor.ignoredTypes.has(`@types/${moduleName}`)
                         );
                     });
-                    
+
                     if (needsTypes.length) {
                         const ignored = await PackageInstaller.install(
                             needsTypes.map((e) => {

@@ -3,7 +3,7 @@ import { decodeUint8Array } from "./Uint8Array";
 
 (globalThis as any).process = {
     platform: "browser"
-}
+};
 
 function syncRequest(pathComponents: string[], ...args) {
     const request = new XMLHttpRequest();

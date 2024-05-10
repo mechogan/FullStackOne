@@ -6,7 +6,5 @@
         "moduleResolution": "Node",
         "skipLibCheck": true
     },
-    "exclude": [
-        "editor"
-    ]
+    "exclude": ["editor"]
 }

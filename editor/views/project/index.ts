@@ -70,12 +70,12 @@ export class Project implements tsWorkerDelegate {
         this.tsIcon.disabled = false;
     }
     checkForTsLoading = () => {
-        if(this.activeReqs.size) {
+        if (this.activeReqs.size) {
             this.tsIcon.classList.add("loading");
         } else {
             this.tsIcon.classList.remove("loading");
         }
-    }
+    };
     onReq(id: number): void {
         this.activeReqs.add(id);
         this.checkForTsLoading();
@@ -249,7 +249,7 @@ export class Project implements tsWorkerDelegate {
                 await fetch("/assets/icons/typescript.svg")
             ).text();
             container.append(this.tsIcon);
-            
+
             const shareButton = document.createElement("button");
             shareButton.classList.add("text");
             shareButton.innerHTML = await (
@@ -351,7 +351,7 @@ export class Project implements tsWorkerDelegate {
 
         this.editors.forEach(async (editor, index) => {
             editor.tsWorkerDelegate = this;
-            
+
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {
                 tab.classList.add("has-errors");

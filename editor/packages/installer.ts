@@ -218,15 +218,19 @@ export class PackageInstaller {
         PackageInstaller.progressDialog = null;
         PackageInstaller.currentInstalls = new Map();
 
-        if(packagesToInstall.some(({ errored }) => errored) && retry) {
-            return PackageInstaller.install(packagesToInstall.filter(({ errored }) => errored))
+        if (packagesToInstall.some(({ errored }) => errored) && retry) {
+            return PackageInstaller.install(
+                packagesToInstall.filter(({ errored }) => errored)
+            );
         }
 
-        if(packagesToInstall.every(({ errored }) => errored) && !retry) {
+        if (packagesToInstall.every(({ errored }) => errored) && !retry) {
             return packagesToInstall;
         }
-        
-        const deepInstalls = packagesToInstall.filter(({ errored, deep }) => deep && !errored);
+
+        const deepInstalls = packagesToInstall.filter(
+            ({ errored, deep }) => deep && !errored
+        );
         if (deepInstalls.length === 0) return;
 
         previousInstalls.push(...deepInstalls.map(({ name }) => name));
