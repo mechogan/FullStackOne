@@ -5,5 +5,10 @@
         "target": "ES2022",
         "moduleResolution": "Node"
     },
-    "exclude": ["lib", "platform/electron"]
+    "exclude": [
+        "lib", 
+        "platform/electron",
+        "platform/node/editor",
+        "editor/build"
+    ]
 }

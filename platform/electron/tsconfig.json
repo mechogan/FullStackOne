@@ -3,6 +3,10 @@
         "esModuleInterop": true,
         "module": "CommonJS",
         "target": "ES2022",
-        "moduleResolution": "Node"
-    }
+        "moduleResolution": "Node",
+        "skipLibCheck": true
+    },
+    "exclude": [
+        "editor"
+    ]
 }
