@@ -6,10 +6,9 @@
         "moduleResolution": "Node"
     },
     "exclude": [
-        "lib",
+        "lib", 
         "platform/electron",
         "platform/node/editor",
-        "editor/build",
-        "editor/typescript"
+        "editor/build"
     ]
 }
