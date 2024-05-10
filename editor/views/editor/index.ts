@@ -78,6 +78,17 @@ export class Editor {
     }
 
     async format() {
+        if(
+            !(this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_X) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_M) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_C) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+            this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X))
+        ){
+            return;
+        }
+
         const formatted = await prettier.format(
             this.editor.state.doc.toString(),
             {
@@ -87,6 +98,7 @@ export class Editor {
                 trailingComma: "none"
             }
         );
+        
         this.editor.dispatch({
             changes: {
                 from: 0,
