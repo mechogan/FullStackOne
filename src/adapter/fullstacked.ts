@@ -39,12 +39,13 @@ declare global {
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
-            }): Promise<{
-                headers: Record<string, string>;
-                statusCode: number;
-                statusMessage: string;
-                body: Uint8Array;
-            }>;
+            }
+        ): Promise<{
+            headers: Record<string, string>;
+            statusCode: number;
+            statusMessage: string;
+            body: Uint8Array;
+        }>;
         fetch(
             url: string,
             options?: {
@@ -52,12 +53,13 @@ declare global {
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
                 encoding: "utf8";
-            }): Promise<{
-                headers: Record<string, string>;
-                statusCode: number;
-                statusMessage: string;
-                body: string;
-            }>;
+            }
+        ): Promise<{
+            headers: Record<string, string>;
+            statusCode: number;
+            statusMessage: string;
+            body: string;
+        }>;
     };
 
     var rpcSync: () => {
@@ -99,12 +101,13 @@ declare global {
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
-            }): {
-                headers: Record<string, string>;
-                statusCode: number;
-                statusMessage: string;
-                body: Uint8Array;
-            };
+            }
+        ): {
+            headers: Record<string, string>;
+            statusCode: number;
+            statusMessage: string;
+            body: Uint8Array;
+        };
         fetch(
             url: string,
             options?: {
@@ -112,12 +115,13 @@ declare global {
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
                 encoding: "utf8";
-            }): {
-                headers: Record<string, string>;
-                statusCode: number;
-                statusMessage: string;
-                body: string;
-            };
+            }
+        ): {
+            headers: Record<string, string>;
+            statusCode: number;
+            statusMessage: string;
+            body: string;
+        };
     };
 
     var onPush: {

@@ -210,7 +210,9 @@ export class PackageInstaller {
                 retryButton.addEventListener("click", () => resolve(true));
                 buttonGroup.append(retryButton);
 
-                PackageInstaller.progressDialog.container.querySelector(":scope > div").append(buttonGroup);
+                PackageInstaller.progressDialog.container
+                    .querySelector(":scope > div")
+                    .append(buttonGroup);
             });
         }
 
