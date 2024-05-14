@@ -204,7 +204,10 @@ export class Project implements tsWorkerDelegate {
                     name,
                     deep: true
                 }))
-            ).then(() => this.runProject());
+            ).then(() => {
+                Editor.restartTSWorker();
+                this.runProject()
+            });
         }
     }
 
@@ -357,7 +360,8 @@ export class Project implements tsWorkerDelegate {
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
-            editor.tsWorkerDelegate = this;
+            if(Editor.tsWorker)
+                Editor.tsWorker.delegate = this;
 
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {

@@ -36,8 +36,9 @@ export class tsWorker {
         });
     }
 
-    constructor(workingDirectory: string) {
+    constructor(workingDirectory: string, delegate?: tsWorkerDelegate) {
         this.workingDirectory = workingDirectory;
+        this.delegate = delegate;
 
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {

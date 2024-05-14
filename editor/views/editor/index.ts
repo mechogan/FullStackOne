@@ -52,6 +52,13 @@ export class Editor {
     static currentDirectory: string;
     static ignoredTypes = new Set<string>();
 
+    static async restartTSWorker() {
+        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
+        Editor.tsWorker = new tsWorker(Editor.currentDirectory, Editor.tsWorker?.delegate);
+        await Editor.tsWorker.ready();
+        await Editor.tsWorker.call().start(Editor.currentDirectory);
+    }
+
     private extensions = [
         basicSetup,
         oneDark,
@@ -68,8 +75,6 @@ export class Editor {
         message: string;
     }[] = [];
     filePath: string[];
-
-    tsWorkerDelegate: tsWorkerDelegate;
 
     constructor(filePath: string[]) {
         this.filePath = filePath;
@@ -138,14 +143,7 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
-    private async restartTSWorker() {
-        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
-        Editor.tsWorker = new tsWorker(Editor.currentDirectory);
-        if (this.tsWorkerDelegate)
-            Editor.tsWorker.delegate = this.tsWorkerDelegate;
-        await Editor.tsWorker.ready();
-        await Editor.tsWorker.call().start(Editor.currentDirectory);
-    }
+    
 
     async loadFileContents() {
         if (this.editor) {
@@ -170,7 +168,7 @@ export class Editor {
                     Editor.currentDirectory !==
                     Editor.tsWorker?.workingDirectory
                 )
-                    await this.restartTSWorker();
+                    await Editor.restartTSWorker();
 
                 await Editor.tsWorker
                     .call()
@@ -351,7 +349,7 @@ export class Editor {
                             Editor.ignoredTypes.add(name)
                         );
 
-                        await this.restartTSWorker();
+                        await Editor.restartTSWorker();
                         await this.updateFile();
                         tsErrors = await getAllTsError();
                     }
