@@ -5,6 +5,29 @@ import { build, merge } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
+import child_process from "child_process";
+
+// TypeScript fix for JSC (Safari/WebKit) memory leak
+// Refer to this for more info: https://github.com/microsoft/TypeScript/issues/58137
+// Remove if ever fixed
+const codeToLookup = "program = createProgram(options);";
+const codeToAdd = "options.oldProgram = undefined;";
+const tsFilePath = "node_modules/typescript/lib/typescript.js";
+const tsFileContent = fs.readFileSync(tsFilePath, { encoding: "utf-8" });
+const re = new RegExp(
+    `${codeToLookup.replace(/(\(|\))/g, (c) => (c === "(" ? "\\(" : "\\)"))}(${codeToAdd})*`
+);
+const textBlockToUpdate = tsFileContent.match(re);
+if (textBlockToUpdate) {
+    if (!textBlockToUpdate[0].endsWith(codeToAdd)) {
+        fs.writeFileSync(
+            tsFilePath,
+            tsFileContent.replace(re, codeToLookup + codeToAdd)
+        );
+    }
+} else {
+    throw "Could not find typescript code block to patch.";
+}
 
 const baseFile = "src/js/index.js";
 
@@ -29,21 +52,26 @@ const compileScss = async (scssFile: string) => {
 const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
 
-const editorEntry = await merge(
-    baseFile,
-    path.resolve("editor/index.ts"),
-    ".cache"
-);
-const buildErrors = build(
-    esbuild.buildSync,
-    editorEntry,
-    "index",
-    "editor/build",
-    undefined,
-    false,
-    false
-);
-fs.rmSync(editorEntry);
+const toBuild = [
+    ["editor/index.ts", "index"],
+    ["editor/typescript/worker.ts", "worker-ts"]
+];
+
+let buildErrors = [];
+for (const [input, output] of toBuild) {
+    const editorEntry = await merge(baseFile, path.resolve(input), ".cache");
+    const errors = build(
+        esbuild.buildSync,
+        editorEntry,
+        output,
+        "editor/build",
+        undefined,
+        "external",
+        false
+    );
+    fs.rmSync(editorEntry);
+    if (errors) buildErrors.push(errors);
+}
 
 // cleanup
 scssFiles.forEach((scssFile) => {
@@ -51,7 +79,7 @@ scssFiles.forEach((scssFile) => {
     if (fs.existsSync(cssFile)) fs.rmSync(cssFile);
 });
 
-if (buildErrors) throw buildErrors;
+if (buildErrors.length) throw buildErrors;
 
 fs.cpSync("editor/index.html", "editor/build/index.html");
 fs.cpSync("editor/assets", "editor/build/assets", {
@@ -68,3 +96,14 @@ if (fs.existsSync(sampleDemoDir)) {
     );
     await fs.promises.writeFile("editor/build/Demo.zip", zipData);
 }
+
+fs.cpSync("node_modules/typescript/lib", "editor/build/tsLib", {
+    recursive: true
+});
+
+child_process.execSync(
+    "tsc --declaration --skipLibCheck --module system --outfile editor/build/tsLib/fullstacked.js src/adapter/fullstacked.ts",
+    {
+        stdio: "inherit"
+    }
+);

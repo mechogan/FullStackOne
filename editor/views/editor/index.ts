@@ -1,17 +1,23 @@
 import "./index.css";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, hoverTooltip } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
+import { autocompletion } from "@codemirror/autocomplete";
 import {
     linter,
     lintGutter,
     setDiagnostics,
     Diagnostic
 } from "@codemirror/lint";
-import { Extension } from "@codemirror/state";
+import { Extension, Prec } from "@codemirror/state";
 import rpc from "../../rpc";
+import { tsWorker, tsWorkerDelegate } from "../../typescript";
+import { PackageInstaller } from "../../packages/installer";
+import prettier from "prettier";
+import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginTypeScript from "prettier/plugins/typescript";
 
 enum UTF8_Ext {
     JAVASCRIPT = ".js",
@@ -42,6 +48,10 @@ enum IMAGE_Ext {
 }
 
 export class Editor {
+    static tsWorker: tsWorker;
+    static currentDirectory: string;
+    static ignoredTypes = new Set<string>();
+
     private extensions = [
         basicSetup,
         oneDark,
@@ -59,10 +69,45 @@ export class Editor {
     }[] = [];
     filePath: string[];
 
+    tsWorkerDelegate: tsWorkerDelegate;
+
     constructor(filePath: string[]) {
         this.filePath = filePath;
 
         this.loadFileContents().then(() => this.esbuildErrorLint());
+    }
+
+    async format() {
+        if (
+            !(
+                this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_X) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_M) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.JAVASCRIPT_C) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
+            )
+        ) {
+            return;
+        }
+
+        const formatted = await prettier.format(
+            this.editor.state.doc.toString(),
+            {
+                parser: "typescript",
+                plugins: [prettierPluginTypeScript, prettierPluginEstree],
+                tabWidth: 4,
+                trailingComma: "none"
+            }
+        );
+
+        this.editor.dispatch({
+            changes: {
+                from: 0,
+                to: this.editor.state.doc.length,
+                insert: formatted
+            }
+        });
     }
 
     addBuildError(error: Editor["errors"][0]) {
@@ -93,6 +138,15 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
+    private async restartTSWorker() {
+        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
+        Editor.tsWorker = new tsWorker(Editor.currentDirectory);
+        if (this.tsWorkerDelegate)
+            Editor.tsWorker.delegate = this.tsWorkerDelegate;
+        await Editor.tsWorker.ready();
+        await Editor.tsWorker.call().start(Editor.currentDirectory);
+    }
+
     async loadFileContents() {
         if (this.editor) {
             this.editor.dom.remove();
@@ -103,11 +157,28 @@ export class Editor {
                 this.filePath.at(-1)?.endsWith(ext)
             )
         ) {
+            const doc = (await rpc().fs.readFile(this.filePath.join("/"), {
+                encoding: "utf8",
+                absolutePath: true
+            })) as string;
+
+            if (
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)
+            ) {
+                if (
+                    Editor.currentDirectory !==
+                    Editor.tsWorker?.workingDirectory
+                )
+                    await this.restartTSWorker();
+
+                await Editor.tsWorker
+                    .call()
+                    .updateFile(this.filePath.join("/"), doc);
+            }
+
             this.editor = new EditorView({
-                doc: (await rpc().fs.readFile(this.filePath.join("/"), {
-                    encoding: "utf8",
-                    absolutePath: true
-                })) as string,
+                doc,
                 extensions: this.extensions.concat(
                     await this.loadLanguageExtensions()
                 ),
@@ -135,13 +206,26 @@ export class Editor {
     }
 
     private updateThrottler: ReturnType<typeof setTimeout> | null;
-    async updateFile() {
+    private updateFileContents() {
         if (this.updateThrottler) clearTimeout(this.updateThrottler);
+        this.updateThrottler = setTimeout(this.updateFile.bind(this), 2000);
+    }
 
-        this.updateThrottler = null;
-
+    async updateFile() {
         const contents = this.editor?.state?.doc?.toString();
         if (!contents) return;
+
+        if (
+            (this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT) ||
+                this.filePath.at(-1).endsWith(UTF8_Ext.TYPESCRIPT_X)) &&
+            Editor.tsWorker
+        ) {
+            return Editor.tsWorker
+                .call()
+                .updateFile(this.filePath.join("/"), contents);
+        }
+
+        this.updateThrottler = null;
 
         const exists = await rpc().fs.exists(this.filePath.join("/"), {
             absolutePath: true
@@ -151,10 +235,6 @@ export class Editor {
         rpc().fs.writeFile(this.filePath.join("/"), contents, {
             absolutePath: true
         });
-    }
-
-    private updateFileContents() {
-        this.updateThrottler = setTimeout(this.updateFile.bind(this), 2000);
     }
 
     private async loadLanguageExtensions() {
@@ -190,6 +270,202 @@ export class Editor {
                     jsLang.javascriptLanguage.data.of({
                         autocomplete: jsLang.scopeCompletionSource(globalThis)
                     })
+                );
+            }
+
+            // typescript
+            else {
+                const tsErrorLinter = async () => {
+                    await Editor.tsWorker
+                        .call()
+                        .updateFile(
+                            this.filePath.join("/"),
+                            this.editor.state.doc.toString()
+                        );
+
+                    const getAllTsError = async () => {
+                        const [
+                            semanticDiagnostics,
+                            syntacticDiagnostics,
+                            suggestionDiagnostics
+                        ] = await Promise.all([
+                            Editor.tsWorker
+                                .call()
+                                .getSemanticDiagnostics(
+                                    this.filePath.join("/")
+                                ),
+                            Editor.tsWorker
+                                .call()
+                                .getSyntacticDiagnostics(
+                                    this.filePath.join("/")
+                                ),
+                            Editor.tsWorker
+                                .call()
+                                .getSuggestionDiagnostics(
+                                    this.filePath.join("/")
+                                )
+                        ]);
+
+                        return semanticDiagnostics
+                            .concat(syntacticDiagnostics)
+                            .concat(suggestionDiagnostics);
+                    };
+
+                    let tsErrors = await getAllTsError();
+
+                    const needsTypes = tsErrors.filter((e) => {
+                        if (e.code !== 7016) return false;
+
+                        const text =
+                            e.file?.text || this.editor.state.doc.toString();
+
+                        const moduleName = text
+                            .toString()
+                            .slice(e.start, e.start + e.length)
+                            .slice(1, -1);
+
+                        return (
+                            !moduleName.startsWith(".") &&
+                            !Editor.ignoredTypes.has(`@types/${moduleName}`)
+                        );
+                    });
+
+                    if (needsTypes.length) {
+                        const ignored = await PackageInstaller.install(
+                            needsTypes.map((e) => {
+                                const text =
+                                    e.file?.text ||
+                                    this.editor.state.doc.toString();
+                                const moduleName = text
+                                    .toString()
+                                    .slice(e.start, e.start + e.length)
+                                    .slice(1, -1);
+                                return {
+                                    name: `@types/${moduleName}`,
+                                    deep: true
+                                };
+                            })
+                        );
+
+                        ignored?.forEach(({ name }) =>
+                            Editor.ignoredTypes.add(name)
+                        );
+
+                        await this.restartTSWorker();
+                        await this.updateFile();
+                        tsErrors = await getAllTsError();
+                    }
+
+                    return tsErrors.map((tsError) => ({
+                        from: tsError.start,
+                        to: tsError.start + tsError.length,
+                        severity: tsError.code === 7016 ? "warning" : "error",
+                        message:
+                            typeof tsError.messageText === "string"
+                                ? tsError.messageText
+                                : tsError?.messageText?.messageText ?? ""
+                    }));
+                };
+
+                const tsComplete = async (ctx) => {
+                    const text = ctx.state.doc.toString();
+                    await Editor.tsWorker
+                        .call()
+                        .updateFile(this.filePath.join("/"), text);
+
+                    let tsCompletions = await Editor.tsWorker
+                        .call()
+                        .getCompletionsAtPosition(
+                            this.filePath.join("/"),
+                            ctx.pos,
+                            {}
+                        );
+
+                    if (!tsCompletions) return { from: ctx.pos, options: [] };
+
+                    let lastWord, from;
+                    for (let i = ctx.pos - 1; i >= 0; i--) {
+                        if (
+                            [
+                                " ",
+                                ".",
+                                "\n",
+                                ":",
+                                "{",
+                                "<",
+                                '"',
+                                "'",
+                                "(",
+                                "["
+                            ].includes(text[i]) ||
+                            i === 0
+                        ) {
+                            from = i === 0 ? i : i + 1;
+                            lastWord = text.slice(from, ctx.pos).trim();
+                            break;
+                        }
+                    }
+
+                    if (lastWord) {
+                        tsCompletions.entries = tsCompletions.entries.filter(
+                            (completion) => completion.name.startsWith(lastWord)
+                        );
+                    }
+
+                    return {
+                        from: ctx.pos,
+                        options: tsCompletions.entries.map((completion) => ({
+                            label: completion.name,
+                            apply: (view: EditorView) => {
+                                view.dispatch({
+                                    changes: {
+                                        from,
+                                        to: ctx.pos,
+                                        insert: completion.name
+                                    }
+                                });
+                                if (from === ctx.pos) {
+                                    view.dispatch({
+                                        selection: {
+                                            anchor:
+                                                from + completion.name.length,
+                                            head: from + completion.name.length
+                                        }
+                                    });
+                                }
+                            }
+                        }))
+                    };
+                };
+
+                const tsTypeDefinition = async (view, pos, side) => {
+                    const info = await Editor.tsWorker
+                        .call()
+                        .getQuickInfoAtPosition(this.filePath.join("/"), pos);
+                    const text = info?.displayParts
+                        ?.map(({ text }) => text)
+                        .join("");
+
+                    if (!text) return null;
+
+                    return {
+                        pos: info.textSpan.start,
+                        end: info.textSpan.start + info.textSpan.length,
+                        above: true,
+                        create(view) {
+                            let dom = document.createElement("div");
+                            const pre = document.createElement("pre");
+                            pre.innerText = text;
+                            dom.append(pre);
+                            return { dom };
+                        }
+                    };
+                };
+
+                extensions.push(
+                    linter(tsErrorLinter as () => Promise<Diagnostic[]>),
+                    autocompletion({ override: [tsComplete] }),
+                    hoverTooltip(tsTypeDefinition)
                 );
             }
         } else if (filename.endsWith(UTF8_Ext.HTML)) {

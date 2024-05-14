@@ -32,7 +32,7 @@ $transition: 0.3s all;
             align-items: center;
             &:first-child {
                 justify-content: flex-start;
-                max-width: calc(100% - 128px);
+                max-width: calc(100% - 192px);
                 h3 {
                     white-space: nowrap;
                     overflow: hidden;
@@ -147,24 +147,19 @@ $transition: 0.3s all;
             padding-bottom: $console-height;
         }
     }
+}
 
-    .dialog {
-        dl {
-            dd,
-            div {
-                font-size: $font-size-s;
-                color: colorOpacity(white, 0.7);
-            }
+@keyframes flash {
+    from {
+        opacity: 1;
+    }
 
-            div {
-                text-align: right;
-
-                &:not(:last-child) {
-                    padding-bottom: spacing(2);
-                    border-bottom: $border-width solid $dark;
-                    margin-bottom: spacing(2);
-                }
-            }
-        }
+    to {
+        opacity: 0.3;
+    }
+}
+#typescript-icon {
+    &.loading {
+        animation: flash 1s infinite alternate;
     }
 }

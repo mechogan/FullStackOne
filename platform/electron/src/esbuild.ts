@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import https from "https";
-import tar from "tar";
+import * as tar from "tar";
 import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/node-platform";
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
@@ -105,7 +105,7 @@ export const installEsbuild = async (
             read += chunk.length;
             const progress = read / size;
 
-            untarWriteStream.write(chunk);
+            untarWriteStream.write(chunk as Buffer);
 
             progressListener({
                 step: 1,
@@ -157,7 +157,7 @@ export const installEsbuild = async (
             read += chunk.length;
             const progress = read / binSize;
 
-            untarBinWriteStream.write(chunk);
+            untarBinWriteStream.write(chunk as Buffer);
 
             progressListener({
                 step: 3,

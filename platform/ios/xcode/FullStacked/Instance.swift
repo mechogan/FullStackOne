@@ -327,7 +327,7 @@ let overrideConsole = """
           column: parseInt(col)
         })
 
-        const name = mappedPosition.name.trim()
+        const name = mappedPosition?.name?.trim()
             ? mappedPosition.name + "@"
             : fn.trim()
                 ? fn + "@"

@@ -275,10 +275,7 @@ export default {
                 onAuth: requestGitAuth
             });
         } catch (e) {
-            // unreacheable
-            if (e.cause?.code == "ENOTFOUND") {
-                unreacheable = true;
-            }
+            unreacheable = true;
         }
 
         return {
@@ -301,7 +298,6 @@ export default {
             if (e.cause?.code === "ENOTFOUND") {
                 return;
             }
-            console.log(e);
 
             return e;
         }

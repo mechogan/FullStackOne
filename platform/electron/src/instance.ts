@@ -1,6 +1,6 @@
 import { BrowserWindow } from "electron";
 import type { Project } from "../../../editor/api/projects/types";
-import { Adapter } from "../../../src/adapter";
+import { Adapter } from "../../../src/adapter/fullstacked";
 import { initAdapter } from "../../node/src/adapter";
 import { InstanceEditor } from "./instanceEditor";
 

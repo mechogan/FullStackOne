@@ -35,14 +35,34 @@ export type fs = {
     writeFile(
         file: string,
         data: string | Uint8Array,
-        options?: { encoding?: "utf8"; absolutePath: boolean }
+        options?: {
+            encoding?: "utf8";
+            absolutePath?: boolean;
+            recursive?: boolean;
+        }
     ): Promise<void>;
+
+    writeFileMulti(
+        files: {
+            path: string;
+            data: string | Uint8Array;
+        }[],
+        options: {
+            encoding?: "utf8";
+            absolutePath?: boolean;
+            recursive?: boolean;
+        }
+    ): Promise<void[]>;
 
     unlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;
 
     readdir(
         path: string,
-        options?: { withFileTypes?: boolean; absolutePath?: boolean }
+        options?: {
+            withFileTypes?: boolean;
+            absolutePath?: boolean;
+            recursive?: boolean;
+        }
     ): Promise<string[] | Dirent[]>;
 
     mkdir(path: string, options?: { absolutePath?: boolean }): Promise<void>;

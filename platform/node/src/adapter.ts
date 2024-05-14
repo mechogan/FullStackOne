@@ -1,21 +1,40 @@
-import type { Adapter } from "../../../src/adapter";
+import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
 export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
+    const writeFile: Adapter["fs"]["writeFile"] = async (
+        file,
+        data,
+        options
+    ) => {
+        const filePath = baseDirectory + "/" + file;
+
+        if (options?.recursive) {
+            const directory = filePath.split("/").slice(0, -1);
+            await fs.promises.mkdir(directory.join("/"), { recursive: true });
+        }
+
+        return fs.promises.writeFile(baseDirectory + "/" + file, data, options);
+    };
+
     return {
         platform,
         fs: {
-            readFile: (path, options?: { encoding?: "utf8" }) => {
+            readFile: async (
+                path: string,
+                options?: { encoding?: "utf8"; absolutePath?: boolean }
+            ) => {
                 return fs.promises.readFile(
                     baseDirectory + "/" + path,
                     options
                 );
             },
-            writeFile: (file, data, options) => {
-                return fs.promises.writeFile(
-                    baseDirectory + "/" + file,
-                    data,
-                    options
+            writeFile,
+            writeFileMulti(files, options) {
+                return Promise.all(
+                    files.map(({ path, data }) =>
+                        writeFile(path, data, options)
+                    )
                 );
             },
             unlink: (path) => {

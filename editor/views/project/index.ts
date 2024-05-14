@@ -5,16 +5,18 @@ import { Console } from "../console";
 import {
     DELETE_ALL_PACKAGES_ID,
     PROJECT_TITLE_ID,
-    RUN_PROJECT_ID
+    RUN_PROJECT_ID,
+    TYPESCRIPT_ICON_ID
 } from "../../constants";
 import GitWidget from "./git-widget";
 import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
-import { isReadable } from "stream";
+import { PackageInstaller } from "../../packages/installer";
+import { tsWorkerDelegate } from "../../typescript";
 
-export class Project {
+export class Project implements tsWorkerDelegate {
     backAction: () => void;
     packagesView: boolean = false;
 
@@ -60,6 +62,34 @@ export class Project {
 
             this.renderEditors();
         };
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                this.editors.forEach((editor) => editor.format());
+            }
+        });
+    }
+
+    tsIcon = document.createElement("button");
+    activeReqs = new Set<number>();
+    onCreate(): void {
+        this.tsIcon.disabled = false;
+    }
+    checkForTsLoading = () => {
+        if (this.activeReqs.size) {
+            this.tsIcon.classList.add("loading");
+        } else {
+            this.tsIcon.classList.remove("loading");
+        }
+    };
+    onReq(id: number): void {
+        this.activeReqs.add(id);
+        this.checkForTsLoading();
+    }
+    onReqEnd(id: number): void {
+        this.activeReqs.delete(id);
+        this.checkForTsLoading();
     }
 
     openFiles(filepaths: string[]) {
@@ -96,6 +126,9 @@ export class Project {
     setProject(project: TypeProject) {
         if (project === this.project) return;
 
+        Editor.currentDirectory = project.location;
+        Editor.ignoredTypes = new Set();
+
         this.project = project;
         this.gitWidget.project = project;
 
@@ -107,81 +140,6 @@ export class Project {
         this.renderEditors();
     }
 
-    private installPackages(packagesToInstall: Map<string, Set<string>>) {
-        const dialog = document.createElement("div");
-        dialog.classList.add("dialog");
-
-        const container = document.createElement("div");
-        container.innerHTML = `<h1>Dependencies</h1>`;
-
-        const packagesContainer = document.createElement("dl");
-        const installPromises: Promise<void>[] = [];
-        for (const [
-            packageName,
-            filesRequiringPackage
-        ] of packagesToInstall.entries()) {
-            const dt = document.createElement("dt");
-            dt.innerText = packageName;
-            const dd = document.createElement("dd");
-            const ul = document.createElement("ul");
-            for (const file of filesRequiringPackage) {
-                const li = document.createElement("li");
-                li.innerText = file;
-                ul.append(li);
-            }
-            dd.append(ul);
-
-            const status = document.createElement("div");
-            status.innerText = "installing...";
-            container.append(status);
-
-            const installPromise = new Promise<void>((resolve, reject) => {
-                api.packages
-                    .install(packageName, (current, total) => {
-                        status.innerText = `${Math.floor((current / total) * 10000) / 100}% [${current}/${total}] installing...`;
-                    })
-                    .then(() => {
-                        status.innerText = "installed";
-                        resolve();
-                    })
-                    .catch((e) => {
-                        status.innerText = "error";
-                        reject({
-                            error: `Failed to install [${packageName}]`,
-                            location: Array.from(filesRequiringPackage).join(
-                                "\n"
-                            ),
-                            message: e.message
-                        });
-                    });
-            });
-            installPromises.push(installPromise);
-
-            packagesContainer.append(dt, dd, status);
-        }
-
-        container.append(packagesContainer);
-        dialog.append(container);
-        this.container.append(dialog);
-
-        Promise.allSettled(installPromises).then((results) => {
-            results.forEach((fulfillment) => {
-                if (fulfillment.status === "fulfilled") return;
-
-                this.openConsole();
-                this.console.log(JSON.stringify(fulfillment.reason, null, 4));
-            });
-            dialog.remove();
-
-            if (
-                !results.find(
-                    (fulfillment) => fulfillment.status !== "fulfilled"
-                )
-            )
-                this.runProject();
-        });
-    }
-
     openConsole() {
         this.console.fitAddon.fit();
         this.container.classList.add("console-opened");
@@ -191,7 +149,7 @@ export class Project {
     }
 
     private processBuildErrors(errors: esbuild.BuildResult["errors"]) {
-        const packagesMissing = new Map<string, Set<string>>();
+        const packagesMissing = new Set<string>();
         errors.forEach((error) => {
             error = uncapitalizeKeys(error);
 
@@ -209,31 +167,13 @@ export class Project {
             const message = error.text;
 
             if (message.startsWith("Could not resolve")) {
-                const moduleName: string[] = message
+                const moduleName: string = message
                     .match(/\".*\"/)
                     ?.at(0)
-                    ?.slice(1, -1)
-                    .split("/");
+                    ?.slice(1, -1);
 
-                if (!moduleName.at(0)?.startsWith(".")) {
-                    const dependency = moduleName.at(0)?.startsWith("@")
-                        ? moduleName.slice(0, 2).join("/")
-                        : moduleName.at(0);
-
-                    if (dependency) {
-                        let fileRequiringPackage =
-                            packagesMissing.get(dependency);
-                        if (!fileRequiringPackage)
-                            fileRequiringPackage = new Set();
-                        fileRequiringPackage.add(
-                            filename.includes("node_modules")
-                                ? "node_modules" +
-                                      filename.split("node_modules").pop()
-                                : filename.slice(1)
-                        );
-                        packagesMissing.set(dependency, fileRequiringPackage);
-                    }
-
+                if (!moduleName.startsWith(".")) {
+                    packagesMissing.add(moduleName);
                     return;
                 }
             }
@@ -259,7 +199,12 @@ export class Project {
         this.renderEditors();
 
         if (packagesMissing.size > 0) {
-            this.installPackages(packagesMissing);
+            PackageInstaller.install(
+                Array.from(packagesMissing).map((name) => ({
+                    name,
+                    deep: true
+                }))
+            ).then(() => this.runProject());
         }
     }
 
@@ -303,6 +248,15 @@ export class Project {
             });
             container.append(deleteAllPackagesButton);
         } else {
+            this.tsIcon = document.createElement("button");
+            this.tsIcon.id = TYPESCRIPT_ICON_ID;
+            this.tsIcon.disabled = true;
+            this.tsIcon.classList.add("text");
+            this.tsIcon.innerHTML = await (
+                await fetch("/assets/icons/typescript.svg")
+            ).text();
+            container.append(this.tsIcon);
+
             const shareButton = document.createElement("button");
             shareButton.classList.add("text");
             shareButton.innerHTML = await (
@@ -403,6 +357,8 @@ export class Project {
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
+            editor.tsWorkerDelegate = this;
+
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {
                 tab.classList.add("has-errors");

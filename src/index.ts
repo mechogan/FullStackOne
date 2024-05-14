@@ -1,8 +1,36 @@
 import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
 
+(globalThis as any).process = {
+    platform: "browser"
+};
+
+function syncRequest(pathComponents: string[], ...args) {
+    const request = new XMLHttpRequest();
+    request.open("POST", pathComponents.join("/"), false);
+    request.send(JSON.stringify(args));
+
+    const contentType = request.getResponseHeader("content-type");
+    let data: any;
+
+    if (contentType?.startsWith("application/octet-stream"))
+        data = new Uint8Array(request.response);
+    else {
+        data = request.responseText;
+        if (contentType?.startsWith("application/json")) {
+            data = JSON.parse(data, decodeUint8Array);
+        }
+    }
+
+    if (request.status >= 299) {
+        throw data;
+    }
+
+    return data;
+}
+
 async function fetchCall(pathComponents: string[], ...args) {
-    const url = new URL(window.location.origin);
+    const url = new URL(self.location.origin);
     url.pathname = pathComponents.join("/");
 
     const response = await fetch(url.toString(), {
@@ -42,40 +70,27 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
     });
 }
 
-export default function rpc<T>() {
-    return recurseInProxy(fetchCall) as unknown as AwaitAll<T>;
+export function rpcSync<T>() {
+    return recurseInProxy(syncRequest);
 }
-(window as any).rpc = rpc;
+globalThis.rpcSync = rpcSync;
 
-type MakeFunction<T> = T extends string ? () => Promise<T> : T;
+export default function rpc<T>() {
+    return recurseInProxy(fetchCall);
+}
+globalThis.rpc = rpc;
 
-type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
-
-type AwaitAll<T> = {
-    [K in keyof T]: T[K] extends (...args: any) => any
-        ? (
-              ...args: T[K] extends (...args: infer P) => any ? P : never[]
-          ) => OnlyOnePromise<
-              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-          >
-        : T[K] extends object
-          ? AwaitAll<T[K]>
-          : () => Promise<T[K]>;
-};
-
-(window as any).onPush = {} as {
-    [messageType: string]: (message: string) => void;
-};
+globalThis.onPush = {};
 
 const dispatchMessage = (messageType: string, message: string) => {
-    const callback = (window as any).onPush[messageType];
+    const callback = globalThis.onPush[messageType];
     if (!callback) return false;
 
     callback(message);
     return true;
 };
 
-(window as any).push = (messageType: string, message: string) => {
+globalThis.push = (messageType: string, message: string) => {
     // try once
     if (!dispatchMessage(messageType, message)) {
         setTimeout(() => {
@@ -90,14 +105,14 @@ const dispatchMessage = (messageType: string, message: string) => {
 const platform = await (rpc() as any).platform();
 if (platform === "node") {
     const url =
-        (window.location.protocol === "http:" ? "ws:" : "wss:") +
+        (self.location.protocol === "http:" ? "ws:" : "wss:") +
         "//" +
-        window.location.host;
+        self.location.host;
     const ws = new WebSocket(url);
     ws.onmessage = ({ data }) => {
         const { messageType, message } = JSON.parse(data);
-        (window as any).push(messageType, message);
+        globalThis.push(messageType, message);
     };
 }
 
-(window as any).sourceMapConsumer = SourceMapConsumer;
+globalThis.sourceMapConsumer = SourceMapConsumer;

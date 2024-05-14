@@ -33,6 +33,15 @@ class Adapter {
         
         let json = body.count == 0 ? JSON("{}") : try! JSON(data: body)
         
+        let writeFile = { (path: String, data: Data, recursive: Bool) in
+            if(recursive) {
+                let directory = path.split(separator: "/").dropLast()
+                self.fs.mkdir(path: directory.joined(separator: "/"))
+            }
+            
+            return self.fs.writeFile(file: path, data: data)
+        }
+        
         switch(methodPath.first) {
             case "platform": return done(self.platform)
             case "fs":
@@ -50,10 +59,28 @@ class Adapter {
                             data = json[1].stringValue.data(using: .utf8)!
                         }
                         
-                        return done(self.fs.writeFile(file: json[0].stringValue, data: data))
-                    
+                    return done(writeFile(json[0].stringValue, data, json[2]["recursive"].boolValue))
+                    case "writeFileMulti":
+                        for fileJSON in json[0].arrayValue {
+                            var data: Data;
+                            
+                            if(fileJSON["data"]["type"].stringValue == "Uint8Array") {
+                                let uint8array = fileJSON["data"]["data"].arrayValue.map({ number in
+                                    return number.uInt8!
+                                })
+                                data = Data(uint8array)
+                            } else {
+                                data = fileJSON["data"].stringValue.data(using: .utf8)!
+                            }
+                            
+                            let maybeError = writeFile(fileJSON["path"].stringValue, data, json[2]["recursive"].boolValue)
+                            if(maybeError is AdapterError){
+                                return done(maybeError)
+                            }
+                        }
+                        return done(true)
                     case "unlink": return done(self.fs.unlink(path: json[0].stringValue))
-                    case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue))
+                    case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue, recursive: json[1]["recursive"].boolValue))
                     case "mkdir": return done(self.fs.mkdir(path: json[0].stringValue))
                     case "rmdir": return done(self.fs.rmdir(path: json[0].stringValue))
                     case "stat": return done(self.fs.stat(path: json[0].stringValue))
@@ -115,7 +142,7 @@ class Adapter {
                method: String,
                body: Data,
                onCompletion: @escaping (
-                    _ headers: [String: String],
+                  _ headers: [String: String],
                   _ statusCode: Int,
                   _ statusMessage: String,
                   _ data: Data
@@ -133,6 +160,7 @@ class Adapter {
                    
                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
                        if error != nil {
+                           onCompletion([:], 500, "Fetch error", Data())
                            return
                        }
                        
@@ -217,7 +245,7 @@ class AdapterFS {
         }
     }
     
-    func readdir(path: String, withFileTypes: Bool) -> Any {
+    func readdir(path: String, withFileTypes: Bool, recursive: Bool) -> Any {
         let itemPath = self.baseDirectory + "/" + path;
         
         let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(itemPath);
@@ -229,7 +257,16 @@ class AdapterFS {
             )
         }
         
-        let items = try! FileManager.default.contentsOfDirectory(atPath: itemPath)
+        var items = recursive
+            ? []
+            : try! FileManager.default.contentsOfDirectory(atPath: itemPath)
+        
+        if(recursive) {
+            let enumarator = FileManager.default.enumerator(atPath: itemPath)
+            while let element = enumarator?.nextObject() as? String {
+                items.append(element)
+            }
+        }
         
         if(withFileTypes){
             let itemsWithFileTypes = items.map { childItem in

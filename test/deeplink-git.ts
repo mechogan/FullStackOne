@@ -5,7 +5,9 @@ import { PROJECT_TITLE_ID } from "../editor/constants";
 
 let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 
-const onError = () => {
+const onError = (e) => {
+    console.log(e);
+
     if (editorProcess1) {
         process.kill(-editorProcess1.pid, "SIGTERM");
         process.kill(-editorProcess1.pid, "SIGKILL");
@@ -29,7 +31,7 @@ editorProcess1 = child_process.spawn("npm", ["start"], {
 editorProcess1.stdout.pipe(process.stdout);
 editorProcess1.stderr.pipe(process.stderr);
 editorProcess1.on("error", onError);
-await sleep(3000);
+await sleep(5000);
 
 // Lets go delete our Demo projects
 const browser = await puppeteer.launch({

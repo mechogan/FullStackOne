@@ -47,6 +47,11 @@ export default {
                     name: usernameAndEmail?.username
                 }
             });
+
+            if (searchParams.branch) {
+                await git.pull(project);
+                await git.checkout(project, searchParams.branch);
+            }
         }
 
         return project;

@@ -33,6 +33,23 @@ export class InstanceEditor extends Instance {
 
         this.launchURL = launchURL;
 
+        const writeFile: AdapterEditor["fs"]["writeFile"] = async (
+            file,
+            data,
+            options
+        ) => {
+            const filePath = InstanceEditor.rootDirectory + "/" + file;
+
+            if (options?.recursive) {
+                const directory = filePath.split("/").slice(0, -1);
+                await fs.promises.mkdir(directory.join("/"), {
+                    recursive: true
+                });
+            }
+
+            return fs.promises.writeFile(filePath, data, options);
+        };
+
         const defaultAdapter = initAdapter(editorDirectory);
         this.adapter = {
             ...defaultAdapter,
@@ -50,15 +67,21 @@ export class InstanceEditor extends Instance {
                     }
                     return defaultAdapter.fs.readFile(path, options);
                 },
-                writeFile: (file, data, options) => {
+                writeFile: async (file, data, options) => {
                     if (options?.absolutePath) {
-                        return fs.promises.writeFile(
-                            InstanceEditor.rootDirectory + "/" + file,
-                            data,
-                            options
-                        );
+                        return writeFile(file, data, options);
                     }
                     return defaultAdapter.fs.writeFile(file, data, options);
+                },
+                writeFileMulti: (files, options) => {
+                    if (options?.absolutePath) {
+                        return Promise.all(
+                            files.map(({ path, data }) =>
+                                writeFile(path, data, options)
+                            )
+                        );
+                    }
+                    return defaultAdapter.fs.writeFileMulti(files, options);
                 },
                 unlink: (path, options) => {
                     if (options?.absolutePath) {
@@ -70,7 +93,11 @@ export class InstanceEditor extends Instance {
                 },
                 readdir: async (
                     path,
-                    options?: { withFileTypes: true; absolutePath?: boolean }
+                    options?: {
+                        withFileTypes: true;
+                        absolutePath?: boolean;
+                        recursive?: boolean;
+                    }
                 ) => {
                     if (options?.absolutePath) {
                         const items = await fs.promises.readdir(
@@ -159,6 +186,14 @@ export class InstanceEditor extends Instance {
 
             build: async (project: Project) => {
                 const entryPoint = [
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
+                        "/index.ts",
+                    InstanceEditor.rootDirectory +
+                        "/" +
+                        project.location +
+                        "/index.tsx",
                     InstanceEditor.rootDirectory +
                         "/" +
                         project.location +
