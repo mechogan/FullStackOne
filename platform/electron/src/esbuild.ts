@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import https from "https";
-import tar from "tar";
+import * as tar from "tar";
 import { pkgAndSubpathForCurrentPlatform } from "../../../lib/esbuild/lib/npm/node-platform";
 // @ts-ignore
 import esbuildVersion from "../../../lib/esbuild/version.txt";
