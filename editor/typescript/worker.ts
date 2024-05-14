@@ -230,6 +230,7 @@ function initLanguageServiceHost(
                     scriptSnapshotCache[path].getLength()
                 );
             }
+
             return rpcSync().fs.readFile(path, {
                 absolutePath: true,
                 encoding: "utf8"
