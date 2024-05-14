@@ -54,7 +54,10 @@ export class Editor {
 
     static async restartTSWorker() {
         if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
-        Editor.tsWorker = new tsWorker(Editor.currentDirectory, Editor.tsWorker?.delegate);
+        Editor.tsWorker = new tsWorker(
+            Editor.currentDirectory,
+            Editor.tsWorker?.delegate
+        );
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start(Editor.currentDirectory);
     }
@@ -142,8 +145,6 @@ export class Editor {
         });
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
-
-    
 
     async loadFileContents() {
         if (this.editor) {
