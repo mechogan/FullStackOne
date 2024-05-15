@@ -1,4 +1,5 @@
 import type { methods } from "./worker";
+import { parse } from "flatted";
 
 function recurseInProxy(target: Function, methodPath: string[] = []) {
     return new Proxy(target, {
@@ -50,7 +51,9 @@ export class tsWorker {
 
             const { id, data } = message.data;
             const promiseResolve = this.reqs.get(id);
-            promiseResolve(data);
+            let parsed = data ? parse(data) : undefined;
+            console.log(parsed);
+            promiseResolve(parsed);
             this.reqs.delete(id);
             if (tsWorker.delegate) tsWorker.delegate.onReqEnd(id);
         };
