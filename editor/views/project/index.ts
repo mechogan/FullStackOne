@@ -14,7 +14,7 @@ import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";
-import { tsWorkerDelegate } from "../../typescript";
+import { tsWorker, tsWorkerDelegate } from "../../typescript";
 
 export class Project implements tsWorkerDelegate {
     backAction: () => void;
@@ -62,6 +62,8 @@ export class Project implements tsWorkerDelegate {
 
             this.renderEditors();
         };
+
+        tsWorker.delegate = this;
 
         window.addEventListener("keydown", (e) => {
             if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
@@ -360,8 +362,6 @@ export class Project implements tsWorkerDelegate {
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
-            if (Editor.tsWorker) Editor.tsWorker.delegate = this;
-
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {
                 tab.classList.add("has-errors");

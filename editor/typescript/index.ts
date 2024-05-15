@@ -19,9 +19,9 @@ export abstract class tsWorkerDelegate {
 }
 
 export class tsWorker {
+    static delegate?: tsWorkerDelegate;
     worker: Worker;
     workingDirectory: string;
-    delegate?: tsWorkerDelegate;
     private reqsCount = 0;
     private reqs = new Map<number, Function>();
     private isReady = false;
@@ -29,23 +29,22 @@ export class tsWorker {
 
     private postMessage(methodPath: string[], ...args: any) {
         const id = ++this.reqsCount;
-        if (this.delegate) this.delegate.onReq(id);
+        if (tsWorker.delegate) tsWorker.delegate.onReq(id);
         return new Promise((resolve) => {
             this.reqs.set(id, resolve);
             this.worker.postMessage({ id, methodPath, args });
         });
     }
 
-    constructor(workingDirectory: string, delegate?: tsWorkerDelegate) {
+    constructor(workingDirectory: string) {
         this.workingDirectory = workingDirectory;
-        this.delegate = delegate;
 
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
             if (message.data.ready) {
                 this.isReady = true;
                 this.readyAwaiter.forEach((resolve) => resolve());
-                if (this.delegate) this.delegate.onCreate();
+                if (tsWorker.delegate) tsWorker.delegate.onCreate();
                 return;
             }
 
@@ -53,7 +52,7 @@ export class tsWorker {
             const promiseResolve = this.reqs.get(id);
             promiseResolve(data);
             this.reqs.delete(id);
-            if (this.delegate) this.delegate.onReqEnd(id);
+            if (tsWorker.delegate) tsWorker.delegate.onReqEnd(id);
         };
     }
 
