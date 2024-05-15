@@ -21,7 +21,9 @@ const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
 // source: https://stackoverflow.com/a/69881039/9777391
 function JSONCircularRemover() {
     const visited = new WeakSet();
-    return (key, value) => {
+    return (key: string, value: any) => {
+        if(key === "file") return "[File]";
+        
         if (typeof value !== "object" || value === null) return value;
 
         if (visited.has(value)) {
