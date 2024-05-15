@@ -2,7 +2,7 @@ import http from "http";
 import ws, { WebSocketServer } from "ws";
 import { TextEncoder, TextDecoder } from "util";
 import mime from "mime";
-import type { Adapter } from "../../../src/adapter";
+import type { Adapter } from "../../../src/adapter/fullstacked";
 import { initAdapter } from "./adapter";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import open from "open";

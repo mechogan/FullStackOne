@@ -5,6 +5,7 @@ import { build, merge } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
+import child_process from "child_process";
 
 // TypeScript fix for JSC (Safari/WebKit) memory leak
 // Refer to this for more info: https://github.com/microsoft/TypeScript/issues/58137
@@ -99,3 +100,10 @@ if (fs.existsSync(sampleDemoDir)) {
 fs.cpSync("node_modules/typescript/lib", "editor/build/tsLib", {
     recursive: true
 });
+
+child_process.execSync(
+    "tsc --declaration --skipLibCheck --module system --outfile editor/build/tsLib/fullstacked.js src/adapter/fullstacked.ts",
+    {
+        stdio: "inherit"
+    }
+);

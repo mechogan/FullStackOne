@@ -60,7 +60,7 @@ await newProjectTile.click();
 const importProjectFileInput = (await page.waitForSelector(
     `#${IMPORT_PROJECT_FILE_INPUT_ID}`
 )) as ElementHandle<HTMLInputElement>;
-await importProjectFileInput.uploadFile("Demo.zip");
+await importProjectFileInput.uploadFile("editor/build/Demo.zip");
 
 // add file
 const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);

@@ -1,4 +1,4 @@
-import type { Adapter } from "../../../src/adapter";
+import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 import { Multipeer } from "./multipeer";
 
@@ -21,7 +21,10 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
     return {
         platform,
         fs: {
-            readFile: (path, options?: { encoding?: "utf8" }) => {
+            readFile: async (
+                path: string,
+                options?: { encoding?: "utf8"; absolutePath?: boolean }
+            ) => {
                 return fs.promises.readFile(
                     baseDirectory + "/" + path,
                     options

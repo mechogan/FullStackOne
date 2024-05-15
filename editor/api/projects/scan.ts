@@ -1,4 +1,4 @@
-import type { Adapter } from "../../../src/adapter";
+import type { Adapter } from "../../../src/adapter/fullstacked";
 import { Dirent } from "../../../src/adapter/fs";
 
 export const scan = async (
