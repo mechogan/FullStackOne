@@ -187,6 +187,8 @@ export class Instance {
 
     start() {
         this.server.listen(this.port);
-        if (!process.env.NO_OPEN) open(`http://localhost:${this.port}`);
+        if (!process.env.NO_OPEN) {
+            open(`http://localhost:${this.port}`);
+        }
     }
 }

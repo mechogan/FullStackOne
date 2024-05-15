@@ -14,6 +14,7 @@ import ts, {
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
+import { stringify } from "flatted";
 
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
@@ -21,7 +22,9 @@ const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
 // source: https://stackoverflow.com/a/69881039/9777391
 function JSONCircularRemover() {
     const visited = new WeakSet();
-    return (key, value) => {
+    return (key: string, value: any) => {
+        if (key === "file") return "[File]";
+
         if (typeof value !== "object" || value === null) return value;
 
         if (visited.has(value)) {
@@ -45,9 +48,7 @@ self.onmessage = (message: MessageEvent) => {
         const data = method(...args);
         self.postMessage({
             id,
-            data: data
-                ? JSON.parse(JSON.stringify(data, JSONCircularRemover()))
-                : undefined
+            data: data ? stringify(data) : undefined
         });
     }
 };
@@ -230,6 +231,7 @@ function initLanguageServiceHost(
                     scriptSnapshotCache[path].getLength()
                 );
             }
+
             return rpcSync().fs.readFile(path, {
                 absolutePath: true,
                 encoding: "utf8"

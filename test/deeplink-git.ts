@@ -31,7 +31,7 @@ editorProcess1 = child_process.spawn("npm", ["start"], {
 editorProcess1.stdout.pipe(process.stdout);
 editorProcess1.stderr.pipe(process.stderr);
 editorProcess1.on("error", onError);
-await sleep(5000);
+await sleep(7000);
 
 // Lets go delete our Demo projects
 const browser = await puppeteer.launch({
