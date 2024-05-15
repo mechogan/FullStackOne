@@ -14,14 +14,13 @@ function recurseInProxy(target: Function, methodPath: string[] = []) {
 }
 
 export abstract class tsWorkerDelegate {
-    abstract onCreate(): void;
     abstract onReq(id: number): void;
     abstract onReqEnd(id: number): void;
 }
 
 export class tsWorker {
     static delegate?: tsWorkerDelegate;
-    worker: Worker;
+    private worker: Worker;
     workingDirectory: string;
     private reqsCount = 0;
     private reqs = new Map<number, Function>();
@@ -37,6 +36,16 @@ export class tsWorker {
         });
     }
 
+    dispose(){
+        this.worker.terminate();
+        for(const [id, promiseResolve] of this.reqs.entries()) {
+            tsWorker.delegate.onReqEnd(id);
+            promiseResolve(undefined);
+        }
+        this.reqs.clear();
+        this.reqsCount = 0;
+    }
+
     constructor(workingDirectory: string) {
         this.workingDirectory = workingDirectory;
 
@@ -45,15 +54,12 @@ export class tsWorker {
             if (message.data.ready) {
                 this.isReady = true;
                 this.readyAwaiter.forEach((resolve) => resolve());
-                if (tsWorker.delegate) tsWorker.delegate.onCreate();
                 return;
             }
 
             const { id, data } = message.data;
             const promiseResolve = this.reqs.get(id);
-            let parsed = data ? parse(data) : undefined;
-            console.log(parsed);
-            promiseResolve(parsed);
+            promiseResolve(data ? parse(data) : undefined);
             this.reqs.delete(id);
             if (tsWorker.delegate) tsWorker.delegate.onReqEnd(id);
         };

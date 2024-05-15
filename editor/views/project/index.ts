@@ -75,9 +75,6 @@ export class Project implements tsWorkerDelegate {
 
     tsIcon = document.createElement("button");
     activeReqs = new Set<number>();
-    onCreate(): void {
-        this.tsIcon.disabled = false;
-    }
     checkForTsLoading = () => {
         if (this.activeReqs.size) {
             this.tsIcon.classList.add("loading");
@@ -86,6 +83,7 @@ export class Project implements tsWorkerDelegate {
         }
     };
     onReq(id: number): void {
+        this.tsIcon.disabled = false;
         this.activeReqs.add(id);
         this.checkForTsLoading();
     }

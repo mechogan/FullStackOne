@@ -53,7 +53,7 @@ export class Editor {
     static ignoredTypes = new Set<string>();
 
     static async restartTSWorker() {
-        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
+        if (Editor.tsWorker) Editor.tsWorker.dispose();
         Editor.tsWorker = new tsWorker(Editor.currentDirectory);
         await Editor.tsWorker.ready();
         await Editor.tsWorker.call().start(Editor.currentDirectory);
