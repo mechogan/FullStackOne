@@ -27,7 +27,7 @@ class Bonjour {
                     switch result.metadata {
                         case.bonjour(let record):
                         if let addressesStr = record["addresses"], let portStr = record["port"] {
-                            let peer = Peer(name: result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
+                            let peer = Peer(name: record["_d"] ?? result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
                             let json = try! JSONEncoder().encode(peer)
                             DispatchQueue.main.async {
                                 InstanceEditor.singleton?.push(messageType: "nearbyPeer", message: String(data: json, encoding: .utf8)!)
@@ -64,7 +64,7 @@ class Bonjour {
                 }
                 self.receive(ws: ws)
                 break
-            case .failure(let error):
+            case .failure(_):
                 print("WebSocket failed")
             }
         })

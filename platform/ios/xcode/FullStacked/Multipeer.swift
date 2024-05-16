@@ -20,8 +20,8 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
         serviceAdvertiser.delegate = self
         serviceBrowser.delegate = self
 
-        serviceAdvertiser.startAdvertisingPeer()
-        serviceBrowser.startBrowsingForPeers()
+//        serviceAdvertiser.startAdvertisingPeer()
+//        serviceBrowser.startBrowsingForPeers()
     }
     
     

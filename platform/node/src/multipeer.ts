@@ -2,10 +2,13 @@ import { Bonjour } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
 import { randomUUID } from 'crypto';
 import os from "os";
-import { info } from 'console';
+import child_process from "child_process"
 
-export type Peer = {
-    name: string,
+type Peer = {
+    name: string
+}
+
+export type NearbyPeer = Peer & {
     port: number,
     addresses: string[]
 }
@@ -16,15 +19,23 @@ export class Multipeer {
     wss = new WebSocketServer({ port: this.port });
     onMessage: (data: any) => void;
 
-    static peers = new Set<WebSocket>();
+    static peers = new Map<WebSocket, (Peer | null)>();
 
     constructor(onMessage: (data: any) => void){
         this.onMessage = onMessage;
 
-        this.wss.on("connection", (ws) => {
+        this.wss.on("connection", ws => {
             console.log("Connected with new peer")
-            Multipeer.peers.add(ws);
-            ws.onmessage = ({data}) => this.onMessage(data);
+            Multipeer.peers.set(ws, null);
+            ws.onmessage = ({ data }) => {
+                const peer = Multipeer.peers.get(ws);
+                if(!peer) {
+
+                } else {
+                    this.onMessage(data)
+                }
+            };
+            ws.on("close", () => Multipeer.peers.delete(ws));
         });
     }
 
@@ -38,7 +49,7 @@ export class Multipeer {
                 .filter(([netInterface, _]) => interfaces.find(prefix => netInterface.startsWith(prefix)))
                 .map(([netInterface, infos]) => ({
                     name: netInterface,
-                    addresses: infos.map(({address}) => address)
+                    addresses: infos?.map(({address}) => address) ?? []
                 }))
         }
     }
@@ -46,22 +57,22 @@ export class Multipeer {
     advertise(){
         const info = this.info();
 
-        const name = randomUUID();
+        const peerId = randomUUID();
         const advertiser = this.bonjour.publish({ 
-            name, 
+            name: peerId, 
             type: 'fullstacked', 
             port: this.port,
             txt: {
-                _d:  name,
+                _d:  getComputerName(),
                 addresses: info.interfaces.map(({addresses}) => addresses).flat().join(","),
                 port: this.port
             }
         });
 
-        setTimeout(() => { advertiser?.stop() }, 30000);
+        setTimeout(() => { if(advertiser?.stop) advertiser.stop() }, 30000);
     }
 
-    browse(onService: (peer: Peer) => void){
+    browse(onService: (peer: NearbyPeer) => void){
         this.bonjour.find({ type: 'fullstacked' }, service => {
             if(service.port === this.port) return;
 
@@ -72,7 +83,7 @@ export class Multipeer {
         });
     }
 
-    async pair(peer: Peer){
+    async pair(peer: NearbyPeer){
         let paired = false;
         for(const address of peer.addresses) {
             if(paired) break;
@@ -98,11 +109,27 @@ export class Multipeer {
     }
 
     static broadcast(data: any){
-        Multipeer.peers.forEach(ws => ws.send(data));
+        for(const [ws, peer] of Multipeer.peers.entries()) {
+            if(peer) ws.send(data)
+        }
     }
 }
 
 
 function randomIntFromInterval(min, max) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function getComputerName() {
+  switch (process.platform) {
+    case "win32":
+      return process.env.COMPUTERNAME;
+    case "darwin":
+      return child_process.execSync("scutil --get ComputerName").toString().trim();
+    case "linux":
+      const prettyname = child_process.execSync("hostnamectl --pretty").toString().trim();
+      return prettyname === "" ? os.hostname() : prettyname;
+    default:
+      return os.hostname();
+  }
 }

@@ -14,7 +14,7 @@ let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
     static var singleton: InstanceEditor?
-    let multipeer = Multipeer()
+//    let multipeer = Multipeer()
     
     init(){
         let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
