@@ -233,6 +233,16 @@ export class Editor {
         });
     }
 
+    async reRunExtensions(){
+        this.editor.dispatch({
+            changes: {
+                from: 0,
+                to: this.editor.state.doc.length,
+                insert: this.editor.state.doc.toString()
+            }
+        });
+    }
+
     private async loadLanguageExtensions() {
         const filename = this.filePath.at(-1) as string;
         const extensions: Extension[] = [];
