@@ -1,6 +1,6 @@
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
-import { Multipeer } from "./multipeer";
+import { Bonjour } from "./bonjour";
 
 export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
     const writeFile: Adapter["fs"]["writeFile"] = async (
@@ -132,8 +132,8 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                 body
             };
         },
-        broadcast: (data: any) => {
-            Multipeer.broadcast(data);
+        broadcast: data => {
+            Bonjour.broadcast(data);
         }
     };
 }

@@ -1,16 +1,19 @@
 import Foundation
+import UIKit
 import Network
 import SwiftyJSON
 
 
 struct Peer: Codable {
+    var id: String
     var name: String
-    var addresses: [String]
-    var port: Int
+    var addresses: [String]?
+    var port: Int?
 }
 
 class Bonjour {
     static var singleton: Bonjour?
+    let id = UUID().uuidString
     var ws: [URLSessionWebSocketTask] = []
     
     func browse(){
@@ -27,8 +30,10 @@ class Bonjour {
                     switch result.metadata {
                         case.bonjour(let record):
                         if let addressesStr = record["addresses"], let portStr = record["port"] {
-                            let peer = Peer(name: record["_d"] ?? result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
-                            let json = try! JSONEncoder().encode(peer)
+                            let peerID = String(result.endpoint.debugDescription.split(separator: ".").first!)
+                            let nearbyPeer = Peer(id: peerID, name: record["_d"] ?? result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
+                            let json = try! JSONEncoder().encode(nearbyPeer)
+                            
                             DispatchQueue.main.async {
                                 InstanceEditor.singleton?.push(messageType: "nearbyPeer", message: String(data: json, encoding: .utf8)!)
                             }
@@ -70,7 +75,11 @@ class Bonjour {
         })
     }
     
-    func pair(addresses: [String], port: Int, completionHandler: @escaping (_ success: Bool) -> Void) {
+    func pair(id: String,
+              name: String,
+              addresses: [String],
+              port: Int,
+              completionHandler: @escaping (_ success: Bool) -> Void) {
         if (addresses.count == 0) {
             completionHandler(false)
             return
@@ -94,6 +103,16 @@ class Bonjour {
                 completionHandler(true)
                 self.ws.append(ws)
                 self.receive(ws: ws)
+                
+                let selfPeer = Peer(id: self.id, name: UIDevice.current.name)
+                let selfPeerJson = try! JSONEncoder().encode(selfPeer)
+                ws.send(URLSessionWebSocketTask.Message.string(String(data: selfPeerJson, encoding: .utf8)!), completionHandler: {_ in })
+                
+                let peer = Peer(id: id, name: name)
+                let peerJson = try! JSONEncoder().encode(peer)
+                DispatchQueue.main.async {
+                    InstanceEditor.singleton?.push(messageType: "peer", message: String(data: peerJson, encoding: .utf8)!)
+                }
             }
         );
         
@@ -109,7 +128,7 @@ class Bonjour {
             
             print("Failed to pair with \(urlString). Continuing...")
 
-            self.pair(addresses: addrs, port: port, completionHandler: completionHandler)
+            self.pair(id: id, name: name, addresses: addrs, port: port, completionHandler: completionHandler)
         }
     }
 }

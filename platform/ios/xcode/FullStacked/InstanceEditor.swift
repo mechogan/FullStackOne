@@ -194,7 +194,7 @@ class AdapterEditor: Adapter {
                     self.bonjour.browse()
                     return done(true)
                 case "pair":
-                    return self.bonjour.pair(addresses: json[0]["addresses"].arrayValue.map({ $0.stringValue }),
+                    return self.bonjour.pair(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue, addresses: json[0]["addresses"].arrayValue.map({ $0.stringValue }),
                                       port: Int(truncating: json[0]["port"].numberValue),
                                       completionHandler: { done($0) })
                 default: break

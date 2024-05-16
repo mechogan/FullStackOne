@@ -1,4 +1,4 @@
-import type { Peer } from "../../../platform/node/src/multipeer";
+import type { Peer, NearbyPeer } from "../../../platform/node/src/bonjour";
 import rpc from "../../rpc";
 import "./index.css";
 
@@ -6,39 +6,47 @@ export class Peers {
     backAction: () => void;
 
     peersList = document.createElement("div");
-    nearbyPeers: (Peer & { paired: boolean })[] = [];
+    peers: (NearbyPeer | Peer)[] = [];
 
     constructor(){
-        (window as any).onPush["nearbyPeer"] = async (message: string) => {
-            this.nearbyPeers.push(JSON.parse(message));
-            this.renderNearbyPeers();
+        const peerEventHandler = (message: string) => {
+            const peer: NearbyPeer | Peer = JSON.parse(message);
+            const indexOf = this.peers.findIndex(({id}) => id === peer.id);
+            if(indexOf >= 0) {
+                this.peers[indexOf] = peer;
+            } else {
+                this.peers.push(peer);
+            }
+            this.renderPeersList()
         }
+
+        (window as any).onPush["nearbyPeer"] = peerEventHandler;
+        (window as any).onPush["peer"] = peerEventHandler;
     }
     
-    renderNearbyPeers(){
+    renderPeersList(){
         const ul = document.createElement("ul");
 
-        this.nearbyPeers.forEach(peer => {
+        this.peers.forEach(peer => {
             const li = document.createElement("li");
 
             li.innerHTML = peer.name;
             
-            if(peer.paired) {
-                const bold = document.createElement("b");
-                bold.innerText = "Paired";
-                li.append(bold);
-            } else {
+            if(peer.hasOwnProperty("addresses")) {
                 const pairBtn = document.createElement("button");
                 pairBtn.innerText = "Pair";
     
                 pairBtn.addEventListener("click", async () => {
                     pairBtn.innerText = "Paring...";
                     pairBtn.disabled = true;
-                    peer.paired = await rpc().peers.pair(peer);
-                    this.renderNearbyPeers();
+                    await rpc().peers.pair(peer as NearbyPeer);
                 })
     
                 li.append(pairBtn);
+            } else {
+                const bold = document.createElement("b");
+                bold.innerText = "Paired";
+                li.append(bold);
             }
             
             ul.append(li);
@@ -124,15 +132,10 @@ export class Peers {
                 addresses: [ inputAddress.value ],
                 name: `Manual Input [${inputAddress.value.includes(":") ? `[${inputAddress.value}]` : inputAddress.value}:${inputPort.value}]`,
                 port: parseInt(inputPort.value),
-                paired: false
+                id: null
             }
 
-            if(await rpc().peers.pair(peer)) {
-                peer.paired = true;
-            }
-
-            this.nearbyPeers.push(peer);
-            this.renderNearbyPeers();
+            await rpc().peers.pair(peer)
             dialog.remove();
         });
         buttonGroup.append(pairButton);

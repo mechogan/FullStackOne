@@ -9,7 +9,7 @@ import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
-import { Multipeer, Peer } from "./multipeer";
+import { Bonjour, NearbyPeer } from "./bonjour";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
@@ -20,7 +20,7 @@ export class InstanceEditor extends Instance {
     configDirectory: string = ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
-    multipeer = new Multipeer((data: any) => this.instances.forEach(instance => instance.push("peerData", data)));
+    bonjour = new Bonjour();
     instances: Instance[] = [];
 
     adapter: AdapterEditor = null;
@@ -52,6 +52,10 @@ export class InstanceEditor extends Instance {
 
             return fs.promises.writeFile(filePath, data, options);
         };
+
+        this.bonjour.onMessage = message => this.instances.forEach(instance => instance.push("peerData", message))
+        this.bonjour.onNearbyPeer = nearbyPeer => this.push("nearbyPeer", JSON.stringify(nearbyPeer));
+        this.bonjour.onConnectedPeer = peer => this.push("peer", JSON.stringify(peer));
 
         const defaultAdapter = initAdapter(editorDirectory);
         this.adapter = {
@@ -247,15 +251,11 @@ export class InstanceEditor extends Instance {
             open: () => { },
 
             peers: {
-                info: () => this.multipeer.info(),
-                advertise: () => this.multipeer.advertise(),
-                browse: () => {
-                    this.multipeer.browse(peer => {
-                        this.push("nearbyPeer", JSON.stringify(peer));
-                    })
-                },
-                pair: (peer: Peer) => {
-                    return this.multipeer.pair(peer)
+                info: () => this.bonjour.info(),
+                advertise: () => this.bonjour.advertise(),
+                browse: () => this.bonjour.browse(),
+                pair: (peer: NearbyPeer) => {
+                    return this.bonjour.pair(peer)
                 }
             }
         };
