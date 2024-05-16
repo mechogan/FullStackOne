@@ -5,12 +5,11 @@
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build && npm start -w platform/node",
         "prettier": "prettier . --write",
-        "typecheck": "tsc --noEmit && npm run typecheck -w platform/electron ",
+        "typecheck": "tsc --noEmit && cd platform/electron && npm run typecheck",
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
     "workspaces": [
-        "platform/node",
-        "platform/electron"
+        "platform/node"
     ],
     "author": "FullStacked Org.",
     "license": "GPL-3.0",

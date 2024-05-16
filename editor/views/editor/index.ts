@@ -52,6 +52,13 @@ export class Editor {
     static currentDirectory: string;
     static ignoredTypes = new Set<string>();
 
+    static async restartTSWorker() {
+        if (Editor.tsWorker) Editor.tsWorker.dispose();
+        Editor.tsWorker = new tsWorker(Editor.currentDirectory);
+        await Editor.tsWorker.ready();
+        await Editor.tsWorker.call().start(Editor.currentDirectory);
+    }
+
     private extensions = [
         basicSetup,
         oneDark,
@@ -68,8 +75,6 @@ export class Editor {
         message: string;
     }[] = [];
     filePath: string[];
-
-    tsWorkerDelegate: tsWorkerDelegate;
 
     constructor(filePath: string[]) {
         this.filePath = filePath;
@@ -138,15 +143,6 @@ export class Editor {
         this.editor.dispatch(setDiagnostics(this.editor.state, diagnostics));
     }
 
-    private async restartTSWorker() {
-        if (Editor.tsWorker) Editor.tsWorker.worker.terminate();
-        Editor.tsWorker = new tsWorker(Editor.currentDirectory);
-        if (this.tsWorkerDelegate)
-            Editor.tsWorker.delegate = this.tsWorkerDelegate;
-        await Editor.tsWorker.ready();
-        await Editor.tsWorker.call().start(Editor.currentDirectory);
-    }
-
     async loadFileContents() {
         if (this.editor) {
             this.editor.dom.remove();
@@ -170,7 +166,7 @@ export class Editor {
                     Editor.currentDirectory !==
                     Editor.tsWorker?.workingDirectory
                 )
-                    await this.restartTSWorker();
+                    await Editor.restartTSWorker();
 
                 await Editor.tsWorker
                     .call()
@@ -234,6 +230,16 @@ export class Editor {
 
         rpc().fs.writeFile(this.filePath.join("/"), contents, {
             absolutePath: true
+        });
+    }
+
+    async reRunExtensions(){
+        this.editor.dispatch({
+            changes: {
+                from: 0,
+                to: this.editor.state.doc.length,
+                insert: this.editor.state.doc.toString()
+            }
         });
     }
 
@@ -351,7 +357,7 @@ export class Editor {
                             Editor.ignoredTypes.add(name)
                         );
 
-                        await this.restartTSWorker();
+                        await Editor.restartTSWorker();
                         await this.updateFile();
                         tsErrors = await getAllTsError();
                     }

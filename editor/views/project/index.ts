@@ -14,7 +14,7 @@ import type { Project as TypeProject } from "../../api/projects/types";
 import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";
-import { tsWorkerDelegate } from "../../typescript";
+import { tsWorker, tsWorkerDelegate } from "../../typescript";
 
 export class Project implements tsWorkerDelegate {
     backAction: () => void;
@@ -63,6 +63,8 @@ export class Project implements tsWorkerDelegate {
             this.renderEditors();
         };
 
+        tsWorker.delegate = this;
+
         window.addEventListener("keydown", (e) => {
             if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -73,9 +75,6 @@ export class Project implements tsWorkerDelegate {
 
     tsIcon = document.createElement("button");
     activeReqs = new Set<number>();
-    onCreate(): void {
-        this.tsIcon.disabled = false;
-    }
     checkForTsLoading = () => {
         if (this.activeReqs.size) {
             this.tsIcon.classList.add("loading");
@@ -84,6 +83,7 @@ export class Project implements tsWorkerDelegate {
         }
     };
     onReq(id: number): void {
+        this.tsIcon.disabled = false;
         this.activeReqs.add(id);
         this.checkForTsLoading();
     }
@@ -204,7 +204,16 @@ export class Project implements tsWorkerDelegate {
                     name,
                     deep: true
                 }))
-            ).then(() => this.runProject());
+            ).then(() => {
+                this.runProject();
+
+                if(Editor.tsWorker) {
+                    setTimeout(async () =>  {
+                        await Editor.restartTSWorker();
+                        this.editors.forEach(editor => editor.reRunExtensions());
+                    }, 500);
+                }
+            });
         }
     }
 
@@ -357,8 +366,6 @@ export class Project implements tsWorkerDelegate {
         tabsContainer.classList.add("tabs-container");
 
         this.editors.forEach(async (editor, index) => {
-            editor.tsWorkerDelegate = this;
-
             const tab = document.createElement("li");
             if (editor.hasBuildErrors()) {
                 tab.classList.add("has-errors");

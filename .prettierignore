@@ -5,3 +5,4 @@ node_modules
 out
 platform/ios
 platform/**/editor
+editor-sample-demo

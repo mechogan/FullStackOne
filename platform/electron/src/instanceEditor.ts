@@ -117,7 +117,11 @@ export class InstanceEditor extends Instance {
                             InstanceEditor.rootDirectory + "/" + path,
                             options
                         );
-                        if (!options?.withFileTypes) return items;
+                        if (!options?.withFileTypes) {
+                            return (items as unknown as string[]).map(
+                                (filename) => filename.split("\\").join("/")
+                            );
+                        }
 
                         return items.map((item) => ({
                             ...item,

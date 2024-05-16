@@ -1,6 +1,7 @@
 .cache
 src
 *.ts
+!*.d.ts
 *.tgz
 !dist
 !Demo.zip

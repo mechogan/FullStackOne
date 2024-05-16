@@ -1,4 +1,4 @@
-import ts, {
+import {
     IScriptSnapshot,
     createLanguageService,
     createDocumentRegistry,
@@ -9,7 +9,8 @@ import ts, {
     ModuleKind,
     ModuleResolutionKind,
     ScriptSnapshot,
-    ScriptTarget
+    ScriptTarget,
+    isSourceFile
 } from "typescript";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
@@ -18,19 +19,19 @@ import type rpcFn from "../../src/index";
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
 
-// source: https://stackoverflow.com/a/69881039/9777391
-function JSONCircularRemover() {
-    const visited = new WeakSet();
-    return (key, value) => {
-        if (typeof value !== "object" || value === null) return value;
-
-        if (visited.has(value)) {
-            return "[Circular]";
-        }
-
-        visited.add(value);
-        return value;
-    };
+function removeSourceObjects(obj: any) {
+    if (typeof obj === "object") {
+        Object.keys(obj).forEach((key) => {
+            if (key === "file" && isSourceFile(obj[key])) {
+                obj[key] = "[File]";
+            } else {
+                obj[key] = removeSourceObjects(obj[key]);
+            }
+        });
+    } else if(typeof obj === "function") {
+        return "[Function]"
+    }
+    return obj;
 }
 
 self.onmessage = (message: MessageEvent) => {
@@ -42,12 +43,10 @@ self.onmessage = (message: MessageEvent) => {
     ) as any;
 
     if (typeof method === "function") {
-        const data = method(...args);
+        const data = removeSourceObjects(method(...args));
         self.postMessage({
             id,
-            data: data
-                ? JSON.parse(JSON.stringify(data, JSONCircularRemover()))
-                : undefined
+            data
         });
     }
 };
@@ -230,6 +229,7 @@ function initLanguageServiceHost(
                     scriptSnapshotCache[path].getLength()
                 );
             }
+
             return rpcSync().fs.readFile(path, {
                 absolutePath: true,
                 encoding: "utf8"
