@@ -157,12 +157,6 @@ function getComputerName() {
       return process.env.COMPUTERNAME;
     case "darwin":
       return child_process.execSync("scutil --get ComputerName").toString().trim();
-    case "linux":
-      let prettyname: string;
-      try{
-        prettyname = child_process.execSync("hostnamectl --pretty").toString().trim();
-      } catch (e) { }
-      return prettyname === "" ? os.hostname() : prettyname;
     default:
       return os.hostname();
   }
