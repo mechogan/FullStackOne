@@ -57,7 +57,7 @@ export class Bonjour {
 
     info() {
         const networkInterfaces = os.networkInterfaces();
-        const interfaces = ["en", "wlan", "WiFi", "Ethernet"];
+        const interfaces = ["en", "wlan", "WiFi", "Ethernet", "wlp"];
 
         return {
             port: this.port,
