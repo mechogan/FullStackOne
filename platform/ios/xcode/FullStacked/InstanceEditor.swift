@@ -14,7 +14,6 @@ let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
     static var singleton: InstanceEditor?
-//    let multipeer = Multipeer()
     
     init(){
         let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
@@ -32,6 +31,7 @@ class AdapterEditor: Adapter {
     let nodeModulesDirectory: String
     let fsEditor: AdapterFS
     let bonjour = Bonjour()
+    let multipeer = Multipeer()
     
     override init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
@@ -189,11 +189,21 @@ class AdapterEditor: Adapter {
                 case "info":
                     return done(false)
                 case "advertise":
+                    self.multipeer.serviceAdvertiser.startAdvertisingPeer();
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
+                        self.multipeer.serviceAdvertiser.stopAdvertisingPeer();
+                    }
                     return done(true)
                 case "browse":
                     self.bonjour.browse()
+                    self.multipeer.serviceBrowser.startBrowsingForPeers();
                     return done(true)
                 case "pair":
+                    if(json[0]["addresses"].arrayValue.first!.stringValue == "ios-multipeer") {
+                        self.multipeer.pair(peerID: json[0]["id"].stringValue);
+                        return done(true);
+                    }
+                    
                     return self.bonjour.pair(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue, addresses: json[0]["addresses"].arrayValue.map({ $0.stringValue }),
                                       port: Int(truncating: json[0]["port"].numberValue),
                                       completionHandler: { done($0) })

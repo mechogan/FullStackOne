@@ -39,7 +39,9 @@ if (!app.requestSingleInstanceLock()) {
     );
 }
 
-app.on("window-all-closed", () => app.quit());
+app.on("window-all-closed", () => {
+    editorInstance.bonjour.bonjour.unpublishAll(() => app.quit());
+});
 
 app.whenReady().then(async () => {
     editorInstance = new InstanceEditor();

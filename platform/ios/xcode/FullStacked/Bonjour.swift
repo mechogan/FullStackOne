@@ -52,6 +52,7 @@ class Bonjour {
             }
         }
         browser.start(queue: .main)
+        browser.cancel()
     }
     
     func receive(ws: URLSessionWebSocketTask){
