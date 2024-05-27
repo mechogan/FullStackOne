@@ -80,6 +80,7 @@ export class Bonjour {
             name: this.id, 
             type: 'fullstacked', 
             port: this.port,
+            host: os.hostname() + '-fullstacked',
             txt: {
                 _d:  getComputerName(),
                 addresses: info.interfaces.map(({addresses}) => addresses).flat().join(","),

@@ -197,6 +197,10 @@ class AdapterEditor: Adapter {
                 case "browse":
                     self.bonjour.browse()
                     self.multipeer.serviceBrowser.startBrowsingForPeers();
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
+                        self.multipeer.serviceBrowser.stopBrowsingForPeers();
+                        self.bonjour.browser?.cancel();
+                    }
                     return done(true)
                 case "pair":
                     if(json[0]["addresses"].arrayValue.first!.stringValue == "ios-multipeer") {

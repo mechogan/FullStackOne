@@ -15,13 +15,14 @@ class Bonjour {
     static var singleton: Bonjour?
     let id = UUID().uuidString
     var ws: [URLSessionWebSocketTask] = []
+    var browser: NWBrowser?
     
     func browse(){
-        let browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_fullstacked._tcp", domain: nil), using: .tcp)
-        browser.stateUpdateHandler = { newState in
+        self.browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_fullstacked._tcp", domain: nil), using: .tcp)
+        self.browser!.stateUpdateHandler = { newState in
             print("browser did change state, new: \(newState)")
         }
-        browser.browseResultsChangedHandler = { updated, changes in
+        self.browser!.browseResultsChangedHandler = { updated, changes in
             print("browser results did change:")
             for change in changes {
                 switch change {
@@ -51,8 +52,7 @@ class Bonjour {
                 }
             }
         }
-        browser.start(queue: .main)
-        browser.cancel()
+        self.browser!.start(queue: .main)
     }
     
     func receive(ws: URLSessionWebSocketTask){
