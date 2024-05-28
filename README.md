@@ -2,6 +2,8 @@
 
 # FullStacked Editor
 
+[Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org)
+
 Build and run full-stack JS web apps on any platform.
 
 -   iOS/iPadOS
@@ -9,10 +11,4 @@ Build and run full-stack JS web apps on any platform.
 -   **WIP** Android
 -   **WIP** Docker
 
-## Docs
 
-[docs.fullstacked.org](https://docs.fullstacked.org)
-
-## Demo
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/fullstacked-editor-demo)
