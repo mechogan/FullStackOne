@@ -1,9 +1,7 @@
-import type rpcFn from "../src/index";
+import type { Peer, PeerConnection, PeerNearby } from "../src/adapter/connectivity";
 import type { Adapter } from "../src/adapter/fullstacked";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
-import type { Bonjour, NearbyPeer, Peer } from "../platform/node/src/bonjour";
-import { info } from "console";
 
 export type AdapterEditor = Adapter & {
     directories: {
@@ -23,11 +21,16 @@ export type AdapterEditor = Adapter & {
 
     open(project: Project): void;
 
-    peers: {
-        info(): ReturnType<Bonjour["info"]>,
-        advertise(): void,
-        browse(): void,
-        pair(peer: NearbyPeer): Promise<boolean> 
+    connectivity: {
+        name: string,
+        peers: {
+            nearby(): PeerNearby[],
+            connections(): PeerConnection[]
+        },
+        advertise: {
+            start(me: Peer["id"]): void,
+            stop(): void
+        }
     }
 };
 

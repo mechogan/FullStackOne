@@ -99,6 +99,9 @@ const esbuildInstall = await rpc().esbuild.check();
 
 // start app
 const app = async () => {
+    // init connectivity
+    await api.connectivity.init();
+
     const projectsRendered = await projectsView.render();
     clearView();
     main.append(projectsRendered);

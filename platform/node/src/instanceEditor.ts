@@ -9,7 +9,7 @@ import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
-import { Bonjour, NearbyPeer } from "./bonjour";
+import { Bonjour, getComputerName } from "./bonjour";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
@@ -17,7 +17,7 @@ const editorDirectory = path.resolve(__dirname, "editor");
 export class InstanceEditor extends Instance {
     static rootDirectory: string = os.homedir();
     baseJS: string = path.resolve(__dirname, "js", "index.js");
-    configDirectory: string = ".config/fullstacked";
+    configDirectory: string = process.env.CONFIG_DIR || ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
     bonjour = new Bonjour();
@@ -53,9 +53,9 @@ export class InstanceEditor extends Instance {
             return fs.promises.writeFile(filePath, data, options);
         };
 
-        this.bonjour.onMessage = message => this.instances.forEach(instance => instance.push("peerData", message))
-        this.bonjour.onNearbyPeer = nearbyPeer => this.push("nearbyPeer", JSON.stringify(nearbyPeer));
-        this.bonjour.onConnectedPeer = peer => this.push("peer", JSON.stringify(peer));
+        this.bonjour.onPeerNearby = eventType => {
+            this.push("peerNearby", eventType);
+        }
 
         const defaultAdapter = initAdapter(editorDirectory);
         this.adapter = {
@@ -250,12 +250,23 @@ export class InstanceEditor extends Instance {
 
             open: () => { },
 
-            peers: {
-                info: () => this.bonjour.info(),
-                advertise: () => this.bonjour.advertise(),
-                browse: () => this.bonjour.browse(),
-                pair: (peer: NearbyPeer) => {
-                    return this.bonjour.pair(peer)
+            connectivity: {
+                name: getComputerName(),
+                peers: {
+                    nearby: () => {
+                        return Array.from(this.bonjour.peersNearby.values())
+                    },
+                    connections: () => {
+                        return []
+                    }
+                },
+                advertise: {
+                    start: (me) => {
+                        this.bonjour.advertise(me)
+                    },
+                    stop: () => {
+                        this.bonjour.advertiseEnd();
+                    }
                 }
             }
         };

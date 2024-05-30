@@ -1,3 +1,5 @@
+import type { PeerTrusted } from "../../../src/adapter/connectivity";
+
 export type Project = {
     title: string;
     createdDate: number;
@@ -17,3 +19,9 @@ export type GitAuths = {
         email?: string;
     };
 };
+
+
+export type Connectivity = {
+    me: string,
+    peersTrusted: PeerTrusted[]
+}

@@ -1,13 +1,12 @@
 import rpc from "../../rpc";
-
 import projects from "../projects";
-
-import { Project, GitAuths } from "../projects/types";
+import { Project, GitAuths, Connectivity } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
 
 type DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: Project[];
     [CONFIG_TYPE.GIT]: GitAuths;
+    [CONFIG_TYPE.CONNECTIVITY]: Connectivity;
 };
 
 export default {
@@ -36,10 +35,10 @@ export default {
             (await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile
         ) {
             return JSON.parse(
-                (await rpc().fs.readFile(configFile, {
+                await rpc().fs.readFile(configFile, {
                     encoding: "utf8",
                     absolutePath: true
-                })) as string
+                }) as string
             );
         }
 
