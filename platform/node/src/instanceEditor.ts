@@ -10,6 +10,7 @@ import { build, merge } from "./build";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
 import { Bonjour, getComputerName } from "./bonjour";
+import { PEER_CONNECTION_TYPE } from "../../../src/adapter/connectivity";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
@@ -55,6 +56,16 @@ export class InstanceEditor extends Instance {
 
         this.bonjour.onPeerNearby = eventType => {
             this.push("peerNearby", eventType);
+        }
+        this.bonjour.onPeerConnectionRequest = (peerConnectionRequest, id) => {
+            this.push("peerConnectionRequest", JSON.stringify({
+                peerConnectionRequest,
+                id,
+                type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER
+            }));
+        }
+        this.bonjour.onPeerConnection = eventType => {
+            this.push("peerConnection", eventType);
         }
 
         const defaultAdapter = initAdapter(editorDirectory);
@@ -254,10 +265,10 @@ export class InstanceEditor extends Instance {
                 name: getComputerName(),
                 peers: {
                     nearby: () => {
-                        return Array.from(this.bonjour.peersNearby.values())
+                        return Array.from(this.bonjour.peersNearby.values());
                     },
                     connections: () => {
-                        return []
+                        return Array.from(this.bonjour.peers.values());
                     }
                 },
                 advertise: {
@@ -267,6 +278,9 @@ export class InstanceEditor extends Instance {
                     stop: () => {
                         this.bonjour.advertiseEnd();
                     }
+                },
+                disconnect: (peerConnection) => {
+                    this.bonjour.disconnect(peerConnection)
                 }
             }
         };

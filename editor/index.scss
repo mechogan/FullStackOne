@@ -58,3 +58,18 @@ a {
 .cm-button {
     display: inline-block;
 }
+
+
+.code {
+    align-items: center;
+    > span {
+        font-size: $font-size-xl;
+        background-color: colorOpacity(white, 0.1);
+        padding: spacing();
+        border-radius: $border-radius;
+        border: $border-width solid colorOpacity(white, 0.3);
+    }
+    button.copied {
+        color: $green;
+    }
+}

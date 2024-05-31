@@ -30,7 +30,8 @@ export type AdapterEditor = Adapter & {
         advertise: {
             start(me: Peer["id"]): void,
             stop(): void
-        }
+        },
+        disconnect(peerConnection: PeerConnection): void
     }
 };
 

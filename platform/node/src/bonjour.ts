@@ -2,7 +2,7 @@ import { Bonjour as BonjourService, Service } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
 import os from "os";
 import child_process from "child_process"
-import { PEER_ADVERSTISING_METHOD, Peer, PeerConnection, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
 
 export class Bonjour {
     bonjour = new BonjourService();
@@ -14,26 +14,50 @@ export class Bonjour {
 
     onMessage: (data: string) => void;
     onPeerNearby: (eventType: "new" | "lost") => void;
-    onPeerConnection: (peer: PeerConnection) => void;
+    onPeerConnectionRequest: (peerConnectionRequest: string, id: number) => void;
+    onPeerConnection: (eventType: "connected" | "disconnected") => void;
 
-    static peers = new Map<WebSocket, (Peer | null)>();
+    peers = new Map<WebSocket, PeerConnection>();
 
     constructor(){
-        // this.wss.on("connection", ws => {
-        //     console.log("Connected with new peer")
-        //     Bonjour.peers.set(ws, null);
-        //     ws.onmessage = ({ data }) => {
-        //         const peer = Bonjour.peers.get(ws);
-        //         if(!peer) {
-        //             const peer = JSON.parse(data as string);
-        //             Bonjour.peers.set(ws, peer);
-        //             if(this.onConnectedPeer) this.onConnectedPeer(peer);
-        //         } else if (this.onMessage) {
-        //             this.onMessage(data as string);
-        //         }
-        //     };
-        //     ws.on("close", () => Bonjour.peers.delete(ws));
-        // });
+        this.wss.on("connection", ws => {
+            const id = randomIntFromInterval(100000, 999999);
+            this.peers.set(ws, { 
+                id,
+                peer: null,
+                state: PEER_CONNECTION_STATE.UNTRUSTED,
+                type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER
+            });
+
+            ws.on("close", () => {
+                this.peers.delete(ws);
+                if(this.onPeerConnection) {
+                    this.onPeerConnection("disconnected");
+                }
+            });
+
+            ws.onmessage = message => {
+                if(message.type === "binary") {
+                    console.log("Binary message on websocket is not yet supported")
+                    return;
+                }
+                const data: string = message.data as string;
+
+                const { peer } = this.peers.get(ws);
+                if(peer === null) {
+                    try {
+                        if(this.onPeerConnectionRequest)
+                            this.onPeerConnectionRequest(data, id);
+                    } catch(e) {
+                        console.log("Unable to parse Peer Connection Request");
+                        return;
+                    }
+                } else {
+                    //
+                }
+            };
+            
+        });
 
         const cleanup = () => {
             this.bonjour.unpublishAll(() => process.exit(0))
@@ -50,8 +74,10 @@ export class Bonjour {
 
             this.peersNearby.set(service.name, {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
-                id: service.name,
-                name: service.txt._d,
+                peer: {
+                    id: service.name,
+                    name: service.txt._d,
+                },
                 port: service.port,
                 addresses: service.addresses || []
             });
@@ -108,6 +134,15 @@ export class Bonjour {
         this.bonjour.unpublishAll();
     }
 
+    disconnect(peerConnection: PeerConnection){
+        for(const [ws, { id }] of this.peers) {
+            if(id === peerConnection.id) {
+                ws.close();
+                return;
+            }
+        }
+    }
+
     // async pair(nearbyPeer: NearbyPeer){
     //     let paired = false;
     //     for(const address of nearbyPeer.addresses) {
@@ -142,11 +177,11 @@ export class Bonjour {
     //     return paired;
     // }
 
-    static broadcast(data: any){
-        for(const [ws, peer] of Bonjour.peers.entries()) {
-            if(peer) ws.send(data)
-        }
-    }
+    // static broadcast(data: any){
+    //     for(const [ws, peer] of Bonjour.peers.entries()) {
+    //         if(peer) ws.send(data)
+    //     }
+    // }
 }
 
 

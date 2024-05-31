@@ -1,7 +1,8 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import rpc from "../../rpc";
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerNearby, PeerNearbyBonjour } from "../../../src/adapter/connectivity";
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_REQUEST_TYPE, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerConnectionRequestPairing, PeerConnectionRequestTrusted, PeerNearby, PeerNearbyBonjour } from "../../../src/adapter/connectivity";
+import { Peers } from "../../views/peers";
 
 let me: Peer["id"];
 
@@ -26,7 +27,7 @@ const connectivityAPI = {
         },
         async connections() {
             const peersConnections = await rpc().connectivity.peers.connections();
-            return peersConnections.concat(Array.from(peersWebSocket));
+            return peersConnections.concat(Array.from(peersWebSocket.values()));
         },
         nearby() {
             return rpc().connectivity.peers.nearby();
@@ -50,19 +51,49 @@ const connectivityAPI = {
     
                 break;
         }
+    },
+    async disconnect(peerConnection: PeerConnection) {
+        switch(peerConnection.type) {
+            case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
+            case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
+                rpc().connectivity.disconnect(peerConnection);
+                break;
+            case PEER_CONNECTION_TYPE.WEB_SOCKET:
+                for(const [ws, {id}] of peersWebSocket){
+                    if(id === peerConnection.id) {
+                        peersWebSocket.delete(ws);
+                        ws.close();
+                        onPush["peerConnection"]("disconnected");
+                        break;
+                    }
+                }
+                break;
+        }
     }
 }
 
-const peersWebSocket: (PeerConnection & { ws: WebSocket })[] = [];
+const peersWebSocket: Map<WebSocket, PeerConnection> = new Map();
 
 function tryToConnectWebSocket(address: string, secure: boolean, port?: number) {
     const hostname = address.includes(":") ? `[${address}]` : address;
     const protocol = secure ? "wss" : "ws";
-    const url = protocol + ";//" + hostname + (port ? `:${port}` : "");
+    const url = protocol + "://" + hostname + (port ? `:${port}` : "");
 
-    return new Promise<WebSocket>(resolve => {
-        const ws = new WebSocket(url);
-        ws.onopen = () => resolve(ws);
+    return new Promise<WebSocket>((resolve, reject) => {
+        let ws: WebSocket;
+        try {
+            ws = new WebSocket(url);
+        } catch (e) {
+            reject();
+        }
+
+        ws.onerror = () => {
+            reject();
+        }
+        
+        ws.onopen = () => {
+            resolve(ws)
+        };
     });
 }
 
@@ -77,17 +108,21 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
 
     if(!ws) return;
 
+    const id = randomIntFromInterval(100000, 999999);
+
     const peerTrusted = (await connectivityAPI.peers.trusted())
-        .find(({id}) => id === peerNearbyBonjour.id);
-    
+        .find(({ id }) => id === peerNearbyBonjour.peer.id);
+
     const peerConnection: PeerConnection = peerTrusted
         ? {
-            ...peerTrusted,
+            id,
+            peer: peerTrusted,
             state: PEER_CONNECTION_STATE.UNTRUSTED,
             type: PEER_CONNECTION_TYPE.WEB_SOCKET
         }
         : {
-            ...peerNearbyBonjour,
+            id,
+            peer: peerNearbyBonjour.peer,
             state: PEER_CONNECTION_STATE.PAIRING,
             type: PEER_CONNECTION_TYPE.WEB_SOCKET,
             secret: crypto.randomUUID(),
@@ -95,14 +130,89 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
             validation: randomIntFromInterval(1000, 9999)
         }
 
+    ws.onclose = () => connectivityAPI.disconnect(peerConnection);
+
     if(peerConnection.state === PEER_CONNECTION_STATE.PAIRING) {
-        ws.send(JSON.stringify(peerConnection));
+        const peerConnectionRequest: PeerConnectionRequestPairing = {
+            secret: (peerConnection as PeerConnectionPairing).secret,
+            key: (peerConnection as PeerConnectionPairing).key,
+            validation: (peerConnection as PeerConnectionPairing).validation,
+            peer: {
+                id: me,
+                name: await rpc().connectivity.name(),
+            },
+            type: PEER_CONNECTION_REQUEST_TYPE.PAIRING
+        }
+        ws.send(JSON.stringify(peerConnectionRequest));
+    } else {
+        const peerConnectionRequest: PeerConnectionRequestTrusted = {
+            type: PEER_CONNECTION_REQUEST_TYPE.TRUSTED,
+            peer: {
+                id: me,
+                name: await rpc().connectivity.name(),
+            },
+            secret: ""
+        }
+        ws.send(JSON.stringify(peerConnectionRequest))
     }
     
-    peersWebSocket.push({
-        ...peerConnection,
-        ws
-    });
+    peersWebSocket.set(ws, peerConnection);
+}
+
+onPush["peerConnectionRequest"] = async peerConnectionRequestStr => {
+    let peerConnectionRequest: PeerConnectionRequest, 
+        peerConnectionId: number,
+        peerConnectionType: PEER_CONNECTION_TYPE;
+    try {
+        const message = JSON.parse(peerConnectionRequestStr);
+        peerConnectionRequest = JSON.parse(message.peerConnectionRequest);
+        peerConnectionId = message.id;
+        peerConnectionType = message.type;
+    } catch(e) {
+        console.error("Unable to parse Peer Connection Request");
+        return;
+    }
+
+    if (peerConnectionRequest.type === undefined) {
+        console.error("No type in Peer Connection Request");
+        return;
+    }
+
+    const requiredProperties = ["peer", "secret"];
+    if(peerConnectionRequest.type === PEER_CONNECTION_REQUEST_TYPE.PAIRING) {
+        requiredProperties.push("validation", "key");
+    }
+
+    for (const property of requiredProperties) {
+        if(peerConnectionRequest[property] === undefined) {
+            console.error(`Missing ${property} on Peer Connection Request`);
+            return;
+        }
+    }
+
+    if(!peerConnectionRequest.peer.id) {
+        console.error("No peer.id in Peer Connection Request");
+        return;
+    } else if(!peerConnectionRequest.peer.name) {
+        console.error("No peer.name in Peer Connection Request");
+        return;
+    }
+
+    if(peerConnectionRequest.type === PEER_CONNECTION_REQUEST_TYPE.PAIRING) {
+        const trust = await Peers.peerConnectionRequestPairingDialog(peerConnectionRequest.peer.name, peerConnectionRequest.validation)
+        if(!trust) {
+            connectivityAPI.disconnect({
+                id: peerConnectionId,
+                state: PEER_CONNECTION_STATE.PAIRING,
+                peer: peerConnectionRequest.peer,
+                type: peerConnectionType,
+                validation: 0,
+                secret: "",
+                key: ""
+            })
+            return;
+        }
+    }
 }
 
 export default connectivityAPI;

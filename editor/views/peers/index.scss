@@ -81,3 +81,19 @@
         
     }
 }
+
+#peer-connection-request-dialog {
+    text-align: center;
+
+    .button-group {
+        display: flex;
+
+        > button {
+            flex: 1;
+        }
+    }
+
+    .code {
+        padding: spacing(2) 0;
+    }
+}

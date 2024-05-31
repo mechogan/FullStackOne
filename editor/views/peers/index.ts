@@ -1,5 +1,6 @@
-import { PEER_CONNECTION_STATE, PeerConnectionPairing } from "../../../src/adapter/connectivity";
+import { PEER_CONNECTION_STATE, PeerConnectionPairing, PeerConnectionRequest } from "../../../src/adapter/connectivity";
 import api from "../../api";
+import { INCOMING_PEER_CONNECTION_REQUEST_DIALOG } from "../../constants";
 import "./index.css";
 
 export class Peers {
@@ -13,6 +14,60 @@ export class Peers {
                 this.renderPeersLists();
             }
         }
+
+        onPush["peerConnection"] = (e) => {
+            if(document.body.contains(this.peersLists)) {
+                this.renderPeersLists();
+            }
+        }
+    }
+
+    static peerConnectionRequestPairingDialog(name: string, validation: number): Promise<boolean> {
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
+
+        const inner = document.createElement("div");
+        inner.id = INCOMING_PEER_CONNECTION_REQUEST_DIALOG;
+
+        inner.innerHTML = `<h2>Someone is trying to connect</h2>
+        <p>
+            <u>${name}</u> is trying to pair with you.
+        </p>
+        <p>
+            Make sure you recognize this request and validate with the following code
+        </p>
+        <div class="code">
+            <span>${validation}</span>
+        </div>`;
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.classList.add("button-group");
+
+        const dontTrustButton = document.createElement("button");
+        dontTrustButton.classList.add("text", "danger");
+        dontTrustButton.innerText = "Don't Trust";
+        buttonGroup.append(dontTrustButton);
+
+        const trustButton = document.createElement("button");
+        trustButton.classList.add("text");
+        buttonGroup.append(trustButton);
+        trustButton.innerText = "Trust";
+
+        inner.append(buttonGroup);
+
+        dialog.append(inner);
+        document.body.append(dialog);
+
+        return new Promise(resolve => {
+            dontTrustButton.addEventListener("click", () => {
+                resolve(false);
+                dialog.remove();
+            });
+            trustButton.addEventListener("click", () => {
+                resolve(true)
+                dialog.remove();
+            });
+        })
     }
 
     async renderPeersLists() {
@@ -27,16 +82,16 @@ export class Peers {
         ])
 
         peersTrusted = peersTrusted
-            .filter(peerTrusted => !peersConnections.find(({ id }) => id === peerTrusted.id));
+            .filter(peerTrusted => !peersConnections.find(({ peer }) => peer.id === peerTrusted.id));
         peersNearby = peersNearby
-            .filter(peerNeerby => !peersConnections.find(({ id }) => id === peerNeerby.id));
+            .filter(peerNeerby => !peersConnections.find(({ peer }) => peer.id === peerNeerby.peer.id));
 
         const peerConnectionTitle = document.createElement("h3");
         peerConnectionTitle.innerText = `Connected (${peersConnections.length})`;
         const peerConnectionList = document.createElement("ul");
         peersConnections.forEach(peerConnection => {
             const li = document.createElement("li");
-            li.innerText = peerConnection.name;
+            li.innerText = peerConnection.peer.name;
 
             if(peerConnection.state === PEER_CONNECTION_STATE.PAIRING) {
                 const div = document.createElement("div");
@@ -52,7 +107,7 @@ export class Peers {
         const peerNearbyList = document.createElement("ul");
         peersNearby.forEach(peerNearby => {
             const li = document.createElement("li");
-            li.innerText = peerNearby.name;
+            li.innerText = peerNearby.peer.name;
 
             const pairButton = document.createElement("button");
             pairButton.innerText = "Pair";
