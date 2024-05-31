@@ -2,7 +2,7 @@ import { Bonjour as BonjourService, Service } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
 import os from "os";
 import child_process from "child_process"
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
 
 export class Bonjour {
     bonjour = new BonjourService();
