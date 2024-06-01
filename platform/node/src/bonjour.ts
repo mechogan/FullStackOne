@@ -2,7 +2,7 @@ import { Bonjour as BonjourService, Service } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from "ws";
 import os from "os";
 import child_process from "child_process"
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionRequest, PeerNearbyBonjour } from '../../../src/adapter/connectivity';
 
 export class Bonjour {
     bonjour = new BonjourService();
@@ -19,10 +19,10 @@ export class Bonjour {
 
     peers = new Map<WebSocket, PeerConnection>();
 
-    constructor(){
+    constructor() {
         this.wss.on("connection", ws => {
             const id = randomIntFromInterval(100000, 999999);
-            this.peers.set(ws, { 
+            this.peers.set(ws, {
                 id,
                 peer: null,
                 state: PEER_CONNECTION_STATE.UNTRUSTED,
@@ -31,24 +31,24 @@ export class Bonjour {
 
             ws.on("close", () => {
                 this.peers.delete(ws);
-                if(this.onPeerConnection) {
+                if (this.onPeerConnection) {
                     this.onPeerConnection("disconnected");
                 }
             });
 
             ws.onmessage = message => {
-                if(message.type === "binary") {
+                if (message.type === "binary") {
                     console.log("Binary message on websocket is not yet supported")
                     return;
                 }
                 const data: string = message.data as string;
 
                 const { peer } = this.peers.get(ws);
-                if(peer === null) {
+                if (peer === null) {
                     try {
-                        if(this.onPeerConnectionRequest)
+                        if (this.onPeerConnectionRequest)
                             this.onPeerConnectionRequest(data, id);
-                    } catch(e) {
+                    } catch (e) {
                         console.log("Unable to parse Peer Connection Request");
                         return;
                     }
@@ -56,13 +56,13 @@ export class Bonjour {
                     //
                 }
             };
-            
+
         });
 
         const cleanup = () => {
             this.bonjour.unpublishAll(() => process.exit(0))
         }
-        
+
         process.on('exit', cleanup.bind(this));
         process.on('SIGINT', cleanup.bind(this));
         process.on('SIGUSR1', cleanup.bind(this));
@@ -70,7 +70,7 @@ export class Bonjour {
         process.on('uncaughtException', cleanup.bind(this));
 
         const browser = this.bonjour.find({ type: 'fullstacked' }, service => {
-            if(service.port === this.port) return;
+            if (service.port === this.port) return;
 
             this.peersNearby.set(service.name, {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
@@ -82,7 +82,7 @@ export class Bonjour {
                 addresses: service.addresses || []
             });
 
-            if(this.onPeerNearby) {
+            if (this.onPeerNearby) {
                 this.onPeerNearby("new");
             }
         });
@@ -90,7 +90,7 @@ export class Bonjour {
         browser.on("down", (service: Service) => {
             this.peersNearby.delete(service.name);
 
-            if(this.onPeerNearby) {
+            if (this.onPeerNearby) {
                 this.onPeerNearby("lost");
             }
         });
@@ -106,25 +106,25 @@ export class Bonjour {
                 .filter(([netInterface, _]) => interfaces.find(prefix => netInterface.startsWith(prefix)))
                 .map(([netInterface, infos]) => ({
                     name: netInterface,
-                    addresses: infos?.map(({address}) => address) ?? []
+                    addresses: infos?.map(({ address }) => address) ?? []
                 }))
         }
     }
 
-    advertise(id: Peer["id"]){
-        if(this.advertiser)
+    advertise(id: Peer["id"]) {
+        if (this.advertiser)
             this.advertiser.stop();
-        
+
         const info = this.info();
 
-        this.advertiser = this.bonjour.publish({ 
-            name: id, 
-            type: 'fullstacked', 
+        this.advertiser = this.bonjour.publish({
+            name: id,
+            type: 'fullstacked',
             port: this.port,
             host: os.hostname() + '-fullstacked',
             txt: {
                 _d: getComputerName(),
-                addresses: info.interfaces.map(({addresses}) => addresses).flat().join(","),
+                addresses: info.interfaces.map(({ addresses }) => addresses).flat().join(","),
                 port: this.port
             }
         });
@@ -134,9 +134,20 @@ export class Bonjour {
         this.bonjour.unpublishAll();
     }
 
-    disconnect(peerConnection: PeerConnection){
-        for(const [ws, { id }] of this.peers) {
-            if(id === peerConnection.id) {
+    connect(peerConnection: PeerConnection, peerConnectionRequest: PeerConnectionRequest) {
+        const peer = Array.from(this.peers.entries()).find(([_, { id }]) => peerConnection.id === id);
+
+        if (!peer) return;
+
+        const [ws] = peer;
+
+        ws.send(JSON.stringify(peerConnectionRequest));
+        this.peers.set(ws, peerConnection);
+    }
+
+    disconnect(peerConnection: PeerConnection) {
+        for (const [ws, { id }] of this.peers) {
+            if (id === peerConnection.id) {
                 ws.close();
                 return;
             }
@@ -190,14 +201,14 @@ function randomIntFromInterval(min, max) { // min and max included
 }
 
 export function getComputerName() {
-  switch (process.platform) {
-    case "win32":
-      return process.env.COMPUTERNAME;
-    case "darwin":
-      return child_process.execSync("scutil --get ComputerName").toString().trim();
-    default:
-      return os.hostname();
-  }
+    switch (process.platform) {
+        case "win32":
+            return process.env.COMPUTERNAME;
+        case "darwin":
+            return child_process.execSync("scutil --get ComputerName").toString().trim();
+        default:
+            return os.hostname();
+    }
 }
 
 // remove all mDNS entries on macOS

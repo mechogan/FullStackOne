@@ -281,6 +281,9 @@ export class InstanceEditor extends Instance {
                 },
                 disconnect: (peerConnection) => {
                     this.bonjour.disconnect(peerConnection)
+                },
+                connect: (peerConnection, peerConnectionRequest) => {
+                    this.bonjour.connect(peerConnection, peerConnectionRequest)
                 }
             }
         };

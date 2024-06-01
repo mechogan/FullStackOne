@@ -1,4 +1,4 @@
-import type { Peer, PeerConnection, PeerNearby } from "../src/adapter/connectivity";
+import type { Peer, PeerConnection, PeerConnectionRequest, PeerNearby } from "../src/adapter/connectivity";
 import type { Adapter } from "../src/adapter/fullstacked";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
@@ -31,7 +31,8 @@ export type AdapterEditor = Adapter & {
             start(me: Peer["id"]): void,
             stop(): void
         },
-        disconnect(peerConnection: PeerConnection): void
+        disconnect(peerConnection: PeerConnection): void,
+        connect(peerConnection: PeerConnection, peerConnectRequest: PeerConnectionRequest): void
     }
 };
 

@@ -93,11 +93,23 @@ export class Peers {
             const li = document.createElement("li");
             li.innerText = peerConnection.peer.name;
 
-            if(peerConnection.state === PEER_CONNECTION_STATE.PAIRING) {
-                const div = document.createElement("div");
-                div.innerHTML = `Pairing... Code: <b>${(peerConnection as PeerConnectionPairing).validation}</b>`;
-                li.append(div);
+            const div = document.createElement("div");
+            switch(peerConnection.state){
+                case PEER_CONNECTION_STATE.PAIRING:
+                    div.innerHTML = `Pairing... Code: <b>${(peerConnection as PeerConnectionPairing).validation}</b>`;
+                    break;
+                case PEER_CONNECTION_STATE.UNTRUSTED:
+                    div.innerHTML = `Connecting...`;
+                    break;
+                case PEER_CONNECTION_STATE.CONNECTED:
+                    const disconnectButton = document.createElement("button");
+                    disconnectButton.classList.add("danger");
+                    disconnectButton.innerText = "Disconnect";
+                    disconnectButton.addEventListener("click", () => api.connectivity.disconnect(peerConnection));
+                    div.append(disconnectButton);
+                    break;
             }
+            li.append(div);
 
             peerConnectionList.append(li);
         })
@@ -117,7 +129,7 @@ export class Peers {
                 const div = document.createElement("div");
                 div.innerText = "Connecting...";
                 pairButton.replaceWith(div);
-                await api.connectivity.connect(peerNearby);
+                await api.connectivity.pair(peerNearby);
                 this.renderPeersLists();
             });
 
@@ -130,6 +142,18 @@ export class Peers {
         peersTrusted.forEach(peerTrusted => {
             const li = document.createElement("li");
             li.innerText = peerTrusted.name;
+
+            const forgetButton = document.createElement("button");
+            forgetButton.classList.add("danger");
+            forgetButton.innerText = "Forget";
+            li.append(forgetButton);
+
+            forgetButton.addEventListener("click", async () => {
+                forgetButton.disabled = true;
+                await api.connectivity.forget(peerTrusted);
+                this.renderPeersLists();
+            });
+
             peerTrustedList.append(li);
         })
 

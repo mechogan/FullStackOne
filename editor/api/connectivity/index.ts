@@ -1,26 +1,16 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import rpc from "../../rpc";
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_REQUEST_TYPE, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerConnectionRequestPairing, PeerConnectionRequestTrusted, PeerNearby, PeerNearbyBonjour, PeerTrusted } from "../../../src/adapter/connectivity";
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_REQUEST_TYPE, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerConnectionRequestPairing, PeerConnectionRequestTrusted, PeerConnectionTrusted, PeerNearby, PeerNearbyBonjour, PeerTrusted } from "../../../src/adapter/connectivity";
 import { Peers } from "../../views/peers";
+import api from "..";
 
 let me: Peer["id"];
 
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
-const salt = crypto.getRandomValues(new Uint8Array(16));
-const iv = crypto.getRandomValues(new Uint8Array(12));
-
 const connectivityAPI = {
     async init() {
-
-        const id = "cp";
-        const data = "test";
-        const key = "12345"
-
-        console.log(await decrypt(await encrypt(data, key), key));
-
-
         let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
         if (!connectivityConfig) {
             connectivityConfig = {
@@ -54,7 +44,7 @@ const connectivityAPI = {
             rpc().connectivity.advertise.stop().then(() => advertiseTimeout = undefined);
         }, forMS)
     },
-    connect(peerNearby: PeerNearby) {
+    pair(peerNearby: PeerNearby) {
         switch (peerNearby.type) {
             case PEER_ADVERSTISING_METHOD.BONJOUR:
                 return connectByWebSocket(peerNearby);
@@ -62,6 +52,17 @@ const connectivityAPI = {
 
                 break;
         }
+    },
+    async forget(peerTrusted: PeerTrusted){
+        const peersTrusted = await connectivityAPI.peers.trusted();
+        const indexOf = peersTrusted.findIndex(({id}) => id === peerTrusted.id);
+        if(indexOf >= 0) {
+            peersTrusted.splice(indexOf, 1);
+        }
+        await config.save(CONFIG_TYPE.CONNECTIVITY, {
+            me,
+            peersTrusted
+        });
     },
     async disconnect(peerConnection: PeerConnection) {
         switch (peerConnection.type) {
@@ -81,10 +82,17 @@ const connectivityAPI = {
                 break;
         }
     },
-    pair(peerConnectionResponse: PeerConnectionRequest) {
-
+    async connect(peerConnection: PeerConnection, peerConnectionResponse: PeerConnectionRequest) {
+        switch (peerConnection.type) {
+            case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
+            case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
+                await rpc().connectivity.connect(peerConnection, peerConnectionResponse);
+                break;
+            case PEER_CONNECTION_TYPE.WEB_SOCKET:
+                break;
+        }
+        onPush["peerConnection"]("connected");
     }
-
 }
 
 const peersWebSocket: Map<WebSocket, PeerConnection> = new Map();
@@ -112,6 +120,63 @@ function tryToConnectWebSocket(address: string, secure: boolean, port?: number) 
     });
 }
 
+async function pair(peerConnection: PeerConnection, peerConnectionRequest: PeerConnectionRequestPairing) {
+    if(peerConnection.state !== PEER_CONNECTION_STATE.PAIRING) {
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    if(peerConnectionRequest.validation !== (peerConnection as PeerConnectionPairing).validation) {
+        return connectivityAPI.disconnect(peerConnection);
+    }
+    
+    const peerTrusted: PeerTrusted = {
+        ...peerConnectionRequest.peer,
+        keys: {
+            encrypt: (peerConnection as PeerConnectionPairing).key,
+            decrypt: peerConnectionRequest.key
+        },
+        secret : {
+            own: (peerConnection as PeerConnectionPairing).secret,
+            their: await decrypt(peerConnectionRequest.secret, peerConnectionRequest.key)
+        }
+    }
+
+    const peersTrusted = (await connectivityAPI.peers.trusted())
+            .concat([peerTrusted]);
+
+    await api.config.save(CONFIG_TYPE.CONNECTIVITY, {
+        me,
+        peersTrusted
+    });
+
+    peerConnection.peer = peerTrusted;
+    peerConnection.state = PEER_CONNECTION_STATE.CONNECTED;
+    delete (peerConnection as PeerConnectionPairing).key;
+    delete (peerConnection as PeerConnectionPairing).secret;
+    delete (peerConnection as PeerConnectionPairing).validation;
+
+    onPush["peerConnection"]("connected");
+}
+
+async function trust(peerConnection: PeerConnection, peerConnectionRequest: PeerConnectionRequestTrusted) {
+    const peerTrusted = (await connectivityAPI.peers.trusted())
+            .find(({ id }) => id === peerConnectionRequest.peer.id);
+    
+    if(!peerTrusted) {
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    const ownSecret = await decrypt(peerConnectionRequest.secret, peerTrusted.keys.decrypt);
+    
+    if(ownSecret !== peerTrusted.secret.own) {
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    peerConnection.state = PEER_CONNECTION_STATE.CONNECTED;
+
+    onPush["peerConnection"]("connected");
+}
+
 async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
     let ws: WebSocket;
     for (const address of peerNearbyBonjour.addresses) {
@@ -122,6 +187,27 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
     }
 
     if (!ws) return;
+
+    ws.onmessage = message => {
+        if (message.type === "binary") {
+            console.log("Binary message on websocket is not yet supported")
+            return;
+        }
+        const data = JSON.parse(message.data as string);
+
+        const peerConnection = peersWebSocket.get(ws);
+        switch(peerConnection.state) {
+            case PEER_CONNECTION_STATE.PAIRING:
+                pair(peerConnection, data)
+                break;
+            case PEER_CONNECTION_STATE.UNTRUSTED:
+                trust(peerConnection, data)
+                break;
+            case PEER_CONNECTION_STATE.CONNECTED:
+
+                break;
+        }
+    };
 
     const id = randomIntFromInterval(100000, 999999);
 
@@ -140,8 +226,8 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
             peer: peerNearbyBonjour.peer,
             state: PEER_CONNECTION_STATE.PAIRING,
             type: PEER_CONNECTION_TYPE.WEB_SOCKET,
-            secret: crypto.randomUUID(),
-            key: crypto.randomUUID(),
+            key: generateHash(32),
+            secret: generateHash(12),
             validation: randomIntFromInterval(1000, 9999)
         }
 
@@ -158,7 +244,6 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
             },
             type: PEER_CONNECTION_REQUEST_TYPE.PAIRING
         }
-        console.log((peerConnection as PeerConnectionPairing).secret);
         ws.send(JSON.stringify(peerConnectionRequest));
     } else {
         const peerConnectionRequest: PeerConnectionRequestTrusted = {
@@ -167,7 +252,7 @@ async function connectByWebSocket(peerNearbyBonjour: PeerNearbyBonjour) {
                 id: me,
                 name: await rpc().connectivity.name(),
             },
-            secret: ""
+            secret: await encrypt(peerTrusted.secret.their, peerTrusted.keys.encrypt)
         }
         ws.send(JSON.stringify(peerConnectionRequest))
     }
@@ -214,38 +299,98 @@ onPush["peerConnectionRequest"] = async peerConnectionRequestStr => {
         return;
     }
 
+    let peerConnectionResponse: PeerConnectionRequest, peerTrusted: PeerTrusted;
     if (peerConnectionRequest.type === PEER_CONNECTION_REQUEST_TYPE.PAIRING) {
         const trust = await Peers.peerConnectionRequestPairingDialog(peerConnectionRequest.peer.name, peerConnectionRequest.validation)
         if (!trust) {
-            connectivityAPI.disconnect({
+            return connectivityAPI.disconnect({
                 id: peerConnectionId,
-                state: PEER_CONNECTION_STATE.PAIRING,
-                peer: peerConnectionRequest.peer,
-                type: peerConnectionType,
-                validation: 0,
-                secret: "",
-                key: ""
-            })
-            return;
+                state: PEER_CONNECTION_STATE.UNTRUSTED,
+                peer: null,
+                type: peerConnectionType
+            });
         }
 
-        console.log(await decrypt(peerConnectionRequest.secret, peerConnectionRequest.key));
+        peerTrusted = {
+            ...peerConnectionRequest.peer,
+            keys: {
+                decrypt: peerConnectionRequest.key,
+                encrypt: generateHash(32)
+            },
+            secret: {
+                their: await decrypt(peerConnectionRequest.secret, peerConnectionRequest.key),
+                own: generateHash(12)
+            }
+        }
 
-        // const peerTrusted: PeerTrusted = {
-        //     ...peerConnectionRequest.peer,
-        //     keys: {
-        //         decrypt: peerConnectionRequest.key,
-        //         encrypt: crypto.randomUUID()
-        //     },
-        //     secret: {
-        //         their: ,
-        //         own: crypto.randomUUID()
-        //     }
-        // }
+        const peersTrusted = (await connectivityAPI.peers.trusted())
+            .concat([peerTrusted]);
 
+        await api.config.save(CONFIG_TYPE.CONNECTIVITY, {
+            me,
+            peersTrusted
+        });
 
+        peerConnectionResponse = {
+            type: PEER_CONNECTION_REQUEST_TYPE.PAIRING,
+            peer: {
+                id: me,
+                name: await rpc().connectivity.name()
+            },
+            key: peerTrusted.keys.encrypt,
+            secret: await encrypt(peerTrusted.secret.own, peerTrusted.keys.encrypt),
+            validation: peerConnectionRequest.validation
+        }
+    } else {
+        peerTrusted = (await connectivityAPI.peers.trusted()).find(({ id }) => id === peerConnectionRequest.peer.id);
 
+        if (!peerTrusted) {
+            return connectivityAPI.disconnect({
+                id: peerConnectionId,
+                state: PEER_CONNECTION_STATE.UNTRUSTED,
+                peer: null,
+                type: peerConnectionType
+            })
+        }
+
+        const ownSecret = await decrypt(peerConnectionRequest.secret, peerTrusted.keys.decrypt);
+
+        if (ownSecret !== peerTrusted.secret.own) {
+            return connectivityAPI.disconnect({
+                id: peerConnectionId,
+                state: PEER_CONNECTION_STATE.UNTRUSTED,
+                peer: null,
+                type: peerConnectionType
+            });
+        }
+
+        peerConnectionResponse = {
+            type: PEER_CONNECTION_REQUEST_TYPE.TRUSTED,
+            peer: {
+                id: me,
+                name: await rpc().connectivity.name()
+            },
+            secret: await encrypt(peerTrusted.secret.their, peerTrusted.keys.encrypt)
+        }
     }
+
+    if (!peerTrusted) {
+        return connectivityAPI.disconnect({
+            id: peerConnectionId,
+            state: PEER_CONNECTION_STATE.UNTRUSTED,
+            peer: null,
+            type: peerConnectionType
+        });
+    }
+
+    const peerConnection: PeerConnection = {
+        id: peerConnectionId,
+        type: peerConnectionType,
+        peer: peerTrusted,
+        state: PEER_CONNECTION_STATE.CONNECTED,
+    }
+
+    connectivityAPI.connect(peerConnection, peerConnectionResponse);
 }
 
 export default connectivityAPI;
@@ -254,25 +399,29 @@ function randomIntFromInterval(min, max) { // min and max included
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
+
 // for large strings, use this from https://stackoverflow.com/a/49124600
-const buff_to_base64 = (buff) => btoa(
-    new Uint8Array(buff).reduce(
+const toBase64 = (data: ArrayBufferLike) => btoa(
+    new Uint8Array(data).reduce(
         (data, byte) => data + String.fromCharCode(byte), ''
     )
 );
 
-const base64_to_buf = (b64) =>
-    Uint8Array.from(atob(b64), (c) => c.charCodeAt(null));
+const fromBase64 = (data: string) =>
+    Uint8Array.from(atob(data), (c) => c.charCodeAt(null));
+
+
+const generateHash = (byteLength: number) => toBase64(crypto.getRandomValues(new Uint8Array(byteLength)));
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 async function encrypt(data: string, key: string) {
-    const salt = window.crypto.getRandomValues(new Uint8Array(16));
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
     const cryptoKey = await importKey(key);
     const derivedKey = await deriveKey(cryptoKey, salt, "encrypt");
-    const encryptedContent = await window.crypto.subtle.encrypt(
+    const encryptedContent = await crypto.subtle.encrypt(
         {
             name: "AES-GCM",
             iv,
@@ -288,17 +437,17 @@ async function encrypt(data: string, key: string) {
     buff.set(salt, 0);
     buff.set(iv, salt.byteLength);
     buff.set(encryptedContentArr, salt.byteLength + iv.byteLength);
-    return buff_to_base64(buff);
+    return toBase64(buff);
 }
 
 async function decrypt(base64: string, key: string) {
-    const encryptedDataBuff = base64_to_buf(base64);
+    const encryptedDataBuff = fromBase64(base64);
     const salt = encryptedDataBuff.slice(0, 16);
     const iv = encryptedDataBuff.slice(16, 16 + 12);
     const data = encryptedDataBuff.slice(16 + 12);
     const cryptoKey = await importKey(key);
     const derivedKey = await deriveKey(cryptoKey, salt, "decrypt");
-    const decryptedContent = await window.crypto.subtle.decrypt(
+    const decryptedContent = await crypto.subtle.decrypt(
         {
             name: "AES-GCM",
             iv,
@@ -316,7 +465,7 @@ const importKey = (key: string) => crypto.subtle.importKey(
     false,
     ["deriveKey"]);
 
-const deriveKey = (cryptoKey: CryptoKey, salt: ArrayBufferLike, keyUsage: "encrypt" | "decrypt") => window.crypto.subtle.deriveKey(
+const deriveKey = (cryptoKey: CryptoKey, salt: ArrayBufferLike, keyUsage: "encrypt" | "decrypt") => crypto.subtle.deriveKey(
     {
         name: "PBKDF2",
         salt,
