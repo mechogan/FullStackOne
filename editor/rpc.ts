@@ -1,5 +1,5 @@
-import type { Peer, PeerConnection, PeerConnectionRequest, PeerNearby } from "../src/adapter/connectivity";
 import type { Adapter } from "../src/adapter/fullstacked";
+import type { Peer, PeerNearby } from "../src/connectivity/types";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
 
@@ -24,15 +24,25 @@ export type AdapterEditor = Adapter & {
     connectivity: {
         name: string,
         peers: {
-            nearby(): PeerNearby[],
-            connections(): PeerConnection[]
+            nearby(): PeerNearby[]
         },
         advertise: {
-            start(me: Peer["id"]): void,
+            start(me: Peer): void,
             stop(): void
         },
-        disconnect(peerConnection: PeerConnection): void,
-        connect(peerConnection: PeerConnection, peerConnectRequest: PeerConnectionRequest): void
+        browse: {
+            start(): void,
+            stop(): void
+        },
+        open(id: string): void,
+        disconnect(id: string): void,
+        requestConnection(id: string, peerConnectionRequestStr: string): void
+        respondToRequestConnection(id: string, peerConnectionRequestStr: string): void,
+        trustConnection(id: string): void,
+        
+        send(id: string, data: string): void,
+        convey(data: string): void,
+
     }
 };
 

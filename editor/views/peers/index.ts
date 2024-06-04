@@ -1,4 +1,4 @@
-import { PEER_CONNECTION_STATE, PeerConnectionPairing, PeerConnectionRequest } from "../../../src/adapter/connectivity";
+import { PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, PeerConnectionPairing } from "../../../src/connectivity/types";
 import api from "../../api";
 import { INCOMING_PEER_CONNECTION_REQUEST_DIALOG } from "../../constants";
 import "./index.css";
@@ -9,17 +9,14 @@ export class Peers {
     peersLists: HTMLDivElement = document.createElement("div");
 
     constructor() {
-        onPush["peerNearby"] = () => {
+        const renderPeersListsIfVisible = () => {
             if(document.body.contains(this.peersLists)) {
                 this.renderPeersLists();
             }
         }
-
-        onPush["peerConnection"] = (e) => {
-            if(document.body.contains(this.peersLists)) {
-                this.renderPeersLists();
-            }
-        }
+        
+        onPush["peerNearby"] = renderPeersListsIfVisible;
+        onPush["peerConnectionEvent"] = renderPeersListsIfVisible;
     }
 
     static peerConnectionRequestPairingDialog(name: string, validation: number): Promise<boolean> {
@@ -129,7 +126,7 @@ export class Peers {
                 const div = document.createElement("div");
                 div.innerText = "Connecting...";
                 pairButton.replaceWith(div);
-                await api.connectivity.pair(peerNearby);
+                api.connectivity.connect(peerNearby);
                 this.renderPeersLists();
             });
 

@@ -5,12 +5,10 @@ export type Adapter = {
     fs: fs;
     fetch: fetch;
     platform: string;
-    broadcast: (data: string) => void
 };
 
 declare global {
     var rpc: () => {
-        broadcast: (data: string) => void
         platform: () => Promise<Adapter["platform"]>;
         fs: Omit<Adapter["fs"], "readFile" | "readdir"> & {
             readFile(path: string): Promise<Uint8Array>;

@@ -1,30 +1,157 @@
 import MultipeerConnectivity
 import Foundation
+import SwiftyJSON
 
-struct MCPeer {
-    let peer: Peer
+struct Connection {
+    let id: String
+    var trusted: Bool
     let mcPeer: MCPeerID
-    var connected: Bool
+    let mcSession: MCSession
 }
 
+struct Invite {
+    let mcPeer: MCPeerID
+    let mcSession: MCSession
+}
+
+struct Peer {
+    let id: String
+    let name: String
+}
+
+struct PeerNearbyMultipeer {
+    let id: String
+    let peer: Peer
+    let mcPeer: MCPeerID
+}
+
+
+// Connectivity > Browser, Advertiser
+// Connectivity > Connecter > Request, Responder
 class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate, MCNearbyServiceBrowserDelegate {
     private let serviceType = "fullstacked-ios"
-    private let myPeerId = MCPeerID(displayName: UIDevice.current.name)
-    let serviceAdvertiser: MCNearbyServiceAdvertiser
-    let serviceBrowser: MCNearbyServiceBrowser
-    let session: MCSession
-    var seenPeers: [String : MCPeer] = [:]
+    private let me = MCPeerID(displayName: UIDevice.current.name)
+    private var advertiser: MCNearbyServiceAdvertiser?
+    private var browser: MCNearbyServiceBrowser?
+    private var peersNearby: [PeerNearbyMultipeer] = []
+    private var invites: [Invite] = []
     
-    override init(){
-        session = MCSession(peer: myPeerId, securityIdentity: nil, encryptionPreference: .none)
-        serviceAdvertiser = MCNearbyServiceAdvertiser(peer: myPeerId, discoveryInfo: nil, serviceType: serviceType)
-        serviceBrowser = MCNearbyServiceBrowser(peer: myPeerId, serviceType: serviceType)
+    // Browser
+    var onPeerNearby: ((_ eventType: String) -> Void)?
 
-        super.init()
+    func getPeersNearby() -> JSON {
+        let json = JSON(self.peersNearby.map({peerNearby in
+            return [
+                "id": peerNearby.id,
+                "peer": [
+                    "id": peerNearby.peer.id,
+                    "name": peerNearby.peer.name,
+                ],
+                "type": 2
+            ]
+        }))
         
-        session.delegate = self
-        serviceAdvertiser.delegate = self
-        serviceBrowser.delegate = self
+        return json
+    }
+    
+    func startBrowsing() {
+        self.browser?.stopBrowsingForPeers()
+        self.browser = MCNearbyServiceBrowser(peer: self.me, serviceType: self.serviceType)
+        self.browser!.delegate = self
+        self.browser!.startBrowsingForPeers()
+    }
+    
+    func stopBrowsing() {
+        self.browser?.stopBrowsingForPeers();
+        self.browser = nil
+    }
+    
+    // Advertiser
+    func startAdvertising(id: String, name: String) {
+        self.advertiser?.stopAdvertisingPeer()
+        self.advertiser = MCNearbyServiceAdvertiser(peer: self.me, discoveryInfo: ["id": id, "name": name], serviceType: self.serviceType)
+        self.advertiser!.delegate = self
+        self.advertiser!.startAdvertisingPeer()
+    }
+    func stopAdvertising() {
+        self.advertiser?.stopAdvertisingPeer()
+        self.advertiser = nil
+    }
+    
+    // Connecter
+    var connections: [Connection] = []
+    var onPeerData: ((_ id: String, _ data: String) -> Void)?
+    var onPeerConnectionLost: ((_ id: String) -> Void)?
+    
+    func disconnect(id: String) {
+        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
+            self.connections[indexOf].mcSession.disconnect()
+        }
+    }
+    
+    func send(id: String, data: String) {
+        
+    }
+    
+    // Requester
+    var onOpenConnection: ((_ id: String) -> Void)?
+    var onPeerConnectionResponse: ((_ id: String, _ peerConnectionRequestStr: String) -> Void)?
+    
+    func open(id: String) {
+        if let peerNearby = self.peersNearby.first(where: { $0.id == id }) {
+            let mcSession = MCSession(peer: self.me, securityIdentity: nil, encryptionPreference: .none)
+            mcSession.delegate = self;
+            let connection = Connection(id: id, trusted: false, mcPeer: peerNearby.mcPeer, mcSession: mcSession)
+            self.connections.append(connection)
+            
+            print("invite");
+            self.browser?.invitePeer(peerNearby.mcPeer, to: mcSession, withContext: nil, timeout: 10)
+        }
+    }
+
+    func requestConnection(id: String, peerConnectionRequestStr: String) {
+        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
+            try! self.connections[indexOf].mcSession.send(peerConnectionRequestStr.data(using: .utf8)!, toPeers: [self.connections[indexOf].mcPeer], with: .reliable)
+        }
+    }
+    
+    func trustConnection(id: String) {
+        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
+            self.connections[indexOf].trusted = true
+        }
+    }
+    
+    
+    // Responder
+    var onPeerConnectionRequest: ((_ id: String, _ peerConnectionRequestStr: String) -> Void)?
+
+    func respondToConnectionRequest(id: String, peerConnectionResponseStr: String) {
+        if let connection = self.connections.first(where: {$0.id == id}) {
+            try! connection.mcSession.send(peerConnectionResponseStr.data(using: .utf8)!, toPeers: [connection.mcPeer], with: .reliable)
+        }
+    }
+    
+    
+    func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
+        print("ServiceBrowser didNotStartBrowsingForPeers: \(String(describing: error))")
+    }
+
+    func browser(_ browser: MCNearbyServiceBrowser, foundPeer mcPeer: MCPeerID, withDiscoveryInfo info: [String: String]?) {
+        for peerNearby in self.peersNearby {
+            if(peerNearby.mcPeer == mcPeer) { return }
+        }
+        
+        let peer = Peer(id: info!["id"]!, name: info!["name"]!)
+        let peerNearby = PeerNearbyMultipeer(id: UUID().uuidString, peer: peer, mcPeer: mcPeer)
+        self.peersNearby.append(peerNearby)
+        self.onPeerNearby?("new")
+    }
+
+    func browser(_ browser: MCNearbyServiceBrowser, lostPeer mcPeer: MCPeerID) {
+        if let indexOf = self.peersNearby.firstIndex(where: { $0.mcPeer == mcPeer }) {
+            self.peersNearby.remove(at: indexOf)
+            self.onPeerNearby?("lost")
+        }
     }
     
     
@@ -32,96 +159,46 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
         print("ServiceAdvertiser didNotStartAdvertisingPeer: \(String(describing: error))")
     }
 
-    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        print("didReceiveInvitationFromPeer \(peerID)")
-        invitationHandler(true, self.session);
+    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer mcPeer: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        let mcSession = MCSession(peer: self.me, securityIdentity: nil, encryptionPreference: .none)
+        mcSession.delegate = self;
+        self.invites.append(Invite(mcPeer: mcPeer, mcSession: mcSession))
+        invitationHandler(true, mcSession)
     }
     
-    func pair(peerID: String) {
-        let mcPeer = self.seenPeers[peerID]?.mcPeer ?? nil;
-        if(mcPeer == nil) {
-            return;
-        }
-        
-        self.serviceBrowser.invitePeer(mcPeer!, to: self.session, withContext: nil, timeout: 10)
-    }
-    
-    func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
-        print("ServiceBrowser didNotStartBrowsingForPeers: \(String(describing: error))")
-    }
-
-    func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
-        var nearbyPeer: Peer?;
-        
-        for peer in self.seenPeers.values {
-            if(peer.mcPeer == peerID) {
-                nearbyPeer = peer.peer
-                break
-            }
-        }
-        
-        if(nearbyPeer == nil) {
-            let id = UUID().uuidString
-            nearbyPeer = Peer(id: id, name: peerID.displayName, addresses: ["ios-multipeer"], port: 0)
-            self.seenPeers[id] = MCPeer(peer: nearbyPeer!, mcPeer: peerID, connected: false);
-        }
-    
-        let json = try! JSONEncoder().encode(nearbyPeer)
-        
-        DispatchQueue.main.async {
-            InstanceEditor.singleton?.push(messageType: "nearbyPeer", message: String(data: json, encoding: .utf8)!)
-        }
-    }
-
-    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
-        print("ServiceBrowser lost peer: \(peerID)")
-    }
-    
-    func send(_ data: Data) {
-        var mcPeers: [MCPeerID] = [];
-        
-        for peer in self.seenPeers.values {
-            if(peer.connected) {
-                mcPeers.append(peer.mcPeer)
-            }
-        }
-        
-        if(mcPeers.count > 0) {
-            try! self.session.send(data, toPeers: mcPeers, with: .reliable)
-        }
-    }
-    
-    func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
-        print("peer \(peerID) didChangeState: \(state.rawValue)")
-        var seenPeer: MCPeer?
-        for peer in self.seenPeers.values {
-            if(peer.mcPeer == peerID) {
-                seenPeer = peer
-                break
-            }
-        }
-        
-        if(seenPeer == nil) {
-            return
-        }
-        
+    func session(_ session: MCSession, peer mcPeer: MCPeerID, didChange state: MCSessionState) {
         if(state == MCSessionState.connected) {
-            self.seenPeers[seenPeer!.peer.id]!.connected = true
-            let connectedPeer = Peer(id: seenPeer!.peer.id, name: seenPeer!.peer.name)
-            let peerJson = try! JSONEncoder().encode(connectedPeer)
-            DispatchQueue.main.async {
-                InstanceEditor.singleton?.push(messageType: "peer", message: String(data: peerJson, encoding: .utf8)!)
+            if let connection = self.connections.first(where: { $0.mcPeer == mcPeer }) {
+                self.onOpenConnection?(connection.id)
+            } else if let peerNearby = self.peersNearby.first(where: { $0.mcPeer == mcPeer }),
+                        let invite = self.invites.first(where: { $0.mcSession == session }) {
+                let connection = Connection(id: peerNearby.id, trusted: false, mcPeer: mcPeer, mcSession: invite.mcSession)
+                self.connections.append(connection)
             }
-        }
-        else if(state == MCSessionState.notConnected) {
-            self.seenPeers[seenPeer!.peer.id]!.connected = false
+        } else if(state == MCSessionState.notConnected) {
+            if let indexOf = self.connections.firstIndex(where: {$0.mcPeer == mcPeer}) {
+                self.onPeerConnectionLost?(self.connections[indexOf].id)
+                self.connections.remove(at: indexOf)
+            }
         }
     }
 
-    func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        print("didReceive bytes \(data.count) bytes")
-        for instance in RunningInstances.singleton!.instances {
-            instance.push(messageType: "peerData", message: String(data: data, encoding: .utf8)!)
+    func session(_ session: MCSession, didReceive data: Data, fromPeer mcPeer: MCPeerID) {
+        if let connection = self.connections.first(where: {$0.mcPeer == mcPeer}) {
+            let dataStr = String(data: data, encoding: .utf8)!
+            
+            if(!connection.trusted) {
+                
+                if let inviteIndexOf = self.invites.firstIndex(where: { $0.mcSession == session }) {
+                    self.onPeerConnectionRequest?(connection.id, dataStr)
+                    self.invites.remove(at: inviteIndexOf);
+                } else {
+                    self.onPeerConnectionResponse?(connection.id, dataStr)
+                }
+                
+            } else {
+                self.onPeerData?(connection.id, dataStr)
+            }
         }
     }
 

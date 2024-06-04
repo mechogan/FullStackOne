@@ -37,6 +37,38 @@ class AdapterEditor: Adapter {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
         super.init(baseDirectory: baseDirectory)
+        
+        let onPeerNearby: (_ eventType: String) -> Void = {eventType in
+            InstanceEditor.singleton?.push(messageType: "peerNearby", message: eventType)
+        }
+        
+        self.bonjour.onPeerNearby = onPeerNearby
+        self.multipeer.onPeerNearby = onPeerNearby
+        
+        self.multipeer.onOpenConnection = {id in
+            let message = ["id": id, "type": 3]
+            InstanceEditor.singleton?.push(messageType: "openConnection", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionRequest = {id, peerConnectionRequestStr in
+            let message = [
+                "id": id,
+                "type": 3,
+                "peerConnectionRequestStr": peerConnectionRequestStr
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionRequest", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionResponse = {id, peerConnectionResponseStr in
+            let message = [
+                "id": id,
+                "type": 3,
+                "peerConnectionResponseStr": peerConnectionResponseStr
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionResponse", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionLost = {id in
+            let message = ["id": id]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionLost", message: JSON(message).rawString()!)
+        }
     }
     
     override func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping (_ maybeData: Any?) -> Void) {
@@ -184,33 +216,64 @@ class AdapterEditor: Adapter {
                 let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue
                 UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
                 return done(true)
-            case "peers":
+            case "connectivity":
                 switch(methodPath[1]) {
-                case "info":
-                    return done(false)
-                case "advertise":
-                    self.multipeer.serviceAdvertiser.startAdvertisingPeer();
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
-                        self.multipeer.serviceAdvertiser.stopAdvertisingPeer();
+                case "name": 
+                    return done(UIDevice.current.name)
+                case "peers":
+                    switch(methodPath[2]){
+                    case "nearby":
+                        var peersNearby: [JSON] = []
+                        let peersNearbyBonjour = self.bonjour.getPeersNearby().arrayValue
+                        let peersNearbyMultipeer = self.multipeer.getPeersNearby().arrayValue
+                        
+                        for peerNearby in peersNearbyBonjour {
+                            peersNearby.append(peerNearby)
+                        }
+                        for peerNearby in peersNearbyMultipeer {
+                            peersNearby.append(peerNearby)
+                        }
+                        
+                        return done(JSON(peersNearby))
+                    default: break
                     }
+                case "advertise": 
+                    switch(methodPath[2]){
+                    case "start": 
+                        self.multipeer.startAdvertising(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue)
+                        return done(true)
+                    case "stop": 
+                        self.multipeer.stopAdvertising()
+                        return done(true)
+                    default: break
+                    }
+                case "browse": 
+                    switch(methodPath[2]){
+                    case "start":
+                        self.bonjour.startBrowsing()
+                        self.multipeer.startBrowsing()
+                        return done(true)
+                    case "stop":
+                        self.bonjour.stopBrowsing()
+                        self.multipeer.stopBrowsing()
+                        return done(true)
+                    default: break
+                    }
+                case "open":
+                    self.multipeer.open(id: json[0].stringValue)
                     return done(true)
-                case "browse":
-                    self.bonjour.browse()
-                    self.multipeer.serviceBrowser.startBrowsingForPeers();
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
-                        self.multipeer.serviceBrowser.stopBrowsingForPeers();
-                        self.bonjour.browser?.cancel();
-                    }
+                case "disconnect":
+                    self.multipeer.disconnect(id: json[0].stringValue)
                     return done(true)
-                case "pair":
-                    if(json[0]["addresses"].arrayValue.first!.stringValue == "ios-multipeer") {
-                        self.multipeer.pair(peerID: json[0]["id"].stringValue);
-                        return done(true);
-                    }
-                    
-                    return self.bonjour.pair(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue, addresses: json[0]["addresses"].arrayValue.map({ $0.stringValue }),
-                                      port: Int(truncating: json[0]["port"].numberValue),
-                                      completionHandler: { done($0) })
+                case "requestConnection":
+                    self.multipeer.requestConnection(id: json[0].stringValue, peerConnectionRequestStr: json[1].stringValue)
+                    return done(true)
+                case "respondToRequestConnection":
+                    self.multipeer.respondToConnectionRequest(id: json[0].stringValue, peerConnectionResponseStr: json[1].stringValue)
+                    return done(true)
+                case "trustConnection":
+                    self.multipeer.trustConnection(id: json[0].stringValue)
+                    return done(true)
                 default: break
                 }
             default: break

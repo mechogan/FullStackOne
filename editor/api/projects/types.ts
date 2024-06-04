@@ -1,4 +1,4 @@
-import type { PeerTrusted } from "../../../src/adapter/connectivity";
+import { PeerTrusted } from "../../../src/connectivity/types";
 
 export type Project = {
     title: string;

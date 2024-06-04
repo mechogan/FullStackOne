@@ -1,6 +1,5 @@
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
-import { Bonjour } from "./bonjour";
 
 export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
     const writeFile: Adapter["fs"]["writeFile"] = async (
@@ -131,9 +130,6 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
                 statusMessage: response.statusText,
                 body
             };
-        },
-        broadcast: data => {
-            Bonjour.broadcast(data);
         }
     };
 }

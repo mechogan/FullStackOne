@@ -9,19 +9,23 @@ import fs from "fs";
 import { build, merge } from "./build";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
-import { Bonjour, getComputerName } from "./bonjour";
-import { PEER_CONNECTION_TYPE } from "../../../src/adapter/connectivity";
+import { WebSocketServer } from "./connectivity/websocketServer";
+import { Bonjour, getComputerName } from "./connectivity/bonjour";
+import { PEER_CONNECTION_TYPE } from "../../../src/connectivity/types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const editorDirectory = path.resolve(__dirname, "editor");
 
 export class InstanceEditor extends Instance {
+    static singleton: InstanceEditor;
     static rootDirectory: string = os.homedir();
     baseJS: string = path.resolve(__dirname, "js", "index.js");
     configDirectory: string = process.env.CONFIG_DIR || ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
-    bonjour = new Bonjour();
+
+    wsServer: WebSocketServer;
+    bonjour: Bonjour;
     instances: Instance[] = [];
 
     adapter: AdapterEditor = null;
@@ -35,7 +39,26 @@ export class InstanceEditor extends Instance {
             createdDate: null
         });
 
+        InstanceEditor.singleton = this;
+
         this.launchURL = launchURL;
+
+        this.wsServer = new WebSocketServer();
+
+        this.bonjour = new Bonjour(this.wsServer);
+        this.bonjour.onPeerNearby = eventType => {
+            this.push("peerNearby", eventType);
+        }
+
+        this.wsServer.onPeerConnectionLost = (id) => {
+            this.push("peerConnectionLost", JSON.stringify({ id }));
+        }
+        this.wsServer.onPeerConnectionRequest = (id, peerConnectionRequestStr) => {
+            this.push("peerConnectionRequest", JSON.stringify({ id, type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER, peerConnectionRequestStr }));
+        }
+        this.wsServer.onPeerData = (id, data) => {
+            this.push("peerData", JSON.stringify({ id, data }));
+        }
 
         const writeFile: AdapterEditor["fs"]["writeFile"] = async (
             file,
@@ -53,20 +76,6 @@ export class InstanceEditor extends Instance {
 
             return fs.promises.writeFile(filePath, data, options);
         };
-
-        this.bonjour.onPeerNearby = eventType => {
-            this.push("peerNearby", eventType);
-        }
-        this.bonjour.onPeerConnectionRequest = (peerConnectionRequest, id) => {
-            this.push("peerConnectionRequest", JSON.stringify({
-                peerConnectionRequest,
-                id,
-                type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER
-            }));
-        }
-        this.bonjour.onPeerConnection = eventType => {
-            this.push("peerConnection", eventType);
-        }
 
         const defaultAdapter = initAdapter(editorDirectory);
         this.adapter = {
@@ -265,25 +274,41 @@ export class InstanceEditor extends Instance {
                 name: getComputerName(),
                 peers: {
                     nearby: () => {
-                        return Array.from(this.bonjour.peersNearby.values());
-                    },
-                    connections: () => {
-                        return Array.from(this.bonjour.peers.values());
+                        return this.bonjour.getPeersNearby();
                     }
                 },
                 advertise: {
                     start: (me) => {
-                        this.bonjour.advertise(me)
+                        this.bonjour.startAdvertising(me)
                     },
                     stop: () => {
-                        this.bonjour.advertiseEnd();
+                        this.bonjour.stopAdvertising();
                     }
                 },
-                disconnect: (peerConnection) => {
-                    this.bonjour.disconnect(peerConnection)
+                browse: {
+                    start: () => {
+                        this.bonjour.startBrowsing()
+                    },
+                    stop: () => {
+                        this.bonjour.stopBrowsing();
+                    }
                 },
-                connect: (peerConnection, peerConnectionRequest) => {
-                    this.bonjour.connect(peerConnection, peerConnectionRequest)
+                open: null,
+                requestConnection: null,
+                respondToRequestConnection: (id, peerConnectionRequestStr) => {
+                    this.wsServer.respondToConnectionRequest(id, peerConnectionRequestStr)
+                },
+                trustConnection: (id) => {
+                    this.wsServer.trustConnection(id);
+                },
+                disconnect: (id) => {
+                    this.wsServer.disconnect(id)
+                },
+                send: (id, data) => {
+                    this.wsServer.send(id, data);
+                },
+                convey: (data) => {
+                    this.instances.forEach(instance => instance.push("peerData", data));
                 }
             }
         };
