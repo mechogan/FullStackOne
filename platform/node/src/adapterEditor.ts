@@ -192,9 +192,11 @@ export function initAdapterEditor(
             if (!entryPoint) return null;
 
             const mergedFile = await merge(
-                this.baseJS,
+                instanceEditor.baseJS,
                 entryPoint,
-                instanceEditor.rootDirectory + "/" + this.cacheDirectory
+                instanceEditor.rootDirectory +
+                    "/" +
+                    instanceEditor.cacheDirectory
             );
 
             const outdir =
@@ -207,7 +209,9 @@ export function initAdapterEditor(
                 mergedFile,
                 "index",
                 outdir,
-                instanceEditor.rootDirectory + "/" + this.nodeModulesDirectory
+                instanceEditor.rootDirectory +
+                    "/" +
+                    instanceEditor.nodeModulesDirectory
             );
 
             await fs.promises.unlink(mergedFile);

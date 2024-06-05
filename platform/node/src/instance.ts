@@ -60,7 +60,7 @@ export class Instance {
                 "/" +
                 project.location,
             "node",
-            InstanceEditor.singleton?.broadcast?.bind(InstanceEditor.singleton)
+            (data) => InstanceEditor.singleton.push("sendData", data)
         );
         this.port = Instance.port;
         Instance.port++;
