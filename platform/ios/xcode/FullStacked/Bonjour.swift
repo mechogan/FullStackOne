@@ -44,6 +44,7 @@ class Bonjour {
                 case .added(let result):
                     switch result.metadata {
                         case.bonjour(let record):
+                        print(record)
                         if let addressesStr = record["addresses"], let portStr = record["port"] {
                             let peerID = String(result.endpoint.debugDescription.split(separator: ".").first!)
                             let peerNearby = PeerNearbyBonjour(id: peerID, name: record["_d"] ?? result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)

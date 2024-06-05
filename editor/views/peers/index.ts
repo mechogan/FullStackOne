@@ -105,6 +105,8 @@ export class Peers {
                     disconnectButton.addEventListener("click", () => api.connectivity.disconnect(peerConnection));
                     div.append(disconnectButton);
                     break;
+                default:
+                    div.innerHTML = `<div class="loader"></div>`;
             }
             li.append(div);
 

@@ -14,6 +14,8 @@ export class ConnectWebSocket implements ConnecterRequester {
         const protocol = secure ? "wss" : "ws";
         const url = protocol + "://" + hostname + (port ? `:${port}` : "");
 
+        console.log(url);
+
         return new Promise<WebSocket>((resolve, reject) => {
             let ws: WebSocket, didResolve = false;
             try {
@@ -24,9 +26,8 @@ export class ConnectWebSocket implements ConnecterRequester {
 
             setTimeout(() => {
                 if(didResolve) return;
-                
+
                 reject();
-                ws.close();
             }, 1000 * 5) // 5s timeout
 
             ws.onerror = () => {
@@ -42,6 +43,9 @@ export class ConnectWebSocket implements ConnecterRequester {
 
     async open(id: string, peerNearby: PeerNearbyBonjour){
         let ws: WebSocket;
+
+        console.log(peerNearby.addresses);
+        
         for (const address of peerNearby.addresses) {
             try {
                 ws = await this.tryToConnectWebSocket(address, false, peerNearby.port);
