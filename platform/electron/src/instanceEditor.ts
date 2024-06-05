@@ -53,11 +53,14 @@ export class InstanceEditor extends Instance {
     constructor() {
         const rootDirectory = os.homedir();
 
-        super({
-            title: "FullStacked Editor",
-            location: editorDirectory,
-            createdDate: null
-        }, rootDirectory);
+        super(
+            {
+                title: "FullStacked Editor",
+                location: editorDirectory,
+                createdDate: null
+            },
+            rootDirectory
+        );
 
         this.rootDirectory = rootDirectory;
 
@@ -67,8 +70,12 @@ export class InstanceEditor extends Instance {
         this.resetAdapter();
     }
 
-    resetAdapter(){
-        const adapter = initAdapter(editorDirectory, "electron", this.broadcast.bind(this));
+    resetAdapter() {
+        const adapter = initAdapter(
+            editorDirectory,
+            "electron",
+            this.broadcast.bind(this)
+        );
         this.adapter = initAdapterEditor(adapter, this, this.esbuild);
 
         this.adapter.esbuild = {
@@ -83,29 +90,28 @@ export class InstanceEditor extends Instance {
                     );
                 };
                 installEsbuild(
-                    this.rootDirectory +
-                        "/" +
-                        this.configDirectory,
+                    this.rootDirectory + "/" + this.configDirectory,
                     progressListener.bind(this)
                 ).then((esbuild) => {
                     this.esbuild = esbuild;
-                    this.resetAdapter()
+                    this.resetAdapter();
                 });
-            },
-        }
+            }
+        };
 
         this.adapter.open = (project: Project) => {
-            let directory =
-                this.rootDirectory + "/" + project.location;
+            let directory = this.rootDirectory + "/" + project.location;
             if (os.platform() === "win32")
                 directory = directory.split("/").join("\\");
             shell.openPath(directory);
-        }
+        };
     }
 
-    getInstances() { return Array.from(this.instances.values()) }
+    getInstances() {
+        return Array.from(this.instances.values());
+    }
 
-    createNewInstance(project: Project){
+    createNewInstance(project: Project) {
         for (const activeInstance of this.instances.values()) {
             if (activeInstance.project.location === project.location) {
                 activeInstance.restart();
@@ -117,13 +123,11 @@ export class InstanceEditor extends Instance {
         const hostname = `app-` + this.instancesCount;
         this.instances.set(hostname, instance);
         instance.start(hostname);
-        instance.window.on("close", () =>
-            this.instances.delete(hostname)
-        );
+        instance.window.on("close", () => this.instances.delete(hostname));
     }
 
     broadcast(data: string) {
-        for(const instance of this.instances.values()) {
+        for (const instance of this.instances.values()) {
             instance.push("peerData", data);
         }
     }

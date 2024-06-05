@@ -6,7 +6,7 @@
 .peers {
     @include full-width();
 
-    header{
+    header {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -38,7 +38,6 @@
 }
 
 #manual-peer-pairing {
-
     input {
         margin: spacing() 0;
         width: 100%;
@@ -48,7 +47,7 @@
         display: flex;
         justify-content: space-between;
         button {
-            flex: 1
+            flex: 1;
         }
     }
 
@@ -79,7 +78,6 @@
                 }
             }
         }
-        
     }
 }
 

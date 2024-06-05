@@ -1,15 +1,17 @@
 // for large strings, use this from https://stackoverflow.com/a/49124600
-export const toBase64 = (data: ArrayBufferLike) => btoa(
-    new Uint8Array(data).reduce(
-        (data, byte) => data + String.fromCharCode(byte), ''
-    )
-);
+export const toBase64 = (data: ArrayBufferLike) =>
+    btoa(
+        new Uint8Array(data).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+        )
+    );
 
 export const fromBase64 = (data: string) =>
     Uint8Array.from(atob(data), (c) => c.charCodeAt(null));
 
-
-export const generateHash = (byteLength: number) => toBase64(crypto.getRandomValues(new Uint8Array(byteLength)));
+export const generateHash = (byteLength: number) =>
+    toBase64(crypto.getRandomValues(new Uint8Array(byteLength)));
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -22,7 +24,7 @@ export async function encrypt(data: string, key: string) {
     const encryptedContent = await crypto.subtle.encrypt(
         {
             name: "AES-GCM",
-            iv,
+            iv
         },
         derivedKey,
         textEncoder.encode(data)
@@ -48,7 +50,7 @@ export async function decrypt(base64: string, key: string) {
     const decryptedContent = await crypto.subtle.decrypt(
         {
             name: "AES-GCM",
-            iv,
+            iv
         },
         derivedKey,
         data
@@ -56,22 +58,25 @@ export async function decrypt(base64: string, key: string) {
     return textDecoder.decode(decryptedContent);
 }
 
-const importKey = (key: string) => crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(key),
-    "PBKDF2",
-    false,
-    ["deriveKey"]);
+const importKey = (key: string) =>
+    crypto.subtle.importKey("raw", textEncoder.encode(key), "PBKDF2", false, [
+        "deriveKey"
+    ]);
 
-const deriveKey = (cryptoKey: CryptoKey, salt: ArrayBufferLike, keyUsage: "encrypt" | "decrypt") => crypto.subtle.deriveKey(
-    {
-        name: "PBKDF2",
-        salt,
-        iterations: 250000,
-        hash: "SHA-256",
-    },
-    cryptoKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    [keyUsage]
-);
+const deriveKey = (
+    cryptoKey: CryptoKey,
+    salt: ArrayBufferLike,
+    keyUsage: "encrypt" | "decrypt"
+) =>
+    crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt,
+            iterations: 250000,
+            hash: "SHA-256"
+        },
+        cryptoKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        [keyUsage]
+    );

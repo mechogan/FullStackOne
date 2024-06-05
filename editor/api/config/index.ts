@@ -35,10 +35,10 @@ export default {
             (await rpc().fs.exists(configFile, { absolutePath: true }))?.isFile
         ) {
             return JSON.parse(
-                await rpc().fs.readFile(configFile, {
+                (await rpc().fs.readFile(configFile, {
                     encoding: "utf8",
                     absolutePath: true
-                }) as string
+                })) as string
             );
         }
 

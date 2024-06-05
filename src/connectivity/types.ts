@@ -1,18 +1,18 @@
 export type Peer = {
-    id: string,
-    name: string,
-}
+    id: string;
+    name: string;
+};
 
 export type PeerTrusted = Peer & {
     secret: {
-        own: string,
-        their: string
-    },
+        own: string;
+        their: string;
+    };
     keys: {
-        encrypt: string,
-        decrypt: string
-    }
-}
+        encrypt: string;
+        decrypt: string;
+    };
+};
 
 export enum PEER_ADVERSTISING_METHOD {
     UNKNOWN = 0,
@@ -21,19 +21,19 @@ export enum PEER_ADVERSTISING_METHOD {
 }
 
 export type PeerNearbyBonjour = {
-    peer: Peer,
-    type: PEER_ADVERSTISING_METHOD.BONJOUR,
-    addresses: string[],
-    port: number
-}
+    peer: Peer;
+    type: PEER_ADVERSTISING_METHOD.BONJOUR;
+    addresses: string[];
+    port: number;
+};
 
 export type PeerNearbyIOSMultiPeer = {
-    id: string,
-    peer: Peer,
-    type: PEER_ADVERSTISING_METHOD.IOS_MULTIPEER
-}
+    id: string;
+    peer: Peer;
+    type: PEER_ADVERSTISING_METHOD.IOS_MULTIPEER;
+};
 
-export type PeerNearby = PeerNearbyBonjour | PeerNearbyIOSMultiPeer
+export type PeerNearby = PeerNearbyBonjour | PeerNearbyIOSMultiPeer;
 
 export enum PEER_CONNECTION_TYPE {
     UNKNOWN = 0,
@@ -50,25 +50,31 @@ export enum PEER_CONNECTION_STATE {
 }
 
 type PeerConnectionCommon = {
-    id: string,
-    type: PEER_CONNECTION_TYPE
-}
+    id: string;
+    type: PEER_CONNECTION_TYPE;
+};
 
 export type PeerConnectionUntrusted = PeerConnectionCommon & {
-    peer: Peer,
-    state: PEER_CONNECTION_STATE.UNTRUSTED | PEER_CONNECTION_STATE.NOT_CONNECTED
-}
+    peer: Peer;
+    state:
+        | PEER_CONNECTION_STATE.UNTRUSTED
+        | PEER_CONNECTION_STATE.NOT_CONNECTED;
+};
 
-export type PeerConnectionPairing = PeerConnectionCommon & Omit<PeerConnectionRequestPairing, "request_type"> & {
-    state: PEER_CONNECTION_STATE.PAIRING
-}
+export type PeerConnectionPairing = PeerConnectionCommon &
+    Omit<PeerConnectionRequestPairing, "request_type"> & {
+        state: PEER_CONNECTION_STATE.PAIRING;
+    };
 
 export type PeerConnectionTrusted = PeerConnectionCommon & {
-    peer: PeerTrusted,
-    state: PEER_CONNECTION_STATE.CONNECTED
-}
+    peer: PeerTrusted;
+    state: PEER_CONNECTION_STATE.CONNECTED;
+};
 
-export type PeerConnection = PeerConnectionUntrusted | PeerConnectionPairing | PeerConnectionTrusted
+export type PeerConnection =
+    | PeerConnectionUntrusted
+    | PeerConnectionPairing
+    | PeerConnectionTrusted;
 
 export enum PEER_CONNECTION_REQUEST_TYPE {
     PAIRING = 0,
@@ -76,20 +82,22 @@ export enum PEER_CONNECTION_REQUEST_TYPE {
 }
 
 export type PeerConnectionRequestCommon = {
-    peer: Peer,
-    secret: string,
-    request_type: PEER_CONNECTION_REQUEST_TYPE,
-}
+    peer: Peer;
+    secret: string;
+    request_type: PEER_CONNECTION_REQUEST_TYPE;
+};
 
 export type PeerConnectionRequestPairing = PeerConnectionRequestCommon & {
-    request_type: PEER_CONNECTION_REQUEST_TYPE.PAIRING,
-    validation: number,
-    key: string
-}
+    request_type: PEER_CONNECTION_REQUEST_TYPE.PAIRING;
+    validation: number;
+    key: string;
+};
 
-export type PeerConnectionRequest = PeerConnectionRequestCommon | PeerConnectionRequestPairing
+export type PeerConnectionRequest =
+    | PeerConnectionRequestCommon
+    | PeerConnectionRequestPairing;
 
 export type PeerData = {
-    peerConnection: PeerConnectionTrusted,
-    data: string
-}
+    peerConnection: PeerConnectionTrusted;
+    data: string;
+};

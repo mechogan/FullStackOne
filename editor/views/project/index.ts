@@ -207,10 +207,12 @@ export class Project implements tsWorkerDelegate {
             ).then(() => {
                 this.runProject();
 
-                if(Editor.tsWorker) {
-                    setTimeout(async () =>  {
+                if (Editor.tsWorker) {
+                    setTimeout(async () => {
                         await Editor.restartTSWorker();
-                        this.editors.forEach(editor => editor.reRunExtensions());
+                        this.editors.forEach((editor) =>
+                            editor.reRunExtensions()
+                        );
                     }, 500);
                 }
             });

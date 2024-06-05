@@ -22,7 +22,7 @@ const peersView = new Peers();
 peersView.backAction = async () => {
     clearView();
     main.append(await projectsView.render());
-}
+};
 
 /// Projects View ///
 const projectsView = new Projects();

@@ -56,10 +56,7 @@ export class Projects {
 
         const peersButton = document.createElement("button");
         peersButton.classList.add("text");
-        const [
-            peersIcon, 
-            peersConnections
-        ] = await Promise.all([
+        const [peersIcon, peersConnections] = await Promise.all([
             (await fetch("assets/icons/users.svg")).text(),
             api.connectivity.peers.connections()
         ]);
@@ -67,8 +64,6 @@ export class Projects {
         peersButton.addEventListener("click", async () => {
             this.goToPeers();
         });
-
-        
 
         buttonGroup.append(peersButton);
 

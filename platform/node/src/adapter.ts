@@ -1,7 +1,11 @@
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
-export function initAdapter(baseDirectory: string, platform: string, broadcast: Adapter["broadcast"]): Adapter {
+export function initAdapter(
+    baseDirectory: string,
+    platform: string,
+    broadcast: Adapter["broadcast"]
+): Adapter {
     const writeFile: Adapter["fs"]["writeFile"] = async (
         file,
         data,

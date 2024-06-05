@@ -13,7 +13,9 @@ export class Instance {
         this.project = project;
 
         this.adapter = initAdapter(
-            (rootDirectory || InstanceEditor.singleton.rootDirectory) + "/" + this.project.location,
+            (rootDirectory || InstanceEditor.singleton.rootDirectory) +
+                "/" +
+                this.project.location,
             "electron",
             InstanceEditor.singleton?.broadcast?.bind(InstanceEditor.singleton)
         );

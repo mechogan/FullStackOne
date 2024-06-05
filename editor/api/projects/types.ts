@@ -20,8 +20,7 @@ export type GitAuths = {
     };
 };
 
-
 export type Connectivity = {
-    me: string,
-    peersTrusted: PeerTrusted[]
-}
+    me: string;
+    peersTrusted: PeerTrusted[];
+};

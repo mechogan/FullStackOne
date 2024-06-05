@@ -35,11 +35,14 @@ export class InstanceEditor extends Instance {
     constructor(launchURL: string) {
         const rootDirectory = os.homedir();
 
-        super({
-            title: "FullStacked Editor",
-            location: editorDirectory,
-            createdDate: null
-        }, rootDirectory);
+        super(
+            {
+                title: "FullStacked Editor",
+                location: editorDirectory,
+                createdDate: null
+            },
+            rootDirectory
+        );
 
         this.rootDirectory = rootDirectory;
 
@@ -49,11 +52,17 @@ export class InstanceEditor extends Instance {
 
         initConnectivity(this);
 
-        const adapter = initAdapter(editorDirectory, "node", this.broadcast.bind(this));
+        const adapter = initAdapter(
+            editorDirectory,
+            "node",
+            this.broadcast.bind(this)
+        );
         this.adapter = initAdapterEditor(adapter, this, esbuild);
     }
 
-    getInstances() { return this.instances }
+    getInstances() {
+        return this.instances;
+    }
 
     createNewInstance(project: Project) {
         const instance = new Instance(project);
@@ -62,7 +71,7 @@ export class InstanceEditor extends Instance {
     }
 
     broadcast(data: string) {
-        this.instances.forEach(instance => instance.push("peerData", data));
+        this.instances.forEach((instance) => instance.push("peerData", data));
     }
 
     override wsOnConnection(ws: WebSocket): void {
