@@ -54,9 +54,11 @@ export class Instance {
 
     adapter: Adapter;
 
-    constructor(project: Project) {
+    constructor(project: Project, rootDirectory?: string) {
         this.adapter = initAdapter(
-            InstanceEditor.rootDirectory + "/" + project.location
+            (rootDirectory || InstanceEditor.singleton.rootDirectory) + "/" + project.location,
+            "node",
+            InstanceEditor.singleton?.broadcast?.bind(InstanceEditor.singleton)
         );
         this.port = Instance.port;
         Instance.port++;

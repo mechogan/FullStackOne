@@ -1,9 +1,9 @@
-import { Advertiser } from "../../../../src/connectivity/advertiser";
-import { Browser } from "../../../../src/connectivity/browser";
-import { WebSocketServer } from "./websocketServer";
 import child_process from "child_process";
 import os from "os";
 import { Bonjour as BonjourService, Browser as BonjourBrowser, Service } from 'bonjour-service';
+import { Advertiser } from "../../../../src/connectivity/advertiser";
+import { Browser } from "../../../../src/connectivity/browser";
+import { WebSocketServer } from "./websocketServer";
 import { PeerNearby, PEER_ADVERSTISING_METHOD, Peer } from "../../../../src/connectivity/types";
 
 export class Bonjour implements Advertiser, Browser {
@@ -89,7 +89,8 @@ export class Bonjour implements Advertiser, Browser {
 
 function getNetworkInterfacesInfo(){
     const networkInterfaces = os.networkInterfaces();
-    const interfaces = ["en", "wlan", "WiFi", "Ethernet", "wlp"];
+
+    const interfaces = ["en", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];
 
     return Object.entries(networkInterfaces)
         .filter(([netInterface, _]) => interfaces.find(prefix => netInterface.startsWith(prefix)))

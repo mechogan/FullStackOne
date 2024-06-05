@@ -1,8 +1,7 @@
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
-import { InstanceEditor } from "./instanceEditor";
 
-export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
+export function initAdapter(baseDirectory: string, platform: string, broadcast: Adapter["broadcast"]): Adapter {
     const writeFile: Adapter["fs"]["writeFile"] = async (
         file,
         data,
@@ -133,9 +132,7 @@ export function initAdapter(baseDirectory: string, platform = "node"): Adapter {
             };
         },
 
-        broadcast: (data) => {
-            InstanceEditor.singleton.push("sendData", data);
-        }
+        broadcast
     };
 }
 

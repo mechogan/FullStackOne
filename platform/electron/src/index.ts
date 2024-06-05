@@ -1,6 +1,6 @@
+import path from "path";
 import { app, protocol } from "electron";
 import { InstanceEditor } from "./instanceEditor";
-import path from "path";
 
 if (require("electron-squirrel-startup")) app.quit();
 
@@ -49,6 +49,6 @@ app.whenReady().then(async () => {
         "http",
         editorInstance.requestListener.bind(editorInstance)
     );
-    await editorInstance.start("app-0");
+    await editorInstance.start("localhost");
     maybeLaunchURL(launchURL);
 });

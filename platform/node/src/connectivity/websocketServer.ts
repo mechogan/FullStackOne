@@ -1,6 +1,6 @@
-import { ConnecterResponder } from "../../../../src/connectivity/connecter/responder";
-import { WebSocketServer as WSS, WebSocket } from "ws";
 import crypto from "crypto";
+import { WebSocketServer as WSS, WebSocket } from "ws";
+import { ConnecterResponder } from "../../../../src/connectivity/connecter/responder";
 
 export class WebSocketServer implements ConnecterResponder {
     port = randomIntFromInterval(10000, 60000);
