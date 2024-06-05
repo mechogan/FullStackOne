@@ -39,7 +39,7 @@ projectsView.goToSettings = async () => {
     clearView();
     main.append(await settings.render());
 };
-projectsView.goToUsers = async () => {
+projectsView.goToPeers = async () => {
     clearView();
     main.append(await peersView.render());
 };

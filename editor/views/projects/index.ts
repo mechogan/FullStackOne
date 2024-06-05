@@ -11,7 +11,7 @@ export class Projects {
     newProjectAction: () => void;
     selectProjectAction: (project: Project) => void;
     goToSettings: () => void;
-    goToUsers: () => void;
+    goToPeers: () => void;
 
     private container: HTMLDivElement;
 
@@ -54,17 +54,23 @@ export class Projects {
 
         const buttonGroup = document.createElement("div");
 
-        const usersButton = document.createElement("button");
-        usersButton.classList.add("text");
-        const usersButtonIcon = await (
-            await fetch("assets/icons/users.svg")
-        ).text();
-        usersButton.innerHTML = usersButtonIcon;
-        usersButton.addEventListener("click", async () => {
-            this.goToUsers();
+        const peersButton = document.createElement("button");
+        peersButton.classList.add("text");
+        const [
+            peersIcon, 
+            peersConnections
+        ] = await Promise.all([
+            (await fetch("assets/icons/users.svg")).text(),
+            api.connectivity.peers.connections()
+        ]);
+        peersButton.innerHTML = `${peersConnections.length > 0 ? peersConnections.length + "&nbsp;&nbsp;" : ""}${peersIcon}`;
+        peersButton.addEventListener("click", async () => {
+            this.goToPeers();
         });
 
-        buttonGroup.append(usersButton);
+        
+
+        buttonGroup.append(peersButton);
 
         const settingsButton = document.createElement("button");
         settingsButton.id = SETTINGS_BUTTON_ID;

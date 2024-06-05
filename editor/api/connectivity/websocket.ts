@@ -15,18 +15,26 @@ export class ConnectWebSocket implements ConnecterRequester {
         const url = protocol + "://" + hostname + (port ? `:${port}` : "");
 
         return new Promise<WebSocket>((resolve, reject) => {
-            let ws: WebSocket;
+            let ws: WebSocket, didResolve = false;
             try {
                 ws = new WebSocket(url);
             } catch (e) {
                 reject();
             }
 
+            setTimeout(() => {
+                if(didResolve) return;
+                
+                reject();
+                ws.close();
+            }, 1000 * 5) // 5s timeout
+
             ws.onerror = () => {
                 reject();
             }
 
             ws.onopen = () => {
+                didResolve = true;
                 resolve(ws)
             };
         });
@@ -40,6 +48,8 @@ export class ConnectWebSocket implements ConnecterRequester {
                 break;
             } catch (e) { }
         }
+
+        console.log(ws);
 
         if (!ws) return;
 
