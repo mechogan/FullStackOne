@@ -116,6 +116,8 @@ export class Peers {
                     );
                     div.append(disconnectButton);
                     break;
+                default:
+                    div.innerHTML = `<div class="loader"></div>`;
             }
             li.append(div);
 
