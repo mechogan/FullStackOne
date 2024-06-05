@@ -4,7 +4,7 @@ import rpc from "../../rpc";
 import { Peers } from "../../views/peers";
 import api from "..";
 import { ConnectWebSocket } from "./websocket";
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_REQUEST_TYPE, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerConnectionRequestCommon, PeerConnectionRequestPairing, PeerNearby, PeerTrusted } from "../../../src/connectivity/types";
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_REQUEST_TYPE, PEER_CONNECTION_STATE, PEER_CONNECTION_TYPE, Peer, PeerConnection, PeerConnectionPairing, PeerConnectionRequest, PeerConnectionRequestCommon, PeerConnectionRequestPairing, PeerConnectionTrusted, PeerNearby, PeerTrusted } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 
 let me: Peer;
@@ -511,12 +511,43 @@ function onPeerConnectionLost(id: string) {
     onPush["peerConnectionEvent"](null);
 }
 
-onPush["onPeerData"] = (eventStr: string) => {
+onPush["peerData"] = (eventStr: string) => {
+    const event = JSON.parse(eventStr);
 
+    const id = event.id;
+    const data = event.data;
+
+    onPeerData(id, data);
 }
 
-function onPeerData(id: string, data: string) {
+async function onPeerData(id: string, data: string) {
+    const peerConnection = peersConnections.get(id);
 
+    if(peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED) return;
+
+    const decryptedData = await decrypt(data, peerConnection.peer.keys.decrypt);
+    rpc().connectivity.convey(decryptedData);
+}
+
+onPush["sendData"] = (data: string) => {
+    for(const peerConnection of peersConnections.values()){
+        sendData(peerConnection, data);        
+    }
+}
+
+async function sendData(peerConnection: PeerConnection, data: string) {
+    if(peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED) return;
+
+    const encrypted = await encrypt(data, peerConnection.peer.keys.encrypt);
+    switch(peerConnection.type) {
+        case PEER_CONNECTION_TYPE.WEB_SOCKET:
+            connecterWebSocket.send(peerConnection.id, encrypted);
+            break;
+        case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
+        case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
+            rpc().connectivity.send(peerConnection.id, encrypted);
+            break;
+    }
 }
 
 

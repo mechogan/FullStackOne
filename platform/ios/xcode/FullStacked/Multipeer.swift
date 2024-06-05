@@ -90,7 +90,10 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     }
     
     func send(id: String, data: String) {
-        
+        if let connection = self.connections.first(where: {$0.id == id}) {
+            if(!connection.trusted) { return }
+            try! connection.mcSession.send(data.data(using: .utf8)!, toPeers: [connection.mcPeer], with: .reliable)
+        }
     }
     
     // Requester

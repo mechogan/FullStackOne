@@ -69,6 +69,14 @@ class AdapterEditor: Adapter {
             let message = ["id": id]
             InstanceEditor.singleton?.push(messageType: "peerConnectionLost", message: JSON(message).rawString()!)
         }
+        
+        self.multipeer.onPeerData = {id, data in
+            let message = [
+                "id": id,
+                "data": data
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerData", message: JSON(message).rawString()!)
+        }
     }
     
     override func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping (_ maybeData: Any?) -> Void) {
@@ -273,6 +281,14 @@ class AdapterEditor: Adapter {
                     return done(true)
                 case "trustConnection":
                     self.multipeer.trustConnection(id: json[0].stringValue)
+                    return done(true)
+                case "send":
+                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue)
+                    return done(true)
+                case "convey":
+                    RunningInstances.singleton!.instances.forEach({instance in
+                        instance.push(messageType: "peerData", message: json[0].stringValue)
+                    })
                     return done(true)
                 default: break
                 }
