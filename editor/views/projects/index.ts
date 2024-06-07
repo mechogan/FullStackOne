@@ -15,6 +15,10 @@ export class Projects {
 
     private container: HTMLDivElement;
 
+    constructor(){
+        onPush["peerConnectionsCount"] = () => this.renderPeersButton();
+    }
+
     private async renderProjectPreview(project: Project) {
         const container = document.createElement("article");
 
@@ -42,6 +46,19 @@ export class Projects {
         return container;
     }
 
+    private peersButton: HTMLButtonElement;
+    private async renderPeersButton(force = false){
+        if (!document.body.contains(this.peersButton) && !force) {
+            return;
+        }
+
+        const [peersIcon, peersConnections] = await Promise.all([
+            (await fetch("assets/icons/users.svg")).text(),
+            api.connectivity.peers.connections()
+        ]);
+        this.peersButton.innerHTML = `${peersConnections.length > 0 ? peersConnections.length + "&nbsp;&nbsp;" : ""}${peersIcon}`;
+    }
+
     async render() {
         this.container = document.createElement("div");
         this.container.classList.add("projects");
@@ -54,18 +71,13 @@ export class Projects {
 
         const buttonGroup = document.createElement("div");
 
-        const peersButton = document.createElement("button");
-        peersButton.classList.add("text");
-        const [peersIcon, peersConnections] = await Promise.all([
-            (await fetch("assets/icons/users.svg")).text(),
-            api.connectivity.peers.connections()
-        ]);
-        peersButton.innerHTML = `${peersConnections.length > 0 ? peersConnections.length + "&nbsp;&nbsp;" : ""}${peersIcon}`;
-        peersButton.addEventListener("click", async () => {
+        this.peersButton = document.createElement("button");
+        this.peersButton.classList.add("text");
+        this.peersButton.addEventListener("click", async () => {
             this.goToPeers();
         });
-
-        buttonGroup.append(peersButton);
+        buttonGroup.append(this.peersButton);
+        await this.renderPeersButton(true);
 
         const settingsButton = document.createElement("button");
         settingsButton.id = SETTINGS_BUTTON_ID;

@@ -16,7 +16,7 @@ class Bonjour {
     var browser: NWBrowser?
     var peersNearby: [NWEndpoint: PeerNearbyBonjour] = [:];
     
-    var onPeerNearby: ((_ eventType: String) -> Void)?;
+    var onPeerNearby: ((_ eventType: String, _ peerNearbyBonjour: PeerNearbyBonjour) -> Void)?;
     
     func getPeersNearby() -> JSON {
         let json = JSON(self.peersNearby.values.map({peerNearby in
@@ -50,13 +50,15 @@ class Bonjour {
                             let peerNearby = PeerNearbyBonjour(id: peerID, name: record["_d"] ?? result.endpoint.debugDescription, addresses: addressesStr.split(separator: ",").map({String($0)}), port: Int(portStr)!)
                             
                             self.peersNearby[result.endpoint] = peerNearby
-                            self.onPeerNearby?("new")
+                            self.onPeerNearby?("new", peerNearby)
                         }
                         default: break
                     }
                 case .removed(let result):
-                    self.peersNearby.removeValue(forKey: result.endpoint)
-                    self.onPeerNearby?("lost")
+                    if let peerNearby = self.peersNearby[result.endpoint] {
+                        self.onPeerNearby?("lost", peerNearby)
+                        self.peersNearby.removeValue(forKey: result.endpoint)
+                    }
                 case .changed(old: let old, new: let new, flags: _):
                     print("± \(old.endpoint) \(new.endpoint)")
                 case .identical:

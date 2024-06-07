@@ -11,11 +11,12 @@ import { WebSocketServer } from "./websocketServer";
 import {
     PeerNearby,
     PEER_ADVERSTISING_METHOD,
-    Peer
+    Peer,
+    PeerNearbyBonjour
 } from "../../../../src/connectivity/types";
 
 export class Bonjour implements Advertiser, Browser {
-    onPeerNearby: (eventType: "new" | "lost") => void;
+    onPeerNearby: (eventType: "new" | "lost", peerNearby: PeerNearby) => void;
 
     peersNearby: Map<string, PeerNearby> = new Map();
     bonjour = new BonjourService();
@@ -46,7 +47,7 @@ export class Bonjour implements Advertiser, Browser {
         this.browser = this.bonjour.find({ type: "fullstacked" }, (service) => {
             if (service.port === this.wsServer.port) return;
 
-            const peerNearby: PeerNearby = {
+            const peerNearby: PeerNearbyBonjour = {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
                 peer: {
                     id: service.name,
@@ -58,13 +59,20 @@ export class Bonjour implements Advertiser, Browser {
 
             this.peersNearby.set(peerNearby.peer.id, peerNearby);
 
-            this.onPeerNearby?.("new");
+            this.onPeerNearby?.("new", peerNearby);
         });
 
         this.browser.on("down", (service: Service) => {
             const id = service.name;
             this.peersNearby.delete(id);
-            this.onPeerNearby?.("lost");
+            this.onPeerNearby?.("lost", {
+                id: null,
+                type: null,
+                peer: {
+                    id,
+                    name: service.txt._d
+                }
+            });
         });
     }
     stopBrowsing(): void {
@@ -97,7 +105,7 @@ export class Bonjour implements Advertiser, Browser {
     }
 }
 
-function getNetworkInterfacesInfo() {
+export function getNetworkInterfacesInfo() {
     const networkInterfaces = os.networkInterfaces();
 
     const interfaces = ["en", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];

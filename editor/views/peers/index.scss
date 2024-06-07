@@ -37,50 +37,6 @@
     }
 }
 
-#manual-peer-pairing {
-    input {
-        margin: spacing() 0;
-        width: 100%;
-    }
-
-    .button-group {
-        display: flex;
-        justify-content: space-between;
-        button {
-            flex: 1;
-        }
-    }
-
-    .net-infos {
-        > div {
-            display: flex;
-            background-color: colorOpacity(white, 0.1);
-            margin: spacing() 0;
-            padding: spacing();
-            border-radius: $border-radius;
-            border: $border-width solid colorOpacity(white, 0.3);
-            gap: spacing();
-
-            dl {
-                margin: 0;
-                dt {
-                    font-weight: $font-weight-bold;
-                }
-                dd {
-                    margin: 0;
-                    ul {
-                        padding: 0;
-                    }
-
-                    &:not(:last-child) {
-                        padding-bottom: spacing(0.5);
-                    }
-                }
-            }
-        }
-    }
-}
-
 #peer-connection-request-dialog {
     text-align: center;
 

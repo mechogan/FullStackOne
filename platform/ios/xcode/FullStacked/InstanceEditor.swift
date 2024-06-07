@@ -38,12 +38,36 @@ class AdapterEditor: Adapter {
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
         super.init(baseDirectory: baseDirectory)
         
-        let onPeerNearby: (_ eventType: String) -> Void = {eventType in
-            InstanceEditor.singleton?.push(messageType: "peerNearby", message: eventType)
-        }
         
-        self.bonjour.onPeerNearby = onPeerNearby
-        self.multipeer.onPeerNearby = onPeerNearby
+        self.bonjour.onPeerNearby = {eventType, peerNearbyBonjour in
+            let message = [
+                "eventType": eventType,
+                "peerNearby": [
+                    "type": 1,
+                    "peer": [
+                        "id": peerNearbyBonjour.id,
+                        "name": peerNearbyBonjour.name
+                    ],
+                    "addresses": peerNearbyBonjour.addresses,
+                    "port": peerNearbyBonjour.port
+                ]
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerNearby = {eventType, peerNearbyMultipeer in
+            let message = [
+                "eventType": eventType,
+                "peerNearby": [
+                    "type": 2,
+                    "peer": [
+                        "id": peerNearbyMultipeer.peer.id,
+                        "name": peerNearbyMultipeer.peer.name
+                    ],
+                    "id": peerNearbyMultipeer.id
+                ]
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
+        }
         
         self.multipeer.onOpenConnection = {id in
             let message = ["id": id, "type": 3]
@@ -268,7 +292,7 @@ class AdapterEditor: Adapter {
                     default: break
                     }
                 case "open":
-                    self.multipeer.open(id: json[0].stringValue)
+                    self.multipeer.open(id: json[0].stringValue, meId: json[1]["id"].stringValue, meName: json[1]["name"].stringValue)
                     return done(true)
                 case "disconnect":
                     self.multipeer.disconnect(id: json[0].stringValue)

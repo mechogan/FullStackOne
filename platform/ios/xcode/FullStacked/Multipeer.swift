@@ -37,7 +37,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     private var invites: [Invite] = []
     
     // Browser
-    var onPeerNearby: ((_ eventType: String) -> Void)?
+    var onPeerNearby: ((_ eventType: String, _ peerNearbyMultipeer: PeerNearbyMultipeer) -> Void)?
 
     func getPeersNearby() -> JSON {
         let json = JSON(self.peersNearby.map({peerNearby in
@@ -100,7 +100,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     var onOpenConnection: ((_ id: String) -> Void)?
     var onPeerConnectionResponse: ((_ id: String, _ peerConnectionRequestStr: String) -> Void)?
     
-    func open(id: String) {
+    func open(id: String, meId: String, meName: String) {
         if let peerNearby = self.peersNearby.first(where: { $0.id == id }) {
             let mcSession = MCSession(peer: self.me, securityIdentity: nil, encryptionPreference: .none)
             mcSession.delegate = self;
@@ -108,12 +108,17 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
             self.connections.append(connection)
             
             print("invite");
-            self.browser?.invitePeer(peerNearby.mcPeer, to: mcSession, withContext: nil, timeout: 10)
+            let json = [
+                "id": meId,
+                "name": meName
+            ]
+            self.browser?.invitePeer(peerNearby.mcPeer, to: mcSession, withContext: try! JSON(json).rawData(), timeout: 10)
         }
     }
 
     func requestConnection(id: String, peerConnectionRequestStr: String) {
         if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
+            print("requestConnection")
             try! self.connections[indexOf].mcSession.send(peerConnectionRequestStr.data(using: .utf8)!, toPeers: [self.connections[indexOf].mcPeer], with: .reliable)
         }
     }
@@ -147,13 +152,13 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
         let peer = Peer(id: info!["id"]!, name: info!["name"]!)
         let peerNearby = PeerNearbyMultipeer(id: UUID().uuidString, peer: peer, mcPeer: mcPeer)
         self.peersNearby.append(peerNearby)
-        self.onPeerNearby?("new")
+        self.onPeerNearby?("new", peerNearby)
     }
 
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer mcPeer: MCPeerID) {
         if let indexOf = self.peersNearby.firstIndex(where: { $0.mcPeer == mcPeer }) {
+            self.onPeerNearby?("lost", self.peersNearby[indexOf])
             self.peersNearby.remove(at: indexOf)
-            self.onPeerNearby?("lost")
         }
     }
     
@@ -163,8 +168,17 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer mcPeer: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        
+        // we might not have discovered the other peer yet
+        if(self.peersNearby.first(where: {$0.mcPeer == mcPeer}) == nil) {
+            let json = try! JSON(data: context!);
+            let peer = Peer(id: json["id"].stringValue, name: json["name"].stringValue)
+            let peerNearby = PeerNearbyMultipeer(id: UUID().uuidString, peer: peer, mcPeer: mcPeer)
+            self.peersNearby.append(peerNearby)
+        }
+        
         let mcSession = MCSession(peer: self.me, securityIdentity: nil, encryptionPreference: .none)
-        mcSession.delegate = self;
+        mcSession.delegate = self
         self.invites.append(Invite(mcPeer: mcPeer, mcSession: mcSession))
         invitationHandler(true, mcSession)
     }

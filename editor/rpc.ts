@@ -34,7 +34,7 @@ export type AdapterEditor = Adapter & {
             start(): void;
             stop(): void;
         };
-        open(id: string): void;
+        open(id: string, me: Peer): void;
         disconnect(id: string): void;
         requestConnection(id: string, peerConnectionRequestStr: string): void;
         respondToRequestConnection(
@@ -42,7 +42,6 @@ export type AdapterEditor = Adapter & {
             peerConnectionRequestStr: string
         ): void;
         trustConnection(id: string): void;
-
         send(id: string, data: string): void;
         convey(data: string): void;
     };
@@ -52,14 +51,14 @@ type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-        ? (
-              ...args: T[K] extends (...args: infer P) => any ? P : never[]
-          ) => OnlyOnePromise<
-              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-          >
-        : T[K] extends object
-          ? AwaitAll<T[K]>
-          : () => Promise<T[K]>;
+    ? (
+        ...args: T[K] extends (...args: infer P) => any ? P : never[]
+    ) => OnlyOnePromise<
+        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+    >
+    : T[K] extends object
+    ? AwaitAll<T[K]>
+    : () => Promise<T[K]>;
 };
 
 const rpc = globalThis.rpc as unknown as () => AwaitAll<AdapterEditor>;

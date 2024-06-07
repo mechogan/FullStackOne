@@ -15,13 +15,13 @@ import {
     PeerConnectionRequest,
     PeerConnectionRequestCommon,
     PeerConnectionRequestPairing,
-    PeerConnectionTrusted,
     PeerNearby,
     PeerTrusted
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 
-let me: Peer;
+let me: Peer, autoConnect = false;
+let autoConnectAdvertiseInterval: ReturnType<typeof setInterval>;
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
 const peersConnections = new Map<string, PeerConnection>();
@@ -38,23 +38,62 @@ connecterWebSocket.onPeerConnectionResponse = (id, peerConectionResponseStr) =>
     );
 connecterWebSocket.onPeerData = onPeerData;
 
+onPush["peerNearby"] = async (eventStr) => {
+    const event = JSON.parse(eventStr);
+
+    const eventType: "new" | "lost" = event.eventType;
+    const peerNearby: PeerNearby = event.peerNearby;
+
+    if(eventType === "new" && autoConnect) {
+        let alreadyConnected = false;
+        // already connected
+        for(const peerConection of peersConnections.values()){
+            if(peerConection.peer.id === peerNearby.peer.id) {
+                alreadyConnected = true;
+                break;
+            };
+        }
+
+        // if trusted, connect
+        const peerTrusted = await connectivityAPI.peers.trusted();
+        if(!alreadyConnected && peerTrusted.find(({ id }) => id === peerNearby.peer.id)) {
+            connectivityAPI.connect(peerNearby);
+        }
+    }
+
+    onPush["peerConnectivityEvent"](null);
+};
+
 const connectivityAPI = {
     async init() {
         let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
-        if (!connectivityConfig) {
+        if (!connectivityConfig || typeof connectivityConfig.me === "string") {
             connectivityConfig = {
-                me: crypto.randomUUID(),
+                me: {
+                    id: crypto.randomUUID(),
+                    name: await rpc().connectivity.name()
+                },
+                autoConnect: false,
                 peersTrusted: []
             };
             await config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
         }
 
-        me = {
-            id: connectivityConfig.me,
-            name: await rpc().connectivity.name()
-        };
+        me = connectivityConfig.me
+        autoConnect = connectivityConfig.autoConnect
 
-        rpc().connectivity.browse.start();
+        if(autoConnectAdvertiseInterval){
+            clearInterval(autoConnectAdvertiseInterval);
+        }
+
+        if(autoConnect) {
+            connectivityAPI.advertise();
+            autoConnectAdvertiseInterval = setInterval(() => {
+                connectivityAPI.advertise();
+            }, 30 * 1000) // 30s
+
+            rpc().connectivity.browse.start();
+        }
     },
     peers: {
         async trusted() {
@@ -87,7 +126,7 @@ const connectivityAPI = {
                 break;
             case PEER_ADVERSTISING_METHOD.IOS_MULTIPEER:
                 id = peerNearby.id;
-                rpc().connectivity.open(peerNearby.id);
+                rpc().connectivity.open(peerNearby.id, me);
                 break;
         }
 
@@ -99,16 +138,13 @@ const connectivityAPI = {
         });
     },
     async forget(peerTrusted: PeerTrusted) {
-        const peersTrusted = await connectivityAPI.peers.trusted();
-        const indexOf = peersTrusted.findIndex(
+        const connectivityConfig = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
+        const indexOf = connectivityConfig.peersTrusted.findIndex(
             ({ id }) => id === peerTrusted.id
         );
         if (indexOf <= -1) return;
-        peersTrusted.splice(indexOf, 1);
-        await config.save(CONFIG_TYPE.CONNECTIVITY, {
-            me: me.id,
-            peersTrusted
-        });
+        connectivityConfig.peersTrusted.splice(indexOf, 1);
+        await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
     },
     async disconnect(peerConnection: PeerConnection) {
         switch (peerConnection.type) {
@@ -126,13 +162,9 @@ const connectivityAPI = {
 export default connectivityAPI;
 
 async function saveNewPeerTrusted(peerTrusted: PeerTrusted) {
-    const peersTrusted = await connectivityAPI.peers.trusted();
-    peersTrusted.push(peerTrusted);
-
-    await api.config.save(CONFIG_TYPE.CONNECTIVITY, {
-        me: me.id,
-        peersTrusted
-    });
+    const connectivityConfig = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
+    connectivityConfig.peersTrusted.push(peerTrusted);
+    await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
 }
 
 onPush["openConnection"] = (eventStr: string) => {
@@ -205,6 +237,8 @@ function sendPeerConnectionRequest(
     type: PEER_CONNECTION_TYPE,
     peerConnectionRequest: PeerConnectionRequest
 ) {
+    console.log("Sending PeerConnectionRequest");
+
     switch (type) {
         case PEER_CONNECTION_TYPE.WEB_SOCKET:
             connecterWebSocket.requestConnection(
@@ -220,7 +254,7 @@ function sendPeerConnectionRequest(
             );
             break;
     }
-    onPush["peerConnectionEvent"](null);
+    onPush["peerConnectivityEvent"](null);
 }
 
 onPush["peerConnectionRequest"] = (eventStr: string) => {
@@ -589,7 +623,8 @@ function trustConnection(id: string) {
             break;
     }
 
-    onPush["peerConnectionEvent"](null);
+    onPush["peerConnectivityEvent"](null);
+    onPush["peerConnectionsCount"](null);
 }
 
 onPush["peerConnectionLost"] = (eventStr: string) => {
@@ -602,7 +637,8 @@ function onPeerConnectionLost(id: string) {
     console.log("onPeerConnectionLost");
 
     peersConnections.delete(id);
-    onPush["peerConnectionEvent"](null);
+    onPush["peerConnectivityEvent"](null);
+    onPush["peerConnectionsCount"](null);
 }
 
 onPush["peerData"] = (eventStr: string) => {

@@ -2,6 +2,8 @@ import "./index.css";
 import { BACK_BUTTON_ID, PACKAGES_BUTTON_ID } from "../../constants";
 import { GitAuth } from "../git-auth";
 import api from "../../api";
+import { CONFIG_TYPE } from "../../api/config/types";
+import rpc from "../../rpc";
 
 export class Settings {
     backAction: () => void;
@@ -136,6 +138,83 @@ export class Settings {
         return container;
     }
 
+    private async renderConnectivity(){
+        const container = document.createElement("div");
+
+        const connectivityTitle = document.createElement("h2");
+        connectivityTitle.innerText = "Connectivity";
+        container.append(connectivityTitle);
+
+        const row = document.createElement("div");
+        row.classList.add("setting-row");
+
+        row.innerHTML = `<label>Auto connect to nearby trusted peers.</label>`;
+
+        const switchButton = document.createElement("label");
+        switchButton.classList.add("switch");
+        switchButton.innerHTML = `<span class="slider round"></span>`;
+        
+        const autoConnectInput = document.createElement("input");
+        autoConnectInput.type = "checkbox";
+        const connectivitySettings = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
+        autoConnectInput.checked = connectivitySettings.autoConnect
+        switchButton.prepend(autoConnectInput);
+
+        autoConnectInput.addEventListener("change", async function() {
+            connectivitySettings.autoConnect = this.checked;
+            await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+            await api.connectivity.init();
+        });
+
+        row.append(switchButton);
+
+        container.append(row);
+
+        const row2 = document.createElement("div");
+        row2.classList.add("setting-row");
+        
+        const nameInputLabel = document.createElement("label");
+        nameInputLabel.innerText = "Display name";
+        
+        const connectivityNameInput = document.createElement("input");
+        connectivityNameInput.type = "text";
+        connectivityNameInput.value = connectivitySettings.me.name;
+
+        const saveConnectivityName = async (name: string) => {
+            connectivitySettings.me.name = name;
+            await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+            await api.connectivity.init();
+        }
+
+        let saveThrottler: ReturnType<typeof setTimeout>;
+        connectivityNameInput.addEventListener("change", () => {
+            if(saveThrottler) {
+                clearTimeout(saveThrottler);
+            }
+
+            const value = connectivityNameInput.value;
+            saveThrottler = setTimeout(async () => {
+                saveThrottler = null;
+                saveConnectivityName(value);
+            }, 250)
+        });
+
+        connectivityNameInput.addEventListener("blur", async () => {
+            if(connectivityNameInput.value.trim() === ""){
+                const defaultName = await rpc().connectivity.name();
+                connectivityNameInput.value = defaultName
+                saveConnectivityName(defaultName);
+            }
+        })
+
+        row2.append(nameInputLabel);
+        row2.append(connectivityNameInput);
+
+        container.append(row2);
+
+        return container;
+    }
+
     async render() {
         const container = document.createElement("div");
         container.classList.add("settings");
@@ -158,6 +237,8 @@ export class Settings {
         container.append(header);
 
         container.append(await this.renderPackagesRow());
+        
+        container.append(await this.renderConnectivity());
 
         container.append(await this.renderGitAuths());
 

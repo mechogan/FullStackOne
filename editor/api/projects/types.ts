@@ -1,4 +1,4 @@
-import { PeerTrusted } from "../../../src/connectivity/types";
+import { Peer, PeerTrusted } from "../../../src/connectivity/types";
 
 export type Project = {
     title: string;
@@ -21,6 +21,7 @@ export type GitAuths = {
 };
 
 export type Connectivity = {
-    me: string;
+    me: Peer;
+    autoConnect: boolean;
     peersTrusted: PeerTrusted[];
 };

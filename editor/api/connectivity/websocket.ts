@@ -50,8 +50,6 @@ export class ConnectWebSocket implements ConnecterRequester {
 
     async open(id: string, peerNearby: PeerNearbyBonjour) {
         let ws: WebSocket;
-
-        console.log(peerNearby.addresses);
         
         for (const address of peerNearby.addresses) {
             try {
@@ -64,9 +62,10 @@ export class ConnectWebSocket implements ConnecterRequester {
             } catch (e) {}
         }
 
-        console.log(ws);
-
-        if (!ws) return;
+        if (!ws) {
+            this.disconnect(id);
+            return;
+        };
 
         this.connections.push({
             id,
