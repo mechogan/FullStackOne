@@ -52,11 +52,7 @@ export class InstanceEditor extends Instance {
 
         initConnectivity(this);
 
-        const adapter = initAdapter(
-            editorDirectory,
-            "node",
-            this.broadcast.bind(this)
-        );
+        const adapter = initAdapter(editorDirectory, "node", null);
         this.adapter = initAdapterEditor(adapter, this, esbuild);
     }
 
@@ -68,10 +64,6 @@ export class InstanceEditor extends Instance {
         const instance = new Instance(project);
         instance.start();
         this.instances.push(instance);
-    }
-
-    broadcast(data: string) {
-        this.instances.forEach((instance) => instance.push("peerData", data));
     }
 
     override wsOnConnection(ws: WebSocket): void {

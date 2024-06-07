@@ -71,11 +71,7 @@ export class InstanceEditor extends Instance {
     }
 
     resetAdapter() {
-        const adapter = initAdapter(
-            editorDirectory,
-            "electron",
-            this.broadcast.bind(this)
-        );
+        const adapter = initAdapter(editorDirectory, "electron", null);
         this.adapter = initAdapterEditor(adapter, this, this.esbuild);
 
         this.adapter.esbuild = {
@@ -124,12 +120,6 @@ export class InstanceEditor extends Instance {
         this.instances.set(hostname, instance);
         instance.start(hostname);
         instance.window.on("close", () => this.instances.delete(hostname));
-    }
-
-    broadcast(data: string) {
-        for (const instance of this.instances.values()) {
-            instance.push("peerData", data);
-        }
     }
 
     async requestListener(request: Request) {

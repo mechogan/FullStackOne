@@ -33,9 +33,9 @@ export class ConnectWebSocket implements ConnecterRequester {
             }
 
             setTimeout(() => {
-                if(didResolve) return;
+                if (didResolve) return;
                 reject();
-            }, 1000 * 5) // 5s timeout
+            }, 1000 * 5); // 5s timeout
 
             ws.onerror = () => {
                 reject();
@@ -50,7 +50,7 @@ export class ConnectWebSocket implements ConnecterRequester {
 
     async open(id: string, peerNearby: PeerNearbyBonjour) {
         let ws: WebSocket;
-        
+
         for (const address of peerNearby.addresses) {
             try {
                 ws = await this.tryToConnectWebSocket(

@@ -17,7 +17,7 @@ export class Instance {
                 "/" +
                 this.project.location,
             "electron",
-            InstanceEditor.singleton?.broadcast?.bind(InstanceEditor.singleton)
+            (data) => InstanceEditor.singleton.push("sendData", data)
         );
     }
 
