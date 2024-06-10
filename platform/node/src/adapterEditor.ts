@@ -8,7 +8,10 @@ import type esbuildModule from "esbuild";
 import fs from "fs";
 import { Project } from "../../../editor/api/projects/types";
 import { build, merge } from "./build";
-import { getComputerName } from "./connectivity/bonjour";
+import {
+    getComputerName,
+    getNetworkInterfacesInfo
+} from "./connectivity/bonjour";
 
 export function initAdapterEditor(
     adapter: Adapter,
@@ -225,6 +228,7 @@ export function initAdapterEditor(
         open: () => {},
 
         connectivity: {
+            infos: () => getNetworkInterfacesInfo(),
             name: getComputerName(),
             peers: {
                 nearby: () => {
@@ -232,8 +236,11 @@ export function initAdapterEditor(
                 }
             },
             advertise: {
-                start: (me) => {
-                    instanceEditor.bonjour.startAdvertising(me);
+                start: (me, networkInterface) => {
+                    instanceEditor.bonjour.startAdvertising(
+                        me,
+                        networkInterface
+                    );
                 },
                 stop: () => {
                     instanceEditor.bonjour.stopAdvertising();

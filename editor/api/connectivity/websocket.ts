@@ -65,7 +65,7 @@ export class ConnectWebSocket implements ConnecterRequester {
         if (!ws) {
             this.disconnect(id);
             return;
-        };
+        }
 
         this.connections.push({
             id,

@@ -24,19 +24,27 @@ export class Bonjour implements Advertiser, Browser {
     advertiser: Service;
     browser: BonjourBrowser;
 
+    networkInterface: string;
+
     wsServer: WebSocketServer;
-    constructor(wsServer: WebSocketServer) {
+    constructor(wsServer: WebSocketServer, defaultNetworkInterface?: string) {
         this.wsServer = wsServer;
 
-        const cleanup = () => {
-            this.bonjour.unpublishAll(() => process.exit(0));
+        const cleanOnExit = () => {
+            this.cleanup().then(() => process.exit(0));
         };
 
-        process.on("exit", cleanup.bind(this));
-        process.on("SIGINT", cleanup.bind(this));
-        process.on("SIGUSR1", cleanup.bind(this));
-        process.on("SIGUSR2", cleanup.bind(this));
-        process.on("uncaughtException", cleanup.bind(this));
+        process.on("exit", cleanOnExit.bind(this));
+        process.on("SIGINT", cleanOnExit.bind(this));
+        process.on("SIGUSR1", cleanOnExit.bind(this));
+        process.on("SIGUSR2", cleanOnExit.bind(this));
+        process.on("uncaughtException", cleanOnExit.bind(this));
+    }
+
+    cleanup() {
+        return new Promise((res) => {
+            this.bonjour.unpublishAll(res);
+        });
     }
 
     getPeersNearby(): PeerNearby[] {
@@ -79,7 +87,22 @@ export class Bonjour implements Advertiser, Browser {
         this.browser?.stop();
     }
 
-    startAdvertising(me: Peer): void {
+    async startAdvertising(me: Peer, networkInterface?: string) {
+        if (networkInterface !== this.networkInterface) {
+            this.networkInterface = networkInterface;
+
+            const inet = getNetworkInterfacesInfo(true).find(
+                ({ name }) => name === networkInterface
+            );
+            if (inet?.addresses.length > 0) {
+                await this.cleanup();
+                this.bonjour = new BonjourService({
+                    // @ts-ignore
+                    interface: inet.addresses.at(0)
+                });
+            }
+        }
+
         this.advertiser?.stop();
 
         const info = getNetworkInterfacesInfo();
@@ -105,7 +128,7 @@ export class Bonjour implements Advertiser, Browser {
     }
 }
 
-export function getNetworkInterfacesInfo() {
+export function getNetworkInterfacesInfo(ipv4Only = false) {
     const networkInterfaces = os.networkInterfaces();
 
     const interfaces = ["en", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];
@@ -116,7 +139,12 @@ export function getNetworkInterfacesInfo() {
         )
         .map(([netInterface, infos]) => ({
             name: netInterface,
-            addresses: infos?.map(({ address }) => address) ?? []
+            addresses:
+                infos
+                    ?.filter((iface) =>
+                        ipv4Only ? iface.family === "IPv4" : true
+                    )
+                    .map(({ address }) => address) ?? []
         }));
 }
 

@@ -20,7 +20,8 @@ import {
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 
-let me: Peer, autoConnect = false;
+let me: Peer,
+    autoConnect = false;
 let autoConnectAdvertiseInterval: ReturnType<typeof setInterval>;
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
@@ -44,19 +45,22 @@ onPush["peerNearby"] = async (eventStr) => {
     const eventType: "new" | "lost" = event.eventType;
     const peerNearby: PeerNearby = event.peerNearby;
 
-    if(eventType === "new" && autoConnect) {
+    if (eventType === "new" && autoConnect) {
         let alreadyConnected = false;
         // already connected
-        for(const peerConection of peersConnections.values()){
-            if(peerConection.peer.id === peerNearby.peer.id) {
+        for (const peerConection of peersConnections.values()) {
+            if (peerConection.peer.id === peerNearby.peer.id) {
                 alreadyConnected = true;
                 break;
-            };
+            }
         }
 
         // if trusted, connect
         const peerTrusted = await connectivityAPI.peers.trusted();
-        if(!alreadyConnected && peerTrusted.find(({ id }) => id === peerNearby.peer.id)) {
+        if (
+            !alreadyConnected &&
+            peerTrusted.find(({ id }) => id === peerNearby.peer.id)
+        ) {
             connectivityAPI.connect(peerNearby);
         }
     }
@@ -74,23 +78,24 @@ const connectivityAPI = {
                     name: await rpc().connectivity.name()
                 },
                 autoConnect: false,
+                defaultNetworkInterface: null,
                 peersTrusted: []
             };
             await config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
         }
 
-        me = connectivityConfig.me
-        autoConnect = connectivityConfig.autoConnect
+        me = connectivityConfig.me;
+        autoConnect = connectivityConfig.autoConnect;
 
-        if(autoConnectAdvertiseInterval){
+        if (autoConnectAdvertiseInterval) {
             clearInterval(autoConnectAdvertiseInterval);
         }
 
-        if(autoConnect) {
+        if (autoConnect) {
             connectivityAPI.advertise();
             autoConnectAdvertiseInterval = setInterval(() => {
                 connectivityAPI.advertise();
-            }, 30 * 1000) // 30s
+            }, 30 * 1000); // 30s
 
             rpc().connectivity.browse.start();
         }
@@ -106,10 +111,14 @@ const connectivityAPI = {
             return rpc().connectivity.peers.nearby();
         }
     },
-    advertise(forMS = 5000) {
+    async advertise(forMS = 5000) {
         if (advertiseTimeout) clearTimeout(advertiseTimeout);
 
-        rpc().connectivity.advertise.start(me);
+        let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
+        rpc().connectivity.advertise.start(
+            me,
+            connectivityConfig.defaultNetworkInterface
+        );
 
         advertiseTimeout = setTimeout(() => {
             rpc()
@@ -138,7 +147,9 @@ const connectivityAPI = {
         });
     },
     async forget(peerTrusted: PeerTrusted) {
-        const connectivityConfig = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
+        const connectivityConfig = await api.config.load(
+            CONFIG_TYPE.CONNECTIVITY
+        );
         const indexOf = connectivityConfig.peersTrusted.findIndex(
             ({ id }) => id === peerTrusted.id
         );

@@ -23,5 +23,6 @@ export type GitAuths = {
 export type Connectivity = {
     me: Peer;
     autoConnect: boolean;
+    defaultNetworkInterface: string;
     peersTrusted: PeerTrusted[];
 };

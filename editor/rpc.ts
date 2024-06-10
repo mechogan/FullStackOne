@@ -22,12 +22,13 @@ export type AdapterEditor = Adapter & {
     open(project: Project): void;
 
     connectivity: {
+        infos: () => { name: string; addresses: string[] }[];
         name: string;
         peers: {
             nearby(): PeerNearby[];
         };
         advertise: {
-            start(me: Peer): void;
+            start(me: Peer, networkInterface: string): void;
             stop(): void;
         };
         browse: {
@@ -51,14 +52,14 @@ type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-    ? (
-        ...args: T[K] extends (...args: infer P) => any ? P : never[]
-    ) => OnlyOnePromise<
-        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-    >
-    : T[K] extends object
-    ? AwaitAll<T[K]>
-    : () => Promise<T[K]>;
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => OnlyOnePromise<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : T[K] extends object
+          ? AwaitAll<T[K]>
+          : () => Promise<T[K]>;
 };
 
 const rpc = globalThis.rpc as unknown as () => AwaitAll<AdapterEditor>;

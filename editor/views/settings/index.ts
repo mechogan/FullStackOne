@@ -138,7 +138,7 @@ export class Settings {
         return container;
     }
 
-    private async renderConnectivity(){
+    private async renderConnectivity() {
         const container = document.createElement("div");
 
         const connectivityTitle = document.createElement("h2");
@@ -153,16 +153,21 @@ export class Settings {
         const switchButton = document.createElement("label");
         switchButton.classList.add("switch");
         switchButton.innerHTML = `<span class="slider round"></span>`;
-        
+
         const autoConnectInput = document.createElement("input");
         autoConnectInput.type = "checkbox";
-        const connectivitySettings = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
-        autoConnectInput.checked = connectivitySettings.autoConnect
+        const connectivitySettings = await api.config.load(
+            CONFIG_TYPE.CONNECTIVITY
+        );
+        autoConnectInput.checked = connectivitySettings.autoConnect;
         switchButton.prepend(autoConnectInput);
 
-        autoConnectInput.addEventListener("change", async function() {
+        autoConnectInput.addEventListener("change", async function () {
             connectivitySettings.autoConnect = this.checked;
-            await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+            await api.config.save(
+                CONFIG_TYPE.CONNECTIVITY,
+                connectivitySettings
+            );
             await api.connectivity.init();
         });
 
@@ -172,23 +177,26 @@ export class Settings {
 
         const row2 = document.createElement("div");
         row2.classList.add("setting-row");
-        
+
         const nameInputLabel = document.createElement("label");
         nameInputLabel.innerText = "Display name";
-        
+
         const connectivityNameInput = document.createElement("input");
         connectivityNameInput.type = "text";
         connectivityNameInput.value = connectivitySettings.me.name;
 
         const saveConnectivityName = async (name: string) => {
             connectivitySettings.me.name = name;
-            await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+            await api.config.save(
+                CONFIG_TYPE.CONNECTIVITY,
+                connectivitySettings
+            );
             await api.connectivity.init();
-        }
+        };
 
         let saveThrottler: ReturnType<typeof setTimeout>;
         connectivityNameInput.addEventListener("change", () => {
-            if(saveThrottler) {
+            if (saveThrottler) {
                 clearTimeout(saveThrottler);
             }
 
@@ -196,21 +204,81 @@ export class Settings {
             saveThrottler = setTimeout(async () => {
                 saveThrottler = null;
                 saveConnectivityName(value);
-            }, 250)
+            }, 250);
         });
 
         connectivityNameInput.addEventListener("blur", async () => {
-            if(connectivityNameInput.value.trim() === ""){
+            if (connectivityNameInput.value.trim() === "") {
                 const defaultName = await rpc().connectivity.name();
-                connectivityNameInput.value = defaultName
+                connectivityNameInput.value = defaultName;
                 saveConnectivityName(defaultName);
             }
-        })
+        });
 
         row2.append(nameInputLabel);
         row2.append(connectivityNameInput);
 
         container.append(row2);
+
+        const inet = await rpc().connectivity.infos();
+
+        if (inet) {
+            const row3 = document.createElement("div");
+            row3.classList.add("default-inet");
+
+            const inetLabel = document.createElement("label");
+            inetLabel.innerText = "Default Network Interface";
+            row3.append(inetLabel);
+
+            const updateDefaultNetworkInterface = async (inet: string) => {
+                connectivitySettings.defaultNetworkInterface = inet;
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
+            };
+
+            const ul = document.createElement("ul");
+            const inetSelections = inet.map(({ name }) => {
+                const li = document.createElement("li");
+                const label = document.createElement("label");
+                label.innerText = name;
+                label.setAttribute("for", name);
+                li.append(label);
+                const radio = document.createElement("input");
+                radio.id = name;
+                radio.name = "default_network_interface";
+                radio.type = "radio";
+                radio.value = name;
+
+                radio.checked =
+                    name === connectivitySettings.defaultNetworkInterface;
+
+                li.append(radio);
+                ul.append(li);
+
+                radio.addEventListener("change", () => {
+                    if (!radio.checked) return;
+
+                    updateDefaultNetworkInterface(name);
+                });
+
+                return radio;
+            });
+
+            row3.append(ul);
+
+            const clearBtn = document.createElement("button");
+            clearBtn.classList.add("small");
+            clearBtn.innerText = "clear";
+            clearBtn.addEventListener("click", () => {
+                inetSelections.forEach((radio) => (radio.checked = false));
+                updateDefaultNetworkInterface(null);
+            });
+            row3.append(clearBtn);
+
+            container.append(row3);
+        }
 
         return container;
     }
@@ -237,7 +305,7 @@ export class Settings {
         container.append(header);
 
         container.append(await this.renderPackagesRow());
-        
+
         container.append(await this.renderConnectivity());
 
         container.append(await this.renderGitAuths());

@@ -15,7 +15,7 @@ export class Projects {
 
     private container: HTMLDivElement;
 
-    constructor(){
+    constructor() {
         onPush["peerConnectionsCount"] = () => this.renderPeersButton();
     }
 
@@ -47,7 +47,7 @@ export class Projects {
     }
 
     private peersButton: HTMLButtonElement;
-    private async renderPeersButton(force = false){
+    private async renderPeersButton(force = false) {
         if (!document.body.contains(this.peersButton) && !force) {
             return;
         }

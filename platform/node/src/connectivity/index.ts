@@ -11,7 +11,10 @@ export function initConnectivity(
 
     instanceEditor.bonjour = new Bonjour(instanceEditor.wsServer);
     instanceEditor.bonjour.onPeerNearby = (eventType, peerNearby) => {
-        instanceEditor.push("peerNearby", JSON.stringify({ eventType, peerNearby }));
+        instanceEditor.push(
+            "peerNearby",
+            JSON.stringify({ eventType, peerNearby })
+        );
     };
 
     instanceEditor.wsServer.onPeerConnectionLost = (id) => {

@@ -113,7 +113,6 @@ button {
     }
 }
 
-
 .switch {
     position: relative;
     display: inline-block;
@@ -135,8 +134,8 @@ button {
     right: 0;
     bottom: 0;
     background-color: darkgrey;
-    -webkit-transition: .4s;
-    transition: .4s;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
     border-radius: 34px;
 }
 
@@ -148,20 +147,20 @@ button {
     left: 4px;
     bottom: 4px;
     background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
     border-radius: 50%;
 }
 
-input:checked+.slider {
-    background-color: $blue-active;
+input:checked + .slider {
+    background-color: $blue;
 }
 
-input:focus+.slider {
-    box-shadow: 0 0 1px $blue-active;
+input:focus + .slider {
+    box-shadow: 0 0 1px $blue;
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
     -webkit-transform: translateX(26px);
     -ms-transform: translateX(26px);
     transform: translateX(26px);
