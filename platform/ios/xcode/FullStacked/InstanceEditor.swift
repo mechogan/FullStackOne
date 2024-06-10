@@ -250,7 +250,9 @@ class AdapterEditor: Adapter {
                 return done(true)
             case "connectivity":
                 switch(methodPath[1]) {
-                case "name": 
+                case "infos":
+                    return done(false)
+                case "name":
                     return done(UIDevice.current.name)
                 case "peers":
                     switch(methodPath[2]){
