@@ -1,25 +1,23 @@
 import path from "path";
 import { Instance } from "./instance";
-import { fileURLToPath } from "url";
 import type { AdapterEditor } from "../../../editor/rpc";
 import os from "os";
 import { initAdapter } from "./adapter";
 import { Project } from "../../../editor/api/projects/types";
 import esbuild from "esbuild";
 import { WebSocket } from "ws";
-import { WebSocketServer } from "./connectivity/websocketServer";
-import { Bonjour } from "./connectivity/bonjour";
+import type { WebSocketServer } from "./connectivity/websocketServer";
+import type { Bonjour } from "./connectivity/bonjour";
 import { initAdapterEditor } from "./adapterEditor";
 import { initConnectivity } from "./connectivity";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const editorDirectory = path.resolve(__dirname, "editor");
+const isWebContainer = !!process.versions?.webcontainer;
 
 export class InstanceEditor extends Instance {
     static singleton: InstanceEditor;
 
     rootDirectory: string;
-    baseJS: string = path.resolve(__dirname, "js", "index.js");
+    baseJS: string;
     configDirectory: string = process.env.CONFIG_DIR || ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
@@ -32,8 +30,9 @@ export class InstanceEditor extends Instance {
 
     launchURL: string;
 
-    constructor(launchURL: string) {
+    constructor(launchURL: string, currentDir: string) {
         const rootDirectory = os.homedir();
+        const editorDirectory = path.resolve(currentDir, "editor")
 
         super(
             {
@@ -45,14 +44,17 @@ export class InstanceEditor extends Instance {
         );
 
         this.rootDirectory = rootDirectory;
+        this.baseJS = path.resolve(currentDir, "js", "index.js")
 
         InstanceEditor.singleton = this;
 
         this.launchURL = launchURL;
 
-        initConnectivity(this);
+        if(!isWebContainer) {
+            import("./connectivity").then(({initConnectivity}) => initConnectivity(this));
+        }
 
-        const adapter = initAdapter(editorDirectory, "node", null);
+        const adapter = initAdapter(editorDirectory, isWebContainer ? "webcontainer" : "node", null);
         this.adapter = initAdapterEditor(adapter, this, esbuild);
     }
 
