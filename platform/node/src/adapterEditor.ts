@@ -228,48 +228,51 @@ export function initAdapterEditor(
         open: () => {},
 
         connectivity: {
-            infos: () => getNetworkInterfacesInfo(),
+            infos: () => ({
+                port: instanceEditor.wsServer?.port,
+                networkInterfaces: getNetworkInterfacesInfo()
+            }),
             name: getComputerName(),
             peers: {
                 nearby: () => {
-                    return instanceEditor.bonjour.getPeersNearby();
+                    return instanceEditor.bonjour?.getPeersNearby();
                 }
             },
             advertise: {
                 start: (me, networkInterface) => {
-                    instanceEditor.bonjour.startAdvertising(
+                    instanceEditor.bonjour?.startAdvertising(
                         me,
                         networkInterface
                     );
                 },
                 stop: () => {
-                    instanceEditor.bonjour.stopAdvertising();
+                    instanceEditor.bonjour?.stopAdvertising();
                 }
             },
             browse: {
                 start: () => {
-                    instanceEditor.bonjour.startBrowsing();
+                    instanceEditor.bonjour?.startBrowsing();
                 },
                 stop: () => {
-                    instanceEditor.bonjour.stopBrowsing();
+                    instanceEditor.bonjour?.stopBrowsing();
                 }
             },
             open: null,
             requestConnection: null,
             respondToRequestConnection: (id, peerConnectionRequestStr) => {
-                instanceEditor.wsServer.respondToConnectionRequest(
+                instanceEditor.wsServer?.respondToConnectionRequest(
                     id,
                     peerConnectionRequestStr
                 );
             },
             trustConnection: (id) => {
-                instanceEditor.wsServer.trustConnection(id);
+                instanceEditor.wsServer?.trustConnection(id);
             },
             disconnect: (id) => {
-                instanceEditor.wsServer.disconnect(id);
+                instanceEditor.wsServer?.disconnect(id);
             },
             send: (id, data) => {
-                instanceEditor.wsServer.send(id, data);
+                instanceEditor.wsServer?.send(id, data);
             },
             convey: (data) => {
                 instanceEditor

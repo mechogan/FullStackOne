@@ -107,8 +107,8 @@ const connectivityAPI = {
         async connections() {
             return Array.from(peersConnections.values());
         },
-        nearby() {
-            return rpc().connectivity.peers.nearby();
+        async nearby() {
+            return (await rpc().connectivity.peers.nearby()) || [];
         }
     },
     async advertise(forMS = 5000) {

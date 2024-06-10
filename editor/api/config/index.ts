@@ -1,4 +1,5 @@
 import rpc from "../../rpc";
+import git from "../git";
 import projects from "../projects";
 import { Project, GitAuths, Connectivity } from "../projects/types";
 import { CONFIG_TYPE } from "./types";
@@ -16,17 +17,17 @@ export default {
         if (await rpc().fs.exists(configDir, { absolutePath: true })) return;
 
         await rpc().fs.mkdir(configDir, { absolutePath: true });
-        await projects.import(
+        const project = await projects.import(
             {
                 title: "Demo",
-                location: "fullstackedorg/editor-sample-demo"
-                // TODO: uncomment when webcontainer git CORS fixed
-                // gitRepository: {
-                //     url: "https://github.com/fullstackedorg/editor-sample-demo.git"
-                // }
+                location: "fullstackedorg/editor-sample-demo",
+                gitRepository: {
+                    url: "https://github.com/fullstackedorg/editor-sample-demo.git"
+                }
             },
             (await rpc().fs.readFile("Demo.zip")) as Uint8Array
         );
+        await git.init(project);
     },
     async load<T extends CONFIG_TYPE>(type: T): Promise<DATA_TYPE[T] | null> {
         const configDir = await rpc().directories.config();

@@ -22,7 +22,10 @@ export type AdapterEditor = Adapter & {
     open(project: Project): void;
 
     connectivity: {
-        infos: () => { name: string; addresses: string[] }[];
+        infos: () => {
+            port: number,
+            networkInterfaces: { name: string; addresses: string[] }[]
+        };
         name: string;
         peers: {
             nearby(): PeerNearby[];

@@ -1,9 +1,10 @@
 import {
+    PEER_ADVERSTISING_METHOD,
     PEER_CONNECTION_STATE,
     PeerConnectionPairing
 } from "../../../src/connectivity/types";
 import api from "../../api";
-import { INCOMING_PEER_CONNECTION_REQUEST_DIALOG } from "../../constants";
+import { INCOMING_PEER_CONNECTION_REQUEST_DIALOG, MANUAL_PEER_CONNECT_DIALOG } from "../../constants";
 import "./index.css";
 import rpc from "../../rpc";
 
@@ -178,6 +179,110 @@ export class Peers {
         );
     }
 
+    async renderManualConnectDialog(){
+        const dialog = document.createElement("div");
+        dialog.classList.add("dialog");
+        dialog.id = MANUAL_PEER_CONNECT_DIALOG;
+
+        const inner = document.createElement("div");
+        dialog.append(inner);
+
+        const title = document.createElement("h2");
+        title.innerText = "Connect Manually";
+        inner.append(title);
+
+        const infos = await rpc().connectivity.infos();
+        if(infos?.port && infos?.networkInterfaces?.length > 0) {
+            const inet = document.createElement("div");
+            inet.classList.add("inet-infos");
+
+            const infoIcon = document.createElement("div");
+            infoIcon.innerHTML = await (await fetch("assets/icons/info.svg")).text();
+            inet.append(infoIcon);
+
+            inet.innerHTML += `
+                <dl>
+                    <dt>Port</dt>
+                    <dd>${infos.port}</dd>
+                    ${infos.networkInterfaces.map(({name, addresses}) => `
+                        <dt>${name}</dt>
+                        <dd>
+                            <ul>
+                                ${addresses.map(addr => `<li>${addr}</li>`).join("")}
+                            </ul>
+                        </dd>
+                    `).join("")}
+                </dl>
+            `;
+
+            inner.append(inet);
+        }
+
+
+        const [check, close] = await Promise.all([
+            (await fetch("assets/icons/check.svg")).text(),
+            (await fetch("assets/icons/close.svg")).text()
+        ]);
+
+        const form = document.createElement("form");
+
+        const portLabel = document.createElement("label");
+        portLabel.innerText = "Port";
+        form.append(portLabel);
+
+        const portInput = document.createElement("input");
+        portInput.type = "tel";
+        form.append(portInput);
+
+        const addressLabel = document.createElement("label");
+        addressLabel.innerText = "Address";
+        form.append(addressLabel);
+
+        const addressInput = document.createElement("input");
+        form.append(addressInput);
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.classList.add("button-group");
+
+        const confirmButton = document.createElement("button");
+        confirmButton.classList.add("text");
+        confirmButton.innerHTML = check;
+        buttonGroup.append(confirmButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.classList.add("text", "danger");
+        cancelButton.innerHTML = close;
+        buttonGroup.append(cancelButton);
+
+        cancelButton.addEventListener("click", () => {
+            dialog.remove();
+        });
+
+        form.append(buttonGroup);
+
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const address = addressInput.value;
+            const port = portInput.value;
+
+            api.connectivity.connect({
+                peer: {
+                    id: null,
+                    name: `Manual Peer Connection [${address.includes(":") ? `[${address}]` : address}:${port}]`
+                },
+                type: PEER_ADVERSTISING_METHOD.BONJOUR,
+                addresses: [address],
+                port: parseInt(port)
+            })
+
+            dialog.remove();
+        });
+        
+        inner.append(form);
+
+        document.body.append(dialog);
+    }
+
     async render() {
         const container = document.createElement("div");
         container.classList.add("peers");
@@ -199,6 +304,14 @@ export class Peers {
         left.append(title);
 
         header.append(left);
+
+        const manualConnectBtn = document.createElement("button");
+        manualConnectBtn.classList.add("text");
+        manualConnectBtn.innerHTML = await (await fetch("assets/icons/connect.svg")).text();
+        manualConnectBtn.addEventListener("click", () => {
+            this.renderManualConnectDialog();
+        })
+        header.append(manualConnectBtn);
 
         container.append(header);
 

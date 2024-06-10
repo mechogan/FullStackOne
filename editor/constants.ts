@@ -12,3 +12,5 @@ export const PACKAGE_INSTALLER_ID = "package-installer";
 export const TYPESCRIPT_ICON_ID = "typescript-icon";
 export const INCOMING_PEER_CONNECTION_REQUEST_DIALOG =
     "peer-connection-request-dialog";
+export const MANUAL_PEER_CONNECT_DIALOG = "manual-peer-connect";
+

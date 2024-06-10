@@ -220,9 +220,9 @@ export class Settings {
 
         container.append(row2);
 
-        const inet = await rpc().connectivity.infos();
+        const { networkInterfaces } = await rpc().connectivity.infos();
 
-        if (inet) {
+        if (networkInterfaces?.length > 0) {
             const row3 = document.createElement("div");
             row3.classList.add("default-inet");
 
@@ -240,7 +240,7 @@ export class Settings {
             };
 
             const ul = document.createElement("ul");
-            const inetSelections = inet.map(({ name }) => {
+            const inetSelections = networkInterfaces.map(({ name }) => {
                 const li = document.createElement("li");
                 const label = document.createElement("label");
                 label.innerText = name;
