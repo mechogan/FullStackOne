@@ -14,18 +14,18 @@ const build = (testFile: string) => {
 };
 
 // type checking
-// child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
+child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
 
-// // basic tests
-// child_process.execSync(`node ${build("basic.ts")}`, { stdio: "inherit" });
+// basic tests
+child_process.execSync(`node ${build("basic.ts")}`, { stdio: "inherit" });
 
-// // deep links and git tests
-// child_process.execSync(`node ${build("deeplink-git.ts")}`, {
-//     stdio: "inherit"
-// });
+// deep links and git tests
+child_process.execSync(`node ${build("deeplink-git.ts")}`, {
+    stdio: "inherit"
+});
 
-// // ios
-// child_process.execSync(`node ${build("ios.ts")}`, { stdio: "inherit" });
+// ios
+child_process.execSync(`node ${build("ios.ts")}`, { stdio: "inherit" });
 
 // webcontainer
 child_process.execSync(`node ${build("webcontainer/test.ts")}`, {
