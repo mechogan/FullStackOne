@@ -1,6 +1,7 @@
 import path from "path";
 import { app, protocol } from "electron";
 import { InstanceEditor } from "./instanceEditor";
+import { installEsbuild, loadEsbuild } from "./esbuild";
 
 if (require("electron-squirrel-startup")) app.quit();
 
@@ -44,7 +45,10 @@ app.on("window-all-closed", () => {
 });
 
 app.whenReady().then(async () => {
-    editorInstance = new InstanceEditor();
+    editorInstance = new InstanceEditor({
+        install: installEsbuild,
+        load: loadEsbuild
+    });
     protocol.handle(
         "http",
         editorInstance.requestListener.bind(editorInstance)

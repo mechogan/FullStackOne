@@ -8,7 +8,6 @@ import { Instance } from "./instance";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import { initAdapter } from "../../node/src/adapter";
 import { Project } from "../../../editor/api/projects/types";
-import { installEsbuild, loadEsbuild } from "./esbuild";
 import { WebSocketServer } from "../../node/src/connectivity/websocketServer";
 import { initAdapterEditor } from "../../node/src/adapterEditor";
 import { Bonjour } from "../../node/src/connectivity/bonjour";
@@ -48,9 +47,17 @@ export class InstanceEditor extends Instance {
 
     adapter: AdapterEditor = null;
 
-    esbuild: typeof esbuild;
+    esbuild: {
+        module: typeof esbuild,
+        install: Function,
+        load: Function
+    } = {
+        module: null,
+        install: null,
+        load: null
+    };
 
-    constructor() {
+    constructor(esbuild: { install: Function, load: Function }) {
         const rootDirectory = os.homedir();
 
         super(
@@ -64,6 +71,9 @@ export class InstanceEditor extends Instance {
 
         this.rootDirectory = rootDirectory;
 
+        this.esbuild.install = esbuild.install;
+        this.esbuild.load = esbuild.load;
+
         InstanceEditor.singleton = this;
 
         initConnectivity(this);
@@ -72,7 +82,7 @@ export class InstanceEditor extends Instance {
 
     resetAdapter() {
         const adapter = initAdapter(editorDirectory, "electron", null);
-        this.adapter = initAdapterEditor(adapter, this, this.esbuild);
+        this.adapter = initAdapterEditor(adapter, this, this.esbuild.module);
 
         this.adapter.esbuild = {
             check: () => !!this.esbuild,
@@ -85,11 +95,11 @@ export class InstanceEditor extends Instance {
                         `window.push("esbuildInstall", \`${JSON.stringify(data).replace(/\\/g, "\\\\")}\`)`
                     );
                 };
-                installEsbuild(
+                this.esbuild.install(
                     this.rootDirectory + "/" + this.configDirectory,
                     progressListener.bind(this)
                 ).then((esbuild) => {
-                    this.esbuild = esbuild;
+                    this.esbuild.module = esbuild;
                     this.resetAdapter();
                 });
             }
@@ -237,7 +247,7 @@ export class InstanceEditor extends Instance {
     }
 
     async start(hostname: string) {
-        this.esbuild = await loadEsbuild(
+        this.esbuild.module = await this.esbuild.load(
             this.rootDirectory + "/" + this.configDirectory
         );
         this.resetAdapter();
