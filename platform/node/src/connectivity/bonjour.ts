@@ -52,6 +52,8 @@ export class Bonjour implements Advertiser, Browser {
     }
 
     startBrowsing(): void {
+        this.browser?.stop();
+
         this.browser = this.bonjour.find({ type: "fullstacked" }, (service) => {
             if (service.port === this.wsServer.port) return;
 
@@ -88,6 +90,8 @@ export class Bonjour implements Advertiser, Browser {
     }
 
     async startAdvertising(me: Peer, networkInterface?: string) {
+        this.advertiser?.stop();
+
         if (networkInterface !== this.networkInterface) {
             this.networkInterface = networkInterface;
 
@@ -102,8 +106,6 @@ export class Bonjour implements Advertiser, Browser {
                 });
             }
         }
-
-        this.advertiser?.stop();
 
         const info = getNetworkInterfacesInfo();
 
