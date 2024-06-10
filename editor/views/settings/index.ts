@@ -236,6 +236,7 @@ export class Settings {
                     CONFIG_TYPE.CONNECTIVITY,
                     connectivitySettings
                 );
+                api.connectivity.advertise();
             };
 
             const ul = document.createElement("ul");
