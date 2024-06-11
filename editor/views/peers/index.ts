@@ -4,7 +4,15 @@ import {
     PeerConnectionPairing
 } from "../../../src/connectivity/types";
 import api from "../../api";
-import { INCOMING_PEER_CONNECTION_REQUEST_DIALOG, MANUAL_PEER_CONNECT_DIALOG } from "../../constants";
+import {
+    INCOMING_PEER_CONNECTION_REQUEST_DIALOG,
+    MANUAL_PEER_CONNECT_DIALOG,
+    PEER_CONNECTIVITY_BACK_BUTTON_ID,
+    PEER_DISCONNECT_BUTTON_CLASS,
+    PEER_PAIRING_CODE_CLASS,
+    PEER_PAIR_BUTTON_CLASS,
+    PEER_TRUST_BUTTON_ID
+} from "../../constants";
 import "./index.css";
 import rpc from "../../rpc";
 
@@ -53,6 +61,7 @@ export class Peers {
         buttonGroup.append(dontTrustButton);
 
         const trustButton = document.createElement("button");
+        trustButton.id = PEER_TRUST_BUTTON_ID;
         trustButton.classList.add("text");
         buttonGroup.append(trustButton);
         trustButton.innerText = "Trust";
@@ -102,14 +111,17 @@ export class Peers {
             const div = document.createElement("div");
             switch (peerConnection.state) {
                 case PEER_CONNECTION_STATE.PAIRING:
-                    div.innerHTML = `Pairing... Code: <b>${(peerConnection as PeerConnectionPairing).validation}</b>`;
+                    div.innerHTML = `Pairing... Code: <b class="${PEER_PAIRING_CODE_CLASS}">${(peerConnection as PeerConnectionPairing).validation}</b>`;
                     break;
                 case PEER_CONNECTION_STATE.UNTRUSTED:
                     div.innerHTML = `Connecting...`;
                     break;
                 case PEER_CONNECTION_STATE.CONNECTED:
                     const disconnectButton = document.createElement("button");
-                    disconnectButton.classList.add("danger");
+                    disconnectButton.classList.add(
+                        "danger",
+                        PEER_DISCONNECT_BUTTON_CLASS
+                    );
                     disconnectButton.innerText = "Disconnect";
                     disconnectButton.addEventListener("click", () =>
                         api.connectivity.disconnect(peerConnection)
@@ -132,6 +144,7 @@ export class Peers {
             li.innerText = peerNearby.peer.name;
 
             const pairButton = document.createElement("button");
+            pairButton.classList.add(PEER_PAIR_BUTTON_CLASS);
             pairButton.innerText = "Pair";
             li.append(pairButton);
 
@@ -179,7 +192,7 @@ export class Peers {
         );
     }
 
-    async renderManualConnectDialog(){
+    async renderManualConnectDialog() {
         const dialog = document.createElement("div");
         dialog.classList.add("dialog");
         dialog.id = MANUAL_PEER_CONNECT_DIALOG;
@@ -192,32 +205,37 @@ export class Peers {
         inner.append(title);
 
         const infos = await rpc().connectivity.infos();
-        if(infos?.port && infos?.networkInterfaces?.length > 0) {
+        if (infos?.port && infos?.networkInterfaces?.length > 0) {
             const inet = document.createElement("div");
             inet.classList.add("inet-infos");
 
             const infoIcon = document.createElement("div");
-            infoIcon.innerHTML = await (await fetch("assets/icons/info.svg")).text();
+            infoIcon.innerHTML = await (
+                await fetch("assets/icons/info.svg")
+            ).text();
             inet.append(infoIcon);
 
             inet.innerHTML += `
                 <dl>
                     <dt>Port</dt>
                     <dd>${infos.port}</dd>
-                    ${infos.networkInterfaces.map(({name, addresses}) => `
+                    ${infos.networkInterfaces
+                        .map(
+                            ({ name, addresses }) => `
                         <dt>${name}</dt>
                         <dd>
                             <ul>
-                                ${addresses.map(addr => `<li>${addr}</li>`).join("")}
+                                ${addresses.map((addr) => `<li>${addr}</li>`).join("")}
                             </ul>
                         </dd>
-                    `).join("")}
+                    `
+                        )
+                        .join("")}
                 </dl>
             `;
 
             inner.append(inet);
         }
-
 
         const [check, close] = await Promise.all([
             (await fetch("assets/icons/check.svg")).text(),
@@ -273,11 +291,11 @@ export class Peers {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
                 addresses: [address],
                 port: parseInt(port)
-            })
+            });
 
             dialog.remove();
         });
-        
+
         inner.append(form);
 
         document.body.append(dialog);
@@ -292,6 +310,7 @@ export class Peers {
         const left = document.createElement("div");
 
         const backButton = document.createElement("button");
+        backButton.id = PEER_CONNECTIVITY_BACK_BUTTON_ID;
         backButton.innerHTML = await (
             await fetch("/assets/icons/chevron.svg")
         ).text();
@@ -307,10 +326,12 @@ export class Peers {
 
         const manualConnectBtn = document.createElement("button");
         manualConnectBtn.classList.add("text");
-        manualConnectBtn.innerHTML = await (await fetch("assets/icons/connect.svg")).text();
+        manualConnectBtn.innerHTML = await (
+            await fetch("assets/icons/connect.svg")
+        ).text();
         manualConnectBtn.addEventListener("click", () => {
             this.renderManualConnectDialog();
-        })
+        });
         header.append(manualConnectBtn);
 
         container.append(header);

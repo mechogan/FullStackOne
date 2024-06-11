@@ -2,6 +2,7 @@ import "./index.css";
 import type { Project } from "../../api/projects/types";
 import {
     NEW_PROJECT_ID,
+    PEERS_ICON_ID,
     PROJECTS_TITLE,
     SETTINGS_BUTTON_ID
 } from "../../constants";
@@ -72,6 +73,7 @@ export class Projects {
         const buttonGroup = document.createElement("div");
 
         this.peersButton = document.createElement("button");
+        this.peersButton.id = PEERS_ICON_ID;
         this.peersButton.classList.add("text");
         this.peersButton.addEventListener("click", async () => {
             this.goToPeers();

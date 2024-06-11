@@ -223,7 +223,7 @@ export async function saveGitAuth(gitAuth: {
 }
 
 export default {
-    async init(project: Project){
+    async init(project: Project) {
         await git.init({
             fs,
             defaultBranch: "main",
@@ -232,9 +232,9 @@ export default {
         await git.addRemote({
             fs,
             dir: project.location,
-            remote: 'origin',
+            remote: "origin",
             url: project.gitRepository.url
-        })
+        });
         await git.fetch({
             fs,
             http,
@@ -242,12 +242,12 @@ export default {
             depth: 1,
             dir: project.location,
             ref: "main"
-        })
+        });
         return git.checkout({
             fs,
             dir: project.location,
             ref: "main"
-        })
+        });
     },
     saveGitAuth,
     async getAllAuths() {

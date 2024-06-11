@@ -23,8 +23,8 @@ export type AdapterEditor = Adapter & {
 
     connectivity: {
         infos: () => {
-            port: number,
-            networkInterfaces: { name: string; addresses: string[] }[]
+            port: number;
+            networkInterfaces: { name: string; addresses: string[] }[];
         };
         name: string;
         peers: {

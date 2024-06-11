@@ -125,6 +125,7 @@ const app = async () => {
 if (!esbuildInstall) {
     const esbuildInstall = new EsbuildInstall();
     esbuildInstall.onComplete = app;
+    clearView();
     main.append(esbuildInstall.render());
     rpc().esbuild.install();
 } else {

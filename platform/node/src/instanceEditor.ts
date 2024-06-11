@@ -9,7 +9,6 @@ import { WebSocket } from "ws";
 import type { WebSocketServer } from "./connectivity/websocketServer";
 import type { Bonjour } from "./connectivity/bonjour";
 import { initAdapterEditor } from "./adapterEditor";
-import { initConnectivity } from "./connectivity";
 
 const isWebContainer = !!process.versions?.webcontainer;
 
@@ -32,7 +31,7 @@ export class InstanceEditor extends Instance {
 
     constructor(launchURL: string, currentDir: string) {
         const rootDirectory = os.homedir();
-        const editorDirectory = path.resolve(currentDir, "editor")
+        const editorDirectory = path.resolve(currentDir, "editor");
 
         super(
             {
@@ -44,17 +43,23 @@ export class InstanceEditor extends Instance {
         );
 
         this.rootDirectory = rootDirectory;
-        this.baseJS = path.resolve(currentDir, "js", "index.js")
+        this.baseJS = path.resolve(currentDir, "js", "index.js");
 
         InstanceEditor.singleton = this;
 
         this.launchURL = launchURL;
 
-        if(!isWebContainer) {
-            import("./connectivity").then(({initConnectivity}) => initConnectivity(this));
+        if (!isWebContainer) {
+            import("./connectivity").then(({ initConnectivity }) =>
+                initConnectivity(this)
+            );
         }
 
-        const adapter = initAdapter(editorDirectory, isWebContainer ? "webcontainer" : "node", null);
+        const adapter = initAdapter(
+            editorDirectory,
+            isWebContainer ? "webcontainer" : "node",
+            null
+        );
         this.adapter = initAdapterEditor(adapter, this, esbuild);
     }
 

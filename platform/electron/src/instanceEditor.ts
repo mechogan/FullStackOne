@@ -48,16 +48,16 @@ export class InstanceEditor extends Instance {
     adapter: AdapterEditor = null;
 
     esbuild: {
-        module: typeof esbuild,
-        install: Function,
-        load: Function
+        module: typeof esbuild;
+        install: Function;
+        load: Function;
     } = {
         module: null,
         install: null,
         load: null
     };
 
-    constructor(esbuild: { install: Function, load: Function }) {
+    constructor(esbuild: { install: Function; load: Function }) {
         const rootDirectory = os.homedir();
 
         super(
@@ -95,13 +95,15 @@ export class InstanceEditor extends Instance {
                         `window.push("esbuildInstall", \`${JSON.stringify(data).replace(/\\/g, "\\\\")}\`)`
                     );
                 };
-                this.esbuild.install(
-                    this.rootDirectory + "/" + this.configDirectory,
-                    progressListener.bind(this)
-                ).then((esbuild) => {
-                    this.esbuild.module = esbuild;
-                    this.resetAdapter();
-                });
+                this.esbuild
+                    .install(
+                        this.rootDirectory + "/" + this.configDirectory,
+                        progressListener.bind(this)
+                    )
+                    .then((esbuild) => {
+                        this.esbuild.module = esbuild;
+                        this.resetAdapter();
+                    });
             }
         };
 
