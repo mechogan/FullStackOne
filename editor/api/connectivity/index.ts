@@ -1,7 +1,6 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import rpc from "../../rpc";
-import { Peers } from "../../views/peers";
 import api from "..";
 import { ConnectWebSocket } from "./websocket";
 import {
@@ -19,6 +18,7 @@ import {
     PeerTrusted
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
+import peers from "../../views/peers";
 
 let me: Peer,
     autoConnect = false;
@@ -339,7 +339,7 @@ async function pairRespond(
     type: PEER_CONNECTION_TYPE,
     peerConnectionRequest: PeerConnectionRequestPairing
 ) {
-    const trust = await Peers.peerConnectionRequestPairingDialog(
+    const trust = await peers.peerConnectionRequestPairingDialog(
         peerConnectionRequest.peer.name,
         peerConnectionRequest.validation
     );

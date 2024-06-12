@@ -19,3 +19,4 @@ export const PEER_PAIRING_CODE_CLASS = "peer-pairing-code";
 export const PEER_TRUST_BUTTON_ID = "peer-trust";
 export const PEER_DISCONNECT_BUTTON_CLASS = "peer-disconnect";
 export const PEER_CONNECTIVITY_BACK_BUTTON_ID = "peer-back";
+export const BG_COLOR = "#1e293b";

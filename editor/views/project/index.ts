@@ -15,9 +15,9 @@ import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";
 import { tsWorker, tsWorkerDelegate } from "../../typescript";
+import stackNavigation from "../../stack-navigation";
 
-export class Project implements tsWorkerDelegate {
-    backAction: () => void;
+class Project implements tsWorkerDelegate {
     packagesView: boolean = false;
 
     private container: HTMLDivElement;
@@ -255,7 +255,7 @@ export class Project implements tsWorkerDelegate {
                 await rpc().fs.rmdir(this.project.location, {
                     absolutePath: true
                 });
-                this.backAction();
+                stackNavigation.back();
             });
             container.append(deleteAllPackagesButton);
         } else {
@@ -328,7 +328,7 @@ export class Project implements tsWorkerDelegate {
             await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
-        backButton.addEventListener("click", this.backAction);
+        backButton.addEventListener("click", () => stackNavigation.back());
         leftSide.append(backButton);
 
         const fileTreeToggle = document.createElement("button");
@@ -463,3 +463,6 @@ function uncapitalizeKeys<T>(obj: T) {
     }
     return final as T;
 }
+
+
+export default new Project()

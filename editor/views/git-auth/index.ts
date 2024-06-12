@@ -1,5 +1,6 @@
 import "./index.css";
 import api from "../../api";
+import stackNavigation from "../../stack-navigation";
 
 type requestedGitAuthCallback = (gitAuth: {
     host: string;
@@ -8,8 +9,8 @@ type requestedGitAuthCallback = (gitAuth: {
     password: string;
 }) => void;
 
-export class GitAuth {
-    private static async githubDeviceFlow(confirm: requestedGitAuthCallback) {
+class GitAuth {
+    private async githubDeviceFlow(confirm: requestedGitAuthCallback) {
         const container = document.createElement("div");
         container.classList.add("github-device-flow");
 
@@ -99,7 +100,7 @@ export class GitAuth {
         return container;
     }
 
-    static async renderGitAuthForm(
+    async renderGitAuthForm(
         confirm: requestedGitAuthCallback,
         cancel: () => void,
         auth?: {
@@ -200,7 +201,7 @@ export class GitAuth {
         return form;
     }
 
-    static async requestAuth(
+    async requestAuth(
         host: string,
         confirm: requestedGitAuthCallback,
         cancel: () => void
@@ -215,12 +216,17 @@ export class GitAuth {
         container.append(text);
 
         container.append(
-            await GitAuth.renderGitAuthForm(
+            await this.renderGitAuthForm(
                 (gitAuth) => {
-                    confirm(gitAuth);
                     dialog.remove();
+                    stackNavigation.lock = false;
+                    confirm(gitAuth);
                 },
-                cancel,
+                () => {
+                    dialog.remove();
+                    stackNavigation.lock = false;
+                    cancel();
+                },
                 { host }
             )
         );
@@ -228,6 +234,7 @@ export class GitAuth {
         dialog.append(container);
 
         document.body.append(dialog);
+        stackNavigation.lock = true;
     }
 }
 
@@ -242,3 +249,5 @@ function copyToClipboard(str: string) {
     document.body.removeChild(input);
     return result;
 }
+
+export default new GitAuth();

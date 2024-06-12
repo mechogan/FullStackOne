@@ -3,6 +3,7 @@ import { PACKAGE_INSTALLER_ID } from "../constants";
 import rpc from "../rpc";
 import gzip from "gzip-js";
 import untar from "js-untar";
+import stackNavigation from "../stack-navigation";
 
 export type PackageInfo = {
     name: string;
@@ -119,6 +120,7 @@ export class PackageInstaller {
 
             container.append(inner);
             document.body.append(container);
+            stackNavigation.lock = true;
 
             PackageInstaller.progressDialog = {
                 container,
@@ -217,6 +219,7 @@ export class PackageInstaller {
         }
 
         PackageInstaller.progressDialog.container.remove();
+        stackNavigation.lock = false;
         PackageInstaller.progressDialog = null;
         PackageInstaller.currentInstalls = new Map();
 

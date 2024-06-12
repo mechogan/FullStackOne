@@ -1,7 +1,6 @@
-import rpc from "../../rpc";
 import "./index.css";
 
-export class EsbuildInstall {
+class EsbuildInstall {
     onComplete: () => void;
     stepsList: HTMLOListElement = document.createElement("ol");
 
@@ -45,3 +44,5 @@ export class EsbuildInstall {
         return container;
     }
 }
+
+export default new EsbuildInstall();

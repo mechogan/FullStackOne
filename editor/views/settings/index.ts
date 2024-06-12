@@ -1,14 +1,13 @@
 import "./index.css";
-import { BACK_BUTTON_ID, PACKAGES_BUTTON_ID } from "../../constants";
-import { GitAuth } from "../git-auth";
+import { BACK_BUTTON_ID, BG_COLOR, PACKAGES_BUTTON_ID } from "../../constants";
 import api from "../../api";
 import { CONFIG_TYPE } from "../../api/config/types";
 import rpc from "../../rpc";
+import gitAuth from "../git-auth";
+import projectView from "../project"
+import stackNavigation from "../../stack-navigation";
 
 export class Settings {
-    backAction: () => void;
-    goToPackages: () => void;
-
     private async renderGitAuths() {
         const container = document.createElement("div");
 
@@ -44,7 +43,7 @@ export class Settings {
             addButton.remove();
             const li = document.createElement("li");
             li.append(
-                await GitAuth.renderGitAuthForm(async (gitAuth) => {
+                await gitAuth.renderGitAuthForm(async (gitAuth) => {
                     await api.git.saveGitAuth(gitAuth);
                     refresh();
                 }, refresh)
@@ -69,7 +68,7 @@ export class Settings {
                 editButton.remove();
                 infoOrFormContainer.innerHTML = "";
                 infoOrFormContainer.append(
-                    await GitAuth.renderGitAuthForm(
+                    await gitAuth.renderGitAuthForm(
                         async (gitAuth) => {
                             await api.git.saveGitAuth(gitAuth);
                             refresh();
@@ -130,9 +129,15 @@ export class Settings {
         ]);
         packagesButton.innerHTML = `<span>${packagesCount || 0} package${packagesCount > 1 ? "s" : ""}</span> ${packageIcon}`;
 
-        packagesButton.addEventListener("click", async () =>
-            this.goToPackages()
-        );
+        packagesButton.addEventListener("click", async () => {
+            projectView.setProject({
+                title: "Packages",
+                location: await rpc().directories.nodeModules(),
+                createdDate: null
+            });
+            projectView.packagesView = true;
+            stackNavigation.navigate(await projectView.render(), BG_COLOR)
+        });
         container.append(packagesButton);
 
         return container;
@@ -296,7 +301,7 @@ export class Settings {
             await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
-        backButton.addEventListener("click", this.backAction);
+        backButton.addEventListener("click", () => stackNavigation.back());
         header.append(backButton);
 
         const title = document.createElement("h1");
@@ -314,3 +319,5 @@ export class Settings {
         return container;
     }
 }
+
+export default new Settings();

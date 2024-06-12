@@ -1,26 +1,27 @@
 import "./index.css";
 import type { Project } from "../../api/projects/types";
 import {
+    BG_COLOR,
     NEW_PROJECT_ID,
     PEERS_ICON_ID,
     PROJECTS_TITLE,
     SETTINGS_BUTTON_ID
 } from "../../constants";
 import api from "../../api";
+import stackNavigation from "../../stack-navigation";
+import peers from "../peers";
+import projectNew from "../project-new";
+import projectView from "../project";
+import settings from "../settings";
 
-export class Projects {
-    newProjectAction: () => void;
-    selectProjectAction: (project: Project) => void;
-    goToSettings: () => void;
-    goToPeers: () => void;
-
-    private container: HTMLDivElement;
+class Projects {
+    private projectsList: HTMLDivElement;
 
     constructor() {
         onPush["peerConnectionsCount"] = () => this.renderPeersButton();
     }
 
-    private async renderProjectPreview(project: Project) {
+    private async renderProjectTile(project: Project) {
         const container = document.createElement("article");
 
         const projectTitle = document.createElement("h3");
@@ -28,8 +29,9 @@ export class Projects {
 
         container.append(projectTitle);
 
-        container.addEventListener("click", () => {
-            this.selectProjectAction(project);
+        container.addEventListener("click", async () => {
+            projectView.setProject(project);
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
         });
 
         const deleteButton = document.createElement("button");
@@ -40,7 +42,7 @@ export class Projects {
         deleteButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             await api.projects.delete(project);
-            this.container.replaceWith(await this.render());
+            this.renderProjectsList();
         });
         container.append(deleteButton);
 
@@ -60,9 +62,33 @@ export class Projects {
         this.peersButton.innerHTML = `${peersConnections.length > 0 ? peersConnections.length + "&nbsp;&nbsp;" : ""}${peersIcon}`;
     }
 
+    async renderProjectsList() {
+        Array.from(this.projectsList.children).forEach(e => e.remove());
+
+        const projects = (await api.projects.list()).sort(
+            (projectA, projectB) => projectB.createdDate - projectA.createdDate
+        );
+
+        for (const project of projects) {
+            this.projectsList.append(await this.renderProjectTile(project));
+        }
+
+        projectNew.onAddedProject = () => this.renderProjectsList();
+        
+        const newProject = document.createElement("article");
+        newProject.id = NEW_PROJECT_ID;
+        newProject.innerHTML = await (
+            await fetch("/assets/icons/add.svg")
+        ).text();
+        newProject.addEventListener("click", async () => {
+            stackNavigation.navigate(await projectNew.render(), BG_COLOR);
+        });
+        this.projectsList.append(newProject);
+    }
+
     async render() {
-        this.container = document.createElement("div");
-        this.container.classList.add("projects");
+        const container = document.createElement("div");
+        container.classList.add("projects");
 
         const topContainer = document.createElement("div");
 
@@ -76,7 +102,7 @@ export class Projects {
         this.peersButton.id = PEERS_ICON_ID;
         this.peersButton.classList.add("text");
         this.peersButton.addEventListener("click", async () => {
-            this.goToPeers();
+            stackNavigation.navigate(await peers.render(), BG_COLOR);
         });
         buttonGroup.append(this.peersButton);
         await this.renderPeersButton(true);
@@ -89,35 +115,23 @@ export class Projects {
         ).text();
         settingsButton.innerHTML = settingsIcon;
         settingsButton.addEventListener("click", async () =>
-            this.goToSettings()
+            stackNavigation.navigate(await settings.render(), BG_COLOR)
         );
 
         buttonGroup.append(settingsButton);
 
         topContainer.append(buttonGroup);
 
-        this.container.append(topContainer);
+        container.append(topContainer);
 
-        const projectsContainer = document.createElement("div");
+        this.projectsList = document.createElement("div");
 
-        const projects = (await api.projects.list()).sort(
-            (projectA, projectB) => projectB.createdDate - projectA.createdDate
-        );
+        await this.renderProjectsList();
 
-        for (const project of projects) {
-            projectsContainer.append(await this.renderProjectPreview(project));
-        }
+        container.append(this.projectsList);
 
-        const newProject = document.createElement("article");
-        newProject.id = NEW_PROJECT_ID;
-        newProject.innerHTML = await (
-            await fetch("/assets/icons/add.svg")
-        ).text();
-        newProject.addEventListener("click", this.newProjectAction);
-        projectsContainer.append(newProject);
-
-        this.container.append(projectsContainer);
-
-        return this.container;
+        return container;
     }
 }
+
+export default new Projects();

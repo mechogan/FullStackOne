@@ -15,10 +15,9 @@ import {
 } from "../../constants";
 import "./index.css";
 import rpc from "../../rpc";
+import stackNavigation from "../../stack-navigation";
 
-export class Peers {
-    backAction: () => void;
-
+class Peers {
     peersLists: HTMLDivElement = document.createElement("div");
 
     constructor() {
@@ -31,7 +30,7 @@ export class Peers {
         onPush["peerConnectivityEvent"] = renderPeersListsIfVisible;
     }
 
-    static peerConnectionRequestPairingDialog(
+    peerConnectionRequestPairingDialog(
         name: string,
         validation: number
     ): Promise<boolean> {
@@ -70,15 +69,18 @@ export class Peers {
 
         dialog.append(inner);
         document.body.append(dialog);
+        stackNavigation.lock = true;
 
         return new Promise((resolve) => {
             dontTrustButton.addEventListener("click", () => {
                 resolve(false);
                 dialog.remove();
+                stackNavigation.lock = false;
             });
             trustButton.addEventListener("click", () => {
                 resolve(true);
                 dialog.remove();
+                stackNavigation.lock = false;
             });
         });
     }
@@ -274,6 +276,7 @@ export class Peers {
 
         cancelButton.addEventListener("click", () => {
             dialog.remove();
+            stackNavigation.lock = false;
         });
 
         form.append(buttonGroup);
@@ -294,11 +297,13 @@ export class Peers {
             });
 
             dialog.remove();
+            stackNavigation.lock = false;
         });
 
         inner.append(form);
 
         document.body.append(dialog);
+        stackNavigation.lock = true;
     }
 
     async render() {
@@ -315,7 +320,9 @@ export class Peers {
             await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
-        backButton.addEventListener("click", this.backAction);
+        backButton.addEventListener("click", () => {
+            stackNavigation.back()
+        });
         left.append(backButton);
 
         const title = document.createElement("h1");
@@ -345,3 +352,5 @@ export class Peers {
         return container;
     }
 }
+
+export default new Peers();

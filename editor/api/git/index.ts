@@ -6,7 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
-import { GitAuth } from "../../views/git-auth";
+import gitAuth from "../../views/git-auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -183,7 +183,7 @@ const requestGitAuth = async (url: string) => {
             password: string;
             email: string;
         }>((resolve, reject) => {
-            GitAuth.requestAuth(hostname, resolve, reject);
+            gitAuth.requestAuth(hostname, resolve, reject);
         });
 
         console.log(auth);

@@ -30,6 +30,10 @@
 
 $item-height: 31px;
 
+.navigating .file-tree {
+    overflow: hidden;
+}
+
 .file-tree {
     padding: 0;
     margin: 0;

@@ -1,13 +1,14 @@
 import "./index.css";
 import { FileTree } from "../file-tree";
-import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
+import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
+import projectView from "../project";
 
 import type { Project } from "../../api/projects/types";
 import api from "../../api";
+import stackNavigation from "../../stack-navigation";
 
-export class ProjectNew {
-    didCreateProjectAction: (newProject: Project) => void;
-    cancelAction: () => void;
+class ProjectNew {
+    onAddedProject: () => void;
 
     async render() {
         const container = document.createElement("div");
@@ -59,7 +60,7 @@ export class ProjectNew {
         const cancelButton = document.createElement("button");
         cancelButton.classList.add("text");
         cancelButton.innerText = "Cancel";
-        cancelButton.addEventListener("click", this.cancelAction);
+        cancelButton.addEventListener("click", () => stackNavigation.back());
         buttonContainer.append(cancelButton);
 
         const importer = document.createElement("div");
@@ -98,7 +99,11 @@ export class ProjectNew {
                 project,
                 new Uint8Array(await zipFile.arrayBuffer())
             );
-            this.didCreateProjectAction(importedProject);
+            
+            projectView.setProject(importedProject);
+            stackNavigation.back();
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
+            this.onAddedProject?.();
         });
 
         const importButton = document.createElement("button");
@@ -146,7 +151,11 @@ export class ProjectNew {
                 };
             }
 
-            this.didCreateProjectAction(await api.projects.create(project));
+            const newProject = await api.projects.create(project);
+            projectView.setProject(newProject);
+            stackNavigation.back();
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
+            this.onAddedProject?.();
         });
         buttonContainer.append(createButton);
 
@@ -155,3 +164,5 @@ export class ProjectNew {
         return container;
     }
 }
+
+export default new ProjectNew();
