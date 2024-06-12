@@ -618,6 +618,7 @@ export default class GitWidget {
             setTimeout(async () => {
                 await api.git.revertFileChanges(this.project, files);
                 dialog.remove();
+                stackNavigation.lock = false;
                 this.btn.replaceWith(await this.renderButton(true));
             }, 200);
         });
