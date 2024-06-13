@@ -1,6 +1,7 @@
+import path from "path";
 import { app, protocol } from "electron";
 import { InstanceEditor } from "./instanceEditor";
-import path from "path";
+import { installEsbuild, loadEsbuild } from "./esbuild";
 
 if (require("electron-squirrel-startup")) app.quit();
 
@@ -39,14 +40,19 @@ if (!app.requestSingleInstanceLock()) {
     );
 }
 
-app.on("window-all-closed", () => app.quit());
+app.on("window-all-closed", () => {
+    editorInstance.bonjour.bonjour.unpublishAll(() => app.quit());
+});
 
 app.whenReady().then(async () => {
-    editorInstance = new InstanceEditor();
+    editorInstance = new InstanceEditor({
+        install: installEsbuild,
+        load: loadEsbuild
+    });
     protocol.handle(
         "http",
         editorInstance.requestListener.bind(editorInstance)
     );
-    await editorInstance.start("app-0");
+    await editorInstance.start("localhost");
     maybeLaunchURL(launchURL);
 });

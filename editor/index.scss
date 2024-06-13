@@ -13,6 +13,8 @@
 html,
 body {
     margin: 0;
+    padding: 0;
+    overflow: hidden;
     background-color: $blue-dark;
     font-family:
         system-ui,
@@ -29,6 +31,24 @@ body {
     color: white;
     font-size: $font-size-m;
     font-weight: $font-weight-normal;
+}
+
+.view {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+.view > div {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: auto;
 }
 
 ul {
@@ -57,4 +77,30 @@ a {
 .cm-search label,
 .cm-button {
     display: inline-block;
+}
+
+.code {
+    align-items: center;
+    > span {
+        font-size: $font-size-xl;
+        background-color: colorOpacity(white, 0.1);
+        padding: spacing();
+        border-radius: $border-radius;
+        border: $border-width solid colorOpacity(white, 0.3);
+    }
+    button.copied {
+        color: $green;
+    }
+}
+
+#splash {
+    height: 100dvh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+        height: 100px;
+        width: 100px;
+    }
 }

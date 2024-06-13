@@ -5,12 +5,14 @@ import packages from "./packages";
 import URL from "url-parse";
 import SearchParams from "fast-querystring";
 import rpc from "../rpc";
+import connectivity from "./connectivity";
 
 export default {
     projects,
     config,
     git,
     packages,
+    connectivity,
     async getProjectFromDeepLink(deeplink: string) {
         let urlStr = deeplink
             .slice("fullstacked://".length) // remove scheme in front

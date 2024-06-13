@@ -6,7 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
-import { GitAuth } from "../../views/git-auth";
+import gitAuth from "../../views/git-auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -183,7 +183,7 @@ const requestGitAuth = async (url: string) => {
             password: string;
             email: string;
         }>((resolve, reject) => {
-            GitAuth.requestAuth(hostname, resolve, reject);
+            gitAuth.requestAuth(hostname, resolve, reject);
         });
 
         console.log(auth);
@@ -223,6 +223,32 @@ export async function saveGitAuth(gitAuth: {
 }
 
 export default {
+    async init(project: Project) {
+        await git.init({
+            fs,
+            defaultBranch: "main",
+            dir: project.location
+        });
+        await git.addRemote({
+            fs,
+            dir: project.location,
+            remote: "origin",
+            url: project.gitRepository.url
+        });
+        await git.fetch({
+            fs,
+            http,
+            singleBranch: true,
+            depth: 1,
+            dir: project.location,
+            ref: "main"
+        });
+        return git.checkout({
+            fs,
+            dir: project.location,
+            ref: "main"
+        });
+    },
     saveGitAuth,
     async getAllAuths() {
         const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};

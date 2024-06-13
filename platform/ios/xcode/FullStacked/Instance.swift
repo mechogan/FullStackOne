@@ -127,7 +127,9 @@ class Instance  {
     }
     
     func push(messageType: String, message: String) {
-        self.webview.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+        DispatchQueue.main.async {
+            self.webview.evaluateJavaScript("window.push(`\(messageType)`, `\(message.replacingOccurrences(of: "\\", with: "\\\\"))`)")
+        }
     }
 }
 

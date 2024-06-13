@@ -1,12 +1,13 @@
 import "./index.css";
-import { BACK_BUTTON_ID, PACKAGES_BUTTON_ID } from "../../constants";
-import { GitAuth } from "../git-auth";
+import { BACK_BUTTON_ID, BG_COLOR, PACKAGES_BUTTON_ID } from "../../constants";
 import api from "../../api";
+import { CONFIG_TYPE } from "../../api/config/types";
+import rpc from "../../rpc";
+import gitAuth from "../git-auth";
+import projectView from "../project";
+import stackNavigation from "../../stack-navigation";
 
 export class Settings {
-    backAction: () => void;
-    goToPackages: () => void;
-
     private async renderGitAuths() {
         const container = document.createElement("div");
 
@@ -42,7 +43,7 @@ export class Settings {
             addButton.remove();
             const li = document.createElement("li");
             li.append(
-                await GitAuth.renderGitAuthForm(async (gitAuth) => {
+                await gitAuth.renderGitAuthForm(async (gitAuth) => {
                     await api.git.saveGitAuth(gitAuth);
                     refresh();
                 }, refresh)
@@ -67,7 +68,7 @@ export class Settings {
                 editButton.remove();
                 infoOrFormContainer.innerHTML = "";
                 infoOrFormContainer.append(
-                    await GitAuth.renderGitAuthForm(
+                    await gitAuth.renderGitAuthForm(
                         async (gitAuth) => {
                             await api.git.saveGitAuth(gitAuth);
                             refresh();
@@ -128,10 +129,162 @@ export class Settings {
         ]);
         packagesButton.innerHTML = `<span>${packagesCount || 0} package${packagesCount > 1 ? "s" : ""}</span> ${packageIcon}`;
 
-        packagesButton.addEventListener("click", async () =>
-            this.goToPackages()
-        );
+        packagesButton.addEventListener("click", async () => {
+            projectView.setProject({
+                title: "Packages",
+                location: await rpc().directories.nodeModules(),
+                createdDate: null
+            });
+            projectView.packagesView = true;
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
+        });
         container.append(packagesButton);
+
+        return container;
+    }
+
+    private async renderConnectivity() {
+        const container = document.createElement("div");
+
+        const connectivityTitle = document.createElement("h2");
+        connectivityTitle.innerText = "Connectivity";
+        container.append(connectivityTitle);
+
+        const row = document.createElement("div");
+        row.classList.add("setting-row");
+
+        row.innerHTML = `<label>Auto connect to nearby trusted peers.</label>`;
+
+        const switchButton = document.createElement("label");
+        switchButton.classList.add("switch");
+        switchButton.innerHTML = `<span class="slider round"></span>`;
+
+        const autoConnectInput = document.createElement("input");
+        autoConnectInput.type = "checkbox";
+        const connectivitySettings = await api.config.load(
+            CONFIG_TYPE.CONNECTIVITY
+        );
+        autoConnectInput.checked = connectivitySettings.autoConnect;
+        switchButton.prepend(autoConnectInput);
+
+        autoConnectInput.addEventListener("change", async function () {
+            connectivitySettings.autoConnect = this.checked;
+            await api.config.save(
+                CONFIG_TYPE.CONNECTIVITY,
+                connectivitySettings
+            );
+            await api.connectivity.init();
+        });
+
+        row.append(switchButton);
+
+        container.append(row);
+
+        const row2 = document.createElement("div");
+        row2.classList.add("setting-row");
+
+        const nameInputLabel = document.createElement("label");
+        nameInputLabel.innerText = "Display name";
+
+        const connectivityNameInput = document.createElement("input");
+        connectivityNameInput.type = "text";
+        connectivityNameInput.value = connectivitySettings.me.name;
+
+        const saveConnectivityName = async (name: string) => {
+            connectivitySettings.me.name = name;
+            await api.config.save(
+                CONFIG_TYPE.CONNECTIVITY,
+                connectivitySettings
+            );
+            await api.connectivity.init();
+        };
+
+        let saveThrottler: ReturnType<typeof setTimeout>;
+        connectivityNameInput.addEventListener("change", () => {
+            if (saveThrottler) {
+                clearTimeout(saveThrottler);
+            }
+
+            const value = connectivityNameInput.value;
+            saveThrottler = setTimeout(async () => {
+                saveThrottler = null;
+                saveConnectivityName(value);
+            }, 250);
+        });
+
+        connectivityNameInput.addEventListener("blur", async () => {
+            if (connectivityNameInput.value.trim() === "") {
+                const defaultName = await rpc().connectivity.name();
+                connectivityNameInput.value = defaultName;
+                saveConnectivityName(defaultName);
+            }
+        });
+
+        row2.append(nameInputLabel);
+        row2.append(connectivityNameInput);
+
+        container.append(row2);
+
+        const { networkInterfaces } = await rpc().connectivity.infos();
+
+        if (networkInterfaces?.length > 0) {
+            const row3 = document.createElement("div");
+            row3.classList.add("default-inet");
+
+            const inetLabel = document.createElement("label");
+            inetLabel.innerText = "Default Network Interface";
+            row3.append(inetLabel);
+
+            const updateDefaultNetworkInterface = async (inet: string) => {
+                connectivitySettings.defaultNetworkInterface = inet;
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
+                api.connectivity.advertise();
+            };
+
+            const ul = document.createElement("ul");
+            const inetSelections = networkInterfaces.map(({ name }) => {
+                const li = document.createElement("li");
+                const label = document.createElement("label");
+                label.innerText = name;
+                label.setAttribute("for", name);
+                li.append(label);
+                const radio = document.createElement("input");
+                radio.id = name;
+                radio.name = "default_network_interface";
+                radio.type = "radio";
+                radio.value = name;
+
+                radio.checked =
+                    name === connectivitySettings.defaultNetworkInterface;
+
+                li.append(radio);
+                ul.append(li);
+
+                radio.addEventListener("change", () => {
+                    if (!radio.checked) return;
+
+                    updateDefaultNetworkInterface(name);
+                });
+
+                return radio;
+            });
+
+            row3.append(ul);
+
+            const clearBtn = document.createElement("button");
+            clearBtn.classList.add("small");
+            clearBtn.innerText = "clear";
+            clearBtn.addEventListener("click", () => {
+                inetSelections.forEach((radio) => (radio.checked = false));
+                updateDefaultNetworkInterface(null);
+            });
+            row3.append(clearBtn);
+
+            container.append(row3);
+        }
 
         return container;
     }
@@ -148,7 +301,7 @@ export class Settings {
             await fetch("/assets/icons/chevron.svg")
         ).text();
         backButton.classList.add("text");
-        backButton.addEventListener("click", this.backAction);
+        backButton.addEventListener("click", () => stackNavigation.back());
         header.append(backButton);
 
         const title = document.createElement("h1");
@@ -159,8 +312,12 @@ export class Settings {
 
         container.append(await this.renderPackagesRow());
 
+        container.append(await this.renderConnectivity());
+
         container.append(await this.renderGitAuths());
 
         return container;
     }
 }
+
+export default new Settings();

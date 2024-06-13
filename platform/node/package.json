@@ -1,8 +1,8 @@
 {
     "name": "@fullstacked/editor",
-    "description": "Build and run full-stack JS web apps on any platform.",
+    "description": "Build and run full-stack JS apps on any platform.",
     "author": "FullStacked Org.",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"
@@ -20,9 +20,10 @@
     },
     "type": "module",
     "dependencies": {
-        "esbuild": "^0.21.1"
+        "esbuild": "^0.21.5"
     },
     "devDependencies": {
+        "bonjour-service": "^1.2.1",
         "mime": "^4.0.3",
         "ws": "^8.17.0"
     }

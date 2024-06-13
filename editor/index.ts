@@ -1,84 +1,23 @@
 import "./index.css";
-
-import { Project } from "./views/project";
-import { ProjectNew } from "./views/project-new";
-import { Projects } from "./views/projects";
-import { EsbuildInstall } from "./views/esbuild";
-import { GitAuth } from "./views/git-auth";
-import { Settings } from "./views/settings";
+import EsbuildInstall from "./views/esbuild";
 import api from "./api";
 import rpc from "./rpc";
+import stackNavigation from "./stack-navigation";
+import { BG_COLOR } from "./constants";
+import projectsView from "./views/projects";
+import projectView from "./views/project";
 
-/// utils ///
-const main = document.querySelector("main") as HTMLElement;
-const clearView = () => Array.from(main.children).forEach((e) => e.remove());
+document.body.classList.add("hover");
+window.addEventListener("touchstart", () => {
+    document.body.classList.remove("hover");
+});
 
-/// Git Auth View ///
-new GitAuth();
-
-/// Projects View ///
-const projectsView = new Projects();
-projectsView.newProjectAction = async () => {
-    clearView();
-    main.append(await projectNewView.render());
-};
-projectsView.selectProjectAction = async (projectPath) => {
-    clearView();
-    projectView.setProject(projectPath);
-    main.append(await projectView.render());
-};
-projectsView.goToSettings = async () => {
-    clearView();
-    main.append(await settings.render());
-};
-
-/// Settings View ///
-const settings = new Settings();
-settings.goToPackages = async () => {
-    clearView();
-    projectView.setProject({
-        title: "Packages",
-        location: await rpc().directories.nodeModules(),
-        createdDate: null
-    });
-    projectView.packagesView = true;
-
-    main.append(await projectView.render());
-};
-settings.backAction = async () => {
-    clearView();
-    main.append(await projectsView.render());
-};
-
-/// Project New View ///
-const projectNewView = new ProjectNew();
-projectNewView.cancelAction = async () => {
-    clearView();
-    main.append(await projectsView.render());
-};
-projectNewView.didCreateProjectAction = async (newProjectPath) => {
-    clearView();
-    projectView.setProject(newProjectPath);
-    main.append(await projectView.render());
-};
-
-/// Project View ///
-const projectView = new Project();
 (window as any).onPush["launchURL"] = async (deeplink: string) => {
     const project = await api.getProjectFromDeepLink(deeplink);
     projectView.setProject(project);
-    const projectRendered = await projectView.render();
-    clearView();
-    main.append(projectRendered);
+    stackNavigation.navigate(await projectView.render(), BG_COLOR);
     await projectView.runProject();
-};
-projectView.backAction = async () => {
-    clearView();
-    if (projectView.packagesView) {
-        main.append(await settings.render());
-    } else {
-        main.append(await projectsView.render());
-    }
+    projectsView.renderProjectsList();
 };
 
 // pre-init
@@ -87,9 +26,12 @@ const esbuildInstall = await rpc().esbuild.check();
 
 // start app
 const app = async () => {
+    // init connectivity
+    await api.connectivity.init();
+
     const projectsRendered = await projectsView.render();
-    clearView();
-    main.append(projectsRendered);
+    document.querySelector("#splash").remove();
+    stackNavigation.navigate(projectsRendered, BG_COLOR);
 
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);
@@ -99,8 +41,7 @@ const app = async () => {
         );
         if (demoProject) {
             projectView.setProject(demoProject);
-            clearView();
-            main.append(await projectView.render());
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
             await projectView.runProject();
         }
     }
@@ -108,9 +49,11 @@ const app = async () => {
 
 // esbuild check before start app
 if (!esbuildInstall) {
-    const esbuildInstall = new EsbuildInstall();
-    esbuildInstall.onComplete = app;
-    main.append(esbuildInstall.render());
+    EsbuildInstall.onComplete = () => {
+        stackNavigation.reset();
+        app();
+    };
+    stackNavigation.navigate(EsbuildInstall.render(), BG_COLOR);
     rpc().esbuild.install();
 } else {
     await app();

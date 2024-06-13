@@ -1,6 +1,10 @@
 @import "../../style/colors";
 @import "../../style/spacing";
 
+.navigating .cm-scroller {
+    overflow: hidden;
+}
+
 .editor {
     .img-container {
         background-color: $black;

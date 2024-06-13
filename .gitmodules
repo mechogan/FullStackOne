@@ -4,3 +4,6 @@
 [submodule "editor-sample-demo"]
 	path = editor-sample-demo
 	url = https://github.com/fullstackedorg/editor-sample-demo.git
+[submodule "lib/go"]
+	path = lib/go
+	url = https://github.com/golang/go.git

@@ -1,16 +1,17 @@
-import { Instance } from "./instance";
-import path from "path";
+import type esbuild from "esbuild";
 import type { AdapterEditor } from "../../../editor/rpc";
+import path from "path";
 import mime from "mime";
+import os from "os";
+import { shell } from "electron";
+import { Instance } from "./instance";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import { initAdapter } from "../../node/src/adapter";
-import os from "os";
-import fs from "fs";
 import { Project } from "../../../editor/api/projects/types";
-import { build, merge } from "../../node/src/build";
-import type esbuild from "esbuild";
-import { shell } from "electron";
-import { installEsbuild, loadEsbuild } from "./esbuild";
+import { WebSocketServer } from "../../node/src/connectivity/websocketServer";
+import { initAdapterEditor } from "../../node/src/adapterEditor";
+import { Bonjour } from "../../node/src/connectivity/bonjour";
+import { initConnectivity } from "../../node/src/connectivity";
 
 type Response = {
     data: Uint8Array;
@@ -30,264 +31,107 @@ const notFound: Response = {
 const editorDirectory = path.resolve(__dirname, "..", "editor");
 
 export class InstanceEditor extends Instance {
-    instancesCount = 1;
-    instances: Map<string, Instance> = new Map();
+    static singleton: InstanceEditor;
 
-    static rootDirectory: string = os.homedir();
+    instancesCount = 1;
+    private instances: Map<string, Instance> = new Map();
+
+    rootDirectory: string;
     baseJS: string = path.resolve(__dirname, "..", "js", "index.js");
     configDirectory: string = ".config/fullstacked";
     nodeModulesDirectory: string = this.configDirectory + "/node_modules";
     cacheDirectory: string = ".cache/fullstacked";
 
+    bonjour: Bonjour;
+    wsServer: WebSocketServer;
+
     adapter: AdapterEditor = null;
 
-    esbuild: typeof esbuild;
+    esbuild: {
+        module: typeof esbuild;
+        install: Function;
+        load: Function;
+    } = {
+        module: null,
+        install: null,
+        load: null
+    };
 
-    constructor() {
-        super({
-            title: "FullStacked Editor",
-            location: editorDirectory,
-            createdDate: null
-        });
+    constructor(esbuild: { install: Function; load: Function }) {
+        const rootDirectory = os.homedir();
 
-        const writeFile: AdapterEditor["fs"]["writeFile"] = async (
-            file,
-            data,
-            options
-        ) => {
-            const filePath = InstanceEditor.rootDirectory + "/" + file;
-
-            if (options?.recursive) {
-                const directory = filePath.split("/").slice(0, -1);
-                await fs.promises.mkdir(directory.join("/"), {
-                    recursive: true
-                });
-            }
-
-            return fs.promises.writeFile(filePath, data, options);
-        };
-
-        const defaultAdapter = initAdapter(editorDirectory, "electron");
-        this.adapter = {
-            ...defaultAdapter,
-            fs: {
-                ...defaultAdapter.fs,
-                readFile: (
-                    path,
-                    options?: { encoding?: "utf8"; absolutePath?: boolean }
-                ) => {
-                    if (options?.absolutePath) {
-                        return fs.promises.readFile(
-                            InstanceEditor.rootDirectory + "/" + path,
-                            options
-                        );
-                    }
-                    return defaultAdapter.fs.readFile(path, options);
-                },
-                writeFile: (file, data, options) => {
-                    if (options?.absolutePath) {
-                        return writeFile(file, data, options);
-                    }
-                    return defaultAdapter.fs.writeFile(file, data, options);
-                },
-                writeFileMulti: (files, options) => {
-                    if (options?.absolutePath) {
-                        return Promise.all(
-                            files.map(({ path, data }) =>
-                                writeFile(path, data, options)
-                            )
-                        );
-                    }
-                    return defaultAdapter.fs.writeFileMulti(files, options);
-                },
-                unlink: (path, options) => {
-                    if (options?.absolutePath) {
-                        return fs.promises.unlink(
-                            InstanceEditor.rootDirectory + "/" + path
-                        );
-                    }
-                    return defaultAdapter.fs.unlink(path);
-                },
-                readdir: async (
-                    path,
-                    options?: { withFileTypes: true; absolutePath?: boolean }
-                ) => {
-                    if (options?.absolutePath) {
-                        const items = await fs.promises.readdir(
-                            InstanceEditor.rootDirectory + "/" + path,
-                            options
-                        );
-                        if (!options?.withFileTypes) {
-                            return (items as unknown as string[]).map(
-                                (filename) => filename.split("\\").join("/")
-                            );
-                        }
-
-                        return items.map((item) => ({
-                            ...item,
-                            isDirectory: item.isDirectory()
-                        }));
-                    }
-                    return defaultAdapter.fs.readdir(path, options);
-                },
-                mkdir: async (path, options) => {
-                    if (options?.absolutePath) {
-                        await fs.promises.mkdir(
-                            InstanceEditor.rootDirectory + "/" + path,
-                            { recursive: true }
-                        );
-                        return;
-                    }
-                    return defaultAdapter.fs.mkdir(path);
-                },
-                rmdir: (path, options) => {
-                    if (options?.absolutePath) {
-                        return fs.promises.rm(
-                            InstanceEditor.rootDirectory + "/" + path,
-                            { recursive: true }
-                        );
-                    }
-                    return defaultAdapter.fs.rmdir(path);
-                },
-                stat: async (path, options) => {
-                    if (options?.absolutePath) {
-                        const stats: any = await fs.promises.stat(
-                            InstanceEditor.rootDirectory + "/" + path
-                        );
-                        stats.isDirectory = stats.isDirectory();
-                        stats.isFile = stats.isFile();
-                        return stats;
-                    }
-                    return defaultAdapter.fs.stat(path);
-                },
-                lstat: async (path, options) => {
-                    if (options?.absolutePath) {
-                        const stats: any = await fs.promises.lstat(
-                            InstanceEditor.rootDirectory + "/" + path
-                        );
-                        stats.isDirectory = stats.isDirectory();
-                        stats.isFile = stats.isFile();
-                        return stats;
-                    }
-                    return defaultAdapter.fs.lstat(path);
-                },
-                exists: async (
-                    path: string,
-                    options?: { absolutePath?: boolean }
-                ) => {
-                    if (options?.absolutePath) {
-                        try {
-                            const stats = await fs.promises.stat(
-                                InstanceEditor.rootDirectory + "/" + path
-                            );
-                            return { isFile: stats.isFile() };
-                        } catch (e) {
-                            return null;
-                        }
-                    }
-                    return defaultAdapter.fs.exists(path);
-                }
+        super(
+            {
+                title: "FullStacked Editor",
+                location: editorDirectory,
+                createdDate: null
             },
+            rootDirectory
+        );
 
-            directories: {
-                root: InstanceEditor.rootDirectory,
-                cache: this.cacheDirectory,
-                config: this.configDirectory,
-                nodeModules: this.nodeModulesDirectory
-            },
+        this.rootDirectory = rootDirectory;
 
-            esbuild: {
-                check: () => !!this.esbuild,
-                install: () => {
-                    const progressListener = (data: {
-                        step: number;
-                        progress: number;
-                    }) => {
-                        this.window.webContents.executeJavaScript(
-                            `window.push("esbuildInstall", \`${JSON.stringify(data).replace(/\\/g, "\\\\")}\`)`
-                        );
-                    };
-                    installEsbuild(
-                        InstanceEditor.rootDirectory +
-                            "/" +
-                            this.configDirectory,
+        this.esbuild.install = esbuild.install;
+        this.esbuild.load = esbuild.load;
+
+        InstanceEditor.singleton = this;
+
+        initConnectivity(this);
+        this.resetAdapter();
+    }
+
+    resetAdapter() {
+        const adapter = initAdapter(editorDirectory, "electron", null);
+        this.adapter = initAdapterEditor(adapter, this, this.esbuild.module);
+
+        this.adapter.esbuild = {
+            check: () => !!this.esbuild,
+            install: () => {
+                const progressListener = (data: {
+                    step: number;
+                    progress: number;
+                }) => {
+                    this.window.webContents.executeJavaScript(
+                        `window.push("esbuildInstall", \`${JSON.stringify(data).replace(/\\/g, "\\\\")}\`)`
+                    );
+                };
+                this.esbuild
+                    .install(
+                        this.rootDirectory + "/" + this.configDirectory,
                         progressListener.bind(this)
-                    ).then((esbuild) => (this.esbuild = esbuild));
-                }
-            },
-
-            build: async (project: Project) => {
-                const entryPoint = [
-                    InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.ts",
-                    InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.tsx",
-                    InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.js",
-                    InstanceEditor.rootDirectory +
-                        "/" +
-                        project.location +
-                        "/index.jsx"
-                ].find((file) => fs.existsSync(file));
-
-                if (!entryPoint) return null;
-
-                const mergedFile = await merge(
-                    this.baseJS,
-                    entryPoint,
-                    InstanceEditor.rootDirectory + "/" + this.cacheDirectory
-                );
-
-                const outdir =
-                    InstanceEditor.rootDirectory +
-                    "/" +
-                    project.location +
-                    "/.build";
-                const result = build(
-                    this.esbuild.buildSync,
-                    mergedFile,
-                    "index",
-                    outdir,
-                    InstanceEditor.rootDirectory +
-                        "/" +
-                        this.nodeModulesDirectory
-                );
-
-                await fs.promises.unlink(mergedFile);
-
-                return result?.errors;
-            },
-            run: (project: Project) => {
-                for (const activeInstance of this.instances.values()) {
-                    if (activeInstance.project.location === project.location) {
-                        activeInstance.restart();
-                        return;
-                    }
-                }
-
-                const instance = new Instance(project);
-                const hostname = `app-` + this.instancesCount;
-                this.instances.set(hostname, instance);
-                instance.start(hostname);
-                instance.window.on("close", () =>
-                    this.instances.delete(hostname)
-                );
-            },
-
-            open: (project: Project) => {
-                let directory =
-                    InstanceEditor.rootDirectory + "/" + project.location;
-                if (os.platform() === "win32")
-                    directory = directory.split("/").join("\\");
-                shell.openPath(directory);
+                    )
+                    .then((esbuild) => {
+                        this.esbuild.module = esbuild;
+                        this.resetAdapter();
+                    });
             }
         };
+
+        this.adapter.open = (project: Project) => {
+            let directory = this.rootDirectory + "/" + project.location;
+            if (os.platform() === "win32")
+                directory = directory.split("/").join("\\");
+            shell.openPath(directory);
+        };
+    }
+
+    getInstances() {
+        return Array.from(this.instances.values());
+    }
+
+    createNewInstance(project: Project) {
+        for (const activeInstance of this.instances.values()) {
+            if (activeInstance.project.location === project.location) {
+                activeInstance.restart();
+                return;
+            }
+        }
+
+        const instance = new Instance(project);
+        const hostname = `app-` + this.instancesCount;
+        this.instances.set(hostname, instance);
+        instance.start(hostname);
+        instance.window.on("close", () => this.instances.delete(hostname));
     }
 
     async requestListener(request: Request) {
@@ -405,9 +249,10 @@ export class InstanceEditor extends Instance {
     }
 
     async start(hostname: string) {
-        this.esbuild = await loadEsbuild(
-            InstanceEditor.rootDirectory + "/" + this.configDirectory
+        this.esbuild.module = await this.esbuild.load(
+            this.rootDirectory + "/" + this.configDirectory
         );
+        this.resetAdapter();
         return super.start(hostname);
     }
 }

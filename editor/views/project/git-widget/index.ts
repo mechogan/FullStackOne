@@ -2,6 +2,7 @@ import "./index.css";
 
 import type { Project as TypeProject } from "../../../api/projects/types";
 import api from "../../../api";
+import stackNavigation from "../../../stack-navigation";
 
 export default class GitWidget {
     reloadContent: () => void;
@@ -376,6 +377,7 @@ export default class GitWidget {
         cancelButton.innerText = "Close";
         cancelButton.addEventListener("click", () => {
             dialog.remove();
+            stackNavigation.lock = false;
         });
         buttonGroup.append(cancelButton);
 
@@ -391,7 +393,10 @@ export default class GitWidget {
 
         dialog.append(container);
 
-        if (!elements) this.parentContainer.append(dialog);
+        if (!elements) {
+            this.parentContainer.append(dialog);
+            stackNavigation.lock = true;
+        }
 
         const getChanges = async () => {
             const { changes, unreacheable } = await api.git.changes(
@@ -496,6 +501,7 @@ export default class GitWidget {
                     if (!commitMessageInput.value) return;
 
                     dialog.remove();
+                    stackNavigation.lock = false;
                     await commit();
                     this.btn.replaceWith(await this.renderButton());
                 };
@@ -504,6 +510,7 @@ export default class GitWidget {
                     if (!commitMessageInput.value) return;
 
                     dialog.remove();
+                    stackNavigation.lock = false;
 
                     const arrowIcon = await (
                         await fetch("assets/icons/arrow.svg")
@@ -585,6 +592,7 @@ export default class GitWidget {
             setTimeout(async () => {
                 await api.git.branch.create(this.project, branchName);
                 dialog.remove();
+                stackNavigation.lock = false;
                 this.btn.replaceWith(await this.renderButton(true));
             }, 200);
         });
@@ -610,6 +618,7 @@ export default class GitWidget {
             setTimeout(async () => {
                 await api.git.revertFileChanges(this.project, files);
                 dialog.remove();
+                stackNavigation.lock = false;
                 this.btn.replaceWith(await this.renderButton(true));
             }, 200);
         });
@@ -619,6 +628,7 @@ export default class GitWidget {
         dialog.append(container);
 
         this.parentContainer.append(dialog);
+        stackNavigation.lock = true;
     }
 
     async renderButton(pull = false) {

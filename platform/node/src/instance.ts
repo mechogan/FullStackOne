@@ -45,7 +45,7 @@ const readBody = (request: http.IncomingMessage) =>
     });
 
 export class Instance {
-    static port = 9000;
+    static port = parseInt(process.env.PORT) || 9000;
     port: number;
 
     server: http.Server = http.createServer(this.requestListener.bind(this));
@@ -54,9 +54,13 @@ export class Instance {
 
     adapter: Adapter;
 
-    constructor(project: Project) {
+    constructor(project: Project, rootDirectory?: string) {
         this.adapter = initAdapter(
-            InstanceEditor.rootDirectory + "/" + project.location
+            (rootDirectory || InstanceEditor.singleton.rootDirectory) +
+                "/" +
+                project.location,
+            "node",
+            (data) => InstanceEditor.singleton.push("sendData", data)
         );
         this.port = Instance.port;
         Instance.port++;

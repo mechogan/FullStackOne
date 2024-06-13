@@ -1,5 +1,5 @@
-import { BrowserWindow } from "electron";
 import type { Project } from "../../../editor/api/projects/types";
+import { BrowserWindow } from "electron";
 import { Adapter } from "../../../src/adapter/fullstacked";
 import { initAdapter } from "../../node/src/adapter";
 import { InstanceEditor } from "./instanceEditor";
@@ -9,12 +9,15 @@ export class Instance {
     window: BrowserWindow;
     adapter: Adapter;
 
-    constructor(project: Project) {
+    constructor(project: Project, rootDirectory?: string) {
         this.project = project;
 
         this.adapter = initAdapter(
-            InstanceEditor.rootDirectory + "/" + this.project.location,
-            "electron"
+            (rootDirectory || InstanceEditor.singleton.rootDirectory) +
+                "/" +
+                this.project.location,
+            "electron",
+            (data) => InstanceEditor.singleton.push("sendData", data)
         );
     }
 

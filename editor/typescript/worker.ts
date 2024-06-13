@@ -28,8 +28,8 @@ function removeSourceObjects(obj: any) {
                 obj[key] = removeSourceObjects(obj[key]);
             }
         });
-    } else if(typeof obj === "function") {
-        return "[Function]"
+    } else if (typeof obj === "function") {
+        return "[Function]";
     }
     return obj;
 }

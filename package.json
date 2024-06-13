@@ -1,6 +1,6 @@
 {
     "name": "fullstacked-editor",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build && npm start -w platform/node",
@@ -26,6 +26,7 @@
         "@codemirror/lang-sass": "^6.0.2",
         "@codemirror/theme-one-dark": "^6.1.2",
         "@codemirror/view": "^6.26.3",
+        "@fullstacked/stack-navigation": "^0.0.0",
         "@types/gzip-js": "^0.3.5",
         "@types/node": "^20.12.11",
         "@types/url-parse": "^1.4.11",
@@ -36,7 +37,7 @@
         "@zip.js/zip.js": "^2.7.44",
         "buffer": "^6.0.3",
         "codemirror": "^6.0.1",
-        "esbuild": "^0.21.1",
+        "esbuild": "^0.21.5",
         "eslint-linter-browserify": "^9.2.0",
         "fast-querystring": "^1.1.2",
         "gzip-js": "^0.3.2",

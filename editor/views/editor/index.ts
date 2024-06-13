@@ -233,7 +233,7 @@ export class Editor {
         });
     }
 
-    async reRunExtensions(){
+    async reRunExtensions() {
         this.editor.dispatch({
             changes: {
                 from: 0,

@@ -10,3 +10,13 @@ export const BACK_BUTTON_ID = "back-button";
 export const PROJECT_TITLE_ID = "project-title";
 export const PACKAGE_INSTALLER_ID = "package-installer";
 export const TYPESCRIPT_ICON_ID = "typescript-icon";
+export const PEERS_ICON_ID = "peers-connectivity";
+export const INCOMING_PEER_CONNECTION_REQUEST_DIALOG =
+    "peer-connection-request-dialog";
+export const MANUAL_PEER_CONNECT_DIALOG = "manual-peer-connect";
+export const PEER_PAIR_BUTTON_CLASS = "peer-pair";
+export const PEER_PAIRING_CODE_CLASS = "peer-pairing-code";
+export const PEER_TRUST_BUTTON_ID = "peer-trust";
+export const PEER_DISCONNECT_BUTTON_CLASS = "peer-disconnect";
+export const PEER_CONNECTIVITY_BACK_BUTTON_ID = "peer-back";
+export const BG_COLOR = "#1e293b";

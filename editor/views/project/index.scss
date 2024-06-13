@@ -10,6 +10,10 @@ $tabs-height: 29px;
 $console-height: 300px;
 $transition: 0.3s all;
 
+.navigating .tabs-container {
+    overflow-x: hidden !important;
+}
+
 .project {
     height: 100dvh;
 

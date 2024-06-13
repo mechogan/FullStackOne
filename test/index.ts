@@ -24,6 +24,11 @@ child_process.execSync(`node ${build("deeplink-git.ts")}`, {
     stdio: "inherit"
 });
 
+// p2p
+child_process.execSync(`node ${build("p2p.ts")}`, {
+    stdio: "inherit"
+});
+
 // ios
 child_process.execSync(`node ${build("ios.ts")}`, { stdio: "inherit" });
 

@@ -13,25 +13,94 @@ let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainM
 let documentsDirectory = paths.first!
 
 class InstanceEditor: Instance {
+    static var singleton: InstanceEditor?
+    
     init(){
-        let editorDirectory = Bundle.main.bundlePath + "/build"
+        let editorDirectory = Bundle.main.path(forResource: "build", ofType: nil)!
         super.init(adapter: AdapterEditor(baseDirectory: editorDirectory))
         self.webview.isOpaque = false
+        InstanceEditor.singleton = self
     }
 }
 
 class AdapterEditor: Adapter {
     let rootDirectory = documentsDirectory
-    private let baseJS = Bundle.main.bundlePath + "/js/index.js"
+    private let baseJS = Bundle.main.path(forResource: "index", ofType: "js", inDirectory: "js")!
     let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
-    let fsEditor: AdapterFS;
+    let fsEditor: AdapterFS
+    let bonjour = Bonjour()
+    let multipeer = Multipeer()
     
     override init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
         super.init(baseDirectory: baseDirectory)
+        
+        
+        self.bonjour.onPeerNearby = {eventType, peerNearbyBonjour in
+            let message = [
+                "eventType": eventType,
+                "peerNearby": [
+                    "type": 1,
+                    "peer": [
+                        "id": peerNearbyBonjour.id,
+                        "name": peerNearbyBonjour.name
+                    ],
+                    "addresses": peerNearbyBonjour.addresses,
+                    "port": peerNearbyBonjour.port
+                ]
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerNearby = {eventType, peerNearbyMultipeer in
+            let message = [
+                "eventType": eventType,
+                "peerNearby": [
+                    "type": 2,
+                    "peer": [
+                        "id": peerNearbyMultipeer.peer.id,
+                        "name": peerNearbyMultipeer.peer.name
+                    ],
+                    "id": peerNearbyMultipeer.id
+                ]
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
+        }
+        
+        self.multipeer.onOpenConnection = {id in
+            let message = ["id": id, "type": 3]
+            InstanceEditor.singleton?.push(messageType: "openConnection", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionRequest = {id, peerConnectionRequestStr in
+            let message = [
+                "id": id,
+                "type": 3,
+                "peerConnectionRequestStr": peerConnectionRequestStr
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionRequest", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionResponse = {id, peerConnectionResponseStr in
+            let message = [
+                "id": id,
+                "type": 3,
+                "peerConnectionResponseStr": peerConnectionResponseStr
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionResponse", message: JSON(message).rawString()!)
+        }
+        self.multipeer.onPeerConnectionLost = {id in
+            let message = ["id": id]
+            InstanceEditor.singleton?.push(messageType: "peerConnectionLost", message: JSON(message).rawString()!)
+        }
+        
+        self.multipeer.onPeerData = {id, data in
+            let message = [
+                "id": id,
+                "data": data
+            ]
+            InstanceEditor.singleton?.push(messageType: "peerData", message: JSON(message).rawString()!)
+        }
     }
     
     override func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping (_ maybeData: Any?) -> Void) {
@@ -119,17 +188,16 @@ class AdapterEditor: Adapter {
             case "build":
                 let project = json[0]
                 
-                var entryPoint: String? = nil;
-                [
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
+                let entryPoint = [
                     self.rootDirectory + "/" + project["location"].stringValue + "/index.js",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts"
-                ].forEach { file in
-                    let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file)
-                    if(existsAndIsDirectory != nil && !existsAndIsDirectory!){
-                        entryPoint = file
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx"
+                ].first { file in
+                    if let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file) {
+                        return !existsAndIsDirectory
                     }
+                    return false
                 }
             
                 if(entryPoint == nil){
@@ -179,6 +247,76 @@ class AdapterEditor: Adapter {
                 let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue
                 UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
                 return done(true)
+            case "connectivity":
+                switch(methodPath[1]) {
+                case "infos":
+                    return done(false)
+                case "name":
+                    return done(UIDevice.current.name)
+                case "peers":
+                    switch(methodPath[2]){
+                    case "nearby":
+                        var peersNearby: [JSON] = []
+                        let peersNearbyBonjour = self.bonjour.getPeersNearby().arrayValue
+                        let peersNearbyMultipeer = self.multipeer.getPeersNearby().arrayValue
+                        
+                        for peerNearby in peersNearbyBonjour {
+                            peersNearby.append(peerNearby)
+                        }
+                        for peerNearby in peersNearbyMultipeer {
+                            peersNearby.append(peerNearby)
+                        }
+                        
+                        return done(JSON(peersNearby))
+                    default: break
+                    }
+                case "advertise": 
+                    switch(methodPath[2]){
+                    case "start": 
+                        self.multipeer.startAdvertising(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue)
+                        return done(true)
+                    case "stop": 
+                        self.multipeer.stopAdvertising()
+                        return done(true)
+                    default: break
+                    }
+                case "browse": 
+                    switch(methodPath[2]){
+                    case "start":
+                        self.bonjour.startBrowsing()
+                        self.multipeer.startBrowsing()
+                        return done(true)
+                    case "stop":
+                        self.bonjour.stopBrowsing()
+                        self.multipeer.stopBrowsing()
+                        return done(true)
+                    default: break
+                    }
+                case "open":
+                    self.multipeer.open(id: json[0].stringValue, meId: json[1]["id"].stringValue, meName: json[1]["name"].stringValue)
+                    return done(true)
+                case "disconnect":
+                    self.multipeer.disconnect(id: json[0].stringValue)
+                    return done(true)
+                case "requestConnection":
+                    self.multipeer.requestConnection(id: json[0].stringValue, peerConnectionRequestStr: json[1].stringValue)
+                    return done(true)
+                case "respondToRequestConnection":
+                    self.multipeer.respondToConnectionRequest(id: json[0].stringValue, peerConnectionResponseStr: json[1].stringValue)
+                    return done(true)
+                case "trustConnection":
+                    self.multipeer.trustConnection(id: json[0].stringValue)
+                    return done(true)
+                case "send":
+                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue)
+                    return done(true)
+                case "convey":
+                    RunningInstances.singleton!.instances.forEach({instance in
+                        instance.push(messageType: "peerData", message: json[0].stringValue)
+                    })
+                    return done(true)
+                default: break
+                }
             default: break
         }
         
