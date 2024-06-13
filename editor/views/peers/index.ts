@@ -321,7 +321,7 @@ class Peers {
         ).text();
         backButton.classList.add("text");
         backButton.addEventListener("click", () => {
-            stackNavigation.back()
+            stackNavigation.back();
         });
         left.append(backButton);
 

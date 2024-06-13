@@ -8,11 +8,11 @@ let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 const cleanup = () => {
     editorProcess1?.kill();
     editorProcess2?.kill();
-}
+};
 
 const onError = (e) => {
     console.log(e);
-    cleanup()
+    cleanup();
     throwError("Deep Link/git test failed");
 };
 
@@ -24,7 +24,7 @@ editorProcess1 = child_process.exec("node index.js", {
     env: {
         ...process.env,
         NO_OPEN: "1"
-    },
+    }
 });
 editorProcess1.stdout.pipe(process.stdout);
 editorProcess1.stderr.pipe(process.stderr);
@@ -74,7 +74,7 @@ editorProcess2 = child_process.exec(
         env: {
             ...process.env,
             NO_OPEN: "1"
-        },
+        }
     }
 );
 editorProcess2.stdout.pipe(process.stdout);

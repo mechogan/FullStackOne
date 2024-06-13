@@ -43,13 +43,15 @@ if (projectsTitle !== PROJECTS_TITLE) {
 }
 
 // delete all packages to test download
-await waitForStackNavigation(page,`#${SETTINGS_BUTTON_ID}`);
+await waitForStackNavigation(page, `#${SETTINGS_BUTTON_ID}`);
 await waitForStackNavigation(page, `#${PACKAGES_BUTTON_ID}`);
 
-const deletePackagesButton = await page.waitForSelector(`#${DELETE_ALL_PACKAGES_ID}`);
+const deletePackagesButton = await page.waitForSelector(
+    `#${DELETE_ALL_PACKAGES_ID}`
+);
 await deletePackagesButton.click();
 
-while(await deletePackagesButton.isVisible()) {
+while (await deletePackagesButton.isVisible()) {
     await sleep(200);
 }
 
@@ -99,7 +101,8 @@ while (tries) {
 const runProjectButton = await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton.click();
 
-const getDialogHeadingText = () => document.querySelector(".dialog h1")?.textContent;
+const getDialogHeadingText = () =>
+    document.querySelector(".dialog h1")?.textContent;
 
 // wait for dependencies to load
 let caughtDependencies = false;

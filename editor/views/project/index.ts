@@ -464,5 +464,4 @@ function uncapitalizeKeys<T>(obj: T) {
     return final as T;
 }
 
-
-export default new Project()
+export default new Project();

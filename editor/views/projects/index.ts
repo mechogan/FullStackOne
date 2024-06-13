@@ -63,7 +63,7 @@ class Projects {
     }
 
     async renderProjectsList() {
-        Array.from(this.projectsList.children).forEach(e => e.remove());
+        Array.from(this.projectsList.children).forEach((e) => e.remove());
 
         const projects = (await api.projects.list()).sort(
             (projectA, projectB) => projectB.createdDate - projectA.createdDate
@@ -74,7 +74,7 @@ class Projects {
         }
 
         projectNew.onAddedProject = () => this.renderProjectsList();
-        
+
         const newProject = document.createElement("article");
         newProject.id = NEW_PROJECT_ID;
         newProject.innerHTML = await (

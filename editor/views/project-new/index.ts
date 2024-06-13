@@ -99,7 +99,7 @@ class ProjectNew {
                 project,
                 new Uint8Array(await zipFile.arrayBuffer())
             );
-            
+
             projectView.setProject(importedProject);
             stackNavigation.back();
             stackNavigation.navigate(await projectView.render(), BG_COLOR);

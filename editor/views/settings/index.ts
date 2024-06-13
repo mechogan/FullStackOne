@@ -4,7 +4,7 @@ import api from "../../api";
 import { CONFIG_TYPE } from "../../api/config/types";
 import rpc from "../../rpc";
 import gitAuth from "../git-auth";
-import projectView from "../project"
+import projectView from "../project";
 import stackNavigation from "../../stack-navigation";
 
 export class Settings {
@@ -136,7 +136,7 @@ export class Settings {
                 createdDate: null
             });
             projectView.packagesView = true;
-            stackNavigation.navigate(await projectView.render(), BG_COLOR)
+            stackNavigation.navigate(await projectView.render(), BG_COLOR);
         });
         container.append(packagesButton);
 

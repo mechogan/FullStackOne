@@ -31,7 +31,7 @@ const app = async () => {
 
     const projectsRendered = await projectsView.render();
     document.querySelector("#splash").remove();
-    stackNavigation.navigate(projectsRendered, BG_COLOR)
+    stackNavigation.navigate(projectsRendered, BG_COLOR);
 
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);

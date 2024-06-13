@@ -9,11 +9,10 @@ export const throwError = (message: string) => {
     process.exit(1);
 };
 
-
 export const waitForStackNavigation = (page: Page, selector: string) => {
     return new Promise<void>(async (resolve, reject) => {
         let clicked = false;
-        while(!clicked) {
+        while (!clicked) {
             try {
                 const element = await page.waitForSelector(selector);
                 await element.click();
@@ -22,9 +21,11 @@ export const waitForStackNavigation = (page: Page, selector: string) => {
                 await sleep(100);
             }
 
-            if(clicked) { break; }
+            if (clicked) {
+                break;
+            }
         }
         await sleep(500);
         resolve();
-    })
-}
+    });
+};
