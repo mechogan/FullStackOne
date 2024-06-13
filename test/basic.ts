@@ -11,7 +11,7 @@ import {
     RUN_PROJECT_ID,
     SETTINGS_BUTTON_ID
 } from "../editor/constants";
-import { sleep, throwError } from "./utils";
+import { sleep, throwError, waitForStackNavigation } from "./utils";
 
 // test build
 await import("../build");
@@ -43,24 +43,29 @@ if (projectsTitle !== PROJECTS_TITLE) {
 }
 
 // delete all packages to test download
-const settingsButton = await page.waitForSelector(`#${SETTINGS_BUTTON_ID}`);
-await settingsButton.click();
-const packagesButton = await page.waitForSelector(`#${PACKAGES_BUTTON_ID}`);
-await packagesButton.click();
-const deleteAllPackagesButton = await page.waitForSelector(
-    `#${DELETE_ALL_PACKAGES_ID}`
-);
-await deleteAllPackagesButton.click();
-const backButton = await page.waitForSelector(`#${BACK_BUTTON_ID}`);
-await backButton.click();
+await waitForStackNavigation(page,`#${SETTINGS_BUTTON_ID}`);
+await waitForStackNavigation(page, `#${PACKAGES_BUTTON_ID}`);
+
+const deletePackagesButton = await page.waitForSelector(`#${DELETE_ALL_PACKAGES_ID}`);
+await deletePackagesButton.click();
+
+while(await deletePackagesButton.isVisible()) {
+    await sleep(200);
+}
+
+await waitForStackNavigation(page, `#${BACK_BUTTON_ID}`);
 
 // import demo project
-const newProjectTile = await page.waitForSelector(`#${NEW_PROJECT_ID}`);
-await newProjectTile.click();
+await waitForStackNavigation(page, `#${NEW_PROJECT_ID}`);
+
+await sleep(500);
+
 const importProjectFileInput = (await page.waitForSelector(
     `#${IMPORT_PROJECT_FILE_INPUT_ID}`
 )) as ElementHandle<HTMLInputElement>;
 await importProjectFileInput.uploadFile("editor/build/Demo.zip");
+
+await sleep(500);
 
 // add file
 const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);
@@ -94,13 +99,15 @@ while (tries) {
 const runProjectButton = await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton.click();
 
+const getDialogHeadingText = () => document.querySelector(".dialog h1")?.textContent;
+
 // wait for dependencies to load
 let caughtDependencies = false;
 tries = 3;
 while (tries) {
     tries--;
 
-    const dependenciesDialogTitle = await page.evaluate(getHeadingText);
+    const dependenciesDialogTitle = await page.evaluate(getDialogHeadingText);
     if (dependenciesDialogTitle === "Dependencies") {
         caughtDependencies = true;
     } else {
@@ -116,7 +123,7 @@ while (tries) {
 tries = 5;
 while (tries) {
     tries--;
-    const dependenciesDialogTitle = await page.evaluate(getHeadingText);
+    const dependenciesDialogTitle = await page.evaluate(getDialogHeadingText);
     if (dependenciesDialogTitle === "Dependencies") {
         await sleep(3000); // max 15sec to load react
     } else {

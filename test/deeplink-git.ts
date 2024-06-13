@@ -1,32 +1,30 @@
 import child_process, { ChildProcess } from "child_process";
 import puppeteer from "puppeteer";
 import { sleep, throwError } from "./utils";
-import { PROJECT_TITLE_ID } from "../editor/constants";
+import { PROJECT_TITLE_ID, RUN_PROJECT_ID } from "../editor/constants";
 
 let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 
+const cleanup = () => {
+    editorProcess1?.kill();
+    editorProcess2?.kill();
+}
+
 const onError = (e) => {
     console.log(e);
-
-    if (editorProcess1) {
-        process.kill(-editorProcess1.pid, "SIGTERM");
-        process.kill(-editorProcess1.pid, "SIGKILL");
-    }
-
-    if (editorProcess2) {
-        process.kill(-editorProcess2.pid, "SIGTERM");
-        process.kill(-editorProcess2.pid, "SIGKILL");
-    }
-
+    cleanup()
     throwError("Deep Link/git test failed");
 };
 
 process.on("uncaughtException", onError);
 process.on("unhandledRejection", onError);
 
-editorProcess1 = child_process.spawn("npm", ["start"], {
-    env: { NO_OPEN: "1", PATH: process.env.PATH },
-    detached: true
+editorProcess1 = child_process.exec("node index.js", {
+    cwd: process.cwd() + "/platform/node",
+    env: {
+        ...process.env,
+        NO_OPEN: "1"
+    },
 });
 editorProcess1.stdout.pipe(process.stdout);
 editorProcess1.stderr.pipe(process.stderr);
@@ -66,24 +64,17 @@ await page.evaluate(async () => {
 });
 await sleep(3000);
 
-process.kill(-editorProcess1.pid, "SIGTERM");
-process.kill(-editorProcess1.pid, "SIGKILL");
+editorProcess1.kill();
 
 const DEMO_TITLE = "Demo";
-
-editorProcess2 = child_process.spawn(
-    "node",
-    [
-        "index.js",
-        `https://github.com/fullstackedorg/editor-sample-demo.git?title=${DEMO_TITLE}`
-    ],
+editorProcess2 = child_process.exec(
+    `node index.js https://github.com/fullstackedorg/editor-sample-demo.git?title=${DEMO_TITLE}`,
     {
-        cwd: "platform/node",
+        cwd: process.cwd() + "/platform/node",
         env: {
-            NO_OPEN: "1",
-            PATH: process.env.PATH
+            ...process.env,
+            NO_OPEN: "1"
         },
-        detached: true
     }
 );
 editorProcess2.stdout.pipe(process.stdout);
@@ -92,7 +83,8 @@ editorProcess2.on("error", onError);
 await sleep(3000);
 
 await page.reload();
-await sleep(3000);
+
+await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 
 await page.waitForSelector(`#${PROJECT_TITLE_ID}`);
 const actualDemoTitle = await (
@@ -105,6 +97,5 @@ if (actualDemoTitle !== DEMO_TITLE) {
     );
 }
 
-process.kill(-editorProcess2.pid, "SIGTERM");
-process.kill(-editorProcess2.pid, "SIGKILL");
+cleanup();
 process.exit(0);

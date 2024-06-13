@@ -1,7 +1,7 @@
 import child_process from "child_process";
 import crypto from "crypto";
 import puppeteer from "puppeteer";
-import { sleep, throwError } from "./utils";
+import { sleep, throwError, waitForStackNavigation } from "./utils";
 import {
     PEERS_ICON_ID,
     PEER_CONNECTIVITY_BACK_BUTTON_ID,
@@ -73,13 +73,11 @@ process1.on("error", onError);
 
 const page1 = await browser1.newPage();
 await page1.goto(`http://localhost:${port1}`);
-const peersButton1 = await page1.waitForSelector(`#${PEERS_ICON_ID}`);
-await peersButton1.click();
+await waitForStackNavigation(page1, `#${PEERS_ICON_ID}`);
 
 const page2 = await browser2.newPage();
 await page2.goto(`http://localhost:${port2}`);
-const peersButton2 = await page2.waitForSelector(`#${PEERS_ICON_ID}`);
-await peersButton2.click();
+await waitForStackNavigation(page2, `#${PEERS_ICON_ID}`);
 
 const pairButton = await page2.waitForSelector(`.${PEER_PAIR_BUTTON_CLASS}`);
 await pairButton.click();
@@ -103,21 +101,11 @@ await trustButton.click();
 
 await page2.waitForSelector(`.${PEER_DISCONNECT_BUTTON_CLASS}`);
 
-const backButton1 = await page1.waitForSelector(
-    `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`
-);
-await backButton1.click();
+await waitForStackNavigation(page1, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
+await waitForStackNavigation(page2, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
 
-const backButton2 = await page2.waitForSelector(
-    `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`
-);
-await backButton2.click();
-
-const demoProject1 = await page1.waitForSelector(`article`);
-await demoProject1.click();
-
-const demoProject2 = await page2.waitForSelector(`article`);
-await demoProject2.click();
+await waitForStackNavigation(page1, `article`);
+await waitForStackNavigation(page2, `article`);
 
 const runProjectButton1 = await page1.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton1.click();
