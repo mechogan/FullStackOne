@@ -45,7 +45,7 @@ class StackNavigation {
         }
         const currentView = this.views.at(-1);
         currentView.style.transition = "none";
-        currentView.style.transform = `translateX(0px)`;
+        currentView.style.transform = `translate3d(0px, 0px, 0px)`;
         currentView.classList.add("navigating");
         (currentView.children[0] as HTMLElement).style.overflow = "hidden";
 
@@ -74,12 +74,12 @@ class StackNavigation {
         }
         let deltaX = this.drag.end.x - this.drag.start.x;
 
-        this.views.at(-1).style.transform = `translateX(${deltaX > 0 ? deltaX : 0}px)`;
+        this.views.at(-1).style.transform = `translate3d(${deltaX > 0 ? deltaX : 0}px, 0px, 0px)`;
 
         const percentX = deltaX / window.innerWidth;
         const deltaBehindViewPercent = this.behindViewOffset * percentX;
         const translationX = (this.behindViewOffset - deltaBehindViewPercent) * 100;
-        this.views.at(-2).style.transform = `translateX(-${translationX > 0 ? translationX : 0}%)`
+        this.views.at(-2).style.transform = `translate3d(-${translationX > 0 ? translationX : 0}%, 0px, 0px)`
     }
     onEnd(e: TouchEvent) {
         if(this.drag === null) return;
@@ -105,13 +105,13 @@ class StackNavigation {
         } else {
             const currentView = this.views.at(-1);
             currentView.style.transition = "0.3s transform";
-            currentView.style.transform = `translateX(0px)`;
+            currentView.style.transform = `translate3d(0px, 0px, 0px)`;
             currentView.classList.remove("navigating");
             (currentView.children[0] as HTMLElement).style.overflow = "auto";
 
             const behindView = this.views.at(-2);
             behindView.style.transition = "0.3s transform";
-            behindView.style.transform = `translateX(-${this.behindViewOffset * 100}%)`
+            behindView.style.transform = `translate3d(-${this.behindViewOffset * 100}%, 0px, 0px)`
         }
 
         this.drag = null;
@@ -122,7 +122,7 @@ class StackNavigation {
         view.style.backgroundColor = color;
         view.classList.add("view");
         view.style.transition = `0.3s transform`;
-        view.style.transform = `translateX(100%)`; 
+        view.style.transform = `translate3d(100%, 0px, 0px)`; 
         
         const inner = document.createElement("div");
         inner.append(e);
@@ -132,7 +132,7 @@ class StackNavigation {
         this.views.forEach(v => {
             v.style.pointerEvents = "none";
             v.style.transition = `0.3s 1ms transform`;
-            v.style.transform = `translateX(-${this.behindViewOffset * 100}%)`;
+            v.style.transform = `translate3d(-${this.behindViewOffset * 100}%, 0px, 0px)`;
         })
         
         this.views.push(view);
@@ -140,7 +140,7 @@ class StackNavigation {
         
         setTimeout(() => {
             if(this.views.at(-1) === view)
-                view.style.transform = `translateX(0%)`; 
+                view.style.transform = `translate3d(0%, 0px, 0px)`; 
         }, 1)
     }
 
@@ -148,13 +148,13 @@ class StackNavigation {
     back() {
         const lastView = this.views.pop();
         lastView.style.transition = "0.3s transform";
-        lastView.style.transform = `translateX(${window.innerWidth}px)`;
+        lastView.style.transform = `translate3d(${window.innerWidth}px, 0px, 0px)`;
         setTimeout(() => lastView.remove(), 400);
         
         const currentView = this.views.at(-1);
         currentView.style.transition = "0.3s transform";
         currentView.style.pointerEvents = "all";
-        currentView.style.transform = `translateX(0%)`;
+        currentView.style.transform = `translate3d(0%, 0px, 0px)`;
     }
 
     reset(){
