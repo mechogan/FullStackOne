@@ -188,17 +188,16 @@ class AdapterEditor: Adapter {
             case "build":
                 let project = json[0]
                 
-                var entryPoint: String? = nil;
-                [
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
+                let entryPoint = [
                     self.rootDirectory + "/" + project["location"].stringValue + "/index.js",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts"
-                ].forEach { file in
-                    let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file)
-                    if(existsAndIsDirectory != nil && !existsAndIsDirectory!){
-                        entryPoint = file
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts",
+                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx"
+                ].first { file in
+                    if let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file) {
+                        return !existsAndIsDirectory
                     }
+                    return false
                 }
             
                 if(entryPoint == nil){

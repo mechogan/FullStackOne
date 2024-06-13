@@ -177,19 +177,19 @@ export function initAdapterEditor(
                 instanceEditor.rootDirectory +
                     "/" +
                     project.location +
-                    "/index.ts",
-                instanceEditor.rootDirectory +
-                    "/" +
-                    project.location +
-                    "/index.tsx",
-                instanceEditor.rootDirectory +
-                    "/" +
-                    project.location +
                     "/index.js",
                 instanceEditor.rootDirectory +
                     "/" +
                     project.location +
-                    "/index.jsx"
+                    "/index.jsx",
+                instanceEditor.rootDirectory +
+                    "/" +
+                    project.location +
+                    "/index.ts",
+                instanceEditor.rootDirectory +
+                    "/" +
+                    project.location +
+                    "/index.tsx"
             ].find((file) => fs.existsSync(file));
 
             if (!entryPoint) return null;
