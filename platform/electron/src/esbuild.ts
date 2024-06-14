@@ -38,8 +38,6 @@ export const loadEsbuild = async (configDirectory: string) => {
         ? fs.readFileSync(versionFile).toString().trim()
         : null;
 
-    console.log(installedVersion, esbuildVersion);
-
     if (installedVersion?.trim() !== esbuildVersion?.trim()) {
         return;
     }

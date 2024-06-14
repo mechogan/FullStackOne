@@ -85,7 +85,7 @@ export class InstanceEditor extends Instance {
         this.adapter = initAdapterEditor(adapter, this, this.esbuild.module);
 
         this.adapter.esbuild = {
-            check: () => !!this.esbuild,
+            check: () => !!this.esbuild.module,
             install: () => {
                 const progressListener = (data: {
                     step: number;
