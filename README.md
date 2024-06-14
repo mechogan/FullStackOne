@@ -4,11 +4,40 @@
 
 [Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org)
 
-Build and run full-stack JS web apps on any platform.
+Create local-first web-like apps on any platform.
 
--   iOS/iPadOS
--   MacOS/Windows/Linux
--   **WIP** Android
--   **WIP** Docker
+### Create
+
+Build, run and share applications all within the same environment.
+
+### Local-First
+
+No server needed. Make multi-user functionalities with the built-in peer-to-peer connectivity.
+
+### Web-Like Apps
+
+Use some of the most popular tools to rapidly build.
+
+- JavaScript
+- TypeScript
+- git
+- HTML
+- CSS
+- React
+- MUI
+- ThreeJS
+- Yjs
+- SASS `Soon`
+
+### On Any Platform
+
+Available on
+
+- iOS/iPadOS
+- MacOS
+- Windows
+- Linux
+- Android `Soon`
+- Docker `Soon`
 
 
