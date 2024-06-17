@@ -5,6 +5,16 @@ import { installEsbuild, loadEsbuild } from "./esbuild";
 
 if (require("electron-squirrel-startup")) app.quit();
 
+
+
+// hostname => Instance
+const instances = new Map<string, Instance>();
+
+
+
+
+
+
 let editorInstance: InstanceEditor;
 
 const deepLinksScheme = "fullstacked";

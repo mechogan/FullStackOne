@@ -8,6 +8,8 @@ import { decodeUint8Array } from "../../../src/Uint8Array";
 import open from "open";
 import type { Project } from "../../../editor/api/projects/types";
 import { InstanceEditor } from "./instanceEditor";
+import { InstanceWebSocket } from "./instanceWebSocket";
+import { Instance } from "../interfaces/instance";
 
 type Response = {
     data: Uint8Array;
@@ -44,17 +46,21 @@ const readBody = (request: http.IncomingMessage) =>
         request.on("end", () => resolve(body));
     });
 
-export class Instance {
+export class InstanceNode extends InstanceWebSocket implements Instance {
     static port = parseInt(process.env.PORT) || 9000;
     port: number;
 
-    server: http.Server = http.createServer(this.requestListener.bind(this));
-    wss: ws.WebSocketServer = new WebSocketServer({ server: this.server });
-    webSockets: Set<ws.WebSocket> = new Set();
+    server: http.Server;
 
     adapter: Adapter;
 
-    constructor(project: Project, rootDirectory?: string) {
+    constructor(project: Project, handler: (req: http.IncomingMessage, res: http.ServerResponse) => void) {
+        const server = http.createServer(handler);
+        
+        super(new WebSocketServer({ server }));
+
+        this.server = server;
+
         this.adapter = initAdapter(
             (rootDirectory || InstanceEditor.singleton.rootDirectory) +
                 "/" +
