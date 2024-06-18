@@ -3,13 +3,16 @@ import type { Peer, PeerNearby } from "../src/connectivity/types";
 import type { Project } from "./api/projects/types";
 import type esbuild from "esbuild";
 
+export type SetupDirectories = {
+    rootDirectory: string;
+    baseJS: string;
+    configDirectory: string;
+    nodeModulesDirectory: string;
+    cacheDirectory: string;
+}
+
 export type AdapterEditor = Adapter & {
-    directories: {
-        root: string;
-        cache: string;
-        config: string;
-        nodeModules: string;
-    };
+    directories: SetupDirectories
 
     esbuild: {
         check(): boolean;

@@ -2,7 +2,7 @@ import rpc from "../../rpc";
 
 export default {
     async count() {
-        const nodeModulesDirectory = await rpc().directories.nodeModules();
+        const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
         if (
             !(await rpc().fs.exists(nodeModulesDirectory, {
                 absolutePath: true

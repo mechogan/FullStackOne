@@ -131,7 +131,7 @@ const scriptSnapshotCache: {
 let files: string[];
 let nodeModules: Map<string, string[]> = new Map();
 
-const nodeModulesDirectory = await rpc().directories.nodeModules();
+const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
 const resolveNodeModulePath = (path: string) =>
     nodeModulesDirectory + "/" + path.slice("node_modules/".length);
 

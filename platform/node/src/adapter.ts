@@ -1,7 +1,7 @@
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
-export function initAdapter(
+export function createAdapter(
     baseDirectory: string,
     platform: string,
     broadcast: Adapter["broadcast"]
