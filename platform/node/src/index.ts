@@ -5,7 +5,7 @@ import os from "os";
 import url from "url";
 import path from "path";
 import ws, { WebSocketServer } from "ws";
-import openURL from "open"
+import openURL from "open";
 import { OpenFunction, PushFunction, main } from "./main";
 import { SetupDirectories } from "../../../editor/rpc";
 import { AddressInfo } from "net";
@@ -15,15 +15,15 @@ import { Platform } from "../../../src/platforms";
 const startingPort = process.env.PORT || 9000;
 
 type RunningInstance = {
-    server: http.Server,
-    ws: Set<ws.WebSocket>
-}
+    server: http.Server;
+    ws: Set<ws.WebSocket>;
+};
 
 const runningInstances = new Map<string, RunningInstance>();
 
 const isWebContainer = !!process.versions?.webcontainer;
 
-const currentDir = path.dirname(url.fileURLToPath(import.meta.url))
+const currentDir = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDirectory = os.homedir();
 const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
 
@@ -33,7 +33,7 @@ const directories: SetupDirectories = {
     cacheDirectory: ".cache/fullstacked",
     configDirectory,
     nodeModulesDirectory: configDirectory + "/node_modules"
-}
+};
 
 const open: OpenFunction = (id) => {
     let runningInstance = runningInstances.get(id);
@@ -42,23 +42,30 @@ const open: OpenFunction = (id) => {
         runningInstance = createRunningInstance(id);
         runningInstances.set(id, runningInstance);
     }
-    
+
     const port = (runningInstance.server.address() as AddressInfo).port;
-    openURL(`http://localhost:${port}`);
-}
+
+    if (!process.env.NO_OPEN) {
+        openURL(`http://localhost:${port}`);
+    }
+};
 
 const push: PushFunction = (id, messageType, message) => {
+    console.log(id, messageType, message);
     const runningInstance = runningInstances.get(id);
-    runningInstance?.ws.forEach(ws => ws.send(JSON.stringify({ messageType, message })));
-}
+    runningInstance?.ws.forEach((ws) =>
+        ws.send(JSON.stringify({ messageType, message }))
+    );
+};
 
-const createServerHandler = (id: string) =>
+const createServerHandler =
+    (id: string) =>
     async (req: http.IncomingMessage, res: http.ServerResponse) => {
         const path = req.url;
         const body = await readBody(req);
         const response = await handler(id, path, body);
         respond(response, res);
-    }
+    };
 
 export const createRunningInstance: (id: string) => RunningInstance = (id) => {
     let port = startingPort;
@@ -75,30 +82,30 @@ export const createRunningInstance: (id: string) => RunningInstance = (id) => {
         ws.add(webSocket);
         webSocket.on("close", () => {
             ws.delete(webSocket);
-            if(ws.size === 0) {
+            if (ws.size === 0) {
                 stopRunningInstance(id);
             }
-        })
-    })
+        });
+    });
 
     server.listen(port);
-    
-    return { server, ws }
-}
+
+    return { server, ws };
+};
 
 const stopRunningInstance = (id: string) => {
     const runningInstance = runningInstances.get(id);
-    if(!runningInstance) return;
-    
+    if (!runningInstance) return;
+
     runningInstance.server.close(async () => {
         runningInstances.delete(id);
         await close(id);
     });
-}
+};
 
 const { handler, close } = main(
     isWebContainer ? Platform.WEBCONTAINER : Platform.NODE,
-    currentDir + "/editor", 
+    currentDir + "/editor",
     directories,
     {
         load: async () => esbuild,
@@ -107,7 +114,7 @@ const { handler, close } = main(
     open,
     push,
     null
-)
+);
 
 open("FullStacked");
 
@@ -118,7 +125,7 @@ const launchURL = process.argv.at(-1).match(/^https?:\/\//)
 if (launchURL) {
     const interval = setInterval(() => {
         const editor = runningInstances.get("FullStacked");
-        if(editor?.ws?.size > 0) {
+        if (editor?.ws?.size > 0) {
             push("FullStacked", "launchURL", launchURL);
             clearInterval(interval);
         }

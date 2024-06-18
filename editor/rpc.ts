@@ -9,10 +9,10 @@ export type SetupDirectories = {
     configDirectory: string;
     nodeModulesDirectory: string;
     cacheDirectory: string;
-}
+};
 
 export type AdapterEditor = Adapter & {
-    directories: SetupDirectories
+    directories: SetupDirectories;
 
     esbuild: {
         check(): boolean;

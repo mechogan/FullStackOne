@@ -4,19 +4,28 @@ import mime from "mime";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
-import { Bonjour, getComputerName, getNetworkInterfacesInfo } from "./connectivity/bonjour";
+import {
+    Bonjour,
+    getComputerName,
+    getNetworkInterfacesInfo
+} from "./connectivity/bonjour";
 import { createAdapter } from "./adapter";
 import { Adapter } from "../../../src/adapter/fullstacked";
 import { build, merge } from "./build";
 import { Project } from "../../../editor/api/projects/types";
 import { randomUUID } from "crypto";
+import { PEER_CONNECTION_TYPE } from "../../../src/connectivity/types";
 
 export type EsbuildFunctions = {
-    load: () => Promise<typeof EsbuildModuleType>,
-    install: () => Promise<void>
-}
+    load: () => Promise<typeof EsbuildModuleType>;
+    install: () => Promise<void>;
+};
 
-export type PushFunction = (id: string, messageType: string, data: string) => void;
+export type PushFunction = (
+    id: string,
+    messageType: string,
+    data: string
+) => void;
 export type OpenFunction = (id: string, project?: Project) => void;
 export type OpenDirectoryFunction = (directory: string) => void;
 
@@ -27,10 +36,10 @@ export type Response = {
 };
 
 type Instance = {
-    id: string,
-    project: Project,
-    adapter: Adapter
-}
+    id: string;
+    project: Project;
+    adapter: Adapter;
+};
 
 const instances = new Map<string, Instance>();
 
@@ -41,12 +50,13 @@ export function main(
     esbuild: EsbuildFunctions,
     open: OpenFunction,
     push: PushFunction,
-    openDirectory: OpenDirectoryFunction,
+    openDirectory: OpenDirectoryFunction
 ) {
     let esbuildModule: typeof EsbuildModuleType;
-    esbuild.load().then(e => esbuildModule = e);
+    esbuild.load().then((e) => (esbuildModule = e));
 
-    const broadcast: Adapter['broadcast'] = (data) => push(null, "sendData", data);
+    const broadcast: Adapter["broadcast"] = (data) =>
+        push(null, "sendData", data);
 
     const createInstance: (project: Project) => Instance = (project) => {
         return {
@@ -56,15 +66,11 @@ export function main(
                 directories.rootDirectory + "/" + project.location,
                 platform,
                 broadcast
-            ),
-        }
-    }
+            )
+        };
+    };
 
-    const adapter = createAdapter(
-        editorDirectory,
-        platform,
-        broadcast
-    )
+    const adapter = createAdapter(editorDirectory, platform, broadcast);
     const mainAdapter: AdapterEditor = {
         ...adapter,
         directories,
@@ -74,7 +80,7 @@ export function main(
             check: () => !!esbuildModule,
             install: async () => {
                 await esbuild.install();
-                esbuildModule = await esbuild.load()
+                esbuildModule = await esbuild.load();
             }
         },
         build: async (project) => {
@@ -84,7 +90,10 @@ export function main(
                 "index.ts",
                 "index.tsx"
             ]
-                .map(file => `${directories.rootDirectory}/${project.location}/${file}`)
+                .map(
+                    (file) =>
+                        `${directories.rootDirectory}/${project.location}/${file}`
+                )
                 .find((file) => fs.existsSync(file));
 
             if (!entryPoint) return null;
@@ -92,24 +101,19 @@ export function main(
             const mergedFile = await merge(
                 directories.baseJS,
                 entryPoint,
-                directories.rootDirectory +
-                "/" +
-                directories.cacheDirectory
+                directories.rootDirectory + "/" + directories.cacheDirectory
             );
 
             const outdir =
-                directories.rootDirectory +
-                "/" +
-                project.location +
-                "/.build";
+                directories.rootDirectory + "/" + project.location + "/.build";
             const result = build(
                 esbuildModule.buildSync,
                 mergedFile,
                 "index",
                 outdir,
                 directories.rootDirectory +
-                "/" +
-                directories.nodeModulesDirectory
+                    "/" +
+                    directories.nodeModulesDirectory
             );
 
             await fs.promises.unlink(mergedFile);
@@ -117,13 +121,15 @@ export function main(
             return result?.errors;
         },
         run: (project) => {
-            let instance = Array.from(instances.values()).find(({project: { location }}) => location === project.location);
+            let instance = Array.from(instances.values()).find(
+                ({ project: { location } }) => location === project.location
+            );
 
-            if(!instance) {
+            if (!instance) {
                 instance = createInstance(project);
                 instances.set(instance.id, instance);
             }
-            
+
             open(instance.id, instance.project);
         },
         open: (project) => openDirectory(project.location)
@@ -131,21 +137,21 @@ export function main(
 
     const handler = createHandler(mainAdapter);
     const close = (id: string) => {
-        if(id === "FullStacked"){
-            return new Promise(resolve => bonjour.bonjour.unpublishAll(resolve))
+        if (id === "FullStacked") {
+            return new Promise((resolve) =>
+                bonjour.bonjour.unpublishAll(resolve)
+            );
         }
-        instances.delete(id)
+        instances.delete(id);
     };
 
-    return { handler, close }
+    return { handler, close };
 }
-
 
 function upgradeFS(
     rootDirectory: string,
     defaultFS: Adapter["fs"]
 ): AdapterEditor["fs"] {
-
     const writeFile: AdapterEditor["fs"]["writeFile"] = async (
         file,
         data,
@@ -195,9 +201,7 @@ function upgradeFS(
         },
         unlink: (path, options) => {
             if (options?.absolutePath) {
-                return fs.promises.unlink(
-                    rootDirectory + "/" + path
-                );
+                return fs.promises.unlink(rootDirectory + "/" + path);
             }
             return defaultFS.unlink(path);
         },
@@ -229,20 +233,18 @@ function upgradeFS(
         },
         mkdir: async (path, options) => {
             if (options?.absolutePath) {
-                await fs.promises.mkdir(
-                    rootDirectory + "/" + path,
-                    { recursive: true }
-                );
+                await fs.promises.mkdir(rootDirectory + "/" + path, {
+                    recursive: true
+                });
                 return;
             }
             return defaultFS.mkdir(path);
         },
         rmdir: (path, options) => {
             if (options?.absolutePath) {
-                return fs.promises.rm(
-                    rootDirectory + "/" + path,
-                    { recursive: true }
-                );
+                return fs.promises.rm(rootDirectory + "/" + path, {
+                    recursive: true
+                });
             }
             return defaultFS.rmdir(path);
         },
@@ -268,10 +270,7 @@ function upgradeFS(
             }
             return defaultFS.lstat(path);
         },
-        exists: async (
-            path: string,
-            options?: { absolutePath?: boolean }
-        ) => {
+        exists: async (path: string, options?: { absolutePath?: boolean }) => {
             if (options?.absolutePath) {
                 try {
                     const stats = await fs.promises.stat(
@@ -284,7 +283,7 @@ function upgradeFS(
             }
             return defaultFS.exists(path);
         }
-    }
+    };
 }
 
 const te = new TextEncoder();
@@ -331,9 +330,7 @@ function createHandler(mainAdapter: AdapterEditor) {
 
         // static file serving
         if ((await adapter.fs.exists(pathname))?.isFile) {
-            const data = (await adapter.fs.readFile(
-                pathname
-            )) as Uint8Array;
+            const data = (await adapter.fs.readFile(pathname)) as Uint8Array;
             response = {
                 status: 200,
                 mimeType: mime.getType(pathname) || "text/plain",
@@ -399,13 +396,39 @@ function createHandler(mainAdapter: AdapterEditor) {
         }
 
         return response;
-    }
+    };
 }
 
 const wsServer = new WebSocketServer();
 const bonjour = new Bonjour(wsServer);
 
 function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
+    bonjour.onPeerNearby = (eventType, peerNearby) => {
+        push(
+            "FullStacked",
+            "peerNearby",
+            JSON.stringify({ eventType, peerNearby })
+        );
+    };
+
+    wsServer.onPeerConnectionLost = (id) => {
+        push("FullStacked", "peerConnectionLost", JSON.stringify({ id }));
+    };
+    wsServer.onPeerConnectionRequest = (id, peerConnectionRequestStr) => {
+        push(
+            "FullStacked",
+            "peerConnectionRequest",
+            JSON.stringify({
+                id,
+                type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
+                peerConnectionRequestStr
+            })
+        );
+    };
+    wsServer.onPeerData = (id, data) => {
+        push("FullStacked", "peerData", JSON.stringify({ id, data }));
+    };
+
     return {
         infos: () => ({
             port: wsServer.port,
@@ -419,10 +442,7 @@ function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
         },
         advertise: {
             start: (me, networkInterface) => {
-                bonjour.startAdvertising(
-                    me,
-                    networkInterface
-                );
+                bonjour.startAdvertising(me, networkInterface);
             },
             stop: () => {
                 bonjour.stopAdvertising();
@@ -439,10 +459,7 @@ function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
         open: null,
         requestConnection: null,
         respondToRequestConnection: (id, peerConnectionRequestStr) => {
-            wsServer?.respondToConnectionRequest(
-                id,
-                peerConnectionRequestStr
-            );
+            wsServer?.respondToConnectionRequest(id, peerConnectionRequestStr);
         },
         trustConnection: (id) => {
             wsServer.trustConnection(id);

@@ -41,7 +41,8 @@ export class PackageInstaller {
         const tarbalUrl = packageInfoJSON.dist.tarball;
         const tarballData = (await rpc().fetch(tarbalUrl)).body as Uint8Array;
         const tarData = new Uint8Array(gzip.unzip(tarballData));
-        const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
+        const nodeModulesDirectory =
+            await rpc().directories.nodeModulesDirectory();
         await rpc().fs.mkdir(nodeModulesDirectory + "/" + packageInfo.name, {
             absolutePath: true
         });

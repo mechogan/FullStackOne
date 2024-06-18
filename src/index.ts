@@ -104,11 +104,7 @@ globalThis.push = (messageType: string, message: string) => {
 
 // use a websocket for nodejs
 const platform = await (rpc() as any).platform();
-const wsPlatforms = [
-    Platform.NODE,
-    Platform.WEBCONTAINER,
-    Platform.DOCKER,
-]
+const wsPlatforms = [Platform.NODE, Platform.WEBCONTAINER, Platform.DOCKER];
 if (wsPlatforms.includes(platform)) {
     const url =
         (self.location.protocol === "http:" ? "ws:" : "wss:") +

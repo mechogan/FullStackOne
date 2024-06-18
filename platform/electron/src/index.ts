@@ -3,7 +3,13 @@ import os from "os";
 import slugify from "slugify";
 import { BrowserWindow, app, protocol, shell } from "electron";
 import { installEsbuild, loadEsbuild } from "./esbuild";
-import { EsbuildFunctions, OpenDirectoryFunction, OpenFunction, PushFunction, main } from "../../node/src/main";
+import {
+    EsbuildFunctions,
+    OpenDirectoryFunction,
+    OpenFunction,
+    PushFunction,
+    main
+} from "../../node/src/main";
 import { SetupDirectories } from "../../../editor/rpc";
 import { Platform } from "../../../src/platforms";
 
@@ -25,21 +31,23 @@ const directories: SetupDirectories = {
     cacheDirectory: ".cache/fullstacked",
     configDirectory,
     nodeModulesDirectory: configDirectory + "/node_modules"
-}
+};
 
-const configDirectoryAbs = directories.rootDirectory + "/" + directories.configDirectory;
+const configDirectoryAbs =
+    directories.rootDirectory + "/" + directories.configDirectory;
 
 const esbuild: EsbuildFunctions = {
     load: () => loadEsbuild(configDirectoryAbs),
-    install: () => installEsbuild(configDirectoryAbs, (data) => {
-        push("FullStacked", "installEsbuild", JSON.stringify(data))
-    })
-}
+    install: () =>
+        installEsbuild(configDirectoryAbs, (data) => {
+            push("FullStacked", "installEsbuild", JSON.stringify(data));
+        })
+};
 
 const open: OpenFunction = (id, project) => {
     let window = runningInstances.get(id);
 
-    if(!window) {
+    if (!window) {
         const hostname = slugify(project.title, { lower: true });
 
         window = new BrowserWindow({
@@ -58,16 +66,16 @@ const open: OpenFunction = (id, project) => {
             hostnames.delete(hostname);
             runningInstances.delete(id);
             close(id);
-        })
+        });
     } else {
         window.reload();
         window.focus();
     }
-}
+};
 
 const push: PushFunction = (id, messageType, message) => {
     const window = runningInstances.get(id);
-    if(!window) return;
+    if (!window) return;
     window.webContents.executeJavaScript(
         `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
     );
@@ -87,9 +95,7 @@ const { handler, close } = main(
     open,
     push,
     openDirectory
-)
-
-
+);
 
 const deepLinksScheme = "fullstacked";
 let launchURL: string = process.argv.find((arg) =>
@@ -99,7 +105,7 @@ const maybeLaunchURL = (maybeURL: string) => {
     if (!maybeURL || !maybeURL.startsWith(deepLinksScheme)) return;
 
     const editor = runningInstances.get("FullStacked");
-    if(editor) {
+    if (editor) {
         push("FullStacked", "launchURL", maybeURL);
     } else {
         launchURL = maybeURL;
@@ -130,7 +136,9 @@ app.on("window-all-closed", () => {
     close("FullStacked").then(() => app.quit());
 });
 
-const protocolHandler: (request: Request) => Promise<Response> = async (request) => {
+const protocolHandler: (request: Request) => Promise<Response> = async (
+    request
+) => {
     const url = new URL(request.url);
     const hostname = url.hostname;
     const id = hostnames.get(hostname);
@@ -141,26 +149,24 @@ const protocolHandler: (request: Request) => Promise<Response> = async (request)
 
     const headers = {
         ["Content-Type"]: response.mimeType
-    }
+    };
 
-    if(response.data) {
-        headers["Content-Length"] = response.data.byteLength.toString()
+    if (response.data) {
+        headers["Content-Length"] = response.data.byteLength.toString();
     }
 
     return new Response(response.data || "", {
         status: response.status,
         headers
     });
-}
+};
 
 app.whenReady().then(async () => {
-    protocol.handle(
-        "http",
-        protocolHandler
-    );
+    protocol.handle("http", protocolHandler);
 
-    open("FullStacked", { title: "localhost", location: null, createdDate: null});
+    open("FullStacked", {
+        title: "localhost",
+        location: null,
+        createdDate: null
+    });
 });
-
-
-

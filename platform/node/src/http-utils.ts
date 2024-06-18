@@ -4,7 +4,7 @@ import http from "http";
 export function respond(response: Response, res: http.ServerResponse) {
     const headers = {
         "content-type": response.mimeType
-    }
+    };
     if (response.data) {
         headers["content-length"] = response.data.byteLength.toString();
     }
@@ -14,7 +14,6 @@ export function respond(response: Response, res: http.ServerResponse) {
     }
     res.end();
 }
-
 
 export const readBody = (request: http.IncomingMessage) =>
     new Promise<Uint8Array>((resolve) => {
