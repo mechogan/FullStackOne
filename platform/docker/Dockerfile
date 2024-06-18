@@ -1,13 +1,12 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini && \
+    npm i -g esbuild@0.21.5
 
-COPY ./package /package
+COPY ./package /fullstacked
 
-RUN npm i -g /package/$(ls /package)
+RUN cd /fullstacked && npm link esbuild
 
-RUN rm -rf /package
+USER node
 
-ENV NO_OPEN=1
-
-CMD ["/sbin/tini", "--", "npx", "fullstacked"]
+CMD ["/sbin/tini", "--", "node", "/fullstacked/index.mjs"]

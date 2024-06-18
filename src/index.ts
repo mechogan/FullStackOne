@@ -1,5 +1,6 @@
 import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
+import { Platform } from "./platforms";
 
 (globalThis as any).process = {
     platform: "browser"
@@ -103,7 +104,12 @@ globalThis.push = (messageType: string, message: string) => {
 
 // use a websocket for nodejs
 const platform = await (rpc() as any).platform();
-if (platform === "node" || platform === "webcontainer") {
+const wsPlatforms = [
+    Platform.NODE,
+    Platform.WEBCONTAINER,
+    Platform.DOCKER,
+]
+if (wsPlatforms.includes(platform)) {
     const url =
         (self.location.protocol === "http:" ? "ws:" : "wss:") +
         "//" +

@@ -58,3 +58,15 @@ if (!esbuildInstall) {
 } else {
     await app();
 }
+
+const windows = new Map<string, Window>();
+onPush["open"] = (subdomain) => {
+    let win = windows.get(subdomain);
+    if(!win || win.closed) {
+        const url = new URL(window.location.href);
+        url.host = subdomain + "." + url.host;
+        win = window.open(url.toString(), "_blank");
+        windows.set(subdomain, win);
+    }
+    win.focus();
+}

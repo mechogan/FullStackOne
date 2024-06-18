@@ -6,9 +6,11 @@ import url from "url";
 import path from "path";
 import ws, { WebSocketServer } from "ws";
 import openURL from "open"
-import { OpenFunction, Platform, PushFunction, main } from "./main";
+import { OpenFunction, PushFunction, main } from "./main";
 import { SetupDirectories } from "../../../editor/rpc";
 import { AddressInfo } from "net";
+import { readBody, respond } from "./http-utils";
+import { Platform } from "../../../src/platforms";
 
 const startingPort = process.env.PORT || 9000;
 
@@ -47,49 +49,18 @@ const open: OpenFunction = (id) => {
 
 const push: PushFunction = (id, messageType, message) => {
     const runningInstance = runningInstances.get(id);
-    if (!runningInstance) return;
-    runningInstance.ws.forEach(ws => ws.send(JSON.stringify({ messageType, message })));
+    runningInstance?.ws.forEach(ws => ws.send(JSON.stringify({ messageType, message })));
 }
-
-const readBody = (request: http.IncomingMessage) =>
-    new Promise<Uint8Array>((resolve) => {
-        const contentLengthStr = request.headers["content-length"] || "0";
-        const contentLength = parseInt(contentLengthStr);
-        if (!contentLength) {
-            resolve(new Uint8Array());
-            return;
-        }
-
-        const body = new Uint8Array(contentLength);
-        let i = 0;
-        request.on("data", (chunk: Buffer) => {
-            for (let j = 0; j < chunk.byteLength; j++) {
-                body[j + i] = chunk[j];
-            }
-            i += chunk.length;
-        });
-        request.on("end", () => resolve(body));
-    });
 
 const createServerHandler = (id: string) =>
     async (req: http.IncomingMessage, res: http.ServerResponse) => {
         const path = req.url;
         const body = await readBody(req);
         const response = await handler(id, path, body);
-        const headers = {
-            "content-type": response.mimeType
-        }
-        if (response.data) {
-            headers["content-length"] = response.data.byteLength.toString();
-        }
-        res.writeHead(response.status, headers);
-        if (response.data) {
-            res.write(response.data);
-        }
-        res.end();
+        respond(response, res);
     }
 
-const createRunningInstance: (id: string) => RunningInstance = (id) => {
+export const createRunningInstance: (id: string) => RunningInstance = (id) => {
     let port = startingPort;
     for (const runningInstance of runningInstances.values()) {
         if (port === (runningInstance.server.address() as AddressInfo).port)

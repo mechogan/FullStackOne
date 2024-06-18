@@ -3,8 +3,9 @@ import os from "os";
 import slugify from "slugify";
 import { BrowserWindow, app, protocol, shell } from "electron";
 import { installEsbuild, loadEsbuild } from "./esbuild";
-import { EsbuildFunctions, OpenDirectoryFunction, OpenFunction, Platform, PushFunction, main } from "../../node/src/main";
+import { EsbuildFunctions, OpenDirectoryFunction, OpenFunction, PushFunction, main } from "../../node/src/main";
 import { SetupDirectories } from "../../../editor/rpc";
+import { Platform } from "../../../src/platforms";
 
 if (require("electron-squirrel-startup")) app.quit();
 
