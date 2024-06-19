@@ -11,9 +11,11 @@ import { build, merge } from "./build";
 import { Project } from "../../../editor/api/projects/types";
 import { randomUUID } from "crypto";
 import { PEER_CONNECTION_TYPE } from "../../../src/connectivity/types";
-import { getComputerName, getNetworkInterfacesInfo } from "./connectivity/utils";
+import {
+    getComputerName,
+    getNetworkInterfacesInfo
+} from "./connectivity/utils";
 import { Platform } from "../../../src/platforms";
-
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -69,7 +71,7 @@ export function main(
         };
     };
 
-    const {initConnectivity, connectivity} = createConnectivity(push);
+    const { initConnectivity, connectivity } = createConnectivity(push);
 
     const adapter = createAdapter(editorDirectory, platform, broadcast);
     const mainAdapter: AdapterEditor = {
@@ -136,12 +138,12 @@ export function main(
         open: (project) => openDirectory(project.location)
     };
 
-    if(platform !== Platform.WEBCONTAINER) {
-        import("./connectivity/bonjour").then(({Bonjour}) => {
+    if (platform !== Platform.WEBCONTAINER) {
+        import("./connectivity/bonjour").then(({ Bonjour }) => {
             wsServer = new WebSocketServer();
             bonjour = new Bonjour(wsServer);
             initConnectivity();
-        })
+        });
     }
 
     const handler = createHandler(mainAdapter);
@@ -411,7 +413,10 @@ function createHandler(mainAdapter: AdapterEditor) {
 let wsServer: WebSocketServer;
 let bonjour: Bonjour;
 
-function createConnectivity(push: PushFunction): {initConnectivity: () => void, connectivity: AdapterEditor["connectivity"]} {
+function createConnectivity(push: PushFunction): {
+    initConnectivity: () => void;
+    connectivity: AdapterEditor["connectivity"];
+} {
     const initConnectivity = () => {
         bonjour.onPeerNearby = (eventType, peerNearby) => {
             push(
@@ -420,7 +425,7 @@ function createConnectivity(push: PushFunction): {initConnectivity: () => void, 
                 JSON.stringify({ eventType, peerNearby })
             );
         };
-    
+
         wsServer.onPeerConnectionLost = (id) => {
             push("FullStacked", "peerConnectionLost", JSON.stringify({ id }));
         };
@@ -438,7 +443,7 @@ function createConnectivity(push: PushFunction): {initConnectivity: () => void, 
         wsServer.onPeerData = (id, data) => {
             push("FullStacked", "peerData", JSON.stringify({ id, data }));
         };
-    }
+    };
 
     const connectivity: AdapterEditor["connectivity"] = {
         infos: () => ({
@@ -488,5 +493,5 @@ function createConnectivity(push: PushFunction): {initConnectivity: () => void, 
         }
     };
 
-    return { initConnectivity, connectivity }
+    return { initConnectivity, connectivity };
 }

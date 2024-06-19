@@ -81,7 +81,7 @@ const createRunningInstance: (id: string) => RunningInstance = (id) => {
         ws.add(webSocket);
         webSocket.on("close", () => {
             ws.delete(webSocket);
-            if(ws.size === 0) cleanup();
+            if (ws.size === 0) cleanup();
         });
     });
 
@@ -92,18 +92,18 @@ const createRunningInstance: (id: string) => RunningInstance = (id) => {
 
 let cleanupTimeout: ReturnType<typeof setTimeout>;
 const cleanup = () => {
-    if(cleanupTimeout) {
+    if (cleanupTimeout) {
         clearTimeout(cleanupTimeout);
     }
     cleanupTimeout = setTimeout(() => {
-        for(const [id, { ws }] of runningInstances.entries()) {
-            if(ws.size === 0) {
+        for (const [id, { ws }] of runningInstances.entries()) {
+            if (ws.size === 0) {
                 stopRunningInstance(id);
             }
         }
         cleanupTimeout = null;
-    }, 10 * 1000) // 10s
-}
+    }, 10 * 1000); // 10s
+};
 
 const stopRunningInstance = (id: string) => {
     const runningInstance = runningInstances.get(id);

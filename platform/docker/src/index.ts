@@ -65,14 +65,14 @@ const createRunningInstance: (
 
 let cleanupTimeout: ReturnType<typeof setTimeout>;
 const cleanup = () => {
-    if(cleanupTimeout) {
+    if (cleanupTimeout) {
         clearTimeout(cleanupTimeout);
     }
     cleanupTimeout = setTimeout(() => {
-        for(const [id, { subdomain, ws, wss }] of runningInstances.entries()) {
-            if(id === "FullStacked") continue;
+        for (const [id, { subdomain, ws, wss }] of runningInstances.entries()) {
+            if (id === "FullStacked") continue;
 
-            if(ws.size === 0) {
+            if (ws.size === 0) {
                 wss.close(() => {
                     subdomains.delete(subdomain);
                     runningInstances.delete(id);
@@ -81,8 +81,8 @@ const cleanup = () => {
             }
         }
         cleanupTimeout = null;
-    }, 10 * 1000) // 10s
-}
+    }, 10 * 1000); // 10s
+};
 
 const open: OpenFunction = (id, project) => {
     let runningInstance = runningInstances.get(id);
