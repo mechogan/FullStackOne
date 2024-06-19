@@ -12,7 +12,7 @@ import { AddressInfo } from "net";
 import { readBody, respond } from "./http-utils";
 import { Platform } from "../../../src/platforms";
 
-const startingPort = process.env.PORT || 9000;
+const startingPort = parseInt(process.env.PORT) || 9000;
 
 type RunningInstance = {
     server: http.Server;
@@ -45,14 +45,13 @@ const open: OpenFunction = (id) => {
 
     const port = (runningInstance.server.address() as AddressInfo).port;
 
-    if (!process.env.NO_OPEN) {
+    if (!process.env.NO_OPEN && runningInstance.ws.size === 0) {
         openURL(`http://localhost:${port}`);
     }
 };
 
 const push: PushFunction = (id, messageType, message) => {
-    console.log(id, messageType, message);
-    const runningInstance = runningInstances.get(id);
+    const runningInstance = runningInstances.get(id || "FullStacked");
     runningInstance?.ws.forEach((ws) =>
         ws.send(JSON.stringify({ messageType, message }))
     );
@@ -67,7 +66,7 @@ const createServerHandler =
         respond(response, res);
     };
 
-export const createRunningInstance: (id: string) => RunningInstance = (id) => {
+const createRunningInstance: (id: string) => RunningInstance = (id) => {
     let port = startingPort;
     for (const runningInstance of runningInstances.values()) {
         if (port === (runningInstance.server.address() as AddressInfo).port)
@@ -82,9 +81,7 @@ export const createRunningInstance: (id: string) => RunningInstance = (id) => {
         ws.add(webSocket);
         webSocket.on("close", () => {
             ws.delete(webSocket);
-            if (ws.size === 0) {
-                stopRunningInstance(id);
-            }
+            if(ws.size === 0) cleanup();
         });
     });
 
@@ -92,6 +89,21 @@ export const createRunningInstance: (id: string) => RunningInstance = (id) => {
 
     return { server, ws };
 };
+
+let cleanupTimeout: ReturnType<typeof setTimeout>;
+const cleanup = () => {
+    if(cleanupTimeout) {
+        clearTimeout(cleanupTimeout);
+    }
+    cleanupTimeout = setTimeout(() => {
+        for(const [id, { ws }] of runningInstances.entries()) {
+            if(ws.size === 0) {
+                stopRunningInstance(id);
+            }
+        }
+        cleanupTimeout = null;
+    }, 10 * 1000) // 10s
+}
 
 const stopRunningInstance = (id: string) => {
     const runningInstance = runningInstances.get(id);

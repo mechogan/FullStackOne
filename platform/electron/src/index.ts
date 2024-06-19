@@ -74,9 +74,8 @@ const open: OpenFunction = (id, project) => {
 };
 
 const push: PushFunction = (id, messageType, message) => {
-    const window = runningInstances.get(id);
-    if (!window) return;
-    window.webContents.executeJavaScript(
+    const window = runningInstances.get(id || "FullStacked");
+    window?.webContents.executeJavaScript(
         `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
     );
 };

@@ -1,4 +1,3 @@
-import child_process from "child_process";
 import os from "os";
 import {
     Bonjour as BonjourService,
@@ -14,6 +13,7 @@ import {
     Peer,
     PeerNearbyBonjour
 } from "../../../../src/connectivity/types";
+import { getNetworkInterfacesInfo } from "./utils";
 
 export class Bonjour implements Advertiser, Browser {
     onPeerNearby: (eventType: "new" | "lost", peerNearby: PeerNearby) => void;
@@ -127,39 +127,5 @@ export class Bonjour implements Advertiser, Browser {
 
     stopAdvertising(): void {
         this.bonjour.unpublishAll();
-    }
-}
-
-export function getNetworkInterfacesInfo(ipv4Only = false) {
-    const networkInterfaces = os.networkInterfaces();
-
-    const interfaces = ["en", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];
-
-    return Object.entries(networkInterfaces)
-        .filter(([netInterface, _]) =>
-            interfaces.find((prefix) => netInterface.startsWith(prefix))
-        )
-        .map(([netInterface, infos]) => ({
-            name: netInterface,
-            addresses:
-                infos
-                    ?.filter((iface) =>
-                        ipv4Only ? iface.family === "IPv4" : true
-                    )
-                    .map(({ address }) => address) ?? []
-        }));
-}
-
-export function getComputerName() {
-    switch (process.platform) {
-        case "win32":
-            return process.env.COMPUTERNAME;
-        case "darwin":
-            return child_process
-                .execSync("scutil --get ComputerName")
-                .toString()
-                .trim();
-        default:
-            return os.hostname();
     }
 }

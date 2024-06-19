@@ -54,18 +54,35 @@ const createRunningInstance: (
         webSocket.on("close", () => {
             ws.delete(webSocket);
 
-            if (ws.size === 0 && id !== "FullStacked") {
-                wss.close(() => {
-                    subdomains.delete(subdomain);
-                    runningInstances.delete(id);
-                    close(id);
-                });
+            if (ws.size === 0) {
+                cleanup();
             }
         });
     });
 
     return { subdomain, ws, wss };
 };
+
+let cleanupTimeout: ReturnType<typeof setTimeout>;
+const cleanup = () => {
+    if(cleanupTimeout) {
+        clearTimeout(cleanupTimeout);
+    }
+    cleanupTimeout = setTimeout(() => {
+        for(const [id, { subdomain, ws, wss }] of runningInstances.entries()) {
+            if(id === "FullStacked") continue;
+
+            if(ws.size === 0) {
+                wss.close(() => {
+                    subdomains.delete(subdomain);
+                    runningInstances.delete(id);
+                    close(id);
+                });
+            }
+        }
+        cleanupTimeout = null;
+    }, 10 * 1000) // 10s
+}
 
 const open: OpenFunction = (id, project) => {
     let runningInstance = runningInstances.get(id);
@@ -81,7 +98,7 @@ const open: OpenFunction = (id, project) => {
 };
 
 const push: PushFunction = (id, messageType, message) => {
-    const runningInstance = runningInstances.get(id);
+    const runningInstance = runningInstances.get(id || "FullStacked");
     runningInstance?.ws.forEach((ws) =>
         ws.send(JSON.stringify({ messageType, message }))
     );

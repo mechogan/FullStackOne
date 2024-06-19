@@ -1,20 +1,19 @@
 import type EsbuildModuleType from "esbuild";
+import type { Bonjour } from "./connectivity/bonjour";
 import fs from "fs";
 import mime from "mime";
 import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
-import {
-    Bonjour,
-    getComputerName,
-    getNetworkInterfacesInfo
-} from "./connectivity/bonjour";
 import { createAdapter } from "./adapter";
 import { Adapter } from "../../../src/adapter/fullstacked";
 import { build, merge } from "./build";
 import { Project } from "../../../editor/api/projects/types";
 import { randomUUID } from "crypto";
 import { PEER_CONNECTION_TYPE } from "../../../src/connectivity/types";
+import { getComputerName, getNetworkInterfacesInfo } from "./connectivity/utils";
+import { Platform } from "../../../src/platforms";
+
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -70,12 +69,14 @@ export function main(
         };
     };
 
+    const {initConnectivity, connectivity} = createConnectivity(push);
+
     const adapter = createAdapter(editorDirectory, platform, broadcast);
     const mainAdapter: AdapterEditor = {
         ...adapter,
         directories,
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
-        connectivity: createConnectivity(push),
+        connectivity,
         esbuild: {
             check: () => !!esbuildModule,
             install: async () => {
@@ -134,6 +135,14 @@ export function main(
         },
         open: (project) => openDirectory(project.location)
     };
+
+    if(platform !== Platform.WEBCONTAINER) {
+        import("./connectivity/bonjour").then(({Bonjour}) => {
+            wsServer = new WebSocketServer();
+            bonjour = new Bonjour(wsServer);
+            initConnectivity();
+        })
+    }
 
     const handler = createHandler(mainAdapter);
     const close = (id: string) => {
@@ -399,61 +408,63 @@ function createHandler(mainAdapter: AdapterEditor) {
     };
 }
 
-const wsServer = new WebSocketServer();
-const bonjour = new Bonjour(wsServer);
+let wsServer: WebSocketServer;
+let bonjour: Bonjour;
 
-function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
-    bonjour.onPeerNearby = (eventType, peerNearby) => {
-        push(
-            "FullStacked",
-            "peerNearby",
-            JSON.stringify({ eventType, peerNearby })
-        );
-    };
+function createConnectivity(push: PushFunction): {initConnectivity: () => void, connectivity: AdapterEditor["connectivity"]} {
+    const initConnectivity = () => {
+        bonjour.onPeerNearby = (eventType, peerNearby) => {
+            push(
+                "FullStacked",
+                "peerNearby",
+                JSON.stringify({ eventType, peerNearby })
+            );
+        };
+    
+        wsServer.onPeerConnectionLost = (id) => {
+            push("FullStacked", "peerConnectionLost", JSON.stringify({ id }));
+        };
+        wsServer.onPeerConnectionRequest = (id, peerConnectionRequestStr) => {
+            push(
+                "FullStacked",
+                "peerConnectionRequest",
+                JSON.stringify({
+                    id,
+                    type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
+                    peerConnectionRequestStr
+                })
+            );
+        };
+        wsServer.onPeerData = (id, data) => {
+            push("FullStacked", "peerData", JSON.stringify({ id, data }));
+        };
+    }
 
-    wsServer.onPeerConnectionLost = (id) => {
-        push("FullStacked", "peerConnectionLost", JSON.stringify({ id }));
-    };
-    wsServer.onPeerConnectionRequest = (id, peerConnectionRequestStr) => {
-        push(
-            "FullStacked",
-            "peerConnectionRequest",
-            JSON.stringify({
-                id,
-                type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
-                peerConnectionRequestStr
-            })
-        );
-    };
-    wsServer.onPeerData = (id, data) => {
-        push("FullStacked", "peerData", JSON.stringify({ id, data }));
-    };
-
-    return {
+    const connectivity: AdapterEditor["connectivity"] = {
         infos: () => ({
-            port: wsServer.port,
+            port: wsServer?.port,
             networkInterfaces: getNetworkInterfacesInfo()
         }),
         name: getComputerName(),
         peers: {
             nearby: () => {
-                return bonjour.getPeersNearby();
+                return bonjour?.getPeersNearby();
             }
         },
         advertise: {
             start: (me, networkInterface) => {
-                bonjour.startAdvertising(me, networkInterface);
+                bonjour?.startAdvertising(me, networkInterface);
             },
             stop: () => {
-                bonjour.stopAdvertising();
+                bonjour?.stopAdvertising();
             }
         },
         browse: {
             start: () => {
-                bonjour.startBrowsing();
+                bonjour?.startBrowsing();
             },
             stop: () => {
-                bonjour.stopBrowsing();
+                bonjour?.stopBrowsing();
             }
         },
         open: null,
@@ -462,13 +473,13 @@ function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
             wsServer?.respondToConnectionRequest(id, peerConnectionRequestStr);
         },
         trustConnection: (id) => {
-            wsServer.trustConnection(id);
+            wsServer?.trustConnection(id);
         },
         disconnect: (id) => {
-            wsServer.disconnect(id);
+            wsServer?.disconnect(id);
         },
         send: (id, data) => {
-            wsServer.send(id, data);
+            wsServer?.send(id, data);
         },
         convey: (data) => {
             for (const instance of instances.values()) {
@@ -476,4 +487,6 @@ function createConnectivity(push: PushFunction): AdapterEditor["connectivity"] {
             }
         }
     };
+
+    return { initConnectivity, connectivity }
 }
