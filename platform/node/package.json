@@ -25,6 +25,6 @@
     "devDependencies": {
         "bonjour-service": "^1.2.1",
         "mime": "^4.0.3",
-        "ws": "^8.17.0"
+        "ws": "^8.17.1"
     }
 }
