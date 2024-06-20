@@ -1,5 +1,6 @@
 import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
+import type http from "http";
 import fs from "fs";
 import mime from "mime";
 import { decodeUint8Array } from "../../../src/Uint8Array";
@@ -10,7 +11,6 @@ import { Adapter } from "../../../src/adapter/fullstacked";
 import { build, merge } from "./build";
 import { Project } from "../../../editor/api/projects/types";
 import { randomUUID } from "crypto";
-import { PEER_CONNECTION_TYPE } from "../../../src/connectivity/types";
 import {
     getComputerName,
     getNetworkInterfacesInfo
@@ -51,7 +51,8 @@ export function main(
     esbuild: EsbuildFunctions,
     open: OpenFunction,
     push: PushFunction,
-    openDirectory: OpenDirectoryFunction
+    openDirectory: OpenDirectoryFunction,
+    server?: http.Server
 ) {
     let esbuildModule: typeof EsbuildModuleType;
     esbuild.load().then((e) => (esbuildModule = e));
@@ -426,19 +427,9 @@ function createConnectivity(push: PushFunction): {
             );
         };
 
-        wsServer.onPeerConnectionLost = (id) => {
-            push("FullStacked", "peerConnectionLost", JSON.stringify({ id }));
-        };
-        wsServer.onPeerConnectionRequest = (id, peerConnectionRequestStr) => {
-            push(
-                "FullStacked",
-                "peerConnectionRequest",
-                JSON.stringify({
-                    id,
-                    type: PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
-                    peerConnectionRequestStr
-                })
-            );
+        
+        wsServer.onPeerConnection = (id, type, state) => {
+            push("FullStacked", "peerConnection", JSON.stringify({ id, type, state }))
         };
         wsServer.onPeerData = (id, data) => {
             push("FullStacked", "peerData", JSON.stringify({ id, data }));
@@ -473,18 +464,14 @@ function createConnectivity(push: PushFunction): {
             }
         },
         open: null,
-        requestConnection: null,
-        respondToRequestConnection: (id, peerConnectionRequestStr) => {
-            wsServer?.respondToConnectionRequest(id, peerConnectionRequestStr);
-        },
         trustConnection: (id) => {
             wsServer?.trustConnection(id);
         },
         disconnect: (id) => {
             wsServer?.disconnect(id);
         },
-        send: (id, data) => {
-            wsServer?.send(id, data);
+        send: (id, data, pairing) => {
+            wsServer?.send(id, data, pairing);
         },
         convey: (data) => {
             for (const instance of instances.values()) {

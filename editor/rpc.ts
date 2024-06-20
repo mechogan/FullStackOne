@@ -43,13 +43,8 @@ export type AdapterEditor = Adapter & {
         };
         open(id: string, me: Peer): void;
         disconnect(id: string): void;
-        requestConnection(id: string, peerConnectionRequestStr: string): void;
-        respondToRequestConnection(
-            id: string,
-            peerConnectionRequestStr: string
-        ): void;
         trustConnection(id: string): void;
-        send(id: string, data: string): void;
+        send(id: string, data: string, pairing: boolean): void;
         convey(data: string): void;
     };
 };

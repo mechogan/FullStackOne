@@ -17,12 +17,22 @@ esbuild.buildSync({
     bundle: true,
     platform: "node",
     format: "esm",
-    external: ["esbuild"],
+    external: ["esbuild", "puppeteer-stream"],
     banner: {
         js: 'import { createRequire } from "module";const require = createRequire(import.meta.url);'
     }
 });
 
-child_process.execSync("docker build -t fullstackedorg/editor .", {
-    stdio: "inherit"
+esbuild.buildSync({
+    entryPoints: ["src/remote/client/index.ts"],
+    outfile: "package/dist/index.js",
+    bundle: true,
+    platform: "browser",
+    format: "esm"
 });
+
+fs.cpSync("src/remote/client/index.html", "package/dist/index.html");
+
+// child_process.execSync("docker build -t fullstackedorg/editor .", {
+//     stdio: "inherit"
+// });

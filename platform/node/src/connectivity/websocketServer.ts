@@ -1,21 +1,27 @@
 import crypto from "crypto";
+import type http from "http";
 import { WebSocketServer as WSS, WebSocket } from "ws";
-import { ConnecterResponder } from "../../../../src/connectivity/connecter/responder";
+import { Connecter } from "../../../../src/connectivity/connecter";
+import { PEER_CONNECTION_TYPE } from "../../../../src/connectivity/types";
+import { AddressInfo } from "net";
 
-export class WebSocketServer implements ConnecterResponder {
-    port = randomIntFromInterval(10000, 60000);
-    wss = new WSS({ port: this.port });
+export class WebSocketServer implements Connecter {
+    port: number;
+    wss: WSS;
 
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
+    connectionRequests = new Set<string>();
 
-    onPeerConnectionRequest: (
-        id: string,
-        peerConnectionRequestStr: string
-    ) => void;
+    onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
     onPeerData: (id: string, data: string) => void;
-    onPeerConnectionLost: (id: string) => void;
 
-    constructor() {
+    constructor(server?: http.Server) {
+        const serverPort = (server?.address?.() as AddressInfo)?.port;
+        this.wss = serverPort 
+            ? new WSS({ server }) 
+            : new WSS({ port: randomIntFromInterval(10000, 60000) });
+        this.port = (this.wss.address() as AddressInfo).port;
+
         this.wss.on("connection", (ws) => {
             const id = crypto.randomUUID();
 
@@ -25,7 +31,7 @@ export class WebSocketServer implements ConnecterResponder {
                 );
                 if (indexOf <= -1) return;
                 this.connections.splice(indexOf, 1);
-                this.onPeerConnectionLost?.(id);
+                this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER, "close");
             });
 
             this.connections.push({
@@ -33,6 +39,8 @@ export class WebSocketServer implements ConnecterResponder {
                 trusted: false,
                 ws
             });
+
+            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER, "open");
 
             ws.onmessage = (message) => {
                 if (message.type === "binary") {
@@ -48,9 +56,8 @@ export class WebSocketServer implements ConnecterResponder {
                     (conn) => conn.ws === ws
                 );
                 if (!connection) {
+                    ws.close();
                     return;
-                } else if (!connection.trusted) {
-                    this.onPeerConnectionRequest?.(connection.id, data);
                 } else {
                     this.onPeerData?.(connection.id, data);
                 }
@@ -58,13 +65,8 @@ export class WebSocketServer implements ConnecterResponder {
         });
     }
 
-    respondToConnectionRequest(
-        id: string,
-        peerConnectionResponseStr: string
-    ): void {
-        const connection = this.connections.find((conn) => conn.id === id);
-        if (!connection) return;
-        connection.ws.send(peerConnectionResponseStr);
+    open(id: string): void {
+        console.log("Web Socket Server is not supposed to open new connections");
     }
 
     trustConnection(id: string) {
@@ -78,9 +80,9 @@ export class WebSocketServer implements ConnecterResponder {
         this.connections[indexOf]?.ws.close();
     }
 
-    send(id: string, data: string): void {
+    send(id: string, data: string, pairing = false): void {
         const connection = this.connections.find((conn) => conn.id === id);
-        if (!connection?.trusted) return;
+        if (!connection?.trusted && !pairing) return;
         connection.ws.send(data);
     }
 }

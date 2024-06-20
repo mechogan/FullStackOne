@@ -52,50 +52,66 @@ export enum PEER_CONNECTION_STATE {
 type PeerConnectionCommon = {
     id: string;
     type: PEER_CONNECTION_TYPE;
+    state: PEER_CONNECTION_STATE;
+};
+
+export type PeerConnectionNotConnected = PeerConnectionCommon & {
+    peer?: Peer;
+    state: PEER_CONNECTION_STATE.NOT_CONNECTED;
+};
+
+type RecursivePartial<T> = {
+    [P in keyof T]?: RecursivePartial<T[P]>;
+};
+
+export type PeerConnectionPairing = PeerConnectionCommon & {
+    peer: RecursivePartial<PeerTrusted>;
+    state: PEER_CONNECTION_STATE.PAIRING;
+    validation: number;
 };
 
 export type PeerConnectionUntrusted = PeerConnectionCommon & {
-    peer: Peer;
-    state:
-        | PEER_CONNECTION_STATE.UNTRUSTED
-        | PEER_CONNECTION_STATE.NOT_CONNECTED;
+    peer: PeerTrusted;
+    state: PEER_CONNECTION_STATE.UNTRUSTED;
+    challenged: boolean;
+    validation: number;
 };
-
-export type PeerConnectionPairing = PeerConnectionCommon &
-    Omit<PeerConnectionRequestPairing, "request_type"> & {
-        state: PEER_CONNECTION_STATE.PAIRING;
-    };
 
 export type PeerConnectionTrusted = PeerConnectionCommon & {
     peer: PeerTrusted;
     state: PEER_CONNECTION_STATE.CONNECTED;
+    validation: number;
 };
 
 export type PeerConnection =
+    PeerConnectionNotConnected
     | PeerConnectionUntrusted
     | PeerConnectionPairing
     | PeerConnectionTrusted;
 
-export enum PEER_CONNECTION_REQUEST_TYPE {
-    PAIRING = 0,
-    TRUSTED = 1
+export enum PEER_CONNECTION_PAIRING_DATA_TYPE {
+    REQUEST,
+    TOKEN_EXCHANGE,
+    TOKEN_CHALLENGE,
+    ACCEPTED
 }
 
-export type PeerConnectionRequestCommon = {
-    peer: Peer;
-    secret: string;
-    request_type: PEER_CONNECTION_REQUEST_TYPE;
-};
+export type PeerConnectionRequest = {
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST,
+    peer: Peer,
+    validation: number
+}
 
-export type PeerConnectionRequestPairing = PeerConnectionRequestCommon & {
-    request_type: PEER_CONNECTION_REQUEST_TYPE.PAIRING;
-    validation: number;
-    key: string;
-};
+export type PeerConnectionTokenExchange = Omit<PeerConnectionRequest, "type"> & {
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE,
+    secret: string,
+    key: string
+}
 
-export type PeerConnectionRequest =
-    | PeerConnectionRequestCommon
-    | PeerConnectionRequestPairing;
+export type PeerConnectionTokenChallenge = Omit<PeerConnectionRequest, "type"> & {
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE,
+    secret: string
+}
 
 export type PeerData = {
     peerConnection: PeerConnectionTrusted;

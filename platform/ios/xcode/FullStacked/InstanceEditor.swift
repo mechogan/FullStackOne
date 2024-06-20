@@ -69,32 +69,16 @@ class AdapterEditor: Adapter {
             InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
         }
         
-        self.multipeer.onOpenConnection = {id in
-            let message = ["id": id, "type": 3]
-            InstanceEditor.singleton?.push(messageType: "openConnection", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionRequest = {id, peerConnectionRequestStr in
+        self.multipeer.onPeerConnection = { id, type, state in
             let message = [
                 "id": id,
-                "type": 3,
-                "peerConnectionRequestStr": peerConnectionRequestStr
+                "type": type,
+                "state": state
             ]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionRequest", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionResponse = {id, peerConnectionResponseStr in
-            let message = [
-                "id": id,
-                "type": 3,
-                "peerConnectionResponseStr": peerConnectionResponseStr
-            ]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionResponse", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionLost = {id in
-            let message = ["id": id]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionLost", message: JSON(message).rawString()!)
+            InstanceEditor.singleton?.push(messageType: "peerConnection", message: JSON(message).rawString()!)
         }
         
-        self.multipeer.onPeerData = {id, data in
+        self.multipeer.onPeerData = { id, data in
             let message = [
                 "id": id,
                 "data": data
@@ -122,10 +106,10 @@ class AdapterEditor: Adapter {
         switch(methodPath.first) {
             case "directories":
                 switch(methodPath[1]) {
-                    case "root": return done(self.rootDirectory)
-                    case "cache": return done(self.cacheDirectory)
-                    case "config": return done(self.configDirectory)
-                    case "nodeModules": return done(self.nodeModulesDirectory)
+                    case "rootDirectory": return done(self.rootDirectory)
+                    case "cacheDirectory": return done(self.cacheDirectory)
+                    case "configDirectory": return done(self.configDirectory)
+                    case "nodeModulesDirectory": return done(self.nodeModulesDirectory)
                     default: break
                 }
                 break
@@ -298,17 +282,11 @@ class AdapterEditor: Adapter {
                 case "disconnect":
                     self.multipeer.disconnect(id: json[0].stringValue)
                     return done(true)
-                case "requestConnection":
-                    self.multipeer.requestConnection(id: json[0].stringValue, peerConnectionRequestStr: json[1].stringValue)
-                    return done(true)
-                case "respondToRequestConnection":
-                    self.multipeer.respondToConnectionRequest(id: json[0].stringValue, peerConnectionResponseStr: json[1].stringValue)
-                    return done(true)
                 case "trustConnection":
                     self.multipeer.trustConnection(id: json[0].stringValue)
                     return done(true)
                 case "send":
-                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue)
+                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue, pairing: json[2].boolValue)
                     return done(true)
                 case "convey":
                     RunningInstances.singleton!.instances.forEach({instance in

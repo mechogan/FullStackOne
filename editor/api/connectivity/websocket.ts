@@ -1,16 +1,12 @@
-import { ConnecterRequester } from "../../../src/connectivity/connecter/requester";
-import { PeerNearbyBonjour } from "../../../src/connectivity/types";
+import { Connecter } from "../../../src/connectivity/connecter";
+import { PEER_CONNECTION_TYPE, PeerNearbyBonjour } from "../../../src/connectivity/types";
 
-export class ConnectWebSocket implements ConnecterRequester {
+export class ConnectWebSocket implements Connecter {
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
+    manualRequests = new Set<string>();
 
-    onPeerConnectionResponse: (
-        id: string,
-        peerConnectionRequestStr: string
-    ) => void;
     onPeerData: (id: string, data: string) => void;
-    onPeerConnectionLost: (id: string) => void;
-    onOpenConnection: (id: string) => void;
+    onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
 
     private tryToConnectWebSocket(
         address: string,
@@ -74,7 +70,7 @@ export class ConnectWebSocket implements ConnecterRequester {
         });
 
         const onopen = () => {
-            this.onOpenConnection?.(id);
+            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET, "open");
         };
         ws.onopen = onopen;
         if (ws.readyState === WebSocket.OPEN) {
@@ -87,7 +83,7 @@ export class ConnectWebSocket implements ConnecterRequester {
             );
             if (indexOf <= -1) return;
             this.connections.splice(indexOf, 1);
-            this.onPeerConnectionLost?.(id);
+            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET, "close");
         };
         ws.onmessage = (message) => {
             if (message.type === "binary") {
@@ -96,18 +92,12 @@ export class ConnectWebSocket implements ConnecterRequester {
             }
 
             const connection = this.connections.find((conn) => conn.id === id);
-            if (!connection.trusted) {
-                this.onPeerConnectionResponse?.(id, message.data);
+            if(!connection) {
+                ws.close()
             } else {
                 this.onPeerData?.(id, message.data);
             }
         };
-    }
-
-    requestConnection(id: string, peerConnectionRequestStr: string): void {
-        const connection = this.connections.find((conn) => conn.id === id);
-        if (!connection) return;
-        connection.ws.send(peerConnectionRequestStr);
     }
 
     trustConnection(id: string): void {
@@ -121,9 +111,9 @@ export class ConnectWebSocket implements ConnecterRequester {
         this.connections[indexOf]?.ws.close();
     }
 
-    send(id: string, data: string): void {
+    send(id: string, data: string, pairing = false): void {
         const connection = this.connections.find((conn) => conn.id === id);
-        if (!connection?.trusted) return;
+        if (!connection?.trusted && !pairing) return;
         connection.ws.send(data);
     }
 }
