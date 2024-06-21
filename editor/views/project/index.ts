@@ -10,7 +10,7 @@ import {
 } from "../../constants";
 import GitWidget from "./git-widget";
 import type esbuild from "esbuild";
-import type { Project as TypeProject } from "../../api/projects/types";
+import type { Project as TypeProject } from "../../api/config/types";
 import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";

@@ -1,10 +1,14 @@
 import crypto from "crypto";
+import http from "http";
 import { WebSocketServer as WSS, WebSocket } from "ws";
 import { Connecter } from "../../../../src/connectivity/connecter";
-import { PEER_CONNECTION_TYPE } from "../../../../src/connectivity/types";
+import { PEER_CONNECTION_TYPE, Peer } from "../../../../src/connectivity/types";
+import { Advertiser } from "../../../../src/connectivity/advertiser";
 
-export class WebSocketServer implements Connecter {
+export class WebSocketServer implements Connecter, Advertiser {
     port = 14000;
+    advertising: Peer = null;
+    server: http.Server;
     wss: WSS;
 
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
@@ -19,7 +23,9 @@ export class WebSocketServer implements Connecter {
             this.port = parsedInt && !isNaN(parsedInt) ? parsedInt : this.port;
         }
 
-        this.wss = new WSS({ port: this.port })
+        this.server = http.createServer(this.requestHandler.bind(this));
+        this.server.listen(this.port);
+        this.wss = new WSS({ server: this.server })
 
         this.wss.on("connection", (ws) => {
             const id = crypto.randomUUID();
@@ -62,6 +68,29 @@ export class WebSocketServer implements Connecter {
                 }
             };
         });
+    }
+
+    requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
+        if(!this.advertising) {
+            res.writeHead(403);
+            return res.end();
+        }
+
+        const response = JSON.stringify(this.advertising);
+        res.writeHead(200, {
+            "content-type": "application/json",
+            "content-length": response.length,
+            "access-aontrol-allow-origin": "*",
+            "access-control-allow-methods": "GET"
+        });
+        res.end(response);
+    }
+
+    startAdvertising(me: Peer): void {
+        this.advertising = me;
+    }
+    stopAdvertising(): void {
+        this.advertising = null;
     }
 
     open(id: string): void {

@@ -73,6 +73,7 @@ const connectivityAPI = {
                 },
                 autoConnect: false,
                 defaultNetworkInterface: null,
+                webAddreses: [],
                 peersTrusted: []
             };
             await config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
@@ -123,6 +124,7 @@ const connectivityAPI = {
     connect(peerNearby: PeerNearby) {
         let id: string;
         switch (peerNearby.type) {
+            case PEER_ADVERSTISING_METHOD.WEB:
             case PEER_ADVERSTISING_METHOD.BONJOUR:
                 id = crypto.randomUUID();
                 connecterWebSocket.open(id, peerNearby);

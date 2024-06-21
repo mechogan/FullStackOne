@@ -1,5 +1,5 @@
 import type { SetupDirectories } from "../../../editor/rpc";
-import type { Project } from "../../../editor/api/projects/types";
+import type { Project } from "../../../editor/api/config/types";
 import http from "http";
 import path from "path";
 import os from "os";

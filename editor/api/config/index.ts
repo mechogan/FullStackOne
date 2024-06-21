@@ -1,7 +1,7 @@
 import rpc from "../../rpc";
 import git from "../git";
 import projects from "../projects";
-import { Project, GitAuths, Connectivity } from "../projects/types";
+import { Project, GitAuths, Connectivity } from "../config/types";
 import { CONFIG_TYPE } from "./types";
 
 type DATA_TYPE = {

@@ -3,7 +3,7 @@ import { FileTree } from "../file-tree";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 import projectView from "../project";
 
-import type { Project } from "../../api/projects/types";
+import type { Project } from "../../api/config/types";
 import api from "../../api";
 import stackNavigation from "../../stack-navigation";
 

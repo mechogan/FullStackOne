@@ -1,5 +1,5 @@
 import { Connecter } from "../../../src/connectivity/connecter";
-import { PEER_CONNECTION_TYPE, PeerNearbyBonjour } from "../../../src/connectivity/types";
+import { PEER_CONNECTION_TYPE, PeerNearbyBonjour, PeerNearbyWeb } from "../../../src/connectivity/types";
 
 export class ConnectWebSocket implements Connecter {
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
@@ -44,7 +44,7 @@ export class ConnectWebSocket implements Connecter {
         });
     }
 
-    async open(id: string, peerNearby: PeerNearbyBonjour) {
+    async open(id: string, peerNearby: PeerNearbyBonjour | PeerNearbyWeb) {
         let ws: WebSocket;
 
         for (const address of peerNearby.addresses) {

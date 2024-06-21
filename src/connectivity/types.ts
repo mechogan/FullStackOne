@@ -17,23 +17,30 @@ export type PeerTrusted = Peer & {
 export enum PEER_ADVERSTISING_METHOD {
     UNKNOWN = 0,
     BONJOUR = 1,
-    IOS_MULTIPEER = 2
+    IOS_MULTIPEER = 2,
+    WEB = 3
+}
+
+export type PeerNearbyWeb = {
+    type: PEER_ADVERSTISING_METHOD.WEB;
+    peer: Peer;
+    address: string;
 }
 
 export type PeerNearbyBonjour = {
-    peer: Peer;
     type: PEER_ADVERSTISING_METHOD.BONJOUR;
+    peer: Peer;
     addresses: string[];
     port: number;
 };
 
 export type PeerNearbyIOSMultiPeer = {
+    type: PEER_ADVERSTISING_METHOD.IOS_MULTIPEER;
     id: string;
     peer: Peer;
-    type: PEER_ADVERSTISING_METHOD.IOS_MULTIPEER;
 };
 
-export type PeerNearby = PeerNearbyBonjour | PeerNearbyIOSMultiPeer;
+export type PeerNearby = PeerNearbyBonjour | PeerNearbyIOSMultiPeer | PeerNearbyWeb;
 
 export enum PEER_CONNECTION_TYPE {
     UNKNOWN = 0,

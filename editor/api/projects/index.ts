@@ -1,6 +1,6 @@
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
-import { Project } from "./types";
+import { Project } from "../config/types";
 import rpc from "../../rpc";
 import * as zip from "@zip.js/zip.js";
 import zipDirectory from "./zip";

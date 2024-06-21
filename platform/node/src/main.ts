@@ -8,7 +8,7 @@ import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
 import { Adapter } from "../../../src/adapter/fullstacked";
 import { build, merge } from "./build";
-import { Project } from "../../../editor/api/projects/types";
+import { Project } from "../../../editor/api/config/types";
 import { randomUUID } from "crypto";
 import {
     getComputerName,

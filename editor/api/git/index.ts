@@ -1,6 +1,6 @@
 import git from "isomorphic-git";
 import { Buffer as globalBuffer } from "buffer";
-import { Project } from "../projects/types";
+import { GitAuths, Project } from "../config/types";
 import URL from "url-parse";
 import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
@@ -251,11 +251,11 @@ export default {
     },
     saveGitAuth,
     async getAllAuths() {
-        const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
+        const gitAuths: GitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
         // remove passwords
         Object.entries(gitAuths).forEach(([host, auth]) => {
-            const { password, ...rest } = auth;
+            const { password, ...rest } = auth as any;
             gitAuths[host] = rest;
         });
 

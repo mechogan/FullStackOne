@@ -1,6 +1,6 @@
 import { Adapter } from "../src/adapter/fullstacked";
 import type { Peer, PeerNearby } from "../src/connectivity/types";
-import type { Project } from "./api/projects/types";
+import type { Project } from "./api/config/types";
 import type esbuild from "esbuild";
 
 export type SetupDirectories = {
