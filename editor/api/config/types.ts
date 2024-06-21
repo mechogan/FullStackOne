@@ -1,4 +1,4 @@
-import { Peer, PeerTrusted } from "../../../src/connectivity/types";
+import { Peer, PeerTrusted, WebAddress } from "../../../src/connectivity/types";
 
 export enum CONFIG_TYPE {
     PROJECTS = "projects",
@@ -30,9 +30,6 @@ export type Connectivity = {
     me: Peer;
     autoConnect: boolean;
     defaultNetworkInterface: string;
-    webAddreses: {
-        address: string,
-        secure: boolean
-    }[];
+    webAddreses: WebAddress[];
     peersTrusted: PeerTrusted[];
 };

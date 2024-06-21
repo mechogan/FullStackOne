@@ -4,7 +4,7 @@ import child_process from "child_process";
 export function getNetworkInterfacesInfo(ipv4Only = false) {
     const networkInterfaces = os.networkInterfaces();
 
-    const interfaces = ["en", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];
+    const interfaces = ["en", "eth", "wlan", "WiFi", "Wi-Fi", "Ethernet", "wlp"];
 
     return Object.entries(networkInterfaces)
         .filter(([netInterface, _]) =>

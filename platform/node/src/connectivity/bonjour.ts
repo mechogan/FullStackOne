@@ -92,6 +92,8 @@ export class Bonjour implements Advertiser, Browser {
     async startAdvertising(me: Peer, networkInterface?: string) {
         this.advertiser?.stop();
 
+        this.wsServer.advertising = me;
+
         if (networkInterface !== this.networkInterface) {
             this.networkInterface = networkInterface;
 
@@ -127,5 +129,6 @@ export class Bonjour implements Advertiser, Browser {
 
     stopAdvertising(): void {
         this.bonjour.unpublishAll();
+        this.wsServer.advertising = null;
     }
 }

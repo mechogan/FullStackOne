@@ -1,5 +1,6 @@
 import { Connecter } from "../../../src/connectivity/connecter";
-import { PEER_CONNECTION_TYPE, PeerNearbyBonjour, PeerNearbyWeb } from "../../../src/connectivity/types";
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_TYPE, PeerNearbyBonjour, PeerNearbyWeb, WebAddress } from "../../../src/connectivity/types";
+import { constructURL } from "./web";
 
 export class ConnectWebSocket implements Connecter {
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
@@ -8,16 +9,8 @@ export class ConnectWebSocket implements Connecter {
     onPeerData: (id: string, data: string) => void;
     onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
 
-    private tryToConnectWebSocket(
-        address: string,
-        secure: boolean,
-        port?: number
-    ) {
-        const hostname = address.includes(":") ? `[${address}]` : address;
-        const protocol = secure ? "wss" : "ws";
-        const url = protocol + "://" + hostname + (port ? `:${port}` : "");
-
-        console.log(url);
+    private tryToConnectWebSocket(address: WebAddress) {
+        const url = constructURL(address, "ws");
 
         return new Promise<WebSocket>((resolve, reject) => {
             let ws: WebSocket,
@@ -47,13 +40,25 @@ export class ConnectWebSocket implements Connecter {
     async open(id: string, peerNearby: PeerNearbyBonjour | PeerNearbyWeb) {
         let ws: WebSocket;
 
-        for (const address of peerNearby.addresses) {
+        const secure = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+            ? false
+            : peerNearby.address.secure;
+
+        const addresses = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+            ? peerNearby.addresses
+            : [peerNearby.address.hostname];
+        
+        const port = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+            ? peerNearby.port
+            : peerNearby.address.port;
+
+        for (const address of addresses) {
             try {
-                ws = await this.tryToConnectWebSocket(
-                    address,
-                    false,
-                    peerNearby.port
-                );
+                ws = await this.tryToConnectWebSocket({
+                    hostname: address,
+                    port,
+                    secure
+                });
                 break;
             } catch (e) {}
         }

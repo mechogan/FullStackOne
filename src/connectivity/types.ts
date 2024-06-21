@@ -21,10 +21,16 @@ export enum PEER_ADVERSTISING_METHOD {
     WEB = 3
 }
 
+export type WebAddress = {
+    hostname: string,
+    port: number,
+    secure: boolean
+}
+
 export type PeerNearbyWeb = {
     type: PEER_ADVERSTISING_METHOD.WEB;
     peer: Peer;
-    address: string;
+    address: WebAddress;
 }
 
 export type PeerNearbyBonjour = {

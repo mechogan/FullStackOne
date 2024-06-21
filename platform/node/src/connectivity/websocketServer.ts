@@ -5,8 +5,8 @@ import { Connecter } from "../../../../src/connectivity/connecter";
 import { PEER_CONNECTION_TYPE, Peer } from "../../../../src/connectivity/types";
 import { Advertiser } from "../../../../src/connectivity/advertiser";
 
-export class WebSocketServer implements Connecter, Advertiser {
-    port = 14000;
+export class WebSocketServer implements Connecter {
+    port = crypto.randomInt(40000, 65536);
     advertising: Peer = null;
     server: http.Server;
     wss: WSS;
@@ -28,6 +28,11 @@ export class WebSocketServer implements Connecter, Advertiser {
         this.wss = new WSS({ server: this.server })
 
         this.wss.on("connection", (ws) => {
+            if(!this.advertising) {
+                ws.close();
+                return;
+            }
+
             const id = crypto.randomUUID();
 
             ws.on("close", () => {
@@ -70,27 +75,30 @@ export class WebSocketServer implements Connecter, Advertiser {
         });
     }
 
+    respond(res: http.ServerResponse, data: string, mimeType: string) {
+        res.writeHead(200, {
+            "content-type": mimeType,
+            "content-length": data.length,
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "OPTION, GET"
+        });
+        res.end(data);
+    }
+
     requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
+        if(req.url === "/ping") {
+            return this.respond(res, "pong", "text/plain");
+        }
+
         if(!this.advertising) {
-            res.writeHead(403);
+            res.writeHead(503, {
+                "access-control-allow-origin": "*",
+                "access-control-allow-methods": "OPTION, GET"
+            });
             return res.end();
         }
 
-        const response = JSON.stringify(this.advertising);
-        res.writeHead(200, {
-            "content-type": "application/json",
-            "content-length": response.length,
-            "access-aontrol-allow-origin": "*",
-            "access-control-allow-methods": "GET"
-        });
-        res.end(response);
-    }
-
-    startAdvertising(me: Peer): void {
-        this.advertising = me;
-    }
-    stopAdvertising(): void {
-        this.advertising = null;
+        return this.respond(res, JSON.stringify(this.advertising), "application/json");
     }
 
     open(id: string): void {

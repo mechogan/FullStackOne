@@ -6,6 +6,7 @@ import rpc from "../../rpc";
 import gitAuth from "../git-auth";
 import projectView from "../project";
 import stackNavigation from "../../stack-navigation";
+import { constructURL } from "../../api/connectivity/web";
 
 export class Settings {
     private async renderGitAuths() {
@@ -248,7 +249,7 @@ export class Settings {
             const li = document.createElement("li");
             li.innerHTML = `
                 <div>
-                <span>${webAddr.address}</span>
+                <span>${constructURL(webAddr, "")}</span>
                 ${webAddr.secure ? `<span class="secure">${lockIcon}</span>` : ""}
                 </div>
             `;
@@ -286,11 +287,19 @@ export class Settings {
             const form = document.createElement("form");
 
             const addressInputLabel = document.createElement("label");
-            addressInputLabel.innerText = "Host";
+            addressInputLabel.innerText = "Hostname";
             form.append(addressInputLabel)
 
             const addressInput = document.createElement("input");
             form.append(addressInput);
+
+            const portInputLabel = document.createElement("label");
+            portInputLabel.innerText = "Port (leave blank for 80, 443)";
+            form.append(portInputLabel)
+
+            const portInput = document.createElement("input");
+            portInput.type = "tel";
+            form.append(portInput);
 
             const secureRow = document.createElement("div");
 
@@ -308,9 +317,6 @@ export class Settings {
             secureInput.checked = true;
             secureSwitch.prepend(secureInput);
 
-            secureInput.addEventListener("change", () => {
-                
-            });
             secureRow.append(secureSwitch)
 
             form.append(secureRow);
@@ -345,8 +351,11 @@ export class Settings {
                     connectivitySettings.webAddreses = [];
                 }
 
+                const port = parseInt(portInput.value);
+
                 connectivitySettings.webAddreses.push({
-                    address: addressInput.value,
+                    hostname: addressInput.value,
+                    port: isNaN(port) ? null : port,
                     secure: secureInput.checked
                 });
 

@@ -21,6 +21,7 @@ import {
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 import peers from "../../views/peers";
+import { BrowseWeb } from "./web";
 
 let me: Peer,
     autoConnect = false;
@@ -33,12 +34,19 @@ const connecterWebSocket = new ConnectWebSocket();
 connecterWebSocket.onPeerConnection = onPeerConnection;
 connecterWebSocket.onPeerData = onPeerData;
 
+const browserWeb = new BrowseWeb();
+browserWeb.onPeerNearby = onPeerNearby
+
 onPush["peerNearby"] = async (eventStr) => {
     const event = JSON.parse(eventStr);
 
     const eventType: "new" | "lost" = event.eventType;
     const peerNearby: PeerNearby = event.peerNearby;
 
+   onPeerNearby(eventType, peerNearby);
+};
+
+function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
     // if (eventType === "new" && autoConnect) {
     //     let alreadyConnected = false;
     //     // already connected
@@ -60,7 +68,7 @@ onPush["peerNearby"] = async (eventStr) => {
     // }
 
     onPush["peerConnectivityEvent"](null);
-};
+}
 
 const connectivityAPI = {
     async init() {
@@ -91,8 +99,7 @@ const connectivityAPI = {
             autoConnectAdvertiseInterval = setInterval(() => {
                 connectivityAPI.advertise();
             }, 30 * 1000); // 30s
-
-            rpc().connectivity.browse.start();
+            connectivityAPI.browse();
         }
     },
     peers: {
@@ -103,8 +110,15 @@ const connectivityAPI = {
             return Array.from(peersConnections.values());
         },
         async nearby() {
-            return (await rpc().connectivity.peers.nearby()) || [];
+            return [
+                ((await rpc().connectivity.peers.nearby()) || []),
+                browserWeb.getPeersNearby()
+            ].flat();
         }
+    },
+    browse(){
+        browserWeb.startBrowsing();
+        rpc().connectivity.browse.start();
     },
     async advertise(forMS = 5000) {
         if (advertiseTimeout) clearTimeout(advertiseTimeout);
