@@ -89,6 +89,18 @@ const restartWebSocket = (writeVideoBuffer: (id: number, timestamp: number, data
     }
 }
 
+const restartButton = document.createElement("button");
+restartButton.innerText = "Restart";
+restartButton.style.cssText = `
+position: fixed;
+top: 10px;
+right: 10px;`;
+restartButton.addEventListener("click", () => {
+    ws?.send(JSON.stringify({ type: "restart" }));
+    window.location.reload();
+});
+document.body.append(restartButton);
+
 let viewport: { height: number, width: number };
 const resize = (size: typeof viewport) => {
     viewport = size;
@@ -136,7 +148,8 @@ const renderTabsList = (tabs: string[]) => {
             return;
         }
         const li = document.createElement("li");
-        li.addEventListener("click", () => {
+        li.addEventListener("click", (e) => {
+            e.stopPropagation();
             ws?.send(JSON.stringify({ type: "close", url }));
         })
         li.innerText = url;

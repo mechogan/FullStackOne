@@ -55,6 +55,10 @@ wss.on("connection", ws => {
     ws.onmessage = async message => {
         const event = JSON.parse(message.data as string);
         switch(event.type) {
+            case "restart":
+                await browser?.close();
+                browser = null;
+                break;
             case "click":
                 await page.mouse.click(event.x, event.y);
                 break;
@@ -75,33 +79,33 @@ wss.on("connection", ws => {
     }
     ws.on("close", () => {
         streamingWS = null;
-        stream?.destroy();
-        stream = null;
     });
     restartBrowserStreaming();
 });
 
-let browser: Awaited<ReturnType<typeof launch>>, stream: Transform, 
+let browser: Awaited<ReturnType<typeof launch>>,
     page: Awaited<ReturnType<(typeof browser)["newPage"]>>;
 const restartBrowserStreaming = async () => {
-    stream?.destroy();
-    await browser?.close();
 
     let defaultViewport = {
         width: 960,
         height: 800,
     };
 
-    browser = await launch({
-        executablePath: os.platform() === "darwin"
-            ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-            : "/usr/bin/chromium-browser",
-        defaultViewport,
-        headless: "new"
-    });
-    page = await browser.newPage();
-    page.on('console', message => streamingWS?.send(JSON.stringify({ log: message.text() }), { binary: false }));
-
+    if(!browser?.connected || !(await browser.pages()).find(page => page.url() === "http://localhost:9000/")) {
+        await browser?.close();
+        browser = await launch({
+            executablePath: os.platform() === "darwin"
+                ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                : "/usr/bin/chromium-browser",
+            defaultViewport,
+            headless: "new"
+        });
+        page = await browser.newPage();
+        page.on('console', message => streamingWS?.send(JSON.stringify({ log: message.text() }), { binary: false }));
+        await page.goto("http://localhost:9000");
+    }
+    
     if(os.platform() === "darwin") {
         const extension = await getExtensionPage(page.browser());
         const [{ height, width }] = await extension.evaluate(async (x) => {
@@ -114,9 +118,7 @@ const restartBrowserStreaming = async () => {
     }
 
     streamingWS?.send(JSON.stringify({ viewport: defaultViewport }), { binary: false });
-
-    await page.goto("http://localhost:9000");
-
+    
     onMessageWebRTC = await getStream(
         page, 
         { audio: false, video: true },
