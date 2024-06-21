@@ -1,12 +1,10 @@
 import crypto from "crypto";
-import type http from "http";
 import { WebSocketServer as WSS, WebSocket } from "ws";
 import { Connecter } from "../../../../src/connectivity/connecter";
 import { PEER_CONNECTION_TYPE } from "../../../../src/connectivity/types";
-import { AddressInfo } from "net";
 
 export class WebSocketServer implements Connecter {
-    port: number;
+    port = 14000;
     wss: WSS;
 
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
@@ -15,12 +13,13 @@ export class WebSocketServer implements Connecter {
     onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
     onPeerData: (id: string, data: string) => void;
 
-    constructor(server?: http.Server) {
-        const serverPort = (server?.address?.() as AddressInfo)?.port;
-        this.wss = serverPort 
-            ? new WSS({ server }) 
-            : new WSS({ port: randomIntFromInterval(10000, 60000) });
-        this.port = (this.wss.address() as AddressInfo).port;
+    constructor() {
+        if(process.env.WSS_PORT) {
+            const parsedInt = parseInt(process.env.WSS_PORT);
+            this.port = parsedInt && !isNaN(parsedInt) ? parsedInt : this.port;
+        }
+
+        this.wss = new WSS({ port: this.port })
 
         this.wss.on("connection", (ws) => {
             const id = crypto.randomUUID();
@@ -85,9 +84,4 @@ export class WebSocketServer implements Connecter {
         if (!connection?.trusted && !pairing) return;
         connection.ws.send(data);
     }
-}
-
-function randomIntFromInterval(min, max) {
-    // min and max included
-    return Math.floor(Math.random() * (max - min + 1) + min);
 }

@@ -115,6 +115,7 @@ if (wsPlatforms.includes(platform)) {
         const { messageType, message } = JSON.parse(data);
         globalThis.push(messageType, message);
     };
+    ws.onclose = () => window.location.reload();
 }
 
 globalThis.sourceMapConsumer = SourceMapConsumer;

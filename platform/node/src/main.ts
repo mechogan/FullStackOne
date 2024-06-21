@@ -1,6 +1,5 @@
 import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
-import type http from "http";
 import fs from "fs";
 import mime from "mime";
 import { decodeUint8Array } from "../../../src/Uint8Array";
@@ -51,8 +50,7 @@ export function main(
     esbuild: EsbuildFunctions,
     open: OpenFunction,
     push: PushFunction,
-    openDirectory: OpenDirectoryFunction,
-    server?: http.Server
+    openDirectory: OpenDirectoryFunction
 ) {
     let esbuildModule: typeof EsbuildModuleType;
     esbuild.load().then((e) => (esbuildModule = e));
