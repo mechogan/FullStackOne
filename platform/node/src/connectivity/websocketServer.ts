@@ -3,10 +3,9 @@ import http from "http";
 import { WebSocketServer as WSS, WebSocket } from "ws";
 import { Connecter } from "../../../../src/connectivity/connecter";
 import { PEER_CONNECTION_TYPE, Peer } from "../../../../src/connectivity/types";
-import { Advertiser } from "../../../../src/connectivity/advertiser";
 
 export class WebSocketServer implements Connecter {
-    port = crypto.randomInt(40000, 65536);
+    port = 14000;
     advertising: Peer = null;
     server: http.Server;
     wss: WSS;

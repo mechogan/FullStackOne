@@ -16,7 +16,6 @@ import {
 import "./index.css";
 import rpc from "../../rpc";
 import stackNavigation from "../../stack-navigation";
-import connectivityAPI from "../../api/connectivity";
 
 class Peers {
     peersLists: HTMLDivElement = document.createElement("div");
@@ -348,8 +347,8 @@ class Peers {
         container.append(this.peersLists);
         this.renderPeersLists();
 
-        api.connectivity.advertise(30 * 1000); // 30s
-        connectivityAPI.browse();
+        api.connectivity.advertise.start(30 * 1000); // 30s
+        api.connectivity.browse.start();
 
         return container;
     }

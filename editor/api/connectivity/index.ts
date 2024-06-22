@@ -25,7 +25,6 @@ import { BrowseWeb } from "./web";
 
 let me: Peer,
     autoConnect = false;
-let autoConnectAdvertiseInterval: ReturnType<typeof setInterval>;
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
 const peersConnections = new Map<string, PeerConnection>();
@@ -46,26 +45,26 @@ onPush["peerNearby"] = async (eventStr) => {
    onPeerNearby(eventType, peerNearby);
 };
 
-function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
-    // if (eventType === "new" && autoConnect) {
-    //     let alreadyConnected = false;
-    //     // already connected
-    //     for (const peerConection of peersConnections.values()) {
-    //         if (peerConection.peer.id === peerNearby.peer.id) {
-    //             alreadyConnected = true;
-    //             break;
-    //         }
-    //     }
+async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
+    if (eventType === "new" && autoConnect) {
+        let alreadyConnected = false;
+        // already connected
+        for (const peerConection of peersConnections.values()) {
+            if (peerConection.peer.id === peerNearby.peer.id) {
+                alreadyConnected = true;
+                break;
+            }
+        }
 
-    //     // if trusted, connect
-    //     const peerTrusted = await connectivityAPI.peers.trusted();
-    //     if (
-    //         !alreadyConnected &&
-    //         peerTrusted.find(({ id }) => id === peerNearby.peer.id)
-    //     ) {
-    //         connectivityAPI.connect(peerNearby);
-    //     }
-    // }
+        // if trusted, connect
+        const peerTrusted = await connectivityAPI.peers.trusted();
+        if (
+            !alreadyConnected &&
+            peerTrusted.find(({ id }) => id === peerNearby.peer.id)
+        ) {
+            connectivityAPI.connect(peerNearby);
+        }
+    }
 
     onPush["peerConnectivityEvent"](null);
 }
@@ -90,16 +89,12 @@ const connectivityAPI = {
         me = connectivityConfig.me;
         autoConnect = connectivityConfig.autoConnect;
 
-        if (autoConnectAdvertiseInterval) {
-            clearInterval(autoConnectAdvertiseInterval);
-        }
-
         if (autoConnect) {
-            connectivityAPI.advertise();
-            autoConnectAdvertiseInterval = setInterval(() => {
-                connectivityAPI.advertise();
-            }, 30 * 1000); // 30s
-            connectivityAPI.browse();
+            connectivityAPI.advertise.start();
+            connectivityAPI.browse.start();
+        } else {
+            connectivityAPI.advertise.stop();
+            connectivityAPI.browse.stop();
         }
     },
     peers: {
@@ -124,24 +119,37 @@ const connectivityAPI = {
                 });
         }
     },
-    browse(){
-        browserWeb.startBrowsing();
-        rpc().connectivity.browse.start();
+    browse: {
+        start(){
+            browserWeb.startBrowsing();
+            rpc().connectivity.browse.start();
+        },
+        stop(){
+            browserWeb.stopBrowsing();
+            rpc().connectivity.browse.stop();
+        }
     },
-    async advertise(forMS = 5000) {
-        if (advertiseTimeout) clearTimeout(advertiseTimeout);
+    advertise: {
+        async start(forMS = 5000) {
+            if (advertiseTimeout) clearTimeout(advertiseTimeout);
 
-        let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
-        rpc().connectivity.advertise.start(
-            me,
-            connectivityConfig.defaultNetworkInterface
-        );
+            let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
+            rpc().connectivity.advertise.start(
+                me,
+                connectivityConfig.defaultNetworkInterface
+            );
 
-        advertiseTimeout = setTimeout(() => {
-            rpc()
-                .connectivity.advertise.stop()
-                .then(() => (advertiseTimeout = undefined));
-        }, forMS);
+            if(!autoConnect) {
+                advertiseTimeout = setTimeout(() => {
+                    rpc()
+                        .connectivity.advertise.stop()
+                        .then(() => (advertiseTimeout = undefined));
+                }, forMS);
+            }
+        },
+        stop(){
+            rpc().connectivity.advertise.stop();
+        }
     },
     connect(peerNearby: PeerNearby) {
         let id: string;

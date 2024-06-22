@@ -17,9 +17,6 @@
         min-height: 45px;
         gap: spacing();
 
-        label {
-            white-space: nowrap;
-        }
         input[type="text"] {
             flex: 1;
             text-align: right;

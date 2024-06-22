@@ -156,7 +156,7 @@ export class Settings {
         const row = document.createElement("div");
         row.classList.add("setting-row");
 
-        row.innerHTML = `<label>Auto connect to nearby trusted peers.</label>`;
+        row.innerHTML = `<label>Connect automatically to nearby trusted peers.</label>`;
 
         const switchButton = document.createElement("label");
         switchButton.classList.add("switch");
@@ -422,7 +422,7 @@ export class Settings {
                     CONFIG_TYPE.CONNECTIVITY,
                     connectivitySettings
                 );
-                api.connectivity.advertise();
+                api.connectivity.init();
             };
 
             const ul = document.createElement("ul");

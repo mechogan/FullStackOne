@@ -81,7 +81,7 @@ const createRunningInstance: (id: string) => RunningInstance = (id) => {
         ws.add(webSocket);
         webSocket.on("close", () => {
             ws.delete(webSocket);
-            if (ws.size === 0) cleanup();
+            if (ws.size === 0) cleanup(id);
         });
     });
 
@@ -91,7 +91,11 @@ const createRunningInstance: (id: string) => RunningInstance = (id) => {
 };
 
 let cleanupTimeout: ReturnType<typeof setTimeout>;
-const cleanup = () => {
+const cleanup = (id: string) => {
+    if(id === "FullStacked") {
+        return process.exit(0);
+    }
+    
     if (cleanupTimeout) {
         clearTimeout(cleanupTimeout);
     }
