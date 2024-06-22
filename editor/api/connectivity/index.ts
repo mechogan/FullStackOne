@@ -110,10 +110,18 @@ const connectivityAPI = {
             return Array.from(peersConnections.values());
         },
         async nearby() {
+            const seenPeerID = new Set<string>();
             return [
                 ((await rpc().connectivity.peers.nearby()) || []),
                 browserWeb.getPeersNearby()
-            ].flat();
+            ]
+                .flat()
+                .filter(({peer: {id}}) => {
+                    if(seenPeerID.has(id))
+                        return false;
+                    seenPeerID.add(id);
+                    return true;
+                });
         }
     },
     browse(){
