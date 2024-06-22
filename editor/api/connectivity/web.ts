@@ -1,6 +1,6 @@
 import api from "..";
 import { Browser } from "../../../src/connectivity/browser";
-import { PEER_ADVERSTISING_METHOD, PeerNearby, PeerNearbyWeb, WebAddress } from "../../../src/connectivity/types";
+import { PEER_ADVERSTISING_METHOD, Peer, PeerNearby, PeerNearbyWeb, WebAddress } from "../../../src/connectivity/types";
 import { CONFIG_TYPE } from "../config/types";
 
 
@@ -33,49 +33,52 @@ export class BrowseWeb implements Browser {
     private async browse(){
         const addresses = (await api.config.load(CONFIG_TYPE.CONNECTIVITY)).webAddreses;
         
-        console.log(addresses);
-
         if(!addresses) return;
 
         for(const address of addresses) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1000 * 3); // 3sec
-
             const url = constructURL(address, "http");
 
-            console.log(url);
-            
-            try {
+            const promise = new Promise<Peer>(resolve => {
+                rpc().fetch(url, {encoding: "utf8"})
+                    .then(response => {
+                        let peer: Peer = null;
+                        try {
+                            peer = JSON.parse(response.body as string);
+                        } catch (e) { }
 
-                const peer = await (await fetch(url, {
-                    signal: controller.signal
-                })).json();
+                        if(typeof peer.id === "string" && typeof peer.name === "string") {
+                            resolve(peer);
+                        } else {
+                            resolve(null);
+                        }
+                    })
+                    .catch(() => resolve(null))
+            })
 
+            const peer = await promise;
+
+            if(peer) {
                 const indexOf = this.peerNearbyWeb.findIndex(({ address }) => 
                     constructURL(address, "http") === url);
                 if(indexOf !== -1) {
                     this.peerNearbyWeb[indexOf].peer = peer;
                 } else {
-                    this.peerNearbyWeb.push({
+                    const peerNearbyWeb: PeerNearbyWeb = {
                         peer,
                         address,
                         type: PEER_ADVERSTISING_METHOD.WEB
-                    });
+                    }
+                    this.peerNearbyWeb.push(peerNearbyWeb);
+                    this.onPeerNearby?.("new", peerNearbyWeb);
                 }
-
-                console.log(peer);
-
-                this.onPeerNearby?.("new", peer);
-            } 
-            catch(e) {
+            } else {
                 const indexOf = this.peerNearbyWeb.findIndex(({ address: { hostname, port } }) => 
                     hostname + (port ? ":" + port : "") === url.toString());
-                if(indexOf !== 1) {
+                if(indexOf !== -1) {
                     const peerLost = this.peerNearbyWeb.splice(indexOf, 1).at(0);
                     this.onPeerNearby?.("lost", peerLost);
                 }
             }
-            finally { clearTimeout(timeoutId) }
         }
     }
 

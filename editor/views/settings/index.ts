@@ -145,6 +145,7 @@ export class Settings {
         return container;
     }
 
+    pingStatusCache = new Map<string, Promise<boolean>>()
     private async renderConnectivity() {
         const container = document.createElement("div");
 
@@ -245,7 +246,7 @@ export class Settings {
             (await fetch("assets/icons/delete.svg")).text(),
         ])
 
-        connectivitySettings.webAddreses?.forEach((webAddr, index) => {
+        connectivitySettings.webAddreses?.forEach(async (webAddr, index) => {
             const li = document.createElement("li");
             li.innerHTML = `
                 <div>
@@ -259,7 +260,28 @@ export class Settings {
             const status = document.createElement("div");
             status.classList.add("badge", "status");
             status.innerText = "Offline";
-            right.append(status)
+            right.append(status);
+
+            const url = constructURL(webAddr, "http");
+            let promise = this.pingStatusCache.get(url);
+
+            if(!promise) {
+                promise = new Promise<boolean>(resolve => {
+                    rpc().fetch(url + "/ping", { encoding: "utf8" })
+                        .then(res => resolve(res.body === "pong"))
+                        .catch(() => resolve(false));
+                });
+                this.pingStatusCache.set(url, promise);
+            }
+
+            promise.then(online => {
+                if(online) {
+                    status.innerText = "Online";
+                    status.classList.add("success");
+                }
+            });
+            
+            
 
             const deleteButton = document.createElement("button");
             deleteButton.classList.add("text", "small", "danger");
@@ -449,6 +471,8 @@ export class Settings {
     }
 
     async render() {
+        this.pingStatusCache = new Map();
+
         const container = document.createElement("div");
         container.classList.add("settings");
 

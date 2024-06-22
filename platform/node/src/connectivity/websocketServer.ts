@@ -78,9 +78,7 @@ export class WebSocketServer implements Connecter {
     respond(res: http.ServerResponse, data: string, mimeType: string) {
         res.writeHead(200, {
             "content-type": mimeType,
-            "content-length": data.length,
-            "access-control-allow-origin": "*",
-            "access-control-allow-methods": "OPTION, GET"
+            "content-length": data.length
         });
         res.end(data);
     }
@@ -91,10 +89,7 @@ export class WebSocketServer implements Connecter {
         }
 
         if(!this.advertising) {
-            res.writeHead(503, {
-                "access-control-allow-origin": "*",
-                "access-control-allow-methods": "OPTION, GET"
-            });
+            res.writeHead(503);
             return res.end();
         }
 

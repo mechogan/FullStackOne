@@ -130,6 +130,9 @@
                     &.status {
                         background-color: colorOpacity(white, 0.3);
                         color: colorOpacity(white, 0.8);
+                        &.success {
+                            background-color: colorOpacity($green, 0.3);
+                        }
                     }
                 }
             }
