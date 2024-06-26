@@ -13,7 +13,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const notFound = (res: http.ServerResponse) => {
     res.writeHead(404);
     res.end();
-}
+};
 
 const serveStaticFile = (url: string, res: http.ServerResponse) => {
     let pathname = url.split("?").shift();
@@ -35,26 +35,29 @@ const serveStaticFile = (url: string, res: http.ServerResponse) => {
     res.end();
 
     return true;
-}
+};
 
-const requestHandler = (req: http.IncomingMessage, res: http.ServerResponse) => {
+const requestHandler = (
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+) => {
     if (serveStaticFile(req.url, res)) return;
     notFound(res);
-}
+};
 
 const server = http.createServer(requestHandler);
 
 const wss = new WebSocketServer({ server });
 
-let streamingWS: WebSocket = null, 
+let streamingWS: WebSocket = null,
     onMessageWebRTC: (messageWebRTC: string) => void,
     messagesRTC: string[] = [];
-wss.on("connection", ws => {
+wss.on("connection", (ws) => {
     streamingWS?.close();
     streamingWS = ws;
-    ws.onmessage = async message => {
+    ws.onmessage = async (message) => {
         const event = JSON.parse(message.data as string);
-        switch(event.type) {
+        switch (event.type) {
             case "restart":
                 await browser?.close();
                 browser = null;
@@ -66,17 +69,19 @@ wss.on("connection", ws => {
                 await page.keyboard.press(event.key);
                 break;
             case "close":
-                (await browser?.pages())?.find(page => page.url() === event.url)?.close()
+                (await browser?.pages())
+                    ?.find((page) => page.url() === event.url)
+                    ?.close();
                 break;
             case "webrtc":
-                if(onMessageWebRTC) {
+                if (onMessageWebRTC) {
                     onMessageWebRTC(JSON.stringify(event.message));
                 } else {
                     messagesRTC.push(JSON.stringify(event.message));
                 }
                 break;
         }
-    }
+    };
     ws.on("close", () => {
         streamingWS = null;
     });
@@ -86,70 +91,91 @@ wss.on("connection", ws => {
 let browser: Awaited<ReturnType<typeof launch>>,
     page: Awaited<ReturnType<(typeof browser)["newPage"]>>;
 const restartBrowserStreaming = async () => {
-
     let defaultViewport = {
         width: 960,
-        height: 800,
+        height: 800
     };
 
-    if(!browser?.connected || !(await browser.pages()).find(page => page.url() === "http://localhost:9000/")) {
+    if (
+        !browser?.connected ||
+        !(await browser.pages()).find(
+            (page) => page.url() === "http://localhost:9000/"
+        )
+    ) {
         await browser?.close();
         browser = await launch({
-            executablePath: os.platform() === "darwin"
-                ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-                : "/usr/bin/chromium-browser",
+            executablePath:
+                os.platform() === "darwin"
+                    ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                    : "/usr/bin/chromium-browser",
             defaultViewport,
             headless: "new"
         });
         page = await browser.newPage();
-        page.on('console', message => streamingWS?.send(JSON.stringify({ log: message.text() }), { binary: false }));
+        page.on("console", (message) =>
+            streamingWS?.send(JSON.stringify({ log: message.text() }), {
+                binary: false
+            })
+        );
         await page.goto("http://localhost:9000");
     }
-    
-    if(os.platform() === "darwin") {
+
+    if (os.platform() === "darwin") {
         const extension = await getExtensionPage(page.browser());
-        const [{ height, width }] = await extension.evaluate(async (x) => {
-            // @ts-ignore
-            return chrome.tabs.query(x);
-        }, {
-            active: true,
-        });
-        defaultViewport = {height, width};
+        const [{ height, width }] = await extension.evaluate(
+            async (x) => {
+                // @ts-ignore
+                return chrome.tabs.query(x);
+            },
+            {
+                active: true
+            }
+        );
+        defaultViewport = { height, width };
     }
 
-    streamingWS?.send(JSON.stringify({ viewport: defaultViewport }), { binary: false });
-    
+    streamingWS?.send(JSON.stringify({ viewport: defaultViewport }), {
+        binary: false
+    });
+
     onMessageWebRTC = await getStream(
-        page, 
+        page,
         { audio: false, video: true },
         (messageWebRTC: string) => {
-            streamingWS?.send(JSON.stringify({ webrtc: messageWebRTC }))
+            streamingWS?.send(JSON.stringify({ webrtc: messageWebRTC }));
         }
     );
-    if(messagesRTC.length) {
-        while(messagesRTC.length) {
+    if (messagesRTC.length) {
+        while (messagesRTC.length) {
             onMessageWebRTC(messagesRTC.shift());
         }
     }
-}
+};
 
 server.listen(12000);
 
 const tabsStatus = async () => {
-    if(!browser || !streamingWS) return;
-    streamingWS.send(JSON.stringify({ tabs: (await browser.pages())?.map(page => page.url()) }));
-}
+    if (!browser || !streamingWS) return;
+    streamingWS.send(
+        JSON.stringify({
+            tabs: (await browser.pages())?.map((page) => page.url())
+        })
+    );
+};
 setInterval(tabsStatus, 2000);
 
 const extensionId = "jjndjgheafjngoipoacpjgeicjeomjli";
 async function getExtensionPage(browser) {
     const extensionTarget = await browser.waitForTarget((target) => {
-        return target.type() === "page" && target.url().startsWith(`chrome-extension://${extensionId}/options.html`);
+        return (
+            target.type() === "page" &&
+            target
+                .url()
+                .startsWith(`chrome-extension://${extensionId}/options.html`)
+        );
     });
-    if (!extensionTarget)
-        throw new Error("cannot load extension");
+    if (!extensionTarget) throw new Error("cannot load extension");
     const videoCaptureExtension = await extensionTarget.page();
-    if (!videoCaptureExtension)
-        throw new Error("cannot get page of extension");
+    if (!videoCaptureExtension) throw new Error("cannot get page of extension");
     return videoCaptureExtension;
 }

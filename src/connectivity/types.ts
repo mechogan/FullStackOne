@@ -22,16 +22,16 @@ export enum PEER_ADVERSTISING_METHOD {
 }
 
 export type WebAddress = {
-    hostname: string,
-    port: number,
-    secure: boolean
-}
+    hostname: string;
+    port: number;
+    secure: boolean;
+};
 
 export type PeerNearbyWeb = {
     type: PEER_ADVERSTISING_METHOD.WEB;
     peer: Peer;
     address: WebAddress;
-}
+};
 
 export type PeerNearbyBonjour = {
     type: PEER_ADVERSTISING_METHOD.BONJOUR;
@@ -46,7 +46,10 @@ export type PeerNearbyIOSMultiPeer = {
     peer: Peer;
 };
 
-export type PeerNearby = PeerNearbyBonjour | PeerNearbyIOSMultiPeer | PeerNearbyWeb;
+export type PeerNearby =
+    | PeerNearbyBonjour
+    | PeerNearbyIOSMultiPeer
+    | PeerNearbyWeb;
 
 export enum PEER_CONNECTION_TYPE {
     UNKNOWN = 0,
@@ -97,7 +100,7 @@ export type PeerConnectionTrusted = PeerConnectionCommon & {
 };
 
 export type PeerConnection =
-    PeerConnectionNotConnected
+    | PeerConnectionNotConnected
     | PeerConnectionUntrusted
     | PeerConnectionPairing
     | PeerConnectionTrusted;
@@ -110,21 +113,27 @@ export enum PEER_CONNECTION_PAIRING_DATA_TYPE {
 }
 
 export type PeerConnectionRequest = {
-    type: PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST,
-    peer: Peer,
-    validation: number
-}
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST;
+    peer: Peer;
+    validation: number;
+};
 
-export type PeerConnectionTokenExchange = Omit<PeerConnectionRequest, "type"> & {
-    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE,
-    secret: string,
-    key: string
-}
+export type PeerConnectionTokenExchange = Omit<
+    PeerConnectionRequest,
+    "type"
+> & {
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE;
+    secret: string;
+    key: string;
+};
 
-export type PeerConnectionTokenChallenge = Omit<PeerConnectionRequest, "type"> & {
-    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE,
-    secret: string
-}
+export type PeerConnectionTokenChallenge = Omit<
+    PeerConnectionRequest,
+    "type"
+> & {
+    type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE;
+    secret: string;
+};
 
 export type PeerData = {
     peerConnection: PeerConnectionTrusted;

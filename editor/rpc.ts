@@ -16,8 +16,8 @@ export type AdapterEditor = Adapter & {
         baseJS(): Promise<string>;
         tmpFile: {
             write(name: string, content: string): Promise<string>;
-            unlink(name: string): void
-        },
+            unlink(name: string): void;
+        };
         check(): boolean;
         install(): void;
         build(
@@ -26,7 +26,6 @@ export type AdapterEditor = Adapter & {
         ): Promise<esbuild.BuildResult["errors"] | 1>;
     };
 
-    
     run(project: Project): void;
 
     open(project: Project): void;

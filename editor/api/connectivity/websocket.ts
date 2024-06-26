@@ -1,5 +1,11 @@
 import { Connecter } from "../../../src/connectivity/connecter";
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_TYPE, PeerNearbyBonjour, PeerNearbyWeb, WebAddress } from "../../../src/connectivity/types";
+import {
+    PEER_ADVERSTISING_METHOD,
+    PEER_CONNECTION_TYPE,
+    PeerNearbyBonjour,
+    PeerNearbyWeb,
+    WebAddress
+} from "../../../src/connectivity/types";
 import { constructURL } from "./web";
 
 export class ConnectWebSocket implements Connecter {
@@ -7,7 +13,11 @@ export class ConnectWebSocket implements Connecter {
     manualRequests = new Set<string>();
 
     onPeerData: (id: string, data: string) => void;
-    onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
+    onPeerConnection: (
+        id: string,
+        type: PEER_CONNECTION_TYPE,
+        state: "open" | "close"
+    ) => void;
 
     private tryToConnectWebSocket(address: WebAddress) {
         const url = constructURL(address, "ws");
@@ -40,17 +50,20 @@ export class ConnectWebSocket implements Connecter {
     async open(id: string, peerNearby: PeerNearbyBonjour | PeerNearbyWeb) {
         let ws: WebSocket;
 
-        const secure = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
-            ? false
-            : peerNearby.address.secure;
+        const secure =
+            peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+                ? false
+                : peerNearby.address.secure;
 
-        const addresses = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
-            ? peerNearby.addresses
-            : [peerNearby.address.hostname];
-        
-        const port = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
-            ? peerNearby.port
-            : peerNearby.address.port;
+        const addresses =
+            peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+                ? peerNearby.addresses
+                : [peerNearby.address.hostname];
+
+        const port =
+            peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+                ? peerNearby.port
+                : peerNearby.address.port;
 
         for (const address of addresses) {
             try {
@@ -75,7 +88,11 @@ export class ConnectWebSocket implements Connecter {
         });
 
         const onopen = () => {
-            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET, "open");
+            this.onPeerConnection?.(
+                id,
+                PEER_CONNECTION_TYPE.WEB_SOCKET,
+                "open"
+            );
         };
         ws.onopen = onopen;
         if (ws.readyState === WebSocket.OPEN) {
@@ -88,7 +105,11 @@ export class ConnectWebSocket implements Connecter {
             );
             if (indexOf <= -1) return;
             this.connections.splice(indexOf, 1);
-            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET, "close");
+            this.onPeerConnection?.(
+                id,
+                PEER_CONNECTION_TYPE.WEB_SOCKET,
+                "close"
+            );
         };
         ws.onmessage = (message) => {
             if (message.type === "binary") {
@@ -97,8 +118,8 @@ export class ConnectWebSocket implements Connecter {
             }
 
             const connection = this.connections.find((conn) => conn.id === id);
-            if(!connection) {
-                ws.close()
+            if (!connection) {
+                ws.close();
             } else {
                 this.onPeerData?.(id, message.data);
             }

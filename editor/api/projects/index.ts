@@ -105,11 +105,14 @@ export default {
         const baseJS = await getBaseJS();
         const mergedContent = `${baseJS}\nimport("${entryPoint.split("\\").join("/")}");`;
         const tmpFileName = `tmp-${Date.now()}.js`;
-        const tmpFile = await rpc().esbuild.tmpFile.write(tmpFileName, mergedContent);
+        const tmpFile = await rpc().esbuild.tmpFile.write(
+            tmpFileName,
+            mergedContent
+        );
 
         const outdir = rootDirectory + "/" + project.location + "/.build";
         const buildErrors = await rpc().esbuild.build(tmpFile, outdir);
-        console.log(buildErrors)
+        console.log(buildErrors);
 
         await rpc().esbuild.tmpFile.unlink(tmpFileName);
 

@@ -5,7 +5,7 @@ import { Connecter } from "../../../../src/connectivity/connecter";
 import { PEER_CONNECTION_TYPE, Peer } from "../../../../src/connectivity/types";
 
 export class WebSocketServer implements Connecter {
-    port = 14000;
+    port = crypto.randomInt(30000, 65536);
     advertising: Peer = null;
     server: http.Server;
     wss: WSS;
@@ -13,21 +13,25 @@ export class WebSocketServer implements Connecter {
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
     connectionRequests = new Set<string>();
 
-    onPeerConnection: (id: string, type: PEER_CONNECTION_TYPE, state: "open" | "close") => void;
+    onPeerConnection: (
+        id: string,
+        type: PEER_CONNECTION_TYPE,
+        state: "open" | "close"
+    ) => void;
     onPeerData: (id: string, data: string) => void;
 
     constructor() {
-        if(process.env.WSS_PORT) {
+        if (process.env.WSS_PORT) {
             const parsedInt = parseInt(process.env.WSS_PORT);
             this.port = parsedInt && !isNaN(parsedInt) ? parsedInt : this.port;
         }
 
         this.server = http.createServer(this.requestHandler.bind(this));
         this.server.listen(this.port);
-        this.wss = new WSS({ server: this.server })
+        this.wss = new WSS({ server: this.server });
 
         this.wss.on("connection", (ws) => {
-            if(!this.advertising) {
+            if (!this.advertising) {
                 ws.close();
                 return;
             }
@@ -40,7 +44,11 @@ export class WebSocketServer implements Connecter {
                 );
                 if (indexOf <= -1) return;
                 this.connections.splice(indexOf, 1);
-                this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER, "close");
+                this.onPeerConnection?.(
+                    id,
+                    PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
+                    "close"
+                );
             });
 
             this.connections.push({
@@ -49,7 +57,11 @@ export class WebSocketServer implements Connecter {
                 ws
             });
 
-            this.onPeerConnection?.(id, PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER, "open");
+            this.onPeerConnection?.(
+                id,
+                PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER,
+                "open"
+            );
 
             ws.onmessage = (message) => {
                 if (message.type === "binary") {
@@ -83,20 +95,26 @@ export class WebSocketServer implements Connecter {
     }
 
     requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
-        if(req.url === "/ping") {
+        if (req.url === "/ping") {
             return this.respond(res, "pong", "text/plain");
         }
 
-        if(!this.advertising) {
+        if (!this.advertising) {
             res.writeHead(503);
             return res.end();
         }
 
-        return this.respond(res, JSON.stringify(this.advertising), "application/json");
+        return this.respond(
+            res,
+            JSON.stringify(this.advertising),
+            "application/json"
+        );
     }
 
     open(id: string): void {
-        console.log("Web Socket Server is not supposed to open new connections");
+        console.log(
+            "Web Socket Server is not supposed to open new connections"
+        );
     }
 
     trustConnection(id: string) {

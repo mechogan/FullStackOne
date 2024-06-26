@@ -39,7 +39,7 @@ const open: OpenFunction = (id) => {
     if (!runningInstance) {
         runningInstance = createRunningInstance(id);
         runningInstances.set(id, runningInstance);
-    }  else {
+    } else {
         push(id, "reload", "");
     }
 
@@ -92,10 +92,10 @@ const createRunningInstance: (id: string) => RunningInstance = (id) => {
 
 let cleanupTimeout: ReturnType<typeof setTimeout>;
 const cleanup = (id: string) => {
-    if(id === "FullStacked") {
+    if (id === "FullStacked") {
         return process.exit(0);
     }
-    
+
     if (cleanupTimeout) {
         clearTimeout(cleanupTimeout);
     }

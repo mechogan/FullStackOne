@@ -99,6 +99,9 @@ if (pairingCode1 !== pairingCode2) {
 const trustButton = await page1.waitForSelector(`#${PEER_TRUST_BUTTON_ID}`);
 await trustButton.click();
 
+const trustButton2 = await page2.waitForSelector(`#${PEER_TRUST_BUTTON_ID}`);
+await trustButton2.click();
+
 await page2.waitForSelector(`.${PEER_DISCONNECT_BUTTON_CLASS}`);
 
 await waitForStackNavigation(page1, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);

@@ -57,7 +57,7 @@ export function main(
     let esbuildModule: typeof EsbuildModuleType;
     esbuild.load().then((e) => (esbuildModule = e));
 
-    if(!fs.existsSync(tmpDirectory))
+    if (!fs.existsSync(tmpDirectory))
         fs.mkdirSync(tmpDirectory, { recursive: true });
 
     const broadcast: Adapter["broadcast"] = (data) =>
@@ -84,7 +84,8 @@ export function main(
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
         connectivity,
         esbuild: {
-            baseJS: () => fs.promises.readFile(baseJSFile, { encoding: "utf8" }),
+            baseJS: () =>
+                fs.promises.readFile(baseJSFile, { encoding: "utf8" }),
             check: () => !!esbuildModule,
             install: async () => {
                 await esbuild.install();
@@ -92,7 +93,7 @@ export function main(
             },
             tmpFile: {
                 write: async (name: string, content: string) => {
-                    const tmpFile = `${tmpDirectory}/${name}`
+                    const tmpFile = `${tmpDirectory}/${name}`;
                     await fs.promises.writeFile(tmpFile, content);
                     return tmpFile;
                 },
@@ -107,11 +108,11 @@ export function main(
                     "index",
                     outdir,
                     directories.rootDirectory +
-                    "/" +
-                    directories.nodeModulesDirectory
+                        "/" +
+                        directories.nodeModulesDirectory
                 );
                 return result?.errors;
-            },
+            }
         },
         run: (project) => {
             let instance = Array.from(instances.values()).find(
@@ -416,9 +417,12 @@ function createConnectivity(push: PushFunction): {
             );
         };
 
-
         wsServer.onPeerConnection = (id, type, state) => {
-            push("FullStacked", "peerConnection", JSON.stringify({ id, type, state }))
+            push(
+                "FullStacked",
+                "peerConnection",
+                JSON.stringify({ id, type, state })
+            );
         };
         wsServer.onPeerData = (id, data) => {
             push("FullStacked", "peerData", JSON.stringify({ id, data }));

@@ -94,7 +94,9 @@ class Peers {
 
         peersTrusted = peersTrusted.filter(
             (peerTrusted) =>
-                !peersConnections.find(({ peer }) => peer?.id === peerTrusted.id)
+                !peersConnections.find(
+                    ({ peer }) => peer?.id === peerTrusted.id
+                )
         );
         peersNearby = peersNearby.filter(
             (peerNeerby) =>

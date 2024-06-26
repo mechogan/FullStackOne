@@ -15,7 +15,7 @@ import {
 } from "../../node/src/main";
 import { readBody, respond } from "../../node/src/http-utils";
 import { Platform } from "../../../src/platforms";
-import "./remote/server"
+import "./remote/server";
 
 type RunningInstance = {
     subdomain: string;

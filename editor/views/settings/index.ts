@@ -39,7 +39,7 @@ export class Settings {
         ]);
 
         const ul = document.createElement("ul");
-        ul.classList.add("git-auths")
+        ul.classList.add("git-auths");
 
         addButton.addEventListener("click", async () => {
             addButton.remove();
@@ -145,7 +145,7 @@ export class Settings {
         return container;
     }
 
-    pingStatusCache = new Map<string, Promise<boolean>>()
+    pingStatusCache = new Map<string, Promise<boolean>>();
     private async renderConnectivity() {
         const container = document.createElement("div");
 
@@ -228,14 +228,11 @@ export class Settings {
 
         container.append(row2);
 
-
-
-
         const row4 = document.createElement("div");
         row4.classList.add("web-addr");
 
         const topRow4 = document.createElement("div");
-        topRow4.classList.add("setting-row")
+        topRow4.classList.add("setting-row");
 
         topRow4.innerHTML = `<label>Web Addresses</label>`;
 
@@ -243,8 +240,8 @@ export class Settings {
 
         const [lockIcon, deleteIcon] = await Promise.all([
             (await fetch("assets/icons/lock.svg")).text(),
-            (await fetch("assets/icons/delete.svg")).text(),
-        ])
+            (await fetch("assets/icons/delete.svg")).text()
+        ]);
 
         connectivitySettings.webAddreses?.forEach(async (webAddr, index) => {
             const li = document.createElement("li");
@@ -265,23 +262,22 @@ export class Settings {
             const url = constructURL(webAddr, "http");
             let promise = this.pingStatusCache.get(url);
 
-            if(!promise) {
-                promise = new Promise<boolean>(resolve => {
-                    rpc().fetch(url + "/ping", { encoding: "utf8" })
-                        .then(res => resolve(res.body === "pong"))
+            if (!promise) {
+                promise = new Promise<boolean>((resolve) => {
+                    rpc()
+                        .fetch(url + "/ping", { encoding: "utf8" })
+                        .then((res) => resolve(res.body === "pong"))
                         .catch(() => resolve(false));
                 });
                 this.pingStatusCache.set(url, promise);
             }
 
-            promise.then(online => {
-                if(online) {
+            promise.then((online) => {
+                if (online) {
                     status.innerText = "Online";
                     status.classList.add("success");
                 }
             });
-            
-            
 
             const deleteButton = document.createElement("button");
             deleteButton.classList.add("text", "small", "danger");
@@ -290,9 +286,12 @@ export class Settings {
                 li.remove();
                 connectivitySettings.webAddreses.splice(index, 1);
 
-                await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
                 container.replaceWith(await this.renderConnectivity());
-            })
+            });
             right.append(deleteButton);
 
             li.append(right);
@@ -302,7 +301,9 @@ export class Settings {
 
         const addButton = document.createElement("button");
         addButton.classList.add("small", "text");
-        addButton.innerHTML = await (await fetch("assets/icons/add.svg")).text();
+        addButton.innerHTML = await (
+            await fetch("assets/icons/add.svg")
+        ).text();
         addButton.addEventListener("click", async () => {
             addButton.remove();
             const li = document.createElement("li");
@@ -310,14 +311,14 @@ export class Settings {
 
             const addressInputLabel = document.createElement("label");
             addressInputLabel.innerText = "Hostname";
-            form.append(addressInputLabel)
+            form.append(addressInputLabel);
 
             const addressInput = document.createElement("input");
             form.append(addressInput);
 
             const portInputLabel = document.createElement("label");
             portInputLabel.innerText = "Port (leave blank for 80, 443)";
-            form.append(portInputLabel)
+            form.append(portInputLabel);
 
             const portInput = document.createElement("input");
             portInput.type = "tel";
@@ -327,8 +328,7 @@ export class Settings {
 
             const secureInputLabel = document.createElement("label");
             secureInputLabel.innerText = "Secure (https:, wss:)";
-            secureRow.append(secureInputLabel)
-
+            secureRow.append(secureInputLabel);
 
             const secureSwitch = document.createElement("label");
             secureSwitch.classList.add("switch");
@@ -339,7 +339,7 @@ export class Settings {
             secureInput.checked = true;
             secureSwitch.prepend(secureInput);
 
-            secureRow.append(secureSwitch)
+            secureRow.append(secureSwitch);
 
             form.append(secureRow);
 
@@ -369,7 +369,7 @@ export class Settings {
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
 
-                if(!connectivitySettings.webAddreses) {
+                if (!connectivitySettings.webAddreses) {
                     connectivitySettings.webAddreses = [];
                 }
 
@@ -381,26 +381,25 @@ export class Settings {
                     secure: secureInput.checked
                 });
 
-                await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivitySettings);
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
 
                 li.remove();
                 container.replaceWith(await this.renderConnectivity());
-            })
+            });
 
             li.append(form);
             webAddrs.prepend(li);
-        })
+        });
         topRow4.append(addButton);
 
-        
         row4.append(topRow4);
 
-        row4.append(webAddrs)
+        row4.append(webAddrs);
 
         container.append(row4);
-
-
-
 
         const { networkInterfaces } = await rpc().connectivity.infos();
 

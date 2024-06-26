@@ -89,31 +89,38 @@ export let methods = {
 
         if (updateThrottler) clearTimeout(updateThrottler);
 
-        updateThrottler = setTimeout(() => {
-            Promise.all(
-                Object.entries(sourceFiles).map(
-                    ([filename, { contents, lastVersionSaved, version }]) =>
-                        new Promise<void>(async (res) => {
-                            if (lastVersionSaved === version) return res();
+        updateThrottler = setTimeout(
+            () => {
+                Promise.all(
+                    Object.entries(sourceFiles).map(
+                        ([filename, { contents, lastVersionSaved, version }]) =>
+                            new Promise<void>(async (res) => {
+                                if (lastVersionSaved === version) return res();
 
-                            if (
-                                await rpc().fs.exists(filename, {
-                                    absolutePath: true
-                                })
-                            ) {
-                                await rpc().fs.writeFile(filename, contents, {
-                                    absolutePath: true
-                                });
-                                sourceFiles[sourceFile].lastVersionSaved =
-                                    version;
-                            } else {
-                                delete sourceFiles[sourceFile];
-                            }
-                            res();
-                        })
-                )
-            ).then(() => (updateThrottler = null));
-        }, now ? 0 : 2000);
+                                if (
+                                    await rpc().fs.exists(filename, {
+                                        absolutePath: true
+                                    })
+                                ) {
+                                    await rpc().fs.writeFile(
+                                        filename,
+                                        contents,
+                                        {
+                                            absolutePath: true
+                                        }
+                                    );
+                                    sourceFiles[sourceFile].lastVersionSaved =
+                                        version;
+                                } else {
+                                    delete sourceFiles[sourceFile];
+                                }
+                                res();
+                            })
+                    )
+                ).then(() => (updateThrottler = null));
+            },
+            now ? 0 : 2000
+        );
     },
     ...services
 };
