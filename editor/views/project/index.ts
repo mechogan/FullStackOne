@@ -228,14 +228,15 @@ class Project implements tsWorkerDelegate {
         await Promise.all(
             this.editors.map((editor) => {
                 editor.clearBuildErrors();
-                return editor.updateFile();
+                return editor.updateFile(true);
             })
         );
         this.renderEditors();
         this.console.term.clear();
         setTimeout(async () => {
-            const buildErrors = await rpc().build(this.project);
-            if (buildErrors && buildErrors !== 1)
+            
+            const buildErrors = await api.projects.build(this.project);
+            if (buildErrors?.length)
                 this.processBuildErrors(buildErrors);
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;

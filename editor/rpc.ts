@@ -5,21 +5,28 @@ import type esbuild from "esbuild";
 
 export type SetupDirectories = {
     rootDirectory: string;
-    baseJS: string;
     configDirectory: string;
     nodeModulesDirectory: string;
-    cacheDirectory: string;
 };
 
 export type AdapterEditor = Adapter & {
     directories: SetupDirectories;
 
     esbuild: {
+        baseJS(): Promise<string>;
+        tmpFile: {
+            write(name: string, content: string): Promise<string>;
+            unlink(name: string): void
+        },
         check(): boolean;
         install(): void;
+        build(
+            entryPoint: string,
+            outdir: string
+        ): Promise<esbuild.BuildResult["errors"] | 1>;
     };
 
-    build(project: Project): Promise<esbuild.BuildResult["errors"]> | 1;
+    
     run(project: Project): void;
 
     open(project: Project): void;

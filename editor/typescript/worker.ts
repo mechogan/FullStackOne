@@ -76,7 +76,7 @@ export let methods = {
             ...services
         };
     },
-    updateFile(sourceFile: string, contents: string) {
+    updateFile(sourceFile: string, contents: string, now = false) {
         sourceFiles[sourceFile] = {
             contents,
             lastVersionSaved: sourceFiles?.[sourceFile]?.lastVersionSaved
@@ -113,7 +113,7 @@ export let methods = {
                         })
                 )
             ).then(() => (updateThrottler = null));
-        }, 2000);
+        }, now ? 0 : 2000);
     },
     ...services
 };

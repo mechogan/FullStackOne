@@ -207,7 +207,7 @@ export class Editor {
         this.updateThrottler = setTimeout(this.updateFile.bind(this), 2000);
     }
 
-    async updateFile() {
+    async updateFile(now = false) {
         const contents = this.editor?.state?.doc?.toString();
         if (!contents) return;
 
@@ -218,7 +218,7 @@ export class Editor {
         ) {
             return Editor.tsWorker
                 .call()
-                .updateFile(this.filePath.join("/"), contents);
+                .updateFile(this.filePath.join("/"), contents, now);
         }
 
         this.updateThrottler = null;

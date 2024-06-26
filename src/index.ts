@@ -118,4 +118,6 @@ if (wsPlatforms.includes(platform)) {
     ws.onclose = () => window.location.reload();
 }
 
+onPush["reload"] = () => window.location.reload();
+
 globalThis.sourceMapConsumer = SourceMapConsumer;

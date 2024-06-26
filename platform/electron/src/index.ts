@@ -27,8 +27,6 @@ const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
 
 const directories: SetupDirectories = {
     rootDirectory,
-    baseJS: path.resolve(__dirname, "..", "js", "index.js"),
-    cacheDirectory: ".cache/fullstacked",
     configDirectory,
     nodeModulesDirectory: configDirectory + "/node_modules"
 };
@@ -89,6 +87,8 @@ const openDirectory: OpenDirectoryFunction = (directory: string) => {
 const { handler, close } = main(
     Platform.ELECTRON,
     editorDirectory,
+    path.resolve(os.homedir(), ".cache", "fullstacked"),
+    path.resolve(__dirname, "..", "js", "index.js"),
     directories,
     esbuild,
     open,

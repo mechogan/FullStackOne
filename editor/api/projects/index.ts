@@ -80,6 +80,40 @@ export default {
         await unzip(project.location, zipData);
 
         return newProject;
+    },
+    async build(project: Project) {
+        const rootDirectory = await rpc().directories.rootDirectory();
+
+        const possibleEntrypoint = [
+            "index.js",
+            "index.jsx",
+            "index.ts",
+            "index.tsx"
+        ];
+
+        let entryPoint: string;
+        for (const maybeEntrypoint of possibleEntrypoint) {
+            const filePath = `${project.location}/${maybeEntrypoint}`;
+            if (await rpc().fs.exists(filePath, { absolutePath: true })) {
+                entryPoint = `${rootDirectory ? rootDirectory + "/" : ""}${filePath}`;
+                break;
+            }
+        }
+
+        if (!entryPoint) return;
+
+        const baseJS = await getBaseJS();
+        const mergedContent = `${baseJS}\nimport("${entryPoint.split("\\").join("/")}");`;
+        const tmpFileName = `tmp-${Date.now()}.js`;
+        const tmpFile = await rpc().esbuild.tmpFile.write(tmpFileName, mergedContent);
+
+        const outdir = rootDirectory + "/" + project.location + "/.build";
+        const buildErrors = await rpc().esbuild.build(tmpFile, outdir);
+        console.log(buildErrors)
+
+        await rpc().esbuild.tmpFile.unlink(tmpFileName);
+
+        return buildErrors === 1 ? null : buildErrors;
     }
 };
 
@@ -101,4 +135,13 @@ async function unzip(to: string, zipData: Uint8Array) {
             );
         }
     }
+}
+
+let baseJSCache: string;
+async function getBaseJS() {
+    if (!baseJSCache) {
+        baseJSCache = await rpc().esbuild.baseJS();
+    }
+
+    return baseJSCache;
 }

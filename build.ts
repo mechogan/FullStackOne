@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as sass from "sass";
-import { build, merge } from "./platform/node/src/build";
+import { build } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
@@ -57,19 +57,22 @@ const toBuild = [
     ["editor/typescript/worker.ts", "worker-ts"]
 ];
 
+const baseJS = await fs.promises.readFile(baseFile, { encoding: "utf-8" });
 let buildErrors = [];
 for (const [input, output] of toBuild) {
-    const editorEntry = await merge(baseFile, path.resolve(input), ".cache");
+    const mergedContent = `${baseJS}\nimport("${path.resolve(input).split("\\").join("/")}");`;
+    const tmpFile = `.cache/tmp-${Date.now()}.js`;
+    await fs.promises.writeFile(tmpFile, mergedContent);
     const errors = build(
         esbuild.buildSync,
-        editorEntry,
+        tmpFile,
         output,
         "editor/build",
         undefined,
         "external",
         false
     );
-    fs.rmSync(editorEntry);
+    fs.rmSync(tmpFile);
     if (errors) buildErrors.push(errors);
 }
 

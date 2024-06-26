@@ -7,7 +7,7 @@ import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
 import { Adapter } from "../../../src/adapter/fullstacked";
-import { build, merge } from "./build";
+import { build } from "./build";
 import { Project } from "../../../editor/api/config/types";
 import { randomUUID } from "crypto";
 import {
@@ -46,6 +46,8 @@ const instances = new Map<string, Instance>();
 export function main(
     platform: string,
     editorDirectory: string,
+    tmpDirectory: string,
+    baseJSFile: string,
     directories: SetupDirectories,
     esbuild: EsbuildFunctions,
     open: OpenFunction,
@@ -54,6 +56,9 @@ export function main(
 ) {
     let esbuildModule: typeof EsbuildModuleType;
     esbuild.load().then((e) => (esbuildModule = e));
+
+    if(!fs.existsSync(tmpDirectory))
+        fs.mkdirSync(tmpDirectory, { recursive: true });
 
     const broadcast: Adapter["broadcast"] = (data) =>
         push(null, "sendData", data);
@@ -79,48 +84,34 @@ export function main(
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
         connectivity,
         esbuild: {
+            baseJS: () => fs.promises.readFile(baseJSFile, { encoding: "utf8" }),
             check: () => !!esbuildModule,
             install: async () => {
                 await esbuild.install();
                 esbuildModule = await esbuild.load();
-            }
-        },
-        build: async (project) => {
-            const entryPoint = [
-                "index.js",
-                "index.jsx",
-                "index.ts",
-                "index.tsx"
-            ]
-                .map(
-                    (file) =>
-                        `${directories.rootDirectory}/${project.location}/${file}`
-                )
-                .find((file) => fs.existsSync(file));
-
-            if (!entryPoint) return null;
-
-            const mergedFile = await merge(
-                directories.baseJS,
-                entryPoint,
-                directories.rootDirectory + "/" + directories.cacheDirectory
-            );
-
-            const outdir =
-                directories.rootDirectory + "/" + project.location + "/.build";
-            const result = build(
-                esbuildModule.buildSync,
-                mergedFile,
-                "index",
-                outdir,
-                directories.rootDirectory +
+            },
+            tmpFile: {
+                write: async (name: string, content: string) => {
+                    const tmpFile = `${tmpDirectory}/${name}`
+                    await fs.promises.writeFile(tmpFile, content);
+                    return tmpFile;
+                },
+                unlink: (name: string) => {
+                    return fs.promises.unlink(`${tmpDirectory}/${name}`);
+                }
+            },
+            async build(entryPoint, outdir) {
+                const result = build(
+                    esbuildModule.buildSync,
+                    entryPoint,
+                    "index",
+                    outdir,
+                    directories.rootDirectory +
                     "/" +
                     directories.nodeModulesDirectory
-            );
-
-            await fs.promises.unlink(mergedFile);
-
-            return result?.errors;
+                );
+                return result?.errors;
+            },
         },
         run: (project) => {
             let instance = Array.from(instances.values()).find(
@@ -425,7 +416,7 @@ function createConnectivity(push: PushFunction): {
             );
         };
 
-        
+
         wsServer.onPeerConnection = (id, type, state) => {
             push("FullStacked", "peerConnection", JSON.stringify({ id, type, state }))
         };

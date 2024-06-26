@@ -29,8 +29,6 @@ const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
 
 const directories: SetupDirectories = {
     rootDirectory,
-    baseJS: path.resolve(currentDir, "js", "index.js"),
-    cacheDirectory: ".cache/fullstacked",
     configDirectory,
     nodeModulesDirectory: configDirectory + "/node_modules"
 };
@@ -41,6 +39,8 @@ const open: OpenFunction = (id) => {
     if (!runningInstance) {
         runningInstance = createRunningInstance(id);
         runningInstances.set(id, runningInstance);
+    }  else {
+        push(id, "reload", "");
     }
 
     const port = (runningInstance.server.address() as AddressInfo).port;
@@ -122,6 +122,8 @@ const stopRunningInstance = (id: string) => {
 const { handler, close } = main(
     isWebContainer ? Platform.WEBCONTAINER : Platform.NODE,
     currentDir + "/editor",
+    path.resolve(os.homedir(), ".cache", "fullstacked"),
+    path.resolve(currentDir, "js", "index.js"),
     directories,
     {
         load: async () => esbuild,
