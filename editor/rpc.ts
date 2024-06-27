@@ -45,6 +45,7 @@ export type AdapterEditor = Adapter & {
         };
         browse: {
             start(): void;
+            peerNearbyIsDead(id: string): void;
             stop(): void;
         };
         open(id: string, me: Peer): void;

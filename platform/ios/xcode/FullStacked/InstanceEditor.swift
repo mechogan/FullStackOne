@@ -262,6 +262,9 @@ class AdapterEditor: Adapter {
                         self.bonjour.startBrowsing()
                         self.multipeer.startBrowsing()
                         return done(true)
+                    case "peerNearbyIsDead":
+                        self.bonjour.peerNearbyIsDead(id: json[0].stringValue)
+                        return done(true)
                     case "stop":
                         self.bonjour.stopBrowsing()
                         self.multipeer.stopBrowsing()

@@ -5,7 +5,7 @@ import { Connecter } from "../../../../src/connectivity/connecter";
 import { PEER_CONNECTION_TYPE, Peer } from "../../../../src/connectivity/types";
 
 export class WebSocketServer implements Connecter {
-    port = crypto.randomInt(30000, 65536);
+    port = 14000;
     advertising: Peer = null;
     server: http.Server;
     wss: WSS;
@@ -27,7 +27,7 @@ export class WebSocketServer implements Connecter {
         }
 
         this.server = http.createServer(this.requestHandler.bind(this));
-        this.server.listen(this.port);
+        this.server.listen(this.port, "0.0.0.0");
         this.wss = new WSS({ server: this.server });
 
         this.wss.on("connection", (ws) => {

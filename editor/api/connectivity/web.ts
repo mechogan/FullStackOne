@@ -111,4 +111,10 @@ export class BrowseWeb implements Browser {
             this.browseInterval = null;
         }
     }
+
+    peerNearbyIsDead(id: string): void {
+        const indexOf = this.peerNearbyWeb.findIndex(({peer}) => peer.id === id);
+        if(indexOf === -1) return;
+        this.onPeerNearby?.("lost", this.peerNearbyWeb.splice(indexOf, 1).at(0));
+    }
 }

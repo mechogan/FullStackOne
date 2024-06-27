@@ -17,11 +17,14 @@ import {
     PeerConnectionTrusted,
     PeerConnectionUntrusted,
     PeerNearby,
-    PeerTrusted
+    PeerNearbyBonjour,
+    PeerNearbyWeb,
+    PeerTrusted,
+    WebAddress
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 import peers from "../../views/peers";
-import { BrowseWeb } from "./web";
+import { BrowseWeb, constructURL } from "./web";
 
 let me: Peer,
     autoConnect = false;
@@ -69,6 +72,52 @@ async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
     onPush["peerConnectivityEvent"](null);
 }
 
+const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
+    const addresses = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+        ? peerNearby.addresses.map(hostname => ({
+            hostname,
+            port: peerNearby.port,
+            secure: false
+        } as WebAddress))
+        : [peerNearby.address]
+
+    let alive = false;
+    for (const address of addresses) {
+        const url = constructURL(address, "http") + "/ping";
+
+        const response = await new Promise(resolve => {
+            let resolved = false;
+
+            rpc().fetch(url, {
+                encoding: "utf8"
+            })
+                .then(res => {
+                    if (resolved) return;
+
+                    resolve(res.body);
+                })
+                .catch(e => {
+                    if (resolved) return;
+
+                    resolve(null);
+                })
+
+            setTimeout(() => {
+                if (resolved) return;
+
+                resolved = true;
+                resolve(null);
+            }, 200);
+        });
+
+        alive = response === "pong";
+        if (alive) return true;
+    }
+
+    api.connectivity.browse.peerNearbyIsDead(peerNearby);
+    return false;
+}
+
 const connectivityAPI = {
     async init() {
         let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
@@ -106,7 +155,7 @@ const connectivityAPI = {
         },
         async nearby() {
             const seenPeerID = new Set<string>();
-            return [
+            const peersNearby = [
                 (await rpc().connectivity.peers.nearby()) || [],
                 browserWeb.getPeersNearby()
             ]
@@ -116,12 +165,37 @@ const connectivityAPI = {
                     seenPeerID.add(id);
                     return true;
                 });
+
+            const verificationPromises: { promise: Promise<boolean>, peerID: string }[] = [];
+            for (const peerNearby of peersNearby) {
+                if (peerNearby.type === PEER_ADVERSTISING_METHOD.WEB || peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR) {
+                    verificationPromises.push({
+                        promise: verifyWSS(peerNearby),
+                        peerID: peerNearby.peer.id
+                    });
+                }
+            }
+
+            const verifications = await Promise.all(verificationPromises.map(({ promise }) => promise));
+            verifications.forEach((alive, index) => {
+                const { peerID } = verificationPromises[index];
+                if (!alive) {
+                    const indexOf = peersNearby.findIndex(({ peer: { id } }) => id === peerID);
+                    peersNearby.splice(indexOf, 1);
+                }
+            });
+
+            return peersNearby;
         }
     },
     browse: {
         start() {
             browserWeb.startBrowsing();
             rpc().connectivity.browse.start();
+        },
+        peerNearbyIsDead(peerNearby: PeerNearbyBonjour | PeerNearbyWeb) {
+            browserWeb.peerNearbyIsDead(peerNearby.peer.id);
+            rpc().connectivity.browse.peerNearbyIsDead(peerNearby.peer.id);
         },
         stop() {
             browserWeb.stopBrowsing();
@@ -152,11 +226,13 @@ const connectivityAPI = {
             rpc().connectivity.advertise.stop();
         }
     },
-    connect(peerNearby: PeerNearby) {
+    async connect(peerNearby: PeerNearby) {
         let id: string;
         switch (peerNearby.type) {
             case PEER_ADVERSTISING_METHOD.WEB:
             case PEER_ADVERSTISING_METHOD.BONJOUR:
+                const alive = await verifyWSS(peerNearby);
+                if (!alive) return;
                 id = crypto.randomUUID();
                 connecterWebSocket.open(id, peerNearby);
                 break;
@@ -185,6 +261,8 @@ const connectivityAPI = {
         await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
     },
     async disconnect(peerConnection: PeerConnection) {
+        peersConnections.delete(peerConnection.id);
+
         switch (peerConnection.type) {
             case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
             case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
@@ -235,7 +313,26 @@ async function onPeerConnection(
     console.log(`onPeerConnection [${state}]`);
 
     if (state === "close") {
-        peersConnections.delete(id);
+        const connection = peersConnections.get(id);
+        if (connection) {
+            peersConnections.delete(id);
+
+            const [
+                peersNearby,
+                peersTrusted
+            ] = await Promise.all([
+                api.connectivity.peers.nearby(),
+                api.connectivity.peers.trusted()
+            ])
+
+            const peerNearby = peersNearby.find(({ peer: { id } }) => id === connection.peer.id);
+            const peerTrusted = peersTrusted.find(({ id }) => id === connection.peer.id);
+
+            // if trusted peer is still nearby, reconnect
+            if (peerNearby && peerTrusted) {
+                api.connectivity.connect(peerNearby);
+            }
+        };
     } else {
         const peerConnection = peersConnections.get(id);
 
