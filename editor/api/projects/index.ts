@@ -4,6 +4,8 @@ import { Project } from "../config/types";
 import rpc from "../../rpc";
 import * as zip from "@zip.js/zip.js";
 import zipDirectory from "./zip";
+import * as sass from "sass";
+import type esbuild from "esbuild";
 
 const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 const create = async (project: Omit<Project, "createdDate">) => {
@@ -82,43 +84,119 @@ export default {
         return newProject;
     },
     async build(project: Project) {
-        const rootDirectory = await rpc().directories.rootDirectory();
-
-        const possibleEntrypoint = [
-            "index.js",
-            "index.jsx",
-            "index.ts",
-            "index.tsx"
-        ];
-
-        let entryPoint: string;
-        for (const maybeEntrypoint of possibleEntrypoint) {
-            const filePath = `${project.location}/${maybeEntrypoint}`;
-            if (await rpc().fs.exists(filePath, { absolutePath: true })) {
-                entryPoint = `${rootDirectory ? rootDirectory + "/" : ""}${filePath}`;
-                break;
-            }
+        const [css, js] = await Promise.all([
+            buildCSS(project),
+            buildJS(project)
+        ]);
+        const errors: Partial<esbuild.Message>[] = js || [];
+        if(css) {
+            errors.push(css);
         }
-
-        if (!entryPoint) return;
-
-        const baseJS = await getBaseJS();
-        const mergedContent = `${baseJS}\nimport("${entryPoint.split("\\").join("/")}");`;
-        const tmpFileName = `tmp-${Date.now()}.js`;
-        const tmpFile = await rpc().esbuild.tmpFile.write(
-            tmpFileName,
-            mergedContent
-        );
-
-        const outdir = rootDirectory + "/" + project.location + "/.build";
-        const buildErrors = await rpc().esbuild.build(tmpFile, outdir);
-        console.log(buildErrors);
-
-        await rpc().esbuild.tmpFile.unlink(tmpFileName);
-
-        return buildErrors === 1 ? null : buildErrors;
+        return errors;
     }
 };
+
+async function buildJS(project: Project) {
+    const rootDirectory = await rpc().directories.rootDirectory();
+
+    const possibleEntrypoint = [
+        "index.js",
+        "index.jsx",
+        "index.ts",
+        "index.tsx"
+    ];
+
+    let entryPoint: string;
+    for (const maybeEntrypoint of possibleEntrypoint) {
+        const filePath = `${project.location}/${maybeEntrypoint}`;
+        if (await rpc().fs.exists(filePath, { absolutePath: true })) {
+            entryPoint = `${rootDirectory ? rootDirectory + "/" : ""}${filePath}`;
+            break;
+        }
+    }
+
+    if (!entryPoint) return;
+
+    const baseJS = await getBaseJS();
+    const mergedContent = `${baseJS}\nimport("${entryPoint.split("\\").join("/")}");`;
+    const tmpFileName = `tmp-${Date.now()}.js`;
+    const tmpFile = await rpc().esbuild.tmpFile.write(
+        tmpFileName,
+        mergedContent
+    );
+
+    const outdir = rootDirectory + "/" + project.location + "/.build";
+    const buildErrors = await rpc().esbuild.build(tmpFile, outdir);
+
+    await rpc().esbuild.tmpFile.unlink(tmpFileName);
+
+    return buildErrors === 1 ? null : buildErrors.map(uncapitalizeKeys);
+}
+
+async function buildCSS(project: Project): Promise<Partial<esbuild.Message>> {
+    const possibleEntrypoint = [
+        "index.sass",
+        "index.scss"
+    ];
+
+    let entryPoint: string;
+    for (const maybeEntrypoint of possibleEntrypoint) {
+        const filePath = `${project.location}/${maybeEntrypoint}`;
+        if (await rpc().fs.exists(filePath, { absolutePath: true })) {
+            entryPoint = filePath;
+            break;
+        }
+    }
+
+    if (!entryPoint) return;
+
+    const content = await rpc().fs.readFile(entryPoint, { absolutePath: true, encoding: "utf8" }) as string;
+    let result: sass.CompileResult;
+    try {
+        result = await sass.compileStringAsync(content, {
+            importer: {
+                load: async (url) => {
+                    const filePath = `${project.location}${url.pathname}`;
+                    const contents = await rpc().fs.readFile(filePath, { absolutePath: true, encoding: "utf8" }) as string
+                    return {
+                        syntax: filePath.endsWith(".sass")
+                            ? "indented"
+                            : filePath.endsWith(".scss")
+                                ? "scss"
+                                : "css",
+                        contents
+                    }
+                },
+                canonicalize: path => new URL(path, window.location.href)
+            }
+        });
+    } catch (e) {
+        const error = e as unknown as sass.Exception
+        const file = error.span.url?.pathname || entryPoint;
+        const line = error.span.start.line + 1;
+        const column = error.span.start.column;
+        const length = error.span.text.length;
+        return {
+            text: error.message,
+            location: {
+                file,
+                line,
+                column,
+                length,
+                namespace: "SASS",
+                lineText: error.message,
+                suggestion: ""
+            }
+        }
+    }
+
+    const buildDirectory = `${project.location}/.build`;
+    if (!await rpc().fs.exists(buildDirectory, { absolutePath: true })) {
+        await rpc().fs.mkdir(buildDirectory, { absolutePath: true })
+    }
+
+    await rpc().fs.writeFile(buildDirectory + "/index.css", result.css, {absolutePath: true, encoding: "utf8"});
+}
 
 async function unzip(to: string, zipData: Uint8Array) {
     const entries = await new zip.ZipReader(
@@ -147,4 +225,18 @@ async function getBaseJS() {
     }
 
     return baseJSCache;
+}
+
+function isPlainObject(input: any) {
+    return input && !Array.isArray(input) && typeof input === "object";
+}
+
+function uncapitalizeKeys<T>(obj: T) {
+    const final = {};
+    for (const [key, value] of Object.entries(obj)) {
+        final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value)
+            ? uncapitalizeKeys(value)
+            : value;
+    }
+    return final as T;
 }

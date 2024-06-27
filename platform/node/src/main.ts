@@ -111,7 +111,7 @@ export function main(
                         "/" +
                         directories.nodeModulesDirectory
                 );
-                return result?.errors;
+                return result?.errors?.length ? result.errors : 1;
             }
         },
         run: (project) => {

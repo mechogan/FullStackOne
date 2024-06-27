@@ -148,11 +148,9 @@ class Project implements tsWorkerDelegate {
         }, 350);
     }
 
-    private processBuildErrors(errors: esbuild.BuildResult["errors"]) {
+    private processBuildErrors(errors: Partial<esbuild.Message>[]) {
         const packagesMissing = new Set<string>();
         errors.forEach((error) => {
-            error = uncapitalizeKeys(error);
-
             const file = error.location?.file;
 
             if (!file) {
@@ -235,7 +233,7 @@ class Project implements tsWorkerDelegate {
         this.console.term.clear();
         setTimeout(async () => {
             const buildErrors = await api.projects.build(this.project);
-            if (buildErrors?.length) this.processBuildErrors(buildErrors);
+            if (buildErrors.length) this.processBuildErrors(buildErrors)
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");
@@ -447,20 +445,6 @@ class Project implements tsWorkerDelegate {
 
         return this.container;
     }
-}
-
-function isPlainObject(input: any) {
-    return input && !Array.isArray(input) && typeof input === "object";
-}
-
-function uncapitalizeKeys<T>(obj: T) {
-    const final = {};
-    for (const [key, value] of Object.entries(obj)) {
-        final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value)
-            ? uncapitalizeKeys(value)
-            : value;
-    }
-    return final as T;
 }
 
 export default new Project();
