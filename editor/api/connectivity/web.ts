@@ -42,12 +42,15 @@ export class BrowseWeb implements Browser {
 
         if (!addresses) return;
 
-        for (const address of addresses) {
+        addresses.forEach(async address => {
             const url = constructURL(address, "http");
 
             const promise = new Promise<Peer>((resolve) => {
                 rpc()
-                    .fetch(url, { encoding: "utf8" })
+                    .fetch(url, { 
+                        encoding: "utf8",
+                        timeout: 2000
+                     })
                     .then((response) => {
                         let peer: Peer = null;
                         try {
@@ -83,7 +86,8 @@ export class BrowseWeb implements Browser {
                     this.peerNearbyWeb.push(peerNearbyWeb);
                     this.onPeerNearby?.("new", peerNearbyWeb);
                 }
-            } else {
+            } 
+            else {
                 const indexOf = this.peerNearbyWeb.findIndex(
                     ({ address: { hostname, port } }) =>
                         hostname + (port ? ":" + port : "") === url.toString()
@@ -95,7 +99,7 @@ export class BrowseWeb implements Browser {
                     this.onPeerNearby?.("lost", peerLost);
                 }
             }
-        }
+        });
     }
 
     browseInterval: ReturnType<typeof setInterval>;

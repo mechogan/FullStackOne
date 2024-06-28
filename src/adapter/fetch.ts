@@ -5,6 +5,7 @@ export type fetch = (
         method?: "GET" | "POST" | "PUT" | "DELETE";
         body?: string | Uint8Array;
         encoding?: string;
+        timeout?: number;
     }
 ) => Promise<{
     headers: Record<string, string>;

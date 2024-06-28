@@ -41,6 +41,7 @@ declare global {
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
+                timeout?: number;
             }
         ): Promise<{
             headers: Record<string, string>;
@@ -51,10 +52,11 @@ declare global {
         fetch(
             url: string,
             options?: {
+                encoding: "utf8";
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELTE";
                 body?: string | Uint8Array;
-                encoding: "utf8";
+                timeout?: number;
             }
         ): Promise<{
             headers: Record<string, string>;

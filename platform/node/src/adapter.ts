@@ -113,13 +113,24 @@ export function createAdapter(
                 method?: "GET" | "POST" | "PUT" | "DELETE";
                 body?: string | Uint8Array;
                 encoding?: string;
+                timeout?: number;
             }
         ) {
+            let signal: AbortSignal = undefined, timeoutId: ReturnType<typeof setTimeout>;
+            if(options?.timeout) {
+                const controller = new AbortController()
+                timeoutId = setTimeout(() => controller.abort(), options.timeout)
+                signal = controller.signal
+            }
+
             const response = await fetch(url, {
                 method: options?.method || "GET",
                 headers: options?.headers || {},
-                body: options?.body ? Buffer.from(options?.body) : undefined
+                body: options?.body ? Buffer.from(options?.body) : undefined,
+                signal
             });
+
+            if(timeoutId) clearTimeout(timeoutId);
 
             const headers = convertHeadersToObj(response.headers);
 

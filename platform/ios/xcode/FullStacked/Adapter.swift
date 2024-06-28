@@ -113,6 +113,7 @@ class Adapter {
                 urlStr: json[0].stringValue,
                 headers: headers,
                 method: json[1]["method"].stringValue,
+                timeout: json[1]["timeout"].double,
                 body: body) { headers, statusCode, statusMessage, data in
                     var body: Any?
                     
@@ -144,6 +145,7 @@ class Adapter {
     func fetch(urlStr: String,
                headers: [String: String],
                method: String,
+               timeout: Double?,
                body: Data,
                onCompletion: @escaping (
                   _ headers: [String: String],
@@ -155,6 +157,10 @@ class Adapter {
                    var request = URLRequest(url: url)
                    
                    request.httpMethod = method.isEmpty ? "GET" : method
+                   
+                   if(timeout != nil){
+                       request.timeoutInterval = timeout! / 1000
+                   }
                    
                    for (headerName, headerValue) in headers {
                        request.setValue(headerValue, forHTTPHeaderField: headerName)

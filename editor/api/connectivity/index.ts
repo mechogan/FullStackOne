@@ -86,28 +86,12 @@ const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
         const url = constructURL(address, "http") + "/ping";
 
         const response = await new Promise(resolve => {
-            let resolved = false;
-
             rpc().fetch(url, {
-                encoding: "utf8"
+                encoding: "utf8",
+                timeout: 500
             })
-                .then(res => {
-                    if (resolved) return;
-
-                    resolve(res.body);
-                })
-                .catch(e => {
-                    if (resolved) return;
-
-                    resolve(null);
-                })
-
-            setTimeout(() => {
-                if (resolved) return;
-
-                resolved = true;
-                resolve(null);
-            }, 200);
+                .then(res => resolve(res.body))
+                .catch(() => resolve(null))
         });
 
         alive = response === "pong";
@@ -227,6 +211,11 @@ const connectivityAPI = {
         }
     },
     async connect(peerNearby: PeerNearby) {
+        for(const peerConnection of peersConnections.values()){
+            // already connected or in the process of connecting
+            if(peerConnection.peer?.id === peerNearby.peer?.id) return;
+        }
+
         let id: string;
         switch (peerNearby.type) {
             case PEER_ADVERSTISING_METHOD.WEB:
