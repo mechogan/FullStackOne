@@ -1,6 +1,6 @@
 import "./index.css";
 
-import type { Project as TypeProject } from "../../../api/projects/types";
+import type { Project as TypeProject } from "../../../api/config/types";
 import api from "../../../api";
 import stackNavigation from "../../../stack-navigation";
 

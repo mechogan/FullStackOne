@@ -25,7 +25,7 @@ class InstanceEditor: Instance {
 
 class AdapterEditor: Adapter {
     let rootDirectory = documentsDirectory
-    private let baseJS = Bundle.main.path(forResource: "index", ofType: "js", inDirectory: "js")!
+    private let baseJSFile = Bundle.main.path(forResource: "index", ofType: "js", inDirectory: "js")!
     let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
@@ -69,32 +69,16 @@ class AdapterEditor: Adapter {
             InstanceEditor.singleton?.push(messageType: "peerNearby", message: JSON(message).rawString()!)
         }
         
-        self.multipeer.onOpenConnection = {id in
-            let message = ["id": id, "type": 3]
-            InstanceEditor.singleton?.push(messageType: "openConnection", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionRequest = {id, peerConnectionRequestStr in
+        self.multipeer.onPeerConnection = { id, type, state in
             let message = [
                 "id": id,
-                "type": 3,
-                "peerConnectionRequestStr": peerConnectionRequestStr
+                "type": type,
+                "state": state
             ]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionRequest", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionResponse = {id, peerConnectionResponseStr in
-            let message = [
-                "id": id,
-                "type": 3,
-                "peerConnectionResponseStr": peerConnectionResponseStr
-            ]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionResponse", message: JSON(message).rawString()!)
-        }
-        self.multipeer.onPeerConnectionLost = {id in
-            let message = ["id": id]
-            InstanceEditor.singleton?.push(messageType: "peerConnectionLost", message: JSON(message).rawString()!)
+            InstanceEditor.singleton?.push(messageType: "peerConnection", message: JSON(message).rawString()!)
         }
         
-        self.multipeer.onPeerData = {id, data in
+        self.multipeer.onPeerData = { id, data in
             let message = [
                 "id": id,
                 "data": data
@@ -122,10 +106,10 @@ class AdapterEditor: Adapter {
         switch(methodPath.first) {
             case "directories":
                 switch(methodPath[1]) {
-                    case "root": return done(self.rootDirectory)
-                    case "cache": return done(self.cacheDirectory)
-                    case "config": return done(self.configDirectory)
-                    case "nodeModules": return done(self.nodeModulesDirectory)
+                    case "rootDirectory": return done(self.rootDirectory)
+                    case "cacheDirectory": return done(self.cacheDirectory)
+                    case "configDirectory": return done(self.configDirectory)
+                    case "nodeModulesDirectory": return done(self.nodeModulesDirectory)
                     default: break
                 }
                 break
@@ -180,55 +164,47 @@ class AdapterEditor: Adapter {
                 break
             case "esbuild":
                 switch(methodPath[1]) {
-                    case "check": return done("1")
-                    case "install": break
-                    default: break
+                case "baseJS":
+                    let content = FileManager.default.contents(atPath: self.baseJSFile)!
+                    return done(String(data: content, encoding: .utf8)!)
+                case "check": return done("1")
+                case "install": break
+                case "tmpFile":
+                    switch(methodPath[2]) {
+                    case "write":
+                        let path = self.cacheDirectory + json[0].stringValue
+                        let data = json[1].stringValue.data(using: .utf8)!
+                        try! data.write(to: URL(string: path)!)
+                        return done(String(path.dropFirst("file://".count)))
+                    case "unlink":
+                        let path = self.cacheDirectory + json[0].stringValue
+                        try! FileManager.default.removeItem(at: URL(string: path)!)
+                        return done(true)
+                    default: break;
+                    }
+                case "build":
+                    let inputPtr = UnsafeMutablePointer<Int8>(mutating: (json[0].stringValue as NSString).utf8String)
+                    let outPtr = UnsafeMutablePointer<Int8>(mutating: ("index" as NSString).utf8String)
+                    let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (json[1].stringValue as NSString).utf8String)
+                    let nodePathPtr = UnsafeMutablePointer<Int8>(mutating: (self.rootDirectory + "/" + self.nodeModulesDirectory as NSString).utf8String)
+                    
+                    var errorsPtr = UnsafeMutablePointer<Int8>(nil)
+                    
+                    build(inputPtr,
+                          outPtr,
+                          outdirPtr,
+                          nodePathPtr,
+                          &errorsPtr)
+                                
+                    if(errorsPtr != nil) {
+                        let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
+                        return done(JSON(parseJSON: errorsJSONStr))
+                    }
+                
+                    return done(true)
+                default: break
                 }
                 break
-            case "build":
-                let project = json[0]
-                
-                let entryPoint = [
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.js",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.jsx",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.ts",
-                    self.rootDirectory + "/" + project["location"].stringValue + "/index.tsx"
-                ].first { file in
-                    if let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(file) {
-                        return !existsAndIsDirectory
-                    }
-                    return false
-                }
-            
-                if(entryPoint == nil){
-                    return done(true)
-                }
-                
-                let mergedFile = self.merge(entryPoint: entryPoint!)
-            
-                let outdir = self.rootDirectory + "/" + project["location"].stringValue + "/.build"
-                
-                let inputPtr = UnsafeMutablePointer<Int8>(mutating: (String(mergedFile.dropFirst("file://".count)) as NSString).utf8String)
-                let outPtr = UnsafeMutablePointer<Int8>(mutating: ("index" as NSString).utf8String)
-                let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (outdir as NSString).utf8String)
-                let nodePathPtr = UnsafeMutablePointer<Int8>(mutating: (self.rootDirectory + "/" + self.nodeModulesDirectory as NSString).utf8String)
-                
-                var errorsPtr = UnsafeMutablePointer<Int8>(nil)
-                
-                build(inputPtr,
-                      outPtr,
-                      outdirPtr,
-                      nodePathPtr,
-                      &errorsPtr)
-                
-                try! FileManager.default.removeItem(at: URL(string: mergedFile)!)
-            
-                if(errorsPtr != nil) {
-                    let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
-                    return done(JSON(parseJSON: errorsJSONStr))
-                }
-            
-                return done(true)
             case "run":
                 let projectDirectory = self.rootDirectory + "/" + json[0]["location"].stringValue
                     
@@ -286,6 +262,9 @@ class AdapterEditor: Adapter {
                         self.bonjour.startBrowsing()
                         self.multipeer.startBrowsing()
                         return done(true)
+                    case "peerNearbyIsDead":
+                        self.bonjour.peerNearbyIsDead(id: json[0].stringValue)
+                        return done(true)
                     case "stop":
                         self.bonjour.stopBrowsing()
                         self.multipeer.stopBrowsing()
@@ -298,17 +277,11 @@ class AdapterEditor: Adapter {
                 case "disconnect":
                     self.multipeer.disconnect(id: json[0].stringValue)
                     return done(true)
-                case "requestConnection":
-                    self.multipeer.requestConnection(id: json[0].stringValue, peerConnectionRequestStr: json[1].stringValue)
-                    return done(true)
-                case "respondToRequestConnection":
-                    self.multipeer.respondToConnectionRequest(id: json[0].stringValue, peerConnectionResponseStr: json[1].stringValue)
-                    return done(true)
                 case "trustConnection":
                     self.multipeer.trustConnection(id: json[0].stringValue)
                     return done(true)
                 case "send":
-                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue)
+                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue, pairing: json[2].boolValue)
                     return done(true)
                 case "convey":
                     RunningInstances.singleton!.instances.forEach({instance in
@@ -321,13 +294,5 @@ class AdapterEditor: Adapter {
         }
         
         return super.callAdapterMethod(methodPath: methodPath, body: body, done: done)
-    }
-    
-    func merge(entryPoint: String) -> String {
-        var contents = String(data: FileManager.default.contents(atPath: self.baseJS)!, encoding: .utf8)!
-        contents += "\n" + "import(\"\(entryPoint)\")"
-        let tmpFile = self.cacheDirectory + "tmp-" + String(Int(Date().timeIntervalSince1970 * 1000)) + ".js"
-        try! contents.write(to: URL(string: tmpFile)!, atomically: true, encoding: .utf8)
-        return tmpFile
     }
 }

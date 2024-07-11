@@ -39,7 +39,8 @@ const process2 = child_process.exec("node index.js", {
         ...process.env,
         NO_OPEN: "1",
         PORT: port2.toString(),
-        CONFIG_DIR: configDir2
+        CONFIG_DIR: configDir2,
+        WSS_PORT: "14001"
     }
 });
 process2.stdout.pipe(process.stdout);
@@ -98,6 +99,9 @@ if (pairingCode1 !== pairingCode2) {
 
 const trustButton = await page1.waitForSelector(`#${PEER_TRUST_BUTTON_ID}`);
 await trustButton.click();
+
+const trustButton2 = await page2.waitForSelector(`#${PEER_TRUST_BUTTON_ID}`);
+await trustButton2.click();
 
 await page2.waitForSelector(`.${PEER_DISCONNECT_BUTTON_CLASS}`);
 

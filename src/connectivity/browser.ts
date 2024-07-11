@@ -6,4 +6,5 @@ export abstract class Browser {
     abstract getPeersNearby(): PeerNearby[];
     abstract startBrowsing(): void;
     abstract stopBrowsing(): void;
+    abstract peerNearbyIsDead(id: string): void;
 }

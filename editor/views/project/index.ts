@@ -10,7 +10,7 @@ import {
 } from "../../constants";
 import GitWidget from "./git-widget";
 import type esbuild from "esbuild";
-import type { Project as TypeProject } from "../../api/projects/types";
+import type { Project as TypeProject } from "../../api/config/types";
 import rpc from "../../rpc";
 import api from "../../api";
 import { PackageInstaller } from "../../packages/installer";
@@ -148,11 +148,9 @@ class Project implements tsWorkerDelegate {
         }, 350);
     }
 
-    private processBuildErrors(errors: esbuild.BuildResult["errors"]) {
+    private processBuildErrors(errors: Partial<esbuild.Message>[]) {
         const packagesMissing = new Set<string>();
         errors.forEach((error) => {
-            error = uncapitalizeKeys(error);
-
             const file = error.location?.file;
 
             if (!file) {
@@ -228,15 +226,14 @@ class Project implements tsWorkerDelegate {
         await Promise.all(
             this.editors.map((editor) => {
                 editor.clearBuildErrors();
-                return editor.updateFile();
+                return editor.updateFile(true);
             })
         );
         this.renderEditors();
         this.console.term.clear();
         setTimeout(async () => {
-            const buildErrors = await rpc().build(this.project);
-            if (buildErrors && buildErrors !== 1)
-                this.processBuildErrors(buildErrors);
+            const buildErrors = await api.projects.build(this.project);
+            if (buildErrors.length) this.processBuildErrors(buildErrors);
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");
@@ -448,20 +445,6 @@ class Project implements tsWorkerDelegate {
 
         return this.container;
     }
-}
-
-function isPlainObject(input: any) {
-    return input && !Array.isArray(input) && typeof input === "object";
-}
-
-function uncapitalizeKeys<T>(obj: T) {
-    const final = {};
-    for (const [key, value] of Object.entries(obj)) {
-        final[key.at(0).toLowerCase() + key.slice(1)] = isPlainObject(value)
-            ? uncapitalizeKeys(value)
-            : value;
-    }
-    return final as T;
 }
 
 export default new Project();

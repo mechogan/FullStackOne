@@ -1,11 +1,100 @@
 import path from "path";
-import { app, protocol } from "electron";
-import { InstanceEditor } from "./instanceEditor";
+import os from "os";
+import slugify from "slugify";
+import { BrowserWindow, app, protocol, shell } from "electron";
 import { installEsbuild, loadEsbuild } from "./esbuild";
+import {
+    EsbuildFunctions,
+    OpenDirectoryFunction,
+    OpenFunction,
+    PushFunction,
+    main
+} from "../../node/src/main";
+import { SetupDirectories } from "../../../editor/rpc";
+import { Platform } from "../../../src/platforms";
 
 if (require("electron-squirrel-startup")) app.quit();
 
-let editorInstance: InstanceEditor;
+// hostname => instance.id
+const hostnames = new Map<string, string>();
+// instance.id => BrowserWindow
+const runningInstances = new Map<string, BrowserWindow>();
+
+const editorDirectory = path.resolve(__dirname, "..", "editor");
+
+const rootDirectory = os.homedir();
+const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
+
+const directories: SetupDirectories = {
+    rootDirectory,
+    configDirectory,
+    nodeModulesDirectory: configDirectory + "/node_modules"
+};
+
+const configDirectoryAbs =
+    directories.rootDirectory + "/" + directories.configDirectory;
+
+const esbuild: EsbuildFunctions = {
+    load: () => loadEsbuild(configDirectoryAbs),
+    install: () =>
+        installEsbuild(configDirectoryAbs, (data) => {
+            push("FullStacked", "installEsbuild", JSON.stringify(data));
+        })
+};
+
+const open: OpenFunction = (id, project) => {
+    let window = runningInstances.get(id);
+
+    if (!window) {
+        const hostname = slugify(project.title, { lower: true });
+
+        window = new BrowserWindow({
+            width: 800,
+            height: 600,
+            title: project.title,
+            icon: "icons/icon.png"
+        });
+
+        window.loadURL(`http://${hostname}`);
+
+        hostnames.set(hostname, id);
+        runningInstances.set(id, window);
+
+        window.on("close", () => {
+            hostnames.delete(hostname);
+            runningInstances.delete(id);
+            close(id);
+        });
+    } else {
+        window.reload();
+        window.focus();
+    }
+};
+
+const push: PushFunction = (id, messageType, message) => {
+    const window = runningInstances.get(id || "FullStacked");
+    window?.webContents.executeJavaScript(
+        `window.push("${messageType}", \`${message.replace(/\\/g, "\\\\")}\`)`
+    );
+};
+const openDirectory: OpenDirectoryFunction = (directory: string) => {
+    let directoryAbs = rootDirectory + "/" + directory;
+    if (os.platform() === "win32")
+        directoryAbs = directoryAbs.split("/").join("\\");
+    shell.openPath(directory);
+};
+
+const { handler, close } = main(
+    Platform.ELECTRON,
+    editorDirectory,
+    path.resolve(os.homedir(), ".cache", "fullstacked"),
+    path.resolve(__dirname, "..", "js", "index.js"),
+    directories,
+    esbuild,
+    open,
+    push,
+    openDirectory
+);
 
 const deepLinksScheme = "fullstacked";
 let launchURL: string = process.argv.find((arg) =>
@@ -14,10 +103,12 @@ let launchURL: string = process.argv.find((arg) =>
 const maybeLaunchURL = (maybeURL: string) => {
     if (!maybeURL || !maybeURL.startsWith(deepLinksScheme)) return;
 
-    if (editorInstance) {
-        editorInstance.push("launchURL", maybeURL);
-        launchURL = null;
-    } else launchURL = maybeURL;
+    const editor = runningInstances.get("FullStacked");
+    if (editor) {
+        push("FullStacked", "launchURL", maybeURL);
+    } else {
+        launchURL = maybeURL;
+    }
 };
 
 if (process.defaultApp) {
@@ -41,18 +132,40 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("window-all-closed", () => {
-    editorInstance.bonjour.bonjour.unpublishAll(() => app.quit());
+    close("FullStacked").then(() => app.quit());
 });
 
-app.whenReady().then(async () => {
-    editorInstance = new InstanceEditor({
-        install: installEsbuild,
-        load: loadEsbuild
+const protocolHandler: (request: Request) => Promise<Response> = async (
+    request
+) => {
+    const url = new URL(request.url);
+    const hostname = url.hostname;
+    const id = hostnames.get(hostname);
+
+    const body = new Uint8Array(await request.arrayBuffer());
+
+    const response = await handler(id, url.pathname, body);
+
+    const headers = {
+        ["Content-Type"]: response.mimeType
+    };
+
+    if (response.data) {
+        headers["Content-Length"] = response.data.byteLength.toString();
+    }
+
+    return new Response(response.data || "", {
+        status: response.status,
+        headers
     });
-    protocol.handle(
-        "http",
-        editorInstance.requestListener.bind(editorInstance)
-    );
-    await editorInstance.start("localhost");
-    maybeLaunchURL(launchURL);
+};
+
+app.whenReady().then(async () => {
+    protocol.handle("http", protocolHandler);
+
+    open("FullStacked", {
+        title: "localhost",
+        location: null,
+        createdDate: null
+    });
 });

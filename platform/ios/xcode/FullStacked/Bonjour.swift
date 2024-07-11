@@ -19,6 +19,7 @@ class Bonjour {
     var onPeerNearby: ((_ eventType: String, _ peerNearbyBonjour: PeerNearbyBonjour) -> Void)?;
     
     func getPeersNearby() -> JSON {
+        print(self.peersNearby.count)
         let json = JSON(self.peersNearby.values.map({peerNearby in
             return [
                 "peer": [
@@ -69,9 +70,24 @@ class Bonjour {
             }
         }
         self.browser!.start(queue: .main)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+            if(self.browser != nil) {
+                self.startBrowsing()
+            }
+        }
     }
     func stopBrowsing() {
         self.browser?.cancel()
-        self.browser = nil;
+        self.browser = nil
+    }
+    
+    func peerNearbyIsDead(id: String) {
+        if let peerNearby = self.peersNearby.enumerated().first(where: { peerNearby in
+            return id == peerNearby.element.value.id
+        }) {
+            self.onPeerNearby?("lost", peerNearby.element.value)
+            self.peersNearby.removeValue(forKey: peerNearby.element.key)
+        }
     }
 }

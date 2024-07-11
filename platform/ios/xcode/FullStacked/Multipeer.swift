@@ -81,24 +81,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     // Connecter
     var connections: [Connection] = []
     var onPeerData: ((_ id: String, _ data: String) -> Void)?
-    var onPeerConnectionLost: ((_ id: String) -> Void)?
-    
-    func disconnect(id: String) {
-        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
-            self.connections[indexOf].mcSession.disconnect()
-        }
-    }
-    
-    func send(id: String, data: String) {
-        if let connection = self.connections.first(where: {$0.id == id}) {
-            if(!connection.trusted) { return }
-            try! connection.mcSession.send(data.data(using: .utf8)!, toPeers: [connection.mcPeer], with: .reliable)
-        }
-    }
-    
-    // Requester
-    var onOpenConnection: ((_ id: String) -> Void)?
-    var onPeerConnectionResponse: ((_ id: String, _ peerConnectionRequestStr: String) -> Void)?
+    var onPeerConnection: ((_ id: String, _ type: Int, _ state: String) -> Void)?
     
     func open(id: String, meId: String, meName: String) {
         if let peerNearby = self.peersNearby.first(where: { $0.id == id }) {
@@ -115,13 +98,6 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
             self.browser?.invitePeer(peerNearby.mcPeer, to: mcSession, withContext: try! JSON(json).rawData(), timeout: 10)
         }
     }
-
-    func requestConnection(id: String, peerConnectionRequestStr: String) {
-        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
-            print("requestConnection")
-            try! self.connections[indexOf].mcSession.send(peerConnectionRequestStr.data(using: .utf8)!, toPeers: [self.connections[indexOf].mcPeer], with: .reliable)
-        }
-    }
     
     func trustConnection(id: String) {
         if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
@@ -129,13 +105,16 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
         }
     }
     
+    func disconnect(id: String) {
+        if let indexOf = self.connections.firstIndex(where: {$0.id == id}) {
+            self.connections[indexOf].mcSession.disconnect()
+        }
+    }
     
-    // Responder
-    var onPeerConnectionRequest: ((_ id: String, _ peerConnectionRequestStr: String) -> Void)?
-
-    func respondToConnectionRequest(id: String, peerConnectionResponseStr: String) {
+    func send(id: String, data: String, pairing: Bool = false) {
         if let connection = self.connections.first(where: {$0.id == id}) {
-            try! connection.mcSession.send(peerConnectionResponseStr.data(using: .utf8)!, toPeers: [connection.mcPeer], with: .reliable)
+            if(!connection.trusted && !pairing) { return }
+            try! connection.mcSession.send(data.data(using: .utf8)!, toPeers: [connection.mcPeer], with: .reliable)
         }
     }
     
@@ -186,15 +165,19 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     func session(_ session: MCSession, peer mcPeer: MCPeerID, didChange state: MCSessionState) {
         if(state == MCSessionState.connected) {
             if let connection = self.connections.first(where: { $0.mcPeer == mcPeer }) {
-                self.onOpenConnection?(connection.id)
+                self.onPeerConnection?(connection.id, 3, "open")
             } else if let peerNearby = self.peersNearby.first(where: { $0.mcPeer == mcPeer }),
-                        let invite = self.invites.first(where: { $0.mcSession == session }) {
-                let connection = Connection(id: peerNearby.id, trusted: false, mcPeer: mcPeer, mcSession: invite.mcSession)
+                        let inviteIndexOf = self.invites.firstIndex(where: { $0.mcSession == session }) {
+                let connection = Connection(id: peerNearby.id, trusted: false, mcPeer: mcPeer, mcSession: self.invites[inviteIndexOf].mcSession)
                 self.connections.append(connection)
+                self.invites.remove(at: inviteIndexOf)
+                self.onPeerConnection?(connection.id, 3, "open")
             }
+            
+            
         } else if(state == MCSessionState.notConnected) {
             if let indexOf = self.connections.firstIndex(where: {$0.mcPeer == mcPeer}) {
-                self.onPeerConnectionLost?(self.connections[indexOf].id)
+                self.onPeerConnection?(self.connections[indexOf].id, 3, "close")
                 self.connections.remove(at: indexOf)
             }
         }
@@ -203,19 +186,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     func session(_ session: MCSession, didReceive data: Data, fromPeer mcPeer: MCPeerID) {
         if let connection = self.connections.first(where: {$0.mcPeer == mcPeer}) {
             let dataStr = String(data: data, encoding: .utf8)!
-            
-            if(!connection.trusted) {
-                
-                if let inviteIndexOf = self.invites.firstIndex(where: { $0.mcSession == session }) {
-                    self.onPeerConnectionRequest?(connection.id, dataStr)
-                    self.invites.remove(at: inviteIndexOf);
-                } else {
-                    self.onPeerConnectionResponse?(connection.id, dataStr)
-                }
-                
-            } else {
-                self.onPeerData?(connection.id, dataStr)
-            }
+            self.onPeerData?(connection.id, dataStr)
         }
     }
 

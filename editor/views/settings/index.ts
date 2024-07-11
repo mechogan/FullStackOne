@@ -6,6 +6,7 @@ import rpc from "../../rpc";
 import gitAuth from "../git-auth";
 import projectView from "../project";
 import stackNavigation from "../../stack-navigation";
+import { constructURL } from "../../api/connectivity/web";
 
 export class Settings {
     private async renderGitAuths() {
@@ -38,6 +39,7 @@ export class Settings {
         ]);
 
         const ul = document.createElement("ul");
+        ul.classList.add("git-auths");
 
         addButton.addEventListener("click", async () => {
             addButton.remove();
@@ -132,7 +134,7 @@ export class Settings {
         packagesButton.addEventListener("click", async () => {
             projectView.setProject({
                 title: "Packages",
-                location: await rpc().directories.nodeModules(),
+                location: await rpc().directories.nodeModulesDirectory(),
                 createdDate: null
             });
             projectView.packagesView = true;
@@ -143,6 +145,7 @@ export class Settings {
         return container;
     }
 
+    pingStatusCache = new Map<string, Promise<boolean>>();
     private async renderConnectivity() {
         const container = document.createElement("div");
 
@@ -153,7 +156,7 @@ export class Settings {
         const row = document.createElement("div");
         row.classList.add("setting-row");
 
-        row.innerHTML = `<label>Auto connect to nearby trusted peers.</label>`;
+        row.innerHTML = `<label>Connect automatically to nearby trusted peers.</label>`;
 
         const switchButton = document.createElement("label");
         switchButton.classList.add("switch");
@@ -225,15 +228,192 @@ export class Settings {
 
         container.append(row2);
 
+        const row4 = document.createElement("div");
+        row4.classList.add("web-addr");
+
+        const topRow4 = document.createElement("div");
+        topRow4.classList.add("setting-row");
+
+        topRow4.innerHTML = `<label>Web Addresses</label>`;
+
+        const webAddrs = document.createElement("ul");
+
+        const [lockIcon, deleteIcon] = await Promise.all([
+            (await fetch("assets/icons/lock.svg")).text(),
+            (await fetch("assets/icons/delete.svg")).text()
+        ]);
+
+        connectivitySettings.webAddreses?.forEach(async (webAddr, index) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <div>
+                <span>${constructURL(webAddr, "")}</span>
+                ${webAddr.secure ? `<span class="secure">${lockIcon}</span>` : ""}
+                </div>
+            `;
+
+            const right = document.createElement("div");
+
+            const status = document.createElement("div");
+            status.classList.add("badge", "status");
+            status.innerText = "Offline";
+            right.append(status);
+
+            const url = constructURL(webAddr, "http");
+            let promise = this.pingStatusCache.get(url);
+
+            if (!promise) {
+                promise = new Promise<boolean>((resolve) => {
+                    rpc()
+                        .fetch(url + "/ping", { encoding: "utf8" })
+                        .then((res) => resolve(res.body === "pong"))
+                        .catch(() => resolve(false));
+                });
+                this.pingStatusCache.set(url, promise);
+            }
+
+            promise.then((online) => {
+                if (online) {
+                    status.innerText = "Online";
+                    status.classList.add("success");
+                }
+            });
+
+            const deleteButton = document.createElement("button");
+            deleteButton.classList.add("text", "small", "danger");
+            deleteButton.innerHTML = deleteIcon;
+            deleteButton.addEventListener("click", async () => {
+                li.remove();
+                connectivitySettings.webAddreses.splice(index, 1);
+
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
+                container.replaceWith(await this.renderConnectivity());
+            });
+            right.append(deleteButton);
+
+            li.append(right);
+
+            webAddrs.append(li);
+        });
+
+        const addButton = document.createElement("button");
+        addButton.classList.add("small", "text");
+        addButton.innerHTML = await (
+            await fetch("assets/icons/add.svg")
+        ).text();
+        addButton.addEventListener("click", async () => {
+            addButton.remove();
+            const li = document.createElement("li");
+            const form = document.createElement("form");
+
+            const addressInputLabel = document.createElement("label");
+            addressInputLabel.innerText = "Hostname";
+            form.append(addressInputLabel);
+
+            const addressInput = document.createElement("input");
+            form.append(addressInput);
+
+            const portInputLabel = document.createElement("label");
+            portInputLabel.innerText = "Port (leave blank for 80, 443)";
+            form.append(portInputLabel);
+
+            const portInput = document.createElement("input");
+            portInput.type = "tel";
+            form.append(portInput);
+
+            const secureRow = document.createElement("div");
+
+            const secureInputLabel = document.createElement("label");
+            secureInputLabel.innerText = "Secure (https:, wss:)";
+            secureRow.append(secureInputLabel);
+
+            const secureSwitch = document.createElement("label");
+            secureSwitch.classList.add("switch");
+            secureSwitch.innerHTML = `<span class="slider round"></span>`;
+
+            const secureInput = document.createElement("input");
+            secureInput.type = "checkbox";
+            secureInput.checked = true;
+            secureSwitch.prepend(secureInput);
+
+            secureRow.append(secureSwitch);
+
+            form.append(secureRow);
+
+            const buttonGroup = document.createElement("div");
+
+            const confirmButton = document.createElement("button");
+            confirmButton.classList.add("text");
+            confirmButton.innerHTML = await (
+                await fetch("assets/icons/check.svg")
+            ).text();
+            buttonGroup.append(confirmButton);
+
+            const cancelButton = document.createElement("button");
+            cancelButton.classList.add("text", "danger");
+            cancelButton.innerHTML = await (
+                await fetch("assets/icons/close.svg")
+            ).text();
+            cancelButton.addEventListener("click", async (e) => {
+                e.preventDefault();
+                li.remove();
+                container.replaceWith(await this.renderConnectivity());
+            });
+            buttonGroup.append(cancelButton);
+
+            form.append(buttonGroup);
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                if (!connectivitySettings.webAddreses) {
+                    connectivitySettings.webAddreses = [];
+                }
+
+                const port = parseInt(portInput.value);
+
+                connectivitySettings.webAddreses.push({
+                    hostname: addressInput.value,
+                    port: isNaN(port) ? null : port,
+                    secure: secureInput.checked
+                });
+
+                await api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivitySettings
+                );
+
+                li.remove();
+                container.replaceWith(await this.renderConnectivity());
+            });
+
+            li.append(form);
+            webAddrs.prepend(li);
+        });
+        topRow4.append(addButton);
+
+        row4.append(topRow4);
+
+        row4.append(webAddrs);
+
+        container.append(row4);
+
         const { networkInterfaces } = await rpc().connectivity.infos();
 
         if (networkInterfaces?.length > 0) {
             const row3 = document.createElement("div");
             row3.classList.add("default-inet");
 
+            const topRow = document.createElement("div");
+
             const inetLabel = document.createElement("label");
             inetLabel.innerText = "Default Network Interface";
-            row3.append(inetLabel);
+            topRow.append(inetLabel);
+
+            row3.append(topRow);
 
             const updateDefaultNetworkInterface = async (inet: string) => {
                 connectivitySettings.defaultNetworkInterface = inet;
@@ -241,7 +421,7 @@ export class Settings {
                     CONFIG_TYPE.CONNECTIVITY,
                     connectivitySettings
                 );
-                api.connectivity.advertise();
+                api.connectivity.init();
             };
 
             const ul = document.createElement("ul");
@@ -272,16 +452,16 @@ export class Settings {
                 return radio;
             });
 
-            row3.append(ul);
-
             const clearBtn = document.createElement("button");
-            clearBtn.classList.add("small");
+            clearBtn.classList.add("small", "text");
             clearBtn.innerText = "clear";
             clearBtn.addEventListener("click", () => {
                 inetSelections.forEach((radio) => (radio.checked = false));
                 updateDefaultNetworkInterface(null);
             });
-            row3.append(clearBtn);
+            topRow.append(clearBtn);
+
+            row3.append(ul);
 
             container.append(row3);
         }
@@ -290,6 +470,8 @@ export class Settings {
     }
 
     async render() {
+        this.pingStatusCache = new Map();
+
         const container = document.createElement("div");
         container.classList.add("settings");
 

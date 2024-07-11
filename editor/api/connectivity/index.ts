@@ -5,39 +5,39 @@ import api from "..";
 import { ConnectWebSocket } from "./websocket";
 import {
     PEER_ADVERSTISING_METHOD,
-    PEER_CONNECTION_REQUEST_TYPE,
+    PEER_CONNECTION_PAIRING_DATA_TYPE,
     PEER_CONNECTION_STATE,
     PEER_CONNECTION_TYPE,
     Peer,
     PeerConnection,
     PeerConnectionPairing,
     PeerConnectionRequest,
-    PeerConnectionRequestCommon,
-    PeerConnectionRequestPairing,
+    PeerConnectionTokenChallenge,
+    PeerConnectionTokenExchange,
+    PeerConnectionTrusted,
+    PeerConnectionUntrusted,
     PeerNearby,
-    PeerTrusted
+    PeerNearbyBonjour,
+    PeerNearbyWeb,
+    PeerTrusted,
+    WebAddress
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 import peers from "../../views/peers";
+import { BrowseWeb, constructURL } from "./web";
 
 let me: Peer,
     autoConnect = false;
-let autoConnectAdvertiseInterval: ReturnType<typeof setInterval>;
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
 const peersConnections = new Map<string, PeerConnection>();
 
 const connecterWebSocket = new ConnectWebSocket();
-connecterWebSocket.onOpenConnection = (id) =>
-    onOpenConnection(id, PEER_CONNECTION_TYPE.WEB_SOCKET);
-connecterWebSocket.onPeerConnectionLost = onPeerConnectionLost;
-connecterWebSocket.onPeerConnectionResponse = (id, peerConectionResponseStr) =>
-    onPeerConnectionResponse(
-        id,
-        PEER_CONNECTION_TYPE.WEB_SOCKET,
-        peerConectionResponseStr
-    );
+connecterWebSocket.onPeerConnection = onPeerConnection;
 connecterWebSocket.onPeerData = onPeerData;
+
+const browserWeb = new BrowseWeb();
+browserWeb.onPeerNearby = onPeerNearby;
 
 onPush["peerNearby"] = async (eventStr) => {
     const event = JSON.parse(eventStr);
@@ -45,6 +45,10 @@ onPush["peerNearby"] = async (eventStr) => {
     const eventType: "new" | "lost" = event.eventType;
     const peerNearby: PeerNearby = event.peerNearby;
 
+    onPeerNearby(eventType, peerNearby);
+};
+
+async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
     if (eventType === "new" && autoConnect) {
         let alreadyConnected = false;
         // already connected
@@ -66,6 +70,41 @@ onPush["peerNearby"] = async (eventStr) => {
     }
 
     onPush["peerConnectivityEvent"](null);
+}
+
+const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
+    const addresses =
+        peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+            ? peerNearby.addresses.map(
+                  (hostname) =>
+                      ({
+                          hostname,
+                          port: peerNearby.port,
+                          secure: false
+                      }) as WebAddress
+              )
+            : [peerNearby.address];
+
+    let alive = false;
+    for (const address of addresses) {
+        const url = constructURL(address, "http") + "/ping";
+
+        const response = await new Promise((resolve) => {
+            rpc()
+                .fetch(url, {
+                    encoding: "utf8",
+                    timeout: 500
+                })
+                .then((res) => resolve(res.body))
+                .catch(() => resolve(null));
+        });
+
+        alive = response === "pong";
+        if (alive) return true;
+    }
+
+    api.connectivity.browse.peerNearbyIsDead(peerNearby);
+    return false;
 };
 
 const connectivityAPI = {
@@ -79,6 +118,7 @@ const connectivityAPI = {
                 },
                 autoConnect: false,
                 defaultNetworkInterface: null,
+                webAddreses: [],
                 peersTrusted: []
             };
             await config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
@@ -87,17 +127,12 @@ const connectivityAPI = {
         me = connectivityConfig.me;
         autoConnect = connectivityConfig.autoConnect;
 
-        if (autoConnectAdvertiseInterval) {
-            clearInterval(autoConnectAdvertiseInterval);
-        }
-
         if (autoConnect) {
-            connectivityAPI.advertise();
-            autoConnectAdvertiseInterval = setInterval(() => {
-                connectivityAPI.advertise();
-            }, 30 * 1000); // 30s
-
-            rpc().connectivity.browse.start();
+            connectivityAPI.advertise.start();
+            connectivityAPI.browse.start();
+        } else {
+            connectivityAPI.advertise.stop();
+            connectivityAPI.browse.stop();
         }
     },
     peers: {
@@ -108,28 +143,100 @@ const connectivityAPI = {
             return Array.from(peersConnections.values());
         },
         async nearby() {
-            return (await rpc().connectivity.peers.nearby()) || [];
+            const seenPeerID = new Set<string>();
+            const peersNearby = [
+                (await rpc().connectivity.peers.nearby()) || [],
+                browserWeb.getPeersNearby()
+            ]
+                .flat()
+                .filter(({ peer: { id } }) => {
+                    if (seenPeerID.has(id)) return false;
+                    seenPeerID.add(id);
+                    return true;
+                });
+
+            const verificationPromises: {
+                promise: Promise<boolean>;
+                peerID: string;
+            }[] = [];
+            for (const peerNearby of peersNearby) {
+                if (
+                    peerNearby.type === PEER_ADVERSTISING_METHOD.WEB ||
+                    peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+                ) {
+                    verificationPromises.push({
+                        promise: verifyWSS(peerNearby),
+                        peerID: peerNearby.peer.id
+                    });
+                }
+            }
+
+            const verifications = await Promise.all(
+                verificationPromises.map(({ promise }) => promise)
+            );
+            verifications.forEach((alive, index) => {
+                const { peerID } = verificationPromises[index];
+                if (!alive) {
+                    const indexOf = peersNearby.findIndex(
+                        ({ peer: { id } }) => id === peerID
+                    );
+                    peersNearby.splice(indexOf, 1);
+                }
+            });
+
+            return peersNearby;
         }
     },
-    async advertise(forMS = 5000) {
-        if (advertiseTimeout) clearTimeout(advertiseTimeout);
-
-        let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
-        rpc().connectivity.advertise.start(
-            me,
-            connectivityConfig.defaultNetworkInterface
-        );
-
-        advertiseTimeout = setTimeout(() => {
-            rpc()
-                .connectivity.advertise.stop()
-                .then(() => (advertiseTimeout = undefined));
-        }, forMS);
+    browse: {
+        start() {
+            browserWeb.startBrowsing();
+            rpc().connectivity.browse.start();
+        },
+        peerNearbyIsDead(peerNearby: PeerNearbyBonjour | PeerNearbyWeb) {
+            browserWeb.peerNearbyIsDead(peerNearby.peer.id);
+            rpc().connectivity.browse.peerNearbyIsDead(peerNearby.peer.id);
+        },
+        stop() {
+            browserWeb.stopBrowsing();
+            rpc().connectivity.browse.stop();
+        }
     },
-    connect(peerNearby: PeerNearby) {
+    advertise: {
+        async start(forMS = 5000) {
+            if (advertiseTimeout) clearTimeout(advertiseTimeout);
+
+            let connectivityConfig = await config.load(
+                CONFIG_TYPE.CONNECTIVITY
+            );
+            rpc().connectivity.advertise.start(
+                me,
+                connectivityConfig.defaultNetworkInterface
+            );
+
+            if (!autoConnect) {
+                advertiseTimeout = setTimeout(() => {
+                    rpc()
+                        .connectivity.advertise.stop()
+                        .then(() => (advertiseTimeout = undefined));
+                }, forMS);
+            }
+        },
+        stop() {
+            rpc().connectivity.advertise.stop();
+        }
+    },
+    async connect(peerNearby: PeerNearby) {
+        for (const peerConnection of peersConnections.values()) {
+            // already connected or in the process of connecting
+            if (peerConnection.peer?.id === peerNearby.peer?.id) return;
+        }
+
         let id: string;
         switch (peerNearby.type) {
+            case PEER_ADVERSTISING_METHOD.WEB:
             case PEER_ADVERSTISING_METHOD.BONJOUR:
+                const alive = await verifyWSS(peerNearby);
+                if (!alive) return;
                 id = crypto.randomUUID();
                 connecterWebSocket.open(id, peerNearby);
                 break;
@@ -158,498 +265,377 @@ const connectivityAPI = {
         await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
     },
     async disconnect(peerConnection: PeerConnection) {
+        peersConnections.delete(peerConnection.id);
+
         switch (peerConnection.type) {
             case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
             case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
-                rpc().connectivity.disconnect(peerConnection.id);
+                await rpc().connectivity.disconnect(peerConnection.id);
                 break;
             case PEER_CONNECTION_TYPE.WEB_SOCKET:
                 connecterWebSocket.disconnect(peerConnection.id);
                 break;
         }
+
+        onPush["peerConnectivityEvent"](null);
+        onPush["peerConnectionsCount"](null);
     }
 };
 
 export default connectivityAPI;
 
-async function saveNewPeerTrusted(peerTrusted: PeerTrusted) {
+async function savePeerTrusted(peerTrusted: PeerTrusted) {
     const connectivityConfig = await api.config.load(CONFIG_TYPE.CONNECTIVITY);
-    connectivityConfig.peersTrusted.push(peerTrusted);
+
+    const indexOf = connectivityConfig.peersTrusted.findIndex(
+        ({ id }) => id === peerTrusted.id
+    );
+    if (indexOf === -1) {
+        connectivityConfig.peersTrusted.push(peerTrusted);
+    } else {
+        connectivityConfig.peersTrusted[indexOf] = peerTrusted;
+    }
+
     await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
 }
 
-onPush["openConnection"] = (eventStr: string) => {
+onPush["peerConnection"] = (eventStr: string) => {
     const event = JSON.parse(eventStr);
 
     const id: string = event.id;
     const type = event.type;
+    const state = event.state;
 
-    onOpenConnection(id, type);
+    onPeerConnection(id, type, state);
 };
 
-async function onOpenConnection(id: string, type: PEER_CONNECTION_TYPE) {
-    console.log("onOpenConnection");
+async function onPeerConnection(
+    id: string,
+    type: PEER_CONNECTION_TYPE,
+    state: "open" | "close"
+) {
+    console.log(`onPeerConnection [${state}]`);
 
-    const peerConnection = peersConnections.get(id);
+    if (state === "close") {
+        const connection = peersConnections.get(id);
+        if (connection) {
+            peersConnections.delete(id);
 
-    if (!peerConnection) return;
+            const [peersNearby, peersTrusted] = await Promise.all([
+                api.connectivity.peers.nearby(),
+                api.connectivity.peers.trusted()
+            ]);
 
-    peerConnection.type = type;
+            const peerNearby = peersNearby.find(
+                ({ peer: { id } }) => id === connection.peer.id
+            );
+            const peerTrusted = peersTrusted.find(
+                ({ id }) => id === connection.peer.id
+            );
 
-    const peerTrusted = (await connectivityAPI.peers.trusted()).find(
-        (peer) => peer.id === peerConnection.peer.id
-    );
-
-    if (!peerTrusted) {
-        pair(id);
+            // if trusted peer is still nearby, reconnect
+            if (peerNearby && peerTrusted) {
+                api.connectivity.connect(peerNearby);
+            }
+        }
     } else {
-        handshake(id, peerTrusted);
-    }
-}
+        const peerConnection = peersConnections.get(id);
 
-async function pair(id: string) {
-    const peerConnection = peersConnections.get(id) as PeerConnectionPairing;
-    if (!peerConnection) return;
-
-    peerConnection.state = PEER_CONNECTION_STATE.PAIRING;
-
-    peerConnection.key = generateHash(32);
-    peerConnection.secret = generateHash(12);
-    peerConnection.validation = randomIntFromInterval(1000, 9999);
-
-    const peerConnectionRequest: PeerConnectionRequestPairing = {
-        request_type: PEER_CONNECTION_REQUEST_TYPE.PAIRING,
-        key: peerConnection.key,
-        secret: await encrypt(peerConnection.secret, peerConnection.key),
-        peer: me,
-        validation: peerConnection.validation
-    };
-
-    sendPeerConnectionRequest(id, peerConnection.type, peerConnectionRequest);
-}
-
-async function handshake(id: string, peerTrusted: PeerTrusted) {
-    const peerConnection = peersConnections.get(id);
-    if (!peerConnection) return;
-
-    peerConnection.state = PEER_CONNECTION_STATE.UNTRUSTED;
-
-    const peerConnectionRequest: PeerConnectionRequestCommon = {
-        request_type: PEER_CONNECTION_REQUEST_TYPE.TRUSTED,
-        peer: me,
-        secret: await encrypt(peerTrusted.secret.own, peerTrusted.keys.encrypt)
-    };
-
-    sendPeerConnectionRequest(id, peerConnection.type, peerConnectionRequest);
-}
-
-function sendPeerConnectionRequest(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionRequest: PeerConnectionRequest
-) {
-    console.log("Sending PeerConnectionRequest");
-
-    switch (type) {
-        case PEER_CONNECTION_TYPE.WEB_SOCKET:
-            connecterWebSocket.requestConnection(
+        // wait for connection request
+        // TODO: disconnect after 10s
+        if (!peerConnection) {
+            peersConnections.set(id, {
                 id,
-                JSON.stringify(peerConnectionRequest)
-            );
-            break;
-        case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
-        case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
-            rpc().connectivity.requestConnection(
-                id,
-                JSON.stringify(peerConnectionRequest)
-            );
-            break;
-    }
-    onPush["peerConnectivityEvent"](null);
-}
-
-onPush["peerConnectionRequest"] = (eventStr: string) => {
-    const event = JSON.parse(eventStr);
-
-    const id: string = event.id;
-    const type: PEER_CONNECTION_TYPE = event.type;
-
-    let peerConnectionRequest: PeerConnectionRequest;
-    try {
-        peerConnectionRequest = JSON.parse(event.peerConnectionRequestStr);
-    } catch (e) {
-        console.error("Unable to parse Peer Connection Request");
-        return;
-    }
-
-    onPeerConnectionRequest(id, type, peerConnectionRequest);
-};
-
-function onPeerConnectionRequest(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionRequest: PeerConnectionRequest
-) {
-    console.log("onPeerConnectionRequest");
-
-    if (peerConnectionRequest.request_type === undefined) {
-        console.error("No request_type in Peer Connection Request");
-        return;
-    }
-
-    const requiredProperties = ["peer", "secret"];
-    if (
-        peerConnectionRequest.request_type ===
-        PEER_CONNECTION_REQUEST_TYPE.PAIRING
-    ) {
-        requiredProperties.push("validation", "key");
-    }
-
-    for (const property of requiredProperties) {
-        if (peerConnectionRequest[property] === undefined) {
-            console.error(`Missing ${property} on Peer Connection Request`);
-            return;
+                type,
+                state: PEER_CONNECTION_STATE.NOT_CONNECTED
+            });
+        }
+        // we opened the connection, so lets request trust
+        else {
+            peerConnection.type = type;
+            await sendPeerConnectionRequest(peerConnection);
         }
     }
 
-    if (!peerConnectionRequest.peer.id) {
-        console.error("No peer.id in Peer Connection Request");
-        return;
-    } else if (!peerConnectionRequest.peer.name) {
-        console.error("No peer.name in Peer Connection Request");
-        return;
-    }
-
-    switch (peerConnectionRequest.request_type) {
-        case PEER_CONNECTION_REQUEST_TYPE.PAIRING:
-            pairRespond(
-                id,
-                type,
-                peerConnectionRequest as PeerConnectionRequestPairing
-            );
-            break;
-        case PEER_CONNECTION_REQUEST_TYPE.TRUSTED:
-            handshakeRespond(id, type, peerConnectionRequest);
-            break;
-    }
+    onPush["peerConnectivityEvent"](null);
+    onPush["peerConnectionsCount"](null);
 }
 
-async function pairRespond(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionRequest: PeerConnectionRequestPairing
+async function sendPeerConnectionRequest(peerConnection: PeerConnection) {
+    console.log("sendPeerConnectionRequest");
+
+    const validation = randomIntFromInterval(1000, 9999);
+    const peerConnectionRequest: PeerConnectionRequest = {
+        type: PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST,
+        peer: me,
+        validation
+    };
+
+    const peerConectionPairing = peerConnection as PeerConnectionPairing;
+    peerConectionPairing.state = PEER_CONNECTION_STATE.PAIRING;
+    peerConectionPairing.validation = validation;
+
+    return sendData(
+        peerConnection,
+        JSON.stringify(peerConnectionRequest),
+        true
+    );
+}
+
+async function onPeerConnectionPairingData(
+    peerConnection: PeerConnection,
+    data: string
 ) {
+    console.log("onPeerConnectionPairingData");
+
+    let payload:
+        | PeerConnectionRequest
+        | PeerConnectionTokenExchange
+        | PeerConnectionTokenChallenge;
+    try {
+        payload = JSON.parse(data);
+    } catch (e) {
+        console.log("Failed to parse data for peer connection");
+        console.log(data);
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    switch (payload.type) {
+        case PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST:
+            await respondToPeerConnectionRequest(peerConnection, payload);
+            break;
+        case PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE:
+            await respondToReceivedTokenExchange(
+                peerConnection as PeerConnectionPairing,
+                payload
+            );
+            break;
+        case PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE:
+            if (
+                !(peerConnection?.peer as PeerTrusted)?.keys ||
+                !(peerConnection?.peer as PeerTrusted)?.secret
+            ) {
+                const trustedPeer = (
+                    await connectivityAPI.peers.trusted()
+                ).find(({ id }) => id === payload.peer.id);
+                if (trustedPeer) {
+                    peerConnection.state = PEER_CONNECTION_STATE.UNTRUSTED;
+                    peerConnection.peer = trustedPeer;
+                }
+            }
+            await respondToReceivedTokenChallenge(
+                peerConnection as PeerConnectionUntrusted,
+                payload
+            );
+            break;
+    }
+
+    onPush["peerConnectivityEvent"](null);
+    onPush["peerConnectionsCount"](null);
+}
+
+async function respondToPeerConnectionRequest(
+    peerConnection: PeerConnection,
+    peerConnectionRequest: PeerConnectionRequest
+) {
+    console.log("respondToPeerConnectionRequest");
+
+    const peer = peerConnectionRequest.peer;
+
+    const trustedPeers = await connectivityAPI.peers.trusted();
+    const knownPeer = trustedPeers.find(({ id }) => id === peer.id);
+
+    // known and trusted peer
+    if (knownPeer) {
+        const peerConectionUntrusted =
+            peerConnection as PeerConnectionUntrusted;
+        peerConectionUntrusted.state = PEER_CONNECTION_STATE.UNTRUSTED;
+        peerConectionUntrusted.peer = knownPeer;
+        peerConectionUntrusted.validation = peerConnectionRequest.validation;
+        return sendPeerConnectionTokenChallenge(
+            peerConnection as PeerConnectionUntrusted
+        );
+    }
+
+    // unknown connection request
     const trust = await peers.peerConnectionRequestPairingDialog(
-        peerConnectionRequest.peer.name,
+        peer.name,
         peerConnectionRequest.validation
     );
     if (!trust) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionRequest.peer
-        });
+        return connectivityAPI.disconnect(peerConnection);
     }
 
-    const peerTrusted: PeerTrusted = {
-        id: peerConnectionRequest.peer.id,
-        name: peerConnectionRequest.peer.name,
+    const peerConnectionPairing = peerConnection as PeerConnectionPairing;
+    peerConnectionPairing.state = PEER_CONNECTION_STATE.PAIRING;
+    peerConnectionPairing.validation = peerConnectionRequest.validation;
+    peerConnectionPairing.peer = peer;
+    return sendPeerConnectionTokenExchange(peerConnectionPairing);
+}
+
+async function sendPeerConnectionTokenExchange(
+    peerConnection: PeerConnectionPairing
+) {
+    console.log("sendPeerConnectionTokenExchange");
+
+    peerConnection.peer.keys = {
+        decrypt: peerConnection.peer?.keys?.decrypt ?? undefined,
+        encrypt: generateHash(32)
+    };
+    peerConnection.peer.secret = {
+        their: peerConnection.peer?.secret?.their ?? undefined,
+        own: generateHash(12)
+    };
+
+    const peerConnectionTokenExchange: PeerConnectionTokenExchange = {
+        type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE,
+        peer: me,
+        secret: await encrypt(
+            peerConnection.peer.secret.own,
+            peerConnection.peer.keys.encrypt
+        ),
+        key: peerConnection.peer.keys.encrypt,
+        validation: peerConnection.validation
+    };
+
+    return sendData(
+        peerConnection,
+        JSON.stringify(peerConnectionTokenExchange),
+        true
+    );
+}
+
+async function respondToReceivedTokenExchange(
+    peerConnection: PeerConnectionPairing,
+    tokenExchange: PeerConnectionTokenExchange
+) {
+    console.log("respondToReceivedTokenExchange");
+
+    if (peerConnection.state !== PEER_CONNECTION_STATE.PAIRING) {
+        console.log(
+            "Received token exchange for a connection not in pairing state"
+        );
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    if (peerConnection.validation !== tokenExchange.validation) {
+        console.log("Received wrong validation code with token exchange");
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    // if we have an encrypt and a secret for peer,
+    // it means we have exchange token in the past
+    const knownPeer =
+        peerConnection.peer?.keys?.encrypt && peerConnection.peer?.secret?.own;
+
+    if (!knownPeer) {
+        const trust = await peers.peerConnectionRequestPairingDialog(
+            tokenExchange.peer.name,
+            tokenExchange.validation
+        );
+        if (!trust) {
+            return connectivityAPI.disconnect(peerConnection);
+        }
+    }
+
+    peerConnection.peer = {
+        ...tokenExchange.peer,
         keys: {
-            decrypt: peerConnectionRequest.key,
-            encrypt: generateHash(32)
+            encrypt: peerConnection.peer?.keys?.encrypt ?? undefined,
+            decrypt: tokenExchange.key
         },
         secret: {
-            their: await decrypt(
-                peerConnectionRequest.secret,
-                peerConnectionRequest.key
-            ),
-            own: generateHash(12)
+            own: peerConnection.peer?.secret?.own ?? undefined,
+            their: await decrypt(tokenExchange.secret, tokenExchange.key)
         }
     };
 
-    await saveNewPeerTrusted(peerTrusted);
+    if (!knownPeer) {
+        await sendPeerConnectionTokenExchange(peerConnection);
+    }
 
-    const peerConnection: PeerConnection = {
-        id,
-        type,
-        peer: peerTrusted,
-        state: PEER_CONNECTION_STATE.CONNECTED
-    };
+    const peerConnectionUntrusted =
+        peerConnection as unknown as PeerConnectionUntrusted;
+    peerConnectionUntrusted.state = PEER_CONNECTION_STATE.UNTRUSTED;
 
-    peersConnections.set(id, peerConnection);
-
-    const peerConnectionResponse: PeerConnectionRequestPairing = {
-        request_type: PEER_CONNECTION_REQUEST_TYPE.PAIRING,
-        peer: me,
-        validation: peerConnectionRequest.validation,
-        key: peerTrusted.keys.encrypt,
-        secret: await encrypt(peerTrusted.secret.own, peerTrusted.keys.encrypt)
-    };
-
-    sendPeerConnectionResponse(id, type, peerConnectionResponse);
+    if (knownPeer) {
+        return sendPeerConnectionTokenChallenge(peerConnectionUntrusted);
+    }
 }
 
-async function handshakeRespond(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionRequest: PeerConnectionRequestCommon
+async function sendPeerConnectionTokenChallenge(
+    peerConection: PeerConnectionUntrusted
 ) {
-    const peerTrusted = (await connectivityAPI.peers.trusted()).find(
-        ({ id }) => peerConnectionRequest.peer.id === id
+    console.log("sendPeerConnectionTokenChallenge");
+
+    const peerConnectionTokenChallenge: PeerConnectionTokenChallenge = {
+        type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE,
+        peer: me,
+        validation: peerConection.validation,
+        secret: await encrypt(
+            peerConection.peer.secret.own,
+            peerConection.peer.keys.encrypt
+        )
+    };
+
+    await sendData(
+        peerConection,
+        JSON.stringify(peerConnectionTokenChallenge),
+        true
     );
 
-    if (!peerTrusted) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionRequest.peer
-        });
+    peerConection.challenged = true;
+}
+
+async function respondToReceivedTokenChallenge(
+    peerConnection: PeerConnectionUntrusted,
+    tokenChallenge: PeerConnectionTokenChallenge
+) {
+    console.log("respondToReceivedTokenChallenge");
+
+    if (peerConnection.state !== PEER_CONNECTION_STATE.UNTRUSTED) {
+        console.log(
+            "Received token challenge for a connection not in untrusted state"
+        );
+        return connectivityAPI.disconnect(peerConnection);
+    }
+
+    if (peerConnection.validation !== tokenChallenge.validation) {
+        console.log("Received wrong validation code with token challenge");
+        return connectivityAPI.disconnect(peerConnection);
     }
 
     const theirSecret = await decrypt(
-        peerConnectionRequest.secret,
-        peerTrusted.keys.decrypt
+        tokenChallenge.secret,
+        peerConnection.peer.keys.decrypt
     );
-
-    if (theirSecret !== peerTrusted.secret.their) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionRequest.peer
-        });
+    if (theirSecret !== peerConnection.peer.secret.their) {
+        return connectivityAPI.disconnect(peerConnection);
     }
 
-    const peerConnection: PeerConnection = {
-        id,
-        type,
-        state: PEER_CONNECTION_STATE.CONNECTED,
-        peer: peerTrusted
-    };
+    if (!peerConnection.challenged) {
+        await sendPeerConnectionTokenChallenge(peerConnection);
+    }
 
-    peersConnections.set(id, peerConnection);
-
-    const peerConnectionResponse: PeerConnectionRequestCommon = {
-        peer: me,
-        request_type: PEER_CONNECTION_REQUEST_TYPE.TRUSTED,
-        secret: await encrypt(peerTrusted.secret.own, peerTrusted.keys.encrypt)
-    };
-
-    sendPeerConnectionResponse(id, type, peerConnectionResponse);
+    const peerConnectionTrusted =
+        peerConnection as unknown as PeerConnectionTrusted;
+    peerConnectionTrusted.state = PEER_CONNECTION_STATE.CONNECTED;
+    await savePeerTrusted(peerConnectionTrusted.peer);
+    return trustConnection(peerConnectionTrusted);
 }
 
-function sendPeerConnectionResponse(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionResponse: PeerConnectionRequest
-) {
-    switch (type) {
-        case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
-        case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
-            rpc().connectivity.respondToRequestConnection(
-                id,
-                JSON.stringify(peerConnectionResponse)
-            );
-            break;
-        case PEER_CONNECTION_TYPE.WEB_SOCKET:
-            break;
-    }
-
-    trustConnection(id);
-}
-
-onPush["peerConnectionResponse"] = (eventStr: string) => {
-    const event = JSON.parse(eventStr);
-
-    const id = event.id;
-    const type = event.type;
-    const peerConectionResponseStr = event.peerConnectionResponseStr;
-
-    onPeerConnectionResponse(id, type, peerConectionResponseStr);
-};
-
-function onPeerConnectionResponse(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionResponseStr: string
-) {
-    console.log("onPeerConnectionResponse");
-
-    let peerConnectionResponse: PeerConnectionRequest;
-    try {
-        peerConnectionResponse = JSON.parse(peerConnectionResponseStr);
-    } catch (e) {
-        console.error("Unable to parse Peer Connection Response");
-        return;
-    }
-
-    if (peerConnectionResponse.request_type === undefined) {
-        console.error("No request_type in Peer Connection Response");
-        return;
-    }
-
-    const requiredProperties = ["peer", "secret"];
-    if (
-        peerConnectionResponse.request_type ===
-        PEER_CONNECTION_REQUEST_TYPE.PAIRING
-    ) {
-        requiredProperties.push("validation", "key");
-    }
-
-    for (const property of requiredProperties) {
-        if (peerConnectionResponse[property] === undefined) {
-            console.error(`Missing ${property} on Peer Connection Response`);
-            return;
-        }
-    }
-
-    switch (peerConnectionResponse.request_type) {
-        case PEER_CONNECTION_REQUEST_TYPE.PAIRING:
-            pairComplete(
-                id,
-                type,
-                peerConnectionResponse as PeerConnectionRequestPairing
-            );
-            break;
-        case PEER_CONNECTION_REQUEST_TYPE.TRUSTED:
-            handshakeComplete(id, type, peerConnectionResponse);
-            break;
-    }
-}
-
-async function pairComplete(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConectionResponse: PeerConnectionRequestPairing
-) {
-    const peerConnection = peersConnections.get(id) as PeerConnectionPairing;
-
-    if (
-        !peerConnection ||
-        !peerConnection.validation ||
-        !peerConectionResponse.validation ||
-        peerConnection.validation !== peerConectionResponse.validation
-    ) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConectionResponse.peer
-        });
-    }
-
-    const peerTrusted: PeerTrusted = {
-        id: peerConectionResponse.peer.id,
-        name: peerConectionResponse.peer.name,
-        keys: {
-            encrypt: peerConnection.key,
-            decrypt: peerConectionResponse.key
-        },
-        secret: {
-            own: peerConnection.secret,
-            their: await decrypt(
-                peerConectionResponse.secret,
-                peerConectionResponse.key
-            )
-        }
-    };
-
-    await saveNewPeerTrusted(peerTrusted);
-
-    const peerConnectionTrusted: PeerConnection = {
-        id,
-        type,
-        state: PEER_CONNECTION_STATE.CONNECTED,
-        peer: peerTrusted
-    };
-
-    peersConnections.set(id, peerConnectionTrusted);
-
-    trustConnection(id);
-}
-
-async function handshakeComplete(
-    id: string,
-    type: PEER_CONNECTION_TYPE,
-    peerConnectionResponse: PeerConnectionRequestCommon
-) {
-    const peerConnection = peersConnections.get(id);
-
-    if (!peerConnection) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionResponse.peer
-        });
-    }
-
-    const peerTrusted = (await connectivityAPI.peers.trusted()).find(
-        ({ id }) => peerConnectionResponse.peer.id === id
-    );
-
-    if (!peerTrusted) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionResponse.peer
-        });
-    }
-
-    const theirSecret = await decrypt(
-        peerConnectionResponse.secret,
-        peerTrusted.keys.decrypt
-    );
-
-    if (theirSecret !== peerTrusted.secret.their) {
-        return connectivityAPI.disconnect({
-            id,
-            type,
-            state: PEER_CONNECTION_STATE.NOT_CONNECTED,
-            peer: peerConnectionResponse.peer
-        });
-    }
-
-    peerConnection.state = PEER_CONNECTION_STATE.CONNECTED;
-    peerConnection.peer = peerTrusted;
-
-    trustConnection(id);
-}
-
-function trustConnection(id: string) {
+async function trustConnection(peerConnection: PeerConnectionTrusted) {
     console.log("trustConnection");
-
-    const peerConnection = peersConnections.get(id);
 
     switch (peerConnection.type) {
         case PEER_CONNECTION_TYPE.WEB_SOCKET:
-            connecterWebSocket.trustConnection(id);
+            connecterWebSocket.trustConnection(peerConnection.id);
             break;
         case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
         case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
-            rpc().connectivity.trustConnection(id);
+            await rpc().connectivity.trustConnection(peerConnection.id);
             break;
     }
-
-    onPush["peerConnectivityEvent"](null);
-    onPush["peerConnectionsCount"](null);
-}
-
-onPush["peerConnectionLost"] = (eventStr: string) => {
-    const event = JSON.parse(eventStr);
-    const id = event.id;
-    onPeerConnectionLost(id);
-};
-
-function onPeerConnectionLost(id: string) {
-    console.log("onPeerConnectionLost");
-
-    peersConnections.delete(id);
-    onPush["peerConnectivityEvent"](null);
-    onPush["peerConnectionsCount"](null);
 }
 
 onPush["peerData"] = (eventStr: string) => {
@@ -664,10 +650,17 @@ onPush["peerData"] = (eventStr: string) => {
 async function onPeerData(id: string, data: string) {
     const peerConnection = peersConnections.get(id);
 
-    if (peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED) return;
-
-    const decryptedData = await decrypt(data, peerConnection.peer.keys.decrypt);
-    rpc().connectivity.convey(decryptedData);
+    if (!peerConnection) {
+        console.log("Received data from unknown connection...");
+    } else if (peerConnection.state === PEER_CONNECTION_STATE.CONNECTED) {
+        const decryptedData = await decrypt(
+            data,
+            peerConnection.peer.keys.decrypt
+        );
+        rpc().connectivity.convey(decryptedData);
+    } else {
+        onPeerConnectionPairingData(peerConnection, data);
+    }
 }
 
 onPush["sendData"] = (data: string) => {
@@ -676,17 +669,26 @@ onPush["sendData"] = (data: string) => {
     }
 };
 
-async function sendData(peerConnection: PeerConnection, data: string) {
-    if (peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED) return;
+async function sendData(
+    peerConnection: PeerConnection,
+    data: string,
+    pairing = false
+) {
+    if (peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED && !pairing)
+        return;
 
-    const encrypted = await encrypt(data, peerConnection.peer.keys.encrypt);
+    let payload =
+        peerConnection.state === PEER_CONNECTION_STATE.CONNECTED
+            ? await encrypt(data, peerConnection.peer.keys.encrypt)
+            : data;
+
     switch (peerConnection.type) {
         case PEER_CONNECTION_TYPE.WEB_SOCKET:
-            connecterWebSocket.send(peerConnection.id, encrypted);
+            connecterWebSocket.send(peerConnection.id, payload, pairing);
             break;
         case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
         case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
-            rpc().connectivity.send(peerConnection.id, encrypted);
+            rpc().connectivity.send(peerConnection.id, payload, pairing);
             break;
     }
 }

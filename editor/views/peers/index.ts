@@ -94,12 +94,14 @@ class Peers {
 
         peersTrusted = peersTrusted.filter(
             (peerTrusted) =>
-                !peersConnections.find(({ peer }) => peer.id === peerTrusted.id)
+                !peersConnections.find(
+                    ({ peer }) => peer?.id === peerTrusted.id
+                )
         );
         peersNearby = peersNearby.filter(
             (peerNeerby) =>
                 !peersConnections.find(
-                    ({ peer }) => peer.id === peerNeerby.peer.id
+                    ({ peer }) => peer?.id === peerNeerby.peer.id
                 )
         );
 
@@ -108,14 +110,15 @@ class Peers {
         const peerConnectionList = document.createElement("ul");
         peersConnections.forEach((peerConnection) => {
             const li = document.createElement("li");
-            li.innerText = peerConnection.peer.name;
+            li.innerText = peerConnection.peer?.name || "Connecting to peer...";
 
             const div = document.createElement("div");
             switch (peerConnection.state) {
                 case PEER_CONNECTION_STATE.PAIRING:
-                    div.innerHTML = `Pairing... Code: <b class="${PEER_PAIRING_CODE_CLASS}">${(peerConnection as PeerConnectionPairing).validation}</b>`;
-                    break;
                 case PEER_CONNECTION_STATE.UNTRUSTED:
+                    div.innerHTML = `Pairing... Validation: <b class="${PEER_PAIRING_CODE_CLASS}">${(peerConnection as PeerConnectionPairing).validation}</b>`;
+                    break;
+                case PEER_CONNECTION_STATE.NOT_CONNECTED:
                     div.innerHTML = `Connecting...`;
                     break;
                 case PEER_CONNECTION_STATE.CONNECTED:
@@ -346,8 +349,8 @@ class Peers {
         container.append(this.peersLists);
         this.renderPeersLists();
 
-        api.connectivity.advertise(30 * 1000); // 30s
-        rpc().connectivity.browse.start();
+        api.connectivity.advertise.start(30 * 1000); // 30s
+        api.connectivity.browse.start();
 
         return container;
     }

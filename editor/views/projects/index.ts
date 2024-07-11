@@ -1,5 +1,5 @@
 import "./index.css";
-import type { Project } from "../../api/projects/types";
+import type { Project } from "../../api/config/types";
 import {
     BG_COLOR,
     NEW_PROJECT_ID,

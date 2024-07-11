@@ -1,22 +1,31 @@
 import { Adapter } from "../src/adapter/fullstacked";
 import type { Peer, PeerNearby } from "../src/connectivity/types";
-import type { Project } from "./api/projects/types";
+import type { Project } from "./api/config/types";
 import type esbuild from "esbuild";
 
+export type SetupDirectories = {
+    rootDirectory: string;
+    configDirectory: string;
+    nodeModulesDirectory: string;
+};
+
 export type AdapterEditor = Adapter & {
-    directories: {
-        root: string;
-        cache: string;
-        config: string;
-        nodeModules: string;
-    };
+    directories: SetupDirectories;
 
     esbuild: {
+        baseJS(): Promise<string>;
+        tmpFile: {
+            write(name: string, content: string): Promise<string>;
+            unlink(name: string): void;
+        };
         check(): boolean;
         install(): void;
+        build(
+            entryPoint: string,
+            outdir: string
+        ): Promise<esbuild.BuildResult["errors"] | 1>;
     };
 
-    build(project: Project): Promise<esbuild.BuildResult["errors"]> | 1;
     run(project: Project): void;
 
     open(project: Project): void;
@@ -36,17 +45,13 @@ export type AdapterEditor = Adapter & {
         };
         browse: {
             start(): void;
+            peerNearbyIsDead(id: string): void;
             stop(): void;
         };
         open(id: string, me: Peer): void;
         disconnect(id: string): void;
-        requestConnection(id: string, peerConnectionRequestStr: string): void;
-        respondToRequestConnection(
-            id: string,
-            peerConnectionRequestStr: string
-        ): void;
         trustConnection(id: string): void;
-        send(id: string, data: string): void;
+        send(id: string, data: string, pairing: boolean): void;
         convey(data: string): void;
     };
 };
