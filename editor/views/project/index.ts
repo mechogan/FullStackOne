@@ -233,7 +233,7 @@ class Project implements tsWorkerDelegate {
         this.console.term.clear();
         setTimeout(async () => {
             const buildErrors = await api.projects.build(this.project);
-            if (buildErrors.length) this.processBuildErrors(buildErrors)
+            if (buildErrors.length) this.processBuildErrors(buildErrors);
             else rpc().run(this.project);
             this.runButton.innerHTML = icon;
             this.runButton.removeAttribute("loading");

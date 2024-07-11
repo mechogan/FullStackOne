@@ -116,11 +116,15 @@ export function createAdapter(
                 timeout?: number;
             }
         ) {
-            let signal: AbortSignal = undefined, timeoutId: ReturnType<typeof setTimeout>;
-            if(options?.timeout) {
-                const controller = new AbortController()
-                timeoutId = setTimeout(() => controller.abort(), options.timeout)
-                signal = controller.signal
+            let signal: AbortSignal = undefined,
+                timeoutId: ReturnType<typeof setTimeout>;
+            if (options?.timeout) {
+                const controller = new AbortController();
+                timeoutId = setTimeout(
+                    () => controller.abort(),
+                    options.timeout
+                );
+                signal = controller.signal;
             }
 
             const response = await fetch(url, {
@@ -130,7 +134,7 @@ export function createAdapter(
                 signal
             });
 
-            if(timeoutId) clearTimeout(timeoutId);
+            if (timeoutId) clearTimeout(timeoutId);
 
             const headers = convertHeadersToObj(response.headers);
 

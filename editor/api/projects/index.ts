@@ -89,7 +89,7 @@ export default {
             buildJS(project)
         ]);
         const errors: Partial<esbuild.Message>[] = js || [];
-        if(css) {
+        if (css) {
             errors.push(css);
         }
         return errors;
@@ -134,10 +134,7 @@ async function buildJS(project: Project) {
 }
 
 async function buildCSS(project: Project): Promise<Partial<esbuild.Message>> {
-    const possibleEntrypoint = [
-        "index.sass",
-        "index.scss"
-    ];
+    const possibleEntrypoint = ["index.sass", "index.scss"];
 
     let entryPoint: string;
     for (const maybeEntrypoint of possibleEntrypoint) {
@@ -150,28 +147,34 @@ async function buildCSS(project: Project): Promise<Partial<esbuild.Message>> {
 
     if (!entryPoint) return;
 
-    const content = await rpc().fs.readFile(entryPoint, { absolutePath: true, encoding: "utf8" }) as string;
+    const content = (await rpc().fs.readFile(entryPoint, {
+        absolutePath: true,
+        encoding: "utf8"
+    })) as string;
     let result: sass.CompileResult;
     try {
         result = await sass.compileStringAsync(content, {
             importer: {
                 load: async (url) => {
                     const filePath = `${project.location}${url.pathname}`;
-                    const contents = await rpc().fs.readFile(filePath, { absolutePath: true, encoding: "utf8" }) as string
+                    const contents = (await rpc().fs.readFile(filePath, {
+                        absolutePath: true,
+                        encoding: "utf8"
+                    })) as string;
                     return {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                                ? "scss"
-                                : "css",
+                              ? "scss"
+                              : "css",
                         contents
-                    }
+                    };
                 },
-                canonicalize: path => new URL(path, window.location.href)
+                canonicalize: (path) => new URL(path, window.location.href)
             }
         });
     } catch (e) {
-        const error = e as unknown as sass.Exception
+        const error = e as unknown as sass.Exception;
         const file = error.span.url?.pathname || entryPoint;
         const line = error.span.start.line + 1;
         const column = error.span.start.column;
@@ -187,15 +190,18 @@ async function buildCSS(project: Project): Promise<Partial<esbuild.Message>> {
                 lineText: error.message,
                 suggestion: ""
             }
-        }
+        };
     }
 
     const buildDirectory = `${project.location}/.build`;
-    if (!await rpc().fs.exists(buildDirectory, { absolutePath: true })) {
-        await rpc().fs.mkdir(buildDirectory, { absolutePath: true })
+    if (!(await rpc().fs.exists(buildDirectory, { absolutePath: true }))) {
+        await rpc().fs.mkdir(buildDirectory, { absolutePath: true });
     }
 
-    await rpc().fs.writeFile(buildDirectory + "/index.css", result.css, {absolutePath: true, encoding: "utf8"});
+    await rpc().fs.writeFile(buildDirectory + "/index.css", result.css, {
+        absolutePath: true,
+        encoding: "utf8"
+    });
 }
 
 async function unzip(to: string, zipData: Uint8Array) {

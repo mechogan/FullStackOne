@@ -73,25 +73,30 @@ async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
 }
 
 const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
-    const addresses = peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
-        ? peerNearby.addresses.map(hostname => ({
-            hostname,
-            port: peerNearby.port,
-            secure: false
-        } as WebAddress))
-        : [peerNearby.address]
+    const addresses =
+        peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+            ? peerNearby.addresses.map(
+                  (hostname) =>
+                      ({
+                          hostname,
+                          port: peerNearby.port,
+                          secure: false
+                      }) as WebAddress
+              )
+            : [peerNearby.address];
 
     let alive = false;
     for (const address of addresses) {
         const url = constructURL(address, "http") + "/ping";
 
-        const response = await new Promise(resolve => {
-            rpc().fetch(url, {
-                encoding: "utf8",
-                timeout: 500
-            })
-                .then(res => resolve(res.body))
-                .catch(() => resolve(null))
+        const response = await new Promise((resolve) => {
+            rpc()
+                .fetch(url, {
+                    encoding: "utf8",
+                    timeout: 500
+                })
+                .then((res) => resolve(res.body))
+                .catch(() => resolve(null));
         });
 
         alive = response === "pong";
@@ -100,7 +105,7 @@ const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
 
     api.connectivity.browse.peerNearbyIsDead(peerNearby);
     return false;
-}
+};
 
 const connectivityAPI = {
     async init() {
@@ -150,9 +155,15 @@ const connectivityAPI = {
                     return true;
                 });
 
-            const verificationPromises: { promise: Promise<boolean>, peerID: string }[] = [];
+            const verificationPromises: {
+                promise: Promise<boolean>;
+                peerID: string;
+            }[] = [];
             for (const peerNearby of peersNearby) {
-                if (peerNearby.type === PEER_ADVERSTISING_METHOD.WEB || peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR) {
+                if (
+                    peerNearby.type === PEER_ADVERSTISING_METHOD.WEB ||
+                    peerNearby.type === PEER_ADVERSTISING_METHOD.BONJOUR
+                ) {
                     verificationPromises.push({
                         promise: verifyWSS(peerNearby),
                         peerID: peerNearby.peer.id
@@ -160,11 +171,15 @@ const connectivityAPI = {
                 }
             }
 
-            const verifications = await Promise.all(verificationPromises.map(({ promise }) => promise));
+            const verifications = await Promise.all(
+                verificationPromises.map(({ promise }) => promise)
+            );
             verifications.forEach((alive, index) => {
                 const { peerID } = verificationPromises[index];
                 if (!alive) {
-                    const indexOf = peersNearby.findIndex(({ peer: { id } }) => id === peerID);
+                    const indexOf = peersNearby.findIndex(
+                        ({ peer: { id } }) => id === peerID
+                    );
                     peersNearby.splice(indexOf, 1);
                 }
             });
@@ -211,9 +226,9 @@ const connectivityAPI = {
         }
     },
     async connect(peerNearby: PeerNearby) {
-        for(const peerConnection of peersConnections.values()){
+        for (const peerConnection of peersConnections.values()) {
             // already connected or in the process of connecting
-            if(peerConnection.peer?.id === peerNearby.peer?.id) return;
+            if (peerConnection.peer?.id === peerNearby.peer?.id) return;
         }
 
         let id: string;
@@ -306,22 +321,23 @@ async function onPeerConnection(
         if (connection) {
             peersConnections.delete(id);
 
-            const [
-                peersNearby,
-                peersTrusted
-            ] = await Promise.all([
+            const [peersNearby, peersTrusted] = await Promise.all([
                 api.connectivity.peers.nearby(),
                 api.connectivity.peers.trusted()
-            ])
+            ]);
 
-            const peerNearby = peersNearby.find(({ peer: { id } }) => id === connection.peer.id);
-            const peerTrusted = peersTrusted.find(({ id }) => id === connection.peer.id);
+            const peerNearby = peersNearby.find(
+                ({ peer: { id } }) => id === connection.peer.id
+            );
+            const peerTrusted = peersTrusted.find(
+                ({ id }) => id === connection.peer.id
+            );
 
             // if trusted peer is still nearby, reconnect
             if (peerNearby && peerTrusted) {
                 api.connectivity.connect(peerNearby);
             }
-        };
+        }
     } else {
         const peerConnection = peersConnections.get(id);
 

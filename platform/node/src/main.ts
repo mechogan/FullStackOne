@@ -453,7 +453,7 @@ function createConnectivity(push: PushFunction): {
                 bonjour?.startBrowsing();
             },
             peerNearbyIsDead: (id) => {
-                bonjour?.peerNearbyIsDead(id)
+                bonjour?.peerNearbyIsDead(id);
             },
             stop: () => {
                 bonjour?.stopBrowsing();

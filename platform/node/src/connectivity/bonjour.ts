@@ -43,7 +43,7 @@ export class Bonjour implements Advertiser, Browser {
 
     peerNearbyIsDead(id: string): void {
         for (const [connId, peerNearby] of this.peersNearby.entries()) {
-            if(peerNearby.peer.id === id) {
+            if (peerNearby.peer.id === id) {
                 this.onPeerNearby?.("lost", peerNearby);
                 this.peersNearby.delete(connId);
                 return;
