@@ -60,10 +60,17 @@ export function main(
     if (!fs.existsSync(tmpDirectory))
         fs.mkdirSync(tmpDirectory, { recursive: true });
 
-    const broadcast: Adapter["broadcast"] = (data) =>
-        push(null, "sendData", data);
-
     const createInstance: (project: Project) => Instance = (project) => {
+        const broadcast: Adapter["broadcast"] = (data) =>
+            push(
+                null,
+                "sendData",
+                JSON.stringify({
+                    projectId: project.id,
+                    data
+                })
+            );
+
         return {
             id: randomUUID(),
             project,
@@ -77,7 +84,16 @@ export function main(
 
     const { initConnectivity, connectivity } = createConnectivity(push);
 
-    const adapter = createAdapter(editorDirectory, platform, broadcast);
+    const mainBroadcast: Adapter["broadcast"] = (data) =>
+        push(
+            null,
+            "sendData",
+            JSON.stringify({
+                projectId: null,
+                data
+            })
+        );
+    const adapter = createAdapter(editorDirectory, platform, mainBroadcast);
     const mainAdapter: AdapterEditor = {
         ...adapter,
         directories,
@@ -469,8 +485,9 @@ function createConnectivity(push: PushFunction): {
         send: (id, data, pairing) => {
             wsServer?.send(id, data, pairing);
         },
-        convey: (data) => {
+        convey: (projectId, data) => {
             for (const instance of instances.values()) {
+                if (instance.project.id !== projectId) continue;
                 push(instance.id, "peerData", data);
             }
         }

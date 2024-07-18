@@ -50,7 +50,7 @@ await page.evaluate(async () => {
             const title = article.querySelector("h3")?.innerText;
             return (
                 title &&
-                (title === "Demo" ||
+                (title.toLocaleLowerCase() === "demo" ||
                     title === "fullstackedorg/editor-sample-demo")
             );
         });

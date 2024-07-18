@@ -1,6 +1,7 @@
 import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
+import type { AwaitAll, AwaitNone } from "../editor/rpc";
 
 (globalThis as any).process = {
     platform: "browser"
@@ -72,14 +73,14 @@ function recurseInProxy(target: Function, pathComponents: string[] = []) {
 }
 
 export function rpcSync<T>() {
-    return recurseInProxy(syncRequest);
+    return recurseInProxy(syncRequest) as AwaitNone<T>;
 }
 globalThis.rpcSync = rpcSync;
 
 export default function rpc<T>() {
-    return recurseInProxy(fetchCall);
+    return recurseInProxy(fetchCall) as AwaitAll<T>;
 }
-globalThis.rpc = rpc;
+globalThis.rpc = rpc as any;
 
 globalThis.onPush = {};
 

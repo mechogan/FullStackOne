@@ -9,7 +9,7 @@ import type esbuild from "esbuild";
 import slugify from "slugify";
 
 const list = async () => {
-    const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || []
+    const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || [];
 
     // MIGRATION 2024-07-18 : add project ID
     let save = false;
@@ -17,12 +17,13 @@ const list = async () => {
         if (project.id) continue;
 
         save = true;
-        project.id = project?.gitRepository?.url === "https://github.com/fullstackedorg/editor-sample-demo.git"
-            ? "org.fullstacked.demo"
-            : slugify(project.title.replace(/\//g, "."), { lower: true });
+        project.id =
+            project?.gitRepository?.url ===
+            "https://github.com/fullstackedorg/editor-sample-demo.git"
+                ? "org.fullstacked.demo"
+                : slugify(project.title.replace(/\//g, "."), { lower: true });
     }
-    if (save)
-        await config.save(CONFIG_TYPE.PROJECTS, projects);
+    if (save) await config.save(CONFIG_TYPE.PROJECTS, projects);
     // END
 
     return projects;
@@ -184,8 +185,8 @@ async function buildCSS(project: Project): Promise<Partial<esbuild.Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                                ? "scss"
-                                : "css",
+                              ? "scss"
+                              : "css",
                         contents
                     };
                 },

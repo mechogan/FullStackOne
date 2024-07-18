@@ -20,10 +20,12 @@ struct AdapterError {
 
 class Adapter {
     let platform = "ios"
+    let projectId: String?;
     var fs: AdapterFS
     
-    init(baseDirectory: String) {
-        self.fs = AdapterFS(baseDirectory: baseDirectory);
+    init(projectId: String?, baseDirectory: String) {
+        self.projectId = projectId
+        self.fs = AdapterFS(baseDirectory: baseDirectory)
     }
     
     func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping  (_ maybeData: Any?) -> Void)  {
@@ -133,7 +135,11 @@ class Adapter {
                     }
                 }
         case "broadcast":
-            InstanceEditor.singleton!.push(messageType: "sendData", message: json[0].stringValue)
+            let peerMessage = [
+                "projectId": self.projectId,
+                "data": json[0].stringValue
+            ]
+            InstanceEditor.singleton!.push(messageType: "sendData", message: JSON(peerMessage).rawString()!)
             return done(true);
             
         default: break

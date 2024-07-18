@@ -22,9 +22,11 @@ class ProjectNew {
 
         const titleInput = document.createElement("input");
         titleInput.addEventListener("blur", () => {
-            const possibleId = slugify(titleInput.value.replace(/\//g, "."), { lower: true });
-            if(!idInput.value) idInput.value = possibleId;
-        })
+            const possibleId = slugify(titleInput.value.replace(/\//g, "."), {
+                lower: true
+            });
+            if (!idInput.value) idInput.value = possibleId;
+        });
         container.append(titleInput);
 
         // id

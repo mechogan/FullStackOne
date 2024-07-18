@@ -33,10 +33,10 @@ class AdapterEditor: Adapter {
     let bonjour = Bonjour()
     let multipeer = Multipeer()
     
-    override init(baseDirectory: String) {
+    init(baseDirectory: String) {
         self.nodeModulesDirectory = configDirectory + "/node_modules"
         self.fsEditor = AdapterFS(baseDirectory: self.rootDirectory);
-        super.init(baseDirectory: baseDirectory)
+        super.init(projectId: nil, baseDirectory: baseDirectory)
         
         
         self.bonjour.onPeerNearby = {eventType, peerNearbyBonjour in
@@ -213,8 +213,10 @@ class AdapterEditor: Adapter {
                 if(runningInstance != nil) {
                     runningInstance!.webview.reload()
                 } else {
-                    let project = Project(location: projectDirectory,
-                                              title: json[0]["title"].stringValue)
+                    let project = Project(
+                        location: projectDirectory,
+                        id: json[0]["id"].stringValue,
+                        title: json[0]["title"].stringValue)
                     RunningInstances.singleton?.addInstance(instance: Instance(project: project))
                 }
             
@@ -284,8 +286,12 @@ class AdapterEditor: Adapter {
                     self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue, pairing: json[2].boolValue)
                     return done(true)
                 case "convey":
+                    let data = json[1].stringValue;
+                    let projectId = json[0].stringValue;
                     RunningInstances.singleton!.instances.forEach({instance in
-                        instance.push(messageType: "peerData", message: json[0].stringValue)
+                        if(instance.adapter.projectId == projectId) {
+                            instance.push(messageType: "peerData", message: data)
+                        }
                     })
                     return done(true)
                 default: break
