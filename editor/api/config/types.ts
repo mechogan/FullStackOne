@@ -8,6 +8,7 @@ export enum CONFIG_TYPE {
 
 export type Project = {
     title: string;
+    id: string;
     createdDate: number;
     location: string;
     gitRepository?: {

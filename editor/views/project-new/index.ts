@@ -6,6 +6,7 @@ import projectView from "../project";
 import type { Project } from "../../api/config/types";
 import api from "../../api";
 import stackNavigation from "../../stack-navigation";
+import slugify from "slugify";
 
 class ProjectNew {
     onAddedProject: () => void;
@@ -20,7 +21,19 @@ class ProjectNew {
         container.append(titleInputLabel);
 
         const titleInput = document.createElement("input");
+        titleInput.addEventListener("blur", () => {
+            const possibleId = slugify(titleInput.value.replace(/\//g, "."), { lower: true });
+            if(!idInput.value) idInput.value = possibleId;
+        })
         container.append(titleInput);
+
+        // id
+        const idInputLabel = document.createElement("label");
+        idInputLabel.innerText = "Project ID";
+        container.append(idInputLabel);
+
+        const idInput = document.createElement("input");
+        container.append(idInput);
 
         // create button
         const createButton = document.createElement("button");
@@ -87,6 +100,7 @@ class ProjectNew {
             const location = [...projectBaseDirectory, title].join("/");
             const project = {
                 location,
+                id: idInput.value || slugify(title, { lower: true }),
                 title
             };
 
@@ -131,6 +145,7 @@ class ProjectNew {
 
             const project: Omit<Project, "createdDate"> = {
                 title: titleInput.value,
+                id: idInput.value,
                 location
             };
 

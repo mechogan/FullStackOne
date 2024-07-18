@@ -47,12 +47,17 @@
             text-align: center;
             overflow: hidden;
             padding: spacing(0.5);
+            flex-direction: column;
             h3 {
                 width: 100%;
                 text-overflow: ellipsis;
                 overflow: hidden;
                 direction: rtl;
+                white-space: nowrap;
             }
+            p {
+                margin: spacing() 0 0
+            } 
             > button {
                 position: absolute;
                 bottom: 0;
