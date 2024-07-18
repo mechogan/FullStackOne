@@ -71,10 +71,12 @@ export type AwaitAll<T> = {
 };
 
 export type AwaitNone<T> = {
-    [K in keyof T]: T[K] extends (...args: any) => PromiseLike<any> 
-        ? (...args: T[K] extends (...args: infer P) => any ? P : never[]) => Awaited<ReturnType<T[K]>>
-        : AwaitNone<T[K]>
-}
+    [K in keyof T]: T[K] extends (...args: any) => PromiseLike<any>
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => Awaited<ReturnType<T[K]>>
+        : AwaitNone<T[K]>;
+};
 
 const rpc = globalThis.rpc as unknown as () => AwaitAll<AdapterEditor>;
 
