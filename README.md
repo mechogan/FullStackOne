@@ -27,7 +27,7 @@ Use some of the most popular tools to rapidly build.
 -   MUI
 -   ThreeJS
 -   Yjs
--   SASS `Soon`
+-   SASS
 
 ### On Any Platform
 
@@ -37,5 +37,5 @@ Available on
 -   MacOS
 -   Windows
 -   Linux
+-   Docker
 -   Android `Soon`
--   Docker `Soon`
