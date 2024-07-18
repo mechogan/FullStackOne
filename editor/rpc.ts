@@ -52,13 +52,13 @@ export type AdapterEditor = Adapter & {
         disconnect(id: string): void;
         trustConnection(id: string): void;
         send(id: string, data: string, pairing: boolean): void;
-        convey(data: string): void;
+        convey(projectId: string, data: string): void;
     };
 };
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
-type AwaitAll<T> = {
+export type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
         ? (
               ...args: T[K] extends (...args: infer P) => any ? P : never[]
@@ -68,6 +68,14 @@ type AwaitAll<T> = {
         : T[K] extends object
           ? AwaitAll<T[K]>
           : () => Promise<T[K]>;
+};
+
+export type AwaitNone<T> = {
+    [K in keyof T]: T[K] extends (...args: any) => PromiseLike<any>
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => Awaited<ReturnType<T[K]>>
+        : AwaitNone<T[K]>;
 };
 
 const rpc = globalThis.rpc as unknown as () => AwaitAll<AdapterEditor>;

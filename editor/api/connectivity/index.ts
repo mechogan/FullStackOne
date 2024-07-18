@@ -16,6 +16,7 @@ import {
     PeerConnectionTokenExchange,
     PeerConnectionTrusted,
     PeerConnectionUntrusted,
+    PeerMessage,
     PeerNearby,
     PeerNearbyBonjour,
     PeerNearbyWeb,
@@ -377,6 +378,7 @@ async function sendPeerConnectionRequest(peerConnection: PeerConnection) {
 
     return sendData(
         peerConnection,
+        null,
         JSON.stringify(peerConnectionRequest),
         true
     );
@@ -500,6 +502,7 @@ async function sendPeerConnectionTokenExchange(
 
     return sendData(
         peerConnection,
+        null,
         JSON.stringify(peerConnectionTokenExchange),
         true
     );
@@ -580,6 +583,7 @@ async function sendPeerConnectionTokenChallenge(
 
     await sendData(
         peerConection,
+        null,
         JSON.stringify(peerConnectionTokenChallenge),
         true
     );
@@ -647,48 +651,63 @@ onPush["peerData"] = (eventStr: string) => {
     onPeerData(id, data);
 };
 
-async function onPeerData(id: string, data: string) {
+async function onPeerData(id: string, messageStr: string) {
     const peerConnection = peersConnections.get(id);
+    const peerMessage: PeerMessage = JSON.parse(messageStr);
 
     if (!peerConnection) {
         console.log("Received data from unknown connection...");
     } else if (peerConnection.state === PEER_CONNECTION_STATE.CONNECTED) {
-        const decryptedData = await decrypt(
-            data,
-            peerConnection.peer.keys.decrypt
-        );
-        rpc().connectivity.convey(decryptedData);
+        const data = peerMessage.encrypted
+            ? await decrypt(peerMessage.data, peerConnection.peer.keys.decrypt)
+            : peerMessage.data;
+        rpc().connectivity.convey(peerMessage.projectId, data);
     } else {
-        onPeerConnectionPairingData(peerConnection, data);
+        onPeerConnectionPairingData(peerConnection, peerMessage.data);
     }
 }
 
-onPush["sendData"] = (data: string) => {
+onPush["sendData"] = (payload: string) => {
+    const { projectId, data } = JSON.parse(payload);
+
     for (const peerConnection of peersConnections.values()) {
-        sendData(peerConnection, data);
+        sendData(peerConnection, projectId, data);
     }
 };
 
 async function sendData(
     peerConnection: PeerConnection,
+    projectId: string,
     data: string,
     pairing = false
 ) {
     if (peerConnection.state !== PEER_CONNECTION_STATE.CONNECTED && !pairing)
         return;
 
-    let payload =
-        peerConnection.state === PEER_CONNECTION_STATE.CONNECTED
-            ? await encrypt(data, peerConnection.peer.keys.encrypt)
-            : data;
+    let payload: PeerMessage = {
+        projectId,
+        data:
+            peerConnection.state === PEER_CONNECTION_STATE.CONNECTED
+                ? await encrypt(data, peerConnection.peer.keys.encrypt)
+                : data,
+        encrypted: peerConnection.state === PEER_CONNECTION_STATE.CONNECTED
+    };
 
     switch (peerConnection.type) {
         case PEER_CONNECTION_TYPE.WEB_SOCKET:
-            connecterWebSocket.send(peerConnection.id, payload, pairing);
+            connecterWebSocket.send(
+                peerConnection.id,
+                JSON.stringify(payload),
+                pairing
+            );
             break;
         case PEER_CONNECTION_TYPE.WEB_SOCKET_SERVER:
         case PEER_CONNECTION_TYPE.IOS_MULTIPEER:
-            rpc().connectivity.send(peerConnection.id, payload, pairing);
+            rpc().connectivity.send(
+                peerConnection.id,
+                JSON.stringify(payload),
+                pairing
+            );
             break;
     }
 }

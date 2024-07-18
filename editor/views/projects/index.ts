@@ -26,8 +26,11 @@ class Projects {
 
         const projectTitle = document.createElement("h3");
         projectTitle.innerText = project.title;
-
         container.append(projectTitle);
+
+        const projectId = document.createElement("p");
+        projectId.innerText = project.id;
+        container.append(projectId);
 
         container.addEventListener("click", async () => {
             projectView.setProject(project);

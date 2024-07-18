@@ -6,8 +6,28 @@ import * as zip from "@zip.js/zip.js";
 import zipDirectory from "./zip";
 import * as sass from "sass";
 import type esbuild from "esbuild";
+import slugify from "slugify";
 
-const list = async () => (await config.load(CONFIG_TYPE.PROJECTS)) || [];
+const list = async () => {
+    const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || [];
+
+    // MIGRATION 2024-07-18 : add project ID
+    let save = false;
+    for (const project of projects) {
+        if (project.id) continue;
+
+        save = true;
+        project.id =
+            project?.gitRepository?.url ===
+            "https://github.com/fullstackedorg/editor-sample-demo.git"
+                ? "org.fullstacked.demo"
+                : slugify(project.title.replace(/\//g, "."), { lower: true });
+    }
+    if (save) await config.save(CONFIG_TYPE.PROJECTS, projects);
+    // END
+
+    return projects;
+};
 const create = async (project: Omit<Project, "createdDate">) => {
     const projects = await list();
     const newProject = {

@@ -165,6 +165,7 @@ app.whenReady().then(async () => {
 
     open("FullStacked", {
         title: "localhost",
+        id: null,
         location: null,
         createdDate: null
     });

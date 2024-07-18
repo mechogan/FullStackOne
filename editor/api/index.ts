@@ -6,6 +6,7 @@ import URL from "url-parse";
 import SearchParams from "fast-querystring";
 import rpc from "../rpc";
 import connectivity from "./connectivity";
+import slugify from "slugify";
 
 export default {
     projects,
@@ -40,9 +41,14 @@ export default {
                 await git.getUsernameAndEmailForHost(gitUrl);
 
             const searchParams = SearchParams.parse(url.query.slice(1));
+            const title = searchParams.title || projectDir;
+            const id =
+                searchParams.id ||
+                slugify(title.replace(/\//g, "."), { lower: true });
             project = await projects.create({
                 location: projectDir,
-                title: searchParams.title || projectDir,
+                title,
+                id,
                 gitRepository: {
                     url: gitUrl,
                     email: usernameAndEmail?.email,

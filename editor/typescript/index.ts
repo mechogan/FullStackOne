@@ -1,6 +1,6 @@
 import type { methods } from "./worker";
 
-function recurseInProxy(target: Function, methodPath: string[] = []) {
+function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
     return new Proxy(target, {
         apply: (target, _, argArray) => {
             return target(methodPath, ...argArray);
@@ -9,7 +9,7 @@ function recurseInProxy(target: Function, methodPath: string[] = []) {
             methodPath.push(p as string);
             return recurseInProxy(target, methodPath);
         }
-    });
+    }) as AwaitAll<T>;
 }
 
 export abstract class tsWorkerDelegate {
@@ -73,7 +73,9 @@ export class tsWorker {
     }
 
     call = () =>
-        recurseInProxy(this.postMessage.bind(this)) as AwaitAll<typeof methods>;
+        recurseInProxy(this.postMessage.bind(this)) as unknown as AwaitAll<
+            typeof methods
+        >;
 }
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;

@@ -82,6 +82,7 @@ let notFound = Response(
 
 struct Project {
     let location: String
+    let id: String
     let title: String
 }
 
@@ -109,7 +110,7 @@ class Instance  {
     let adapter: Adapter
     
     init(project: Project){
-        self.adapter = Adapter(baseDirectory: project.location)
+        self.adapter = Adapter(projectId: project.id, baseDirectory: project.location)
         let wkWebViewConfig = WKWebViewConfiguration()
         wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs")
         self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)

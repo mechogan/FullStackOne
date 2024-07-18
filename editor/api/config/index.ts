@@ -20,6 +20,7 @@ export default {
         const project = await projects.import(
             {
                 title: "Demo",
+                id: "org.fullstacked.demo",
                 location: "fullstackedorg/editor-sample-demo",
                 gitRepository: {
                     url: "https://github.com/fullstackedorg/editor-sample-demo.git"

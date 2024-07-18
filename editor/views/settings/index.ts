@@ -134,6 +134,7 @@ export class Settings {
         packagesButton.addEventListener("click", async () => {
             projectView.setProject({
                 title: "Packages",
+                id: null,
                 location: await rpc().directories.nodeModulesDirectory(),
                 createdDate: null
             });

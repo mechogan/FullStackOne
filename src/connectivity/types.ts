@@ -139,3 +139,9 @@ export type PeerData = {
     peerConnection: PeerConnectionTrusted;
     data: string;
 };
+
+export type PeerMessage = {
+    data: string;
+    encrypted: boolean;
+    projectId: string;
+};
