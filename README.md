@@ -23,11 +23,11 @@ Use some of the most popular tools to rapidly build.
 -   git
 -   HTML
 -   CSS
+-   SASS
 -   React
 -   MUI
 -   ThreeJS
 -   Yjs
--   SASS `Soon`
 
 ### On Any Platform
 
@@ -37,5 +37,5 @@ Available on
 -   MacOS
 -   Windows
 -   Linux
+-   Docker
 -   Android `Soon`
--   Docker `Soon`
