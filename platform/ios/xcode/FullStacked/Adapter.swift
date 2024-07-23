@@ -33,7 +33,7 @@ class Adapter {
             return done(nil)
         }
         
-        let json = body.count == 0 ? JSON("{}") : try! JSON(data: body)
+        let json = body.count == 0 ? JSON("[]") : try! JSON(data: body)
         
         let writeFile = { (path: String, data: Data, recursive: Bool) in
             if(recursive) {

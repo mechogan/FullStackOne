@@ -23,7 +23,6 @@ open class Adapter(val projectId: String, baseDirectory: String) {
             if(data != null) {
                 this.fs.writeFile(path, data)
             }
-
         }
 
         when (methodPath.first()) {
@@ -104,8 +103,23 @@ open class Adapter(val projectId: String, baseDirectory: String) {
                     }
                     "unlink" -> done(this.fs.unlink(json.getString(0)))
                     "readdir" -> {
+                        var recursive = false
+                        var withFileTypes = false
+                        if(json.length() > 1) {
+                            val opt = json.getJSONObject(1)
+                            try {
+                                recursive = opt.getBoolean("recursive")
+                                withFileTypes = opt.getBoolean("withFileTypes")
+                            } catch (_: Exception) { }
+                        }
 
+                        return done(this.fs.readdir(json.getString(0), withFileTypes, recursive))
                     }
+                    "mkdir" -> done(this.fs.mkdir(json.getString(0)))
+                    "rmdir" -> done(this.fs.rmdir(json.getString(0)))
+                    "stat" -> done(this.fs.stat(json.getString(0)))
+                    "lstat" -> done(this.fs.stat(json.getString(0)))
+                    "exists" -> done(this.fs.exists(json.getString(0)) ?: false)
                 }
             }
         }
