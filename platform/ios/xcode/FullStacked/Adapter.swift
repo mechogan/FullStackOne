@@ -339,28 +339,7 @@ class AdapterFS {
     }
     
     func lstat(path: String) -> Any {
-        let itemPath = self.baseDirectory + "/" + path;
-        
-        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(itemPath);
-        if(existsAndIsDirectory == nil) {
-            return AdapterError(
-                code: "ENOENT",
-                path: path,
-                syscall: "stat"
-            )
-        }
-        
-        let stats = try! FileManager.default.attributesOfItem(atPath: itemPath)
-        
-        return [
-            "size": stats[FileAttributeKey.size],
-            "isDirectory": existsAndIsDirectory!,
-            "isFile": !existsAndIsDirectory!,
-            "ctime": (stats[FileAttributeKey.creationDate] as! Date).ISO8601Format() ,
-            "ctimeMs": (stats[FileAttributeKey.creationDate] as! Date).timeIntervalSince1970 * 1000,
-            "mtime": (stats[FileAttributeKey.modificationDate] as! Date).ISO8601Format(),
-            "mtimeMs": (stats[FileAttributeKey.modificationDate] as! Date).timeIntervalSince1970 * 1000
-        ]
+        return self.stat(path: path)
     }
     
     func exists(path: String) -> Any? {
