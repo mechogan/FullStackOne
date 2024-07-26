@@ -18,6 +18,15 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+            }
+        }
+        ndk {
+            //noinspection ChromeOsAbiSupport
+            abiFilters += listOf("armeabi-v7a","arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -50,8 +59,14 @@ android {
     sourceSets {
         getByName("main") {
             assets {
-                srcDirs("src/main/assets", "../../../editor/build")
+                srcDirs("../../../../editor/build", "../../../../src/js")
             }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 }

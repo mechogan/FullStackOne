@@ -29,7 +29,7 @@ if (textBlockToUpdate) {
     throw "Could not find typescript code block to patch.";
 }
 
-const baseFile = "src/js/index.js";
+const baseFile = "src/js/base.js";
 
 esbuild.buildSync({
     entryPoints: ["src/index.ts"],

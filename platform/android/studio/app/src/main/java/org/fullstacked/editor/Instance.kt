@@ -40,7 +40,7 @@ open class Instance(val project: Project, val context: ComponentActivity, val in
         if(init) {
             this.adapter = Adapter(
                 projectId = this.project.id,
-                baseDirectory = this.project.location
+                baseDirectory = this.context.filesDir.toString() + "/" + this.project.location
             )
 
             this.webView = createWebView(
@@ -215,6 +215,18 @@ class WebViewClientCustom(
             }
 
             is JSONObject -> {
+                val jsonStr = maybeResponseData.toString()
+                WebResourceResponse(
+                    "application/json",
+                    "utf-8",
+                    200,
+                    "success",
+                    mapOf("content-length" to jsonStr.toByteArray().size.toString()),
+                    jsonStr.byteInputStream()
+                )
+            }
+
+            is JSONArray -> {
                 val jsonStr = maybeResponseData.toString()
                 WebResourceResponse(
                     "application/json",

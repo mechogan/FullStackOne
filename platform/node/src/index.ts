@@ -123,7 +123,7 @@ const { handler, close } = main(
     isWebContainer ? Platform.WEBCONTAINER : Platform.NODE,
     currentDir + "/editor",
     path.resolve(os.homedir(), ".cache", "fullstacked"),
-    path.resolve(currentDir, "js", "index.js"),
+    path.resolve(currentDir, "js", "base.js"),
     directories,
     {
         load: async () => esbuild,

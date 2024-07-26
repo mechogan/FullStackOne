@@ -87,16 +87,15 @@ open class Adapter(val projectId: String, baseDirectory: String) {
             }
             "writeFileMulti" -> {
                 var recursive = false
-                if(json.length() > 2) {
-                    val opt = json.getJSONObject(2)
+                if(json.length() > 1) {
+                    val opt = json.getJSONObject(1)
                     try {
                         recursive = opt.getBoolean("recursive")
                     } catch (_: Exception) { }
                 }
 
-
                 val files = json.getJSONArray(0)
-                for (i in 0..files.length()) {
+                for (i in 0..<files.length()) {
                     val file = files.getJSONObject(i)
                     var data: ByteArray? = null
 
@@ -115,7 +114,7 @@ open class Adapter(val projectId: String, baseDirectory: String) {
                     }
 
                     val maybeError = this.writeFile(file.getString("path"), data, recursive)
-                    if(maybeError != null)
+                    if(maybeError != null && maybeError != true)
                         return maybeError
                 }
 
@@ -149,6 +148,8 @@ open class Adapter(val projectId: String, baseDirectory: String) {
 
 
     private fun fetch(json: JSONArray): Any {
+        println(json.getString(0))
+
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(json.getString(0))
@@ -210,7 +211,6 @@ open class Adapter(val projectId: String, baseDirectory: String) {
 
         val response = client.newCall(request.build()).execute()
 
-
         val responseJson = JSONObject()
 
         responseJson.put("statusCode", response.code)
@@ -226,7 +226,7 @@ open class Adapter(val projectId: String, baseDirectory: String) {
             if(response.body == null) {
                 responseJson.put("body", "")
             } else {
-                responseJson.put("body", response.body.toString())
+                responseJson.put("body", response.body?.string() ?: "")
             }
         } else {
             val responseBody = JSONObject()

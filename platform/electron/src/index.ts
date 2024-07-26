@@ -88,7 +88,7 @@ const { handler, close } = main(
     Platform.ELECTRON,
     editorDirectory,
     path.resolve(os.homedir(), ".cache", "fullstacked"),
-    path.resolve(__dirname, "..", "js", "index.js"),
+    path.resolve(__dirname, "..", "js", "base.js"),
     directories,
     esbuild,
     open,

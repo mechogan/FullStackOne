@@ -75,7 +75,7 @@ class Adapter {
                         data = fileJSON["data"].stringValue.data(using: .utf8)!
                     }
                     
-                    let maybeError = writeFile(fileJSON["path"].stringValue, data, json[2]["recursive"].boolValue)
+                    let maybeError = writeFile(fileJSON["path"].stringValue, data, json[1]["recursive"].boolValue)
                     if(maybeError is AdapterError){
                         return done(maybeError)
                     }

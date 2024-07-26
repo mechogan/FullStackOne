@@ -25,7 +25,7 @@ class InstanceEditor: Instance {
 
 class AdapterEditor: Adapter {
     let rootDirectory = documentsDirectory
-    private let baseJSFile = Bundle.main.path(forResource: "index", ofType: "js", inDirectory: "js")!
+    private let baseJSFile = Bundle.main.path(forResource: "base", ofType: "js", inDirectory: "js")!
     let cacheDirectory = FileManager.default.temporaryDirectory.absoluteString
     let configDirectory = ".config/fullstacked"
     let nodeModulesDirectory: String
@@ -196,9 +196,9 @@ class AdapterEditor: Adapter {
                           nodePathPtr,
                           &errorsPtr)
                                 
-                    if(errorsPtr != nil) {
-                        let errorsJSONStr = String.init(cString: errorsPtr!, encoding: .utf8)!
-                        return done(JSON(parseJSON: errorsJSONStr))
+                    let errors = String.init(cString: errorsPtr!, encoding: .utf8)!
+                    if(!errors.isEmpty) {
+                        return done(JSON(parseJSON: errors))
                     }
                 
                     return done(true)
