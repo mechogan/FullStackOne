@@ -135,17 +135,25 @@ class AdapterEditor(
             "run" -> return this.run(JSONArray(body).getJSONObject(0))
             "fs" -> {
                 var absolutePath = false
+                var utf8 = false
                 val json = if(!body.isNullOrEmpty()) JSONArray(body) else JSONArray("[]")
 
+                // writeFile
                 if(json.length() > 2) {
                     try {
-                        val opt = JSONObject(json.optString(2))
+                        val opt = JSONObject(json.getString(2))
                         absolutePath = opt.getBoolean("absolutePath")
                     } catch (_: Exception) {}
-                } else if(json.length() > 1) {
+                }
+                // readFile, writeFileMulti
+                else if(json.length() > 1) {
                     try {
-                        val opt = JSONObject(json.optString(1))
+                        val opt = JSONObject(json.getString(1))
                         absolutePath = opt.getBoolean("absolutePath")
+                    } catch (_: Exception) {}
+                    try {
+                        val opt = JSONObject(json.getString(1))
+                        utf8 = opt.getString("encoding") == "utf8"
                     } catch (_: Exception) {}
                 }
 
@@ -153,7 +161,13 @@ class AdapterEditor(
 
                 if(json.length() == 0) return null
 
-                return this.getFile(json.getString(0))
+                val file = this.getFile(json.getString(0))
+
+                if(file != null && utf8) {
+                    return convertInputStreamToString(file)
+                }
+
+                return file
             }
             "connectivity" -> {
                 when (methodPath.elementAt(1)) {

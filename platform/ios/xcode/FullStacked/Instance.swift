@@ -207,7 +207,18 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             return send()
         }
         
-        self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: request.httpBody ?? Data(), done: { maybeResponseData in
+        var body = request.httpBody
+        
+        if(request.httpMethod == "GET") {
+            let uri = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let bodyStr = uri?.queryItems?.first(where: {$0.name == "body"})?.value
+            if(bodyStr != nil){
+                body = bodyStr?.removingPercentEncoding?.data(using: .utf8)
+            }
+        }
+        
+        
+        self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: body ?? Data(), done: { maybeResponseData in
             if(maybeResponseData is Void){
                 response = Response(
                     data: Data(),

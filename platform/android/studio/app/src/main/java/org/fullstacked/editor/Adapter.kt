@@ -3,6 +3,7 @@ package org.fullstacked.editor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -104,8 +105,8 @@ open class Adapter(val projectId: String, baseDirectory: String) {
                         if(uint8array.get("type") == "Uint8Array") {
                             val numberArr = uint8array.getJSONArray("data")
                             val byteArray = ByteArray(numberArr.length())
-                            for (i in 0..<numberArr.length()) {
-                                byteArray[i] = numberArr.get(i).toString().toInt().toByte()
+                            for (index in 0..<numberArr.length()) {
+                                byteArray[index] = numberArr.get(index).toString().toInt().toByte()
                             }
                             data = byteArray
                         }
@@ -147,7 +148,7 @@ open class Adapter(val projectId: String, baseDirectory: String) {
     }
 
 
-    private fun fetch(json: JSONArray): Any {
+    private fun fetch(json: JSONArray): Any? {
         println(json.getString(0))
 
         val client = OkHttpClient()
@@ -209,7 +210,9 @@ open class Adapter(val projectId: String, baseDirectory: String) {
             request.addHeader("content-length", body.size.toString())
         }
 
-        val response = client.newCall(request.build()).execute()
+        val response: Response = try {
+            client.newCall(request.build()).execute()
+        } catch (e: Exception) { return null }
 
         val responseJson = JSONObject()
 

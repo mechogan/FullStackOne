@@ -2,25 +2,29 @@ package org.fullstacked.editor
 
 import android.annotation.SuppressLint
 import android.app.ActionBar.LayoutParams
-import android.graphics.Bitmap
 import android.graphics.Color
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.LinearLayout
 import androidx.activity.ComponentActivity
+import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
+import java.net.URLDecoder
 
 @SuppressLint("SetJavaScriptEnabled")
 fun createWebView(
     ctx: ComponentActivity,
     adapter: Adapter,
 ) : WebView {
-    val webView = WebView(ctx);
+    val webView = WebView(ctx)
     webView.setBackgroundColor(Color.TRANSPARENT)
     val webViewClient = WebViewClientCustom(adapter)
     webView.webViewClient = webViewClient
@@ -47,9 +51,32 @@ open class Instance(val project: Project, val context: ComponentActivity, val in
                 ctx = this.context,
                 adapter = this.adapter
             )
-
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-            this.context.addContentView(this.webView, params)
+            val layout = LinearLayout(this.context)
+            layout.setBackgroundColor(Color.BLACK)
+            layout.orientation = LinearLayout.VERTICAL
+
+            val topBarHeight = 40
+            val topBar = LinearLayout(this.context)
+            topBar.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, topBarHeight)
+
+            val closeBtn = Button(this.context)
+            closeBtn.setBackgroundColor(Color.TRANSPARENT)
+            closeBtn.minWidth = 0
+            closeBtn.minHeight = 0
+            closeBtn.maxHeight = topBarHeight
+            val icon = ContextCompat.getDrawable(this.context, android.R.drawable.ic_menu_close_clear_cancel)
+            icon?.setTint(this.context.getColor(R.color.blue))
+            closeBtn.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
+            closeBtn.setOnClickListener {
+                (layout.parent as ViewGroup).removeView(layout)
+            }
+
+            topBar.addView(closeBtn)
+            layout.addView(topBar)
+
+            layout.addView(this.webView, params)
+            this.context.addContentView(layout, params)
         }
     }
 }
@@ -60,13 +87,8 @@ class WebViewClientCustom(
     private val reqBody = HashMap<Int, String>()
 
     @JavascriptInterface
-    fun passFetchBody(reqId: Int, body: String){
+    fun passRequestBody(reqId: Int, body: String){
         this.reqBody[reqId] = body
-    }
-
-    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-        super.onPageStarted(view, url, favicon)
-        view?.evaluateJavascript("const originalFetch = window.fetch; let reqId = 0; window.fetch = (...args) => { if(args?.[1]) { const id = reqId++; args[1].headers = {...(args?.[1]?.headers || {}), \"request-id\": id};  Android.passFetchBody(id, args?.[1]?.body); } return originalFetch(...args) };", null)
     }
 
     override fun shouldInterceptRequest(
@@ -75,9 +97,7 @@ class WebViewClientCustom(
     ): WebResourceResponse? {
         if(request?.url?.host != "localhost") return super.shouldInterceptRequest(view, request);
 
-        val path = request.url?.path.toString()
-
-        var pathname = path.split("?").first()
+        var pathname = request.url?.path ?: ""
         if(pathname.endsWith("/")){
             pathname = pathname.slice(0..<pathname.length - 1)
         }
@@ -128,6 +148,12 @@ class WebViewClientCustom(
                 body = this.reqBody[reqId]
                 this.reqBody.remove(reqId)
             }
+        }
+
+        // maybe in query param
+        val maybeBody = request.url.getQueryParameter("body")
+        if(maybeBody != null) {
+            body = URLDecoder.decode(maybeBody, "UTF-8")
         }
 
         val methodPath = ArrayList(pathname.split("/"))

@@ -15,6 +15,7 @@ import {
     getNetworkInterfacesInfo
 } from "./connectivity/utils";
 import { Platform } from "../../../src/platforms";
+import fastQueryString from "fast-querystring";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -319,8 +320,18 @@ function createHandler(mainAdapter: AdapterEditor) {
 
         const adapter = instances.get(id)?.adapter ?? mainAdapter;
 
-        // remove query params
-        let pathname = path.split("?").shift();
+        const pathAndQuery = path.split("?");
+
+        // get first element as pathname
+        let pathname = pathAndQuery.shift();
+
+        // the rest can be used as query
+        const query = pathAndQuery.join("?");
+        if(query.length) {
+            const searchParams = fastQueryString.parse(query);
+            const maybeBody: string = searchParams["body"];
+            if(maybeBody) body = te.encode(decodeURIComponent(maybeBody));
+        }
 
         // remove trailing slash
         if (pathname?.endsWith("/")) pathname = pathname.slice(0, -1);

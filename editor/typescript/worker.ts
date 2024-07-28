@@ -15,6 +15,7 @@ import {
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
 import type rpcFn from "../../src/index";
+import { bindPassRequestBody } from "../../src/android";
 
 const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
 const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
@@ -35,6 +36,29 @@ function removeSourceObjects(obj: any) {
 }
 
 self.onmessage = (message: MessageEvent) => {
+    const passingBodyToMainThread = new Map<number, () => void>();
+
+    if(message.data.request_id) {
+        const resolve = passingBodyToMainThread.get(message.data.request_id);
+        resolve?.();
+        return;
+    }
+
+    if(message.data.platform) {
+
+        if(message.data.platform === "android") {
+            bindPassRequestBody((id, body) => {
+                return new Promise<void>(resolve => {
+                    passingBodyToMainThread.set(id, resolve);
+                    self.postMessage({ id, body });
+                })
+            });
+        }
+
+        return;
+    }
+
+
     const { id, methodPath, args } = message.data;
 
     let method = methodPath.reduce(
@@ -67,10 +91,7 @@ export let methods = {
         if (services) return;
 
         const servicesHost = initLanguageServiceHost(currentDirectory);
-        services = createLanguageService(
-            servicesHost,
-            createDocumentRegistry()
-        );
+        services = createLanguageService(servicesHost, createDocumentRegistry());
         methods = {
             ...methods,
             ...services
