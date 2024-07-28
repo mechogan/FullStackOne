@@ -142,9 +142,9 @@ const protocolHandler: (request: Request) => Promise<Response> = async (
     const hostname = url.hostname;
     const id = hostnames.get(hostname);
 
-    const body = new Uint8Array(await request.arrayBuffer());
+    let body = new Uint8Array(await request.arrayBuffer());
 
-    const response = await handler(id, url.pathname, body);
+    const response = await handler(id, url.pathname + url.search, body);
 
     const headers = {
         ["Content-Type"]: response.mimeType

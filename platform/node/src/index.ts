@@ -60,9 +60,8 @@ const push: PushFunction = (id, messageType, message) => {
 const createServerHandler =
     (id: string) =>
     async (req: http.IncomingMessage, res: http.ServerResponse) => {
-        const path = req.url;
         const body = await readBody(req);
-        const response = await handler(id, path, body);
+        const response = await handler(id, req.url, body);
         respond(response, res);
     };
 
