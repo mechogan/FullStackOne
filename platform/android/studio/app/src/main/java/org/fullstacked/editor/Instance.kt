@@ -21,7 +21,7 @@ import java.net.URLDecoder
 
 @SuppressLint("SetJavaScriptEnabled")
 fun createWebView(
-    ctx: ComponentActivity,
+    ctx: MainActivity,
     adapter: Adapter,
 ) : WebView {
     val webView = WebView(ctx)
@@ -36,13 +36,14 @@ fun createWebView(
 
 data class Project(val location: String, val id: String, val title: String)
 
-open class Instance(val project: Project, val context: ComponentActivity, val init: Boolean = true) {
+open class Instance(val project: Project, val context: MainActivity, val init: Boolean = true) {
     lateinit var adapter: Adapter
     lateinit var webView: WebView
 
     init {
         if(init) {
             this.adapter = Adapter(
+                context = this.context,
                 projectId = this.project.id,
                 baseDirectory = this.context.filesDir.toString() + "/" + this.project.location
             )
@@ -70,6 +71,7 @@ open class Instance(val project: Project, val context: ComponentActivity, val in
             closeBtn.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
             closeBtn.setOnClickListener {
                 (layout.parent as ViewGroup).removeView(layout)
+                this.context.instanceEditor.instances.remove(this)
             }
 
             topBar.addView(closeBtn)
@@ -77,6 +79,12 @@ open class Instance(val project: Project, val context: ComponentActivity, val in
 
             layout.addView(this.webView, params)
             this.context.addContentView(layout, params)
+        }
+    }
+
+    fun push(messageType: String, message: String){
+        this.context.runOnUiThread {
+            this.webView.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
         }
     }
 }

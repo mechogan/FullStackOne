@@ -14,7 +14,11 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 
 
-open class Adapter(val projectId: String, baseDirectory: String) {
+open class Adapter(
+    val context: MainActivity,
+    val projectId: String,
+    baseDirectory: String
+) {
     val platform = "android"
     val fs: AdapterFS = AdapterFS(baseDirectory)
 
@@ -42,11 +46,20 @@ open class Adapter(val projectId: String, baseDirectory: String) {
             "platform" -> return this.platform
             "fs" -> return this.fsSwitch(methodPath[1], json)
             "fetch" -> return this.fetch(json)
+            "broadcast" -> return this.broadcast(json)
         }
 
         return null
     }
 
+    private fun broadcast(json: JSONArray) : Boolean {
+        val peerMessage = JSONObject()
+        peerMessage.put("projectId", this.projectId)
+        peerMessage.put("data", json.getString(0))
+        this.context.instanceEditor.push("sendData", peerMessage.toString())
+
+        return true
+    }
 
     private fun fsSwitch(method: String, json: JSONArray) : Any? {
         when (method) {
@@ -147,10 +160,7 @@ open class Adapter(val projectId: String, baseDirectory: String) {
         return null
     }
 
-
     private fun fetch(json: JSONArray): Any? {
-        println(json.getString(0))
-
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(json.getString(0))
