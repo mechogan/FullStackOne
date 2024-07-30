@@ -1,5 +1,6 @@
 package org.fullstacked.editor
 
+import android.os.Bundle
 import org.fullstacked.editor.connectivity.Bonjour
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,35 +16,50 @@ val editorProject = Project(
     title = "FullStacked"
 )
 
-class InstanceEditor(context: MainActivity) : Instance(
+class InstanceEditor(var context: MainActivity) : Instance(
     project = editorProject,
-    context = context,
     init = false
 ) {
+    companion object {
+        lateinit var singleton: InstanceEditor
+        fun initialized(): Boolean = this::singleton.isInitialized
+    }
+
     val instances = mutableListOf<Instance>()
 
     init {
+        singleton = this
+
         this.adapter = AdapterEditor(
             projectId = editorProject.id,
-            baseDirectory = this.context.filesDir.toString(),
-            context = context
+            baseDirectory = this.context.filesDir.toString()
         )
 
-        this.webView = createWebView(
+        this.render()
+    }
+
+    override fun render() {
+        val webView = createWebView(
             ctx = this.context,
             adapter = this.adapter
         )
 
-        this.context.setContentView(this.webView)
+        if(this.webViewState != null) {
+            webView.restoreState(this.webViewState!!)
+        }
+
+        this.webViewId = webView.id
+
+        println("ICICICICI ${this.context.isDestroyed}")
+        this.context.setContentView(webView)
     }
 }
 
 class AdapterEditor(
-    context: MainActivity,
     projectId: String,
     private val baseDirectory: String,
-): Adapter(context, projectId, baseDirectory) {
-    private val bonjour = Bonjour(this.context)
+): Adapter(projectId, baseDirectory) {
+    private val bonjour = Bonjour()
 
     companion object {
         init {
@@ -59,7 +75,7 @@ class AdapterEditor(
 
     override fun getFile(path: String): InputStream? {
         return try {
-            this.context.assets.open(path)
+            InstanceEditor.singleton.context.assets.open(path)
         } catch (e: IOException) {
             null
         }
@@ -68,7 +84,7 @@ class AdapterEditor(
     private fun directoriesSwitch(directory: String): String? {
         when (directory) {
             "rootDirectory" -> return this.baseDirectory
-            "cacheDirectory" -> return this.context.cacheDir.toString()
+            "cacheDirectory" -> return InstanceEditor.singleton.context.cacheDir.toString()
             "configDirectory" -> return ".config"
             "nodeModulesDirectory" -> return ".cache/node_modules"
         }
@@ -79,19 +95,19 @@ class AdapterEditor(
     private fun esbuildSwitch(methodPath: List<String>, body: String?) : Any? {
         when (methodPath.first()) {
             "check" -> return true
-            "baseJS" -> return convertInputStreamToString(this.context.assets.open("base.js"))
+            "baseJS" -> return convertInputStreamToString(InstanceEditor.singleton.context.assets.open("base.js"))
             "tmpFile" -> {
                 when (methodPath.elementAt(1)) {
                     "write" -> {
                         val json = JSONArray(body)
-                        val filePath = this.context.cacheDir.toString() + "/" + json.getString(0)
+                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + json.getString(0)
                         val file = File(filePath)
                         file.writeText(json.getString(1), Charsets.UTF_8)
                         return filePath
                     }
                     "unlink" -> {
                         val json = JSONArray(body)
-                        val filePath = this.context.cacheDir.toString() + "/" + json.getString(0)
+                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + json.getString(0)
                         val file = File(filePath)
                         file.delete()
                         return true
@@ -165,7 +181,7 @@ class AdapterEditor(
                     data = args.getString(1)
                 }catch (_: Exception) { }
 
-                this.context.instanceEditor.instances.forEach { instance ->
+                InstanceEditor.singleton.instances.forEach { instance ->
                     if(instance.project.id == projectId) {
                         instance.push("peerData", data)
                     }
@@ -178,16 +194,15 @@ class AdapterEditor(
     }
 
     private fun run(project: JSONObject): Boolean {
-        this.context.runOnUiThread {
+        InstanceEditor.singleton.context.runOnUiThread {
             val instance = Instance(
-                context = this.context,
                 project = Project(
                     id = project.getString("id"),
                     title = project.getString("title"),
                     location = project.getString("location")
                 )
             )
-            this.context.instanceEditor.instances.add(instance)
+            InstanceEditor.singleton.instances.add(instance)
         }
 
         return true

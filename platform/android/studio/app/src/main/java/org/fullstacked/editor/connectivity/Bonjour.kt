@@ -1,5 +1,6 @@
 package org.fullstacked.editor.connectivity
 
+import org.fullstacked.editor.InstanceEditor
 import org.fullstacked.editor.MainActivity
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,7 +20,7 @@ data class PeerNearby(
     val port: Int,
 )
 
-class Bonjour(private val context: MainActivity) : ServiceListener {
+class Bonjour() : ServiceListener {
     private var jmdns: JmDNS? = null
     private val peersNearby = mutableListOf<PeerNearby>()
 
@@ -99,6 +100,6 @@ class Bonjour(private val context: MainActivity) : ServiceListener {
         val json = JSONObject()
         json.put("eventType", eventType)
         json.put("peerNearby", this.serializePeerNearby(peerNearby))
-        this.context.instanceEditor.push("peerNearby", json.toString())
+        InstanceEditor.singleton.push("peerNearby", json.toString())
     }
 }

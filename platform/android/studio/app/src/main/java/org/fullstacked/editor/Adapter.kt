@@ -15,7 +15,6 @@ import java.nio.file.attribute.BasicFileAttributes
 
 
 open class Adapter(
-    val context: MainActivity,
     val projectId: String,
     baseDirectory: String
 ) {
@@ -56,7 +55,7 @@ open class Adapter(
         val peerMessage = JSONObject()
         peerMessage.put("projectId", this.projectId)
         peerMessage.put("data", json.getString(0))
-        this.context.instanceEditor.push("sendData", peerMessage.toString())
+        InstanceEditor.singleton.push("sendData", peerMessage.toString())
 
         return true
     }

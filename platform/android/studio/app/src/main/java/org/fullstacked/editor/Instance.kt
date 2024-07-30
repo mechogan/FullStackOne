@@ -3,6 +3,7 @@ package org.fullstacked.editor
 import android.annotation.SuppressLint
 import android.app.ActionBar.LayoutParams
 import android.graphics.Color
+import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
@@ -19,72 +20,89 @@ import org.json.JSONObject
 import java.io.InputStream
 import java.net.URLDecoder
 
+
+var id = 0
+
 @SuppressLint("SetJavaScriptEnabled")
 fun createWebView(
     ctx: MainActivity,
     adapter: Adapter,
 ) : WebView {
+    WebView.setWebContentsDebuggingEnabled(true)
     val webView = WebView(ctx)
+
+    webView.id = id
+    id++
+
     webView.setBackgroundColor(Color.TRANSPARENT)
+
     val webViewClient = WebViewClientCustom(adapter)
     webView.webViewClient = webViewClient
     webView.settings.javaScriptEnabled = true
     webView.loadUrl("http://localhost")
     webView.addJavascriptInterface(webViewClient, "Android")
+
     return webView
 }
 
 data class Project(val location: String, val id: String, val title: String)
 
-open class Instance(val project: Project, val context: MainActivity, val init: Boolean = true) {
+open class Instance(val project: Project, val init: Boolean = true) {
     lateinit var adapter: Adapter
-    lateinit var webView: WebView
+    var webViewId: Int = -1
+    var webViewState: Bundle? = null
 
     init {
         if(init) {
             this.adapter = Adapter(
-                context = this.context,
                 projectId = this.project.id,
-                baseDirectory = this.context.filesDir.toString() + "/" + this.project.location
+                baseDirectory = InstanceEditor.singleton.context.filesDir.toString() + "/" + this.project.location
             )
 
-            this.webView = createWebView(
-                ctx = this.context,
-                adapter = this.adapter
-            )
-            val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-            val layout = LinearLayout(this.context)
-            layout.setBackgroundColor(Color.BLACK)
-            layout.orientation = LinearLayout.VERTICAL
-
-            val topBarHeight = 40
-            val topBar = LinearLayout(this.context)
-            topBar.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, topBarHeight)
-
-            val closeBtn = Button(this.context)
-            closeBtn.setBackgroundColor(Color.TRANSPARENT)
-            closeBtn.minWidth = 0
-            closeBtn.minHeight = 0
-            closeBtn.maxHeight = topBarHeight
-            val icon = ContextCompat.getDrawable(this.context, android.R.drawable.ic_menu_close_clear_cancel)
-            icon?.setTint(this.context.getColor(R.color.blue))
-            closeBtn.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
-            closeBtn.setOnClickListener {
-                (layout.parent as ViewGroup).removeView(layout)
-                this.context.instanceEditor.instances.remove(this)
-            }
-
-            topBar.addView(closeBtn)
-            layout.addView(topBar)
-
-            layout.addView(this.webView, params)
-            this.context.addContentView(layout, params)
+            this.render()
         }
     }
 
+    open fun render(){
+        val webView = createWebView(
+            ctx = InstanceEditor.singleton.context,
+            adapter = this.adapter
+        )
+        val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        val layout = LinearLayout(InstanceEditor.singleton.context)
+        layout.setBackgroundColor(Color.BLACK)
+        layout.orientation = LinearLayout.VERTICAL
+
+        val topBarHeight = 40
+        val topBar = LinearLayout(InstanceEditor.singleton.context)
+        topBar.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, topBarHeight)
+
+        val closeBtn = Button(InstanceEditor.singleton.context)
+        closeBtn.setBackgroundColor(Color.TRANSPARENT)
+        closeBtn.minWidth = 0
+        closeBtn.minHeight = 0
+        closeBtn.maxHeight = topBarHeight
+        val icon = ContextCompat.getDrawable(InstanceEditor.singleton.context, android.R.drawable.ic_menu_close_clear_cancel)
+        icon?.setTint(InstanceEditor.singleton.context.getColor(R.color.blue))
+        closeBtn.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
+        closeBtn.setOnClickListener {
+            (layout.parent as ViewGroup).removeView(layout)
+            InstanceEditor.singleton.instances.remove(this)
+        }
+
+        topBar.addView(closeBtn)
+        layout.addView(topBar)
+
+        layout.addView(webView, params)
+        InstanceEditor.singleton.context.addContentView(layout, params)
+
+        this.webViewId = webView.id
+    }
+
     fun push(messageType: String, message: String){
-        this.context.runOnUiThread {
-            this.webView.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
+        InstanceEditor.singleton.context.runOnUiThread {
+            val webView = InstanceEditor.singleton.context.findViewById<WebView>(this.webViewId)
+            webView.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
         }
     }
 }
