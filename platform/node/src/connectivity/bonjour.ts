@@ -65,8 +65,6 @@ export class Bonjour implements Advertiser, Browser {
         this.browser?.stop();
 
         this.browser = this.bonjour.find({ type: "fullstacked" }, (service) => {
-            if (service.port === this.wsServer.port) return;
-
             const peerNearby: PeerNearbyBonjour = {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
                 peer: {

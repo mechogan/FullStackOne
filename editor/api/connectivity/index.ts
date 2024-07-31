@@ -151,7 +151,7 @@ const connectivityAPI = {
             ]
                 .flat()
                 .filter(({ peer: { id } }) => {
-                    if (seenPeerID.has(id)) return false;
+                    if (id === me.id || seenPeerID.has(id)) return false;
                     seenPeerID.add(id);
                     return true;
                 });
