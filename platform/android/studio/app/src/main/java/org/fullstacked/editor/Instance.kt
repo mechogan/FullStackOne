@@ -13,7 +13,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
-import androidx.activity.ComponentActivity
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,6 +26,7 @@ var id = 0
 fun createWebView(
     ctx: MainActivity,
     adapter: Adapter,
+    isEditor: Boolean = false
 ) : WebView {
     WebView.setWebContentsDebuggingEnabled(true)
     val webView = WebView(ctx)
@@ -34,7 +34,8 @@ fun createWebView(
     webView.id = id
     id++
 
-    webView.setBackgroundColor(Color.TRANSPARENT)
+    val bgColor = if(isEditor) Color.TRANSPARENT else Color.WHITE
+    webView.setBackgroundColor(bgColor)
 
     val webViewClient = WebViewClientCustom(adapter)
     webView.webViewClient = webViewClient
@@ -68,41 +69,27 @@ open class Instance(val project: Project, val init: Boolean = true) {
             ctx = InstanceEditor.singleton.context,
             adapter = this.adapter
         )
+
         val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        val layout = LinearLayout(InstanceEditor.singleton.context)
-        layout.setBackgroundColor(Color.BLACK)
-        layout.orientation = LinearLayout.VERTICAL
-
-        val topBarHeight = 40
-        val topBar = LinearLayout(InstanceEditor.singleton.context)
-        topBar.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, topBarHeight)
-
-        val closeBtn = Button(InstanceEditor.singleton.context)
-        closeBtn.setBackgroundColor(Color.TRANSPARENT)
-        closeBtn.minWidth = 0
-        closeBtn.minHeight = 0
-        closeBtn.maxHeight = topBarHeight
-        val icon = ContextCompat.getDrawable(InstanceEditor.singleton.context, android.R.drawable.ic_menu_close_clear_cancel)
-        icon?.setTint(InstanceEditor.singleton.context.getColor(R.color.blue))
-        closeBtn.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
-        closeBtn.setOnClickListener {
-            (layout.parent as ViewGroup).removeView(layout)
-            InstanceEditor.singleton.instances.remove(this)
-        }
-
-        topBar.addView(closeBtn)
-        layout.addView(topBar)
-
-        layout.addView(webView, params)
-        InstanceEditor.singleton.context.addContentView(layout, params)
+        InstanceEditor.singleton.context.addContentView(webView, params)
 
         this.webViewId = webView.id
     }
 
+    fun getWebview(): WebView? {
+        return InstanceEditor.singleton.context.findViewById(this.webViewId)
+
+    }
+
+    fun back(callback: (didGoBack: Boolean) -> Unit) {
+        this.getWebview()?.evaluateJavascript("window.back?.()") { result ->
+            callback(result == "true")
+        }
+    }
+
     fun push(messageType: String, message: String){
         InstanceEditor.singleton.context.runOnUiThread {
-            val webView = InstanceEditor.singleton.context.findViewById<WebView>(this.webViewId)
-            webView.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
+            this.getWebview()?.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
         }
     }
 }

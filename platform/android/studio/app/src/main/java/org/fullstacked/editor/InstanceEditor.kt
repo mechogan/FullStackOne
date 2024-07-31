@@ -41,7 +41,8 @@ class InstanceEditor(var context: MainActivity) : Instance(
     override fun render() {
         val webView = createWebView(
             ctx = this.context,
-            adapter = this.adapter
+            adapter = this.adapter,
+            isEditor = true
         )
 
         if(this.webViewState != null) {
@@ -50,7 +51,6 @@ class InstanceEditor(var context: MainActivity) : Instance(
 
         this.webViewId = webView.id
 
-        println("ICICICICI ${this.context.isDestroyed}")
         this.context.setContentView(webView)
     }
 }
