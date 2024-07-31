@@ -1,7 +1,6 @@
 package org.fullstacked.editor.connectivity
 
 import org.fullstacked.editor.InstanceEditor
-import org.fullstacked.editor.MainActivity
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.InetAddress

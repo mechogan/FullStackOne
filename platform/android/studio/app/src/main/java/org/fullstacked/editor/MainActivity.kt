@@ -3,7 +3,6 @@ package org.fullstacked.editor
 import android.os.Bundle
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
 
 class MainActivity : ComponentActivity() {

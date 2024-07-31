@@ -1,7 +1,7 @@
 package org.fullstacked.editor
 
-import android.os.Bundle
 import org.fullstacked.editor.connectivity.Bonjour
+import org.fullstacked.editor.connectivity.WiFiDirect
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -60,6 +60,7 @@ class AdapterEditor(
     private val baseDirectory: String,
 ): Adapter(projectId, baseDirectory) {
     private val bonjour = Bonjour()
+    private val wiFiDirect = WiFiDirect()
 
     companion object {
         init {
@@ -152,6 +153,7 @@ class AdapterEditor(
                 when (methodPath.elementAt(1)) {
                     "start" -> {
                         this.bonjour.startBrowsing()
+                        this.wiFiDirect.startBrowsing()
                         return true
                     }
                     "peerNearbyIsDead" -> {
@@ -161,6 +163,7 @@ class AdapterEditor(
                     }
                     "stop" -> {
                         this.bonjour.stopBrowsing()
+                        this.wiFiDirect.stopBrowsing()
                         return true
                     }
                 }
