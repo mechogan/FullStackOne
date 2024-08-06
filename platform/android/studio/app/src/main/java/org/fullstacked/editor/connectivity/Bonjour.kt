@@ -6,6 +6,7 @@ import android.net.LinkAddress
 import android.net.LinkProperties
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import okhttp3.WebSocket
 import org.fullstacked.editor.InstanceEditor
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,9 +26,9 @@ data class PeerNearby (
     val port: Int,
 )
 
-class Bonjour : ServiceListener {
+class Bonjour(private val webSocketServer: WSS) : ServiceListener {
     companion object {
-        const val serviceType = "_fullstacked._tcp.local."
+        const val serviceType = "_fullstacked._tcp"
 
         fun serializePeerNearby(peerNearby: PeerNearby, type: Int = 1) : JSONObject {
             val peerJson = JSONObject()
@@ -74,11 +75,11 @@ class Bonjour : ServiceListener {
             val hostname = InetAddress.getByName(addr.hostName).toString()
             this.jmdns = JmDNS.create(addr, hostname)
         }
-        this.jmdns?.addServiceListener(serviceType, this)
-        this.jmdns?.list(serviceType)
+        this.jmdns?.addServiceListener("$serviceType.local.", this)
+        this.jmdns?.list("$serviceType.local.")
     }
     fun stopBrowsing(){
-        this.jmdns?.removeServiceListener(serviceType, this)
+        this.jmdns?.removeServiceListener("$serviceType.local.", this)
     }
     fun peerNearbyIsDead(peerId: String){
         val peerNearby = this.peersNearby.find { peerNearby -> peerNearby.peer.id == peerId }
@@ -130,8 +131,8 @@ class Bonjour : ServiceListener {
 
         val serviceInfo = NsdServiceInfo().apply {
             serviceName = me.id
-            serviceType = "_fullstacked._tcp"
-            port = 14000
+            serviceType = Bonjour.serviceType
+            port = webSocketServer.port
 
             var ipv4 = ""
             val ipAddresses = getIpAddress()
@@ -143,7 +144,7 @@ class Bonjour : ServiceListener {
 
             println("REGISTRATION $ipv4")
             setAttribute("_d", me.name)
-            setAttribute("port", "14000")
+            setAttribute("port", webSocketServer.port.toString())
             setAttribute("addresses", ipv4)
         }
 

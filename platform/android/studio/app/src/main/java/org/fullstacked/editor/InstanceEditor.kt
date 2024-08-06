@@ -61,8 +61,8 @@ class AdapterEditor(
     projectId: String,
     private val baseDirectory: String,
 ): Adapter(projectId, baseDirectory) {
-    private val bonjour = Bonjour()
     private val webSocketServer = WSS()
+    private val bonjour = Bonjour(webSocketServer)
 
     companion object {
         init {
@@ -219,9 +219,13 @@ class AdapterEditor(
 
                 return true
             }
-            "disconnect" -> return true
+            "disconnect" -> {
+                val json = JSONArray(body)
+                this.webSocketServer.disconnect(json.getString(0))
+                return true
+            }
             "trustConnection" -> {
-                val json = JSONArray(body);
+                val json = JSONArray(body)
                 this.webSocketServer.trustConnection(json.getString(0))
                 return true
             }

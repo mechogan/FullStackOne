@@ -9,14 +9,17 @@ import io.ktor.server.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.websocket.*
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.runBlocking
 
 data class WsConnection(
     val id: String,
     var trusted: Boolean,
-    val ws: suspend (String) -> Unit
+    val send: suspend (String) -> Unit,
+    val close: suspend () -> Unit
 )
 
 class WSS {
@@ -38,7 +41,8 @@ class WSS {
                         connections.add(WsConnection(
                             id = id,
                             trusted = false,
-                            ws = { data -> outgoing.send(Frame.Text(data)) }
+                            send = { data -> outgoing.send(Frame.Text(data)) },
+                            close = { close(CloseReason(CloseReason.Codes.NORMAL, "disconnected")) }
                         ))
 
                         val peerConnectionJSON = JSONObject()
@@ -59,9 +63,9 @@ class WSS {
                             InstanceEditor.singleton.push("peerData", peerMessageJSON.toString())
                         }
 
-                        disconnect(id)
+                        removeConnection(id)
                     } finally {
-                        disconnect(id)
+                        removeConnection(id)
                     }
                 }
             }
@@ -78,11 +82,20 @@ class WSS {
         val peerConnection = this.connections.find { wsConnection -> wsConnection.id == id }
         if(peerConnection == null || (!peerConnection.trusted && !pairing)) return
         runBlocking {
-            peerConnection.ws(data)
+            peerConnection.send(data)
         }
     }
 
     fun disconnect(id: String) {
+        val peerConnection = this.connections.find { wsConnection -> wsConnection.id == id}
+        if(peerConnection == null) return
+
+        runBlocking {
+            peerConnection.close()
+        }
+    }
+
+    private fun removeConnection(id: String) {
         val peerConnection = this.connections.find { wsConnection -> wsConnection.id == id}
         if(peerConnection == null) return
 
