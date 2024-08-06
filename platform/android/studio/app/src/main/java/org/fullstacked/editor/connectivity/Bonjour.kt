@@ -1,5 +1,11 @@
 package org.fullstacked.editor.connectivity
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.LinkAddress
+import android.net.LinkProperties
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
 import org.fullstacked.editor.InstanceEditor
 import org.json.JSONArray
 import org.json.JSONObject
@@ -13,69 +19,83 @@ data class Peer(
     val name: String,
 )
 
-data class PeerNearby(
+data class PeerNearby (
     val peer: Peer,
     val addresses: List<String>,
     val port: Int,
 )
 
-class Bonjour() : ServiceListener {
+class Bonjour : ServiceListener {
+    companion object {
+        const val serviceType = "_fullstacked._tcp.local."
+
+        fun serializePeerNearby(peerNearby: PeerNearby, type: Int = 1) : JSONObject {
+            val peerJson = JSONObject()
+            peerJson.put("id", peerNearby.peer.id)
+            peerJson.put("name", peerNearby.peer.name)
+
+            val peerNearbyJson = JSONObject()
+            peerNearbyJson.put("type", type)
+            peerNearbyJson.put("peer", peerJson)
+            peerNearbyJson.put("port", peerNearby.port)
+            peerNearbyJson.put("addresses", JSONArray(peerNearby.addresses))
+
+            return peerNearbyJson
+        }
+
+        fun onPeerNearby(eventType: String, peerNearby: PeerNearby) {
+            val json = JSONObject()
+            json.put("eventType", eventType)
+            json.put("peerNearby", serializePeerNearby(peerNearby))
+            InstanceEditor.singleton.push("peerNearby", json.toString())
+        }
+
+        fun getIpAddress(): List<LinkAddress> {
+            val connectivityManager = InstanceEditor.singleton.context.getSystemService(Context.CONNECTIVITY_SERVICE)
+            if (connectivityManager is ConnectivityManager) {
+                val link =  connectivityManager.getLinkProperties(connectivityManager.activeNetwork) as LinkProperties
+                return link.linkAddresses
+            }
+
+            return listOf()
+        }
+    }
     private var jmdns: JmDNS? = null
     private val peersNearby = mutableListOf<PeerNearby>()
 
-    private fun serializePeerNearby(peerNearby: PeerNearby) : JSONObject {
-        val peerJson = JSONObject()
-        peerJson.put("id", peerNearby.peer.id)
-        peerJson.put("name", peerNearby.peer.name)
 
-        val peerNearbyJson = JSONObject()
-        peerNearbyJson.put("type", 1)
-        peerNearbyJson.put("peer", peerJson)
-        peerNearbyJson.put("port", peerNearby.port)
-        peerNearbyJson.put("addresses", JSONArray(peerNearby.addresses))
-
-        return peerNearbyJson
+    fun getPeersNearby(): List<PeerNearby> {
+        return this.peersNearby
     }
-
-    fun getPeersNearby(): JSONArray {
-        val json = JSONArray()
-
-        this.peersNearby.forEach { peerNearby ->
-            json.put(this.serializePeerNearby(peerNearby))
-        }
-
-        return json
-    }
-
     fun startBrowsing(){
         if(this.jmdns == null) {
             this.jmdns = JmDNS.create(InetAddress.getLocalHost())
         }
-        this.jmdns?.addServiceListener("_fullstacked._tcp.local.", this)
-        this.jmdns?.list("_fullstacked._tcp.local.")
+        this.jmdns?.addServiceListener(serviceType, this)
+        this.jmdns?.list(serviceType)
     }
     fun stopBrowsing(){
-        this.jmdns?.removeServiceListener("_fullstacked._tcp.local.", this)
+        this.jmdns?.removeServiceListener(serviceType, this)
     }
     fun peerNearbyIsDead(peerId: String){
         val peerNearby = this.peersNearby.find { peerNearby -> peerNearby.peer.id == peerId }
         if(peerNearby == null) return
         this.peersNearby.remove(peerNearby)
-        this.onPeerNearby("lost", peerNearby)
+        onPeerNearby("lost", peerNearby)
     }
 
     override fun serviceAdded(event: ServiceEvent) {
-//        println("Service added: " + event.info)
+        println("Service added: " + event.info)
     }
 
     override fun serviceRemoved(event: ServiceEvent) {
-//        println("Service removed: " + event.info)
+        println("Service removed: " + event.info)
         val peerId = event.name.split(".").first()
         this.peerNearbyIsDead(peerId)
     }
 
     override fun serviceResolved(event: ServiceEvent) {
-//        println("Service resolved: " + event.info)
+        println("Service resolved: " + event.info)
 
         val peerId = event.name.split(".").first()
 
@@ -92,13 +112,62 @@ class Bonjour() : ServiceListener {
         )
 
         this.peersNearby.add(peerNearby)
-        this.onPeerNearby("new", peerNearby)
+        onPeerNearby("new", peerNearby)
     }
 
-    private fun onPeerNearby(eventType: String, peerNearby: PeerNearby) {
-        val json = JSONObject()
-        json.put("eventType", eventType)
-        json.put("peerNearby", this.serializePeerNearby(peerNearby))
-        InstanceEditor.singleton.push("peerNearby", json.toString())
+    private var serviceListener : NsdManager.RegistrationListener? = null
+
+    fun startAdvertising(me: Peer){
+        if(this.serviceListener != null) {
+            this.stopAdvertising()
+        }
+
+        val serviceInfo = NsdServiceInfo().apply {
+            serviceName = me.id
+            serviceType = "_fullstacked._tcp"
+            port = 14000
+
+            var ipv4 = ""
+            val ipAddresses = getIpAddress()
+            for (address in ipAddresses){
+                if(address.toString().contains("::")) continue
+                ipv4 = address.toString().split("/").first()
+                break;
+            }
+
+            println("REGISTRATION $ipv4")
+            setAttribute("_d", me.name)
+            setAttribute("port", "14000")
+            setAttribute("addresses", ipv4)
+        }
+
+        this.serviceListener = object : NsdManager.RegistrationListener {
+            override fun onRegistrationFailed(p0: NsdServiceInfo?, p1: Int) {
+                println("REGISTRATION FAILED")
+            }
+
+            override fun onUnregistrationFailed(p0: NsdServiceInfo?, p1: Int) {
+                println("REGISTRATION unregister FAILED")
+            }
+
+            override fun onServiceRegistered(p0: NsdServiceInfo?) {
+                println("REGISTRATION SUCCESS")
+            }
+
+            override fun onServiceUnregistered(p0: NsdServiceInfo?) {
+                println("REGISTRATION done")
+            }
+        }
+
+        (InstanceEditor.singleton.context.getSystemService(Context.NSD_SERVICE) as NsdManager).apply {
+            registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, serviceListener)
+        }
+    }
+
+    fun stopAdvertising(){
+        (InstanceEditor.singleton.context.getSystemService(Context.NSD_SERVICE) as NsdManager).apply {
+            unregisterService(serviceListener)
+        }
+        this.serviceListener = null
     }
 }

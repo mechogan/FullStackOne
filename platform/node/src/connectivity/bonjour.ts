@@ -18,7 +18,7 @@ import { getNetworkInterfacesInfo } from "./utils";
 export class Bonjour implements Advertiser, Browser {
     onPeerNearby: (eventType: "new" | "lost", peerNearby: PeerNearby) => void;
 
-    peersNearby: Map<string, PeerNearby> = new Map();
+    peersNearby: Map<string, PeerNearbyBonjour> = new Map();
     bonjour = new BonjourService();
 
     advertiser: Service;

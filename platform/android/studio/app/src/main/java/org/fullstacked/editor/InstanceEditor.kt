@@ -1,7 +1,9 @@
 package org.fullstacked.editor
 
 import org.fullstacked.editor.connectivity.Bonjour
-import org.fullstacked.editor.connectivity.WiFiDirect
+import org.fullstacked.editor.connectivity.Peer
+import org.fullstacked.editor.connectivity.PeerNearby
+import org.fullstacked.editor.connectivity.WSS
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -60,7 +62,7 @@ class AdapterEditor(
     private val baseDirectory: String,
 ): Adapter(projectId, baseDirectory) {
     private val bonjour = Bonjour()
-    private val wiFiDirect = WiFiDirect()
+    private val webSocketServer = WSS()
 
     companion object {
         init {
@@ -137,23 +139,59 @@ class AdapterEditor(
     private fun connectivitySwitch(methodPath: List<String>, body: String?) : Any? {
         when (methodPath.first()) {
             "name" -> return android.os.Build.MODEL
-            "infos" -> return false
+            "infos" -> {
+                val infos = JSONObject()
+                infos.put("port", this.webSocketServer.port)
+
+                val addresses = Bonjour.getIpAddress()
+                val infoAddresses = JSONArray()
+                for (address in addresses)
+                    infoAddresses.put(address)
+
+                val networkInterface = JSONObject()
+                networkInterface.put("name", "Active Network")
+                networkInterface.put("addresses", infoAddresses)
+
+                val networkInterfaces = JSONArray()
+                networkInterfaces.put(networkInterface)
+
+                infos.put("networkInterfaces", networkInterfaces)
+
+                return infos
+            }
             "peers" -> {
                 when (methodPath.elementAt(1)) {
-                    "nearby" -> return this.bonjour.getPeersNearby()
+                    "nearby" -> {
+                        val json = JSONArray()
+
+                        this.bonjour.getPeersNearby().forEach { peerNearby ->
+                            json.put(Bonjour.serializePeerNearby(peerNearby)) }
+
+                        return json
+                    }
                 }
             }
             "advertise" -> {
                 when (methodPath.elementAt(1)) {
-                    "start" -> return true
-                    "stop" -> return true
+                    "start" -> {
+                        val json = JSONArray(body)
+                        val peerJSON = json.getJSONObject(0)
+                        this.bonjour.startAdvertising(Peer(
+                            id = peerJSON.getString("id"),
+                            name = peerJSON.getString("name")
+                        ))
+                        return true
+                    }
+                    "stop" -> {
+                        this.bonjour.stopAdvertising()
+                        return true
+                    }
                 }
             }
             "browse" -> {
                 when (methodPath.elementAt(1)) {
                     "start" -> {
                         this.bonjour.startBrowsing()
-                        this.wiFiDirect.startBrowsing()
                         return true
                     }
                     "peerNearbyIsDead" -> {
@@ -163,15 +201,35 @@ class AdapterEditor(
                     }
                     "stop" -> {
                         this.bonjour.stopBrowsing()
-                        this.wiFiDirect.stopBrowsing()
                         return true
                     }
                 }
             }
-            "open" -> return true
+            "open" -> {
+                val peerNearbyJSON = JSONArray(body).getJSONObject(0)
+                val peerJSON = peerNearbyJSON.getJSONObject("peer")
+                val peerNearby = PeerNearby(
+                    peer = Peer(
+                        id = peerJSON.getString("id"),
+                        name = peerJSON.getString("name")
+                    ),
+                    addresses = listOf(peerNearbyJSON.getJSONArray("addresses").getString(0)),
+                    port = peerNearbyJSON.getString("port").toInt()
+                )
+
+                return true
+            }
             "disconnect" -> return true
-            "trustConnection" -> return true
-            "send" -> return true
+            "trustConnection" -> {
+                val json = JSONArray(body);
+                this.webSocketServer.trustConnection(json.getString(0))
+                return true
+            }
+            "send" -> {
+                val json = JSONArray(body);
+                this.webSocketServer.send(json.getString(0), json.getString(1), json.getBoolean(2))
+                return true
+            }
             "convey" -> {
                 var projectId = ""
                 var data = ""

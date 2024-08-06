@@ -297,7 +297,7 @@ class Peers {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
                 addresses: [address],
                 port: parseInt(port)
-            });
+            }, false);
 
             dialog.remove();
             stackNavigation.lock = false;

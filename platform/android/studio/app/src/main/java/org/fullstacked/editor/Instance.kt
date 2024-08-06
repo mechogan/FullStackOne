@@ -89,7 +89,7 @@ open class Instance(val project: Project, val init: Boolean = true) {
 
     fun push(messageType: String, message: String){
         InstanceEditor.singleton.context.runOnUiThread {
-            this.getWebview()?.evaluateJavascript("window.push(\"$messageType\", `${message}`)", null)
+            this.getWebview()?.evaluateJavascript("window.push(\"$messageType\", `${message.replace("\\", "\\\\")}`)", null)
         }
     }
 }
