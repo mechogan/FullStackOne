@@ -67,9 +67,12 @@ class Bonjour : ServiceListener {
     fun getPeersNearby(): List<PeerNearby> {
         return this.peersNearby
     }
+
     fun startBrowsing(){
         if(this.jmdns == null) {
-            this.jmdns = JmDNS.create(InetAddress.getLocalHost())
+            val addr = InetAddress.getLocalHost()
+            val hostname = InetAddress.getByName(addr.hostName).toString()
+            this.jmdns = JmDNS.create(addr, hostname)
         }
         this.jmdns?.addServiceListener(serviceType, this)
         this.jmdns?.list(serviceType)
@@ -86,6 +89,9 @@ class Bonjour : ServiceListener {
 
     override fun serviceAdded(event: ServiceEvent) {
         println("Service added: " + event.info)
+
+        val info = this.jmdns?.getServiceInfo(event.type, event.name)
+        println("Service added info: $info")
     }
 
     override fun serviceRemoved(event: ServiceEvent) {
@@ -165,6 +171,8 @@ class Bonjour : ServiceListener {
     }
 
     fun stopAdvertising(){
+        if(this.serviceListener == null) return
+
         (InstanceEditor.singleton.context.getSystemService(Context.NSD_SERVICE) as NsdManager).apply {
             unregisterService(serviceListener)
         }

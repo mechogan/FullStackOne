@@ -81,7 +81,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("org.jmdns:jmdns:3.5.9")
+    implementation("javax.jmdns:jmdns:3.2.2")
     implementation("io.ktor:ktor-server-core:2.3.12")
     implementation("io.ktor:ktor-server-netty:2.3.12")
     implementation("io.ktor:ktor-server-websockets:2.3.12")
