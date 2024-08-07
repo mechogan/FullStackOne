@@ -6,7 +6,6 @@ import android.net.LinkAddress
 import android.net.LinkProperties
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
-import okhttp3.WebSocket
 import org.fullstacked.editor.InstanceEditor
 import org.json.JSONArray
 import org.json.JSONObject
@@ -174,9 +173,12 @@ class Bonjour(private val webSocketServer: WSS) : ServiceListener {
     fun stopAdvertising(){
         if(this.serviceListener == null) return
 
-        (InstanceEditor.singleton.context.getSystemService(Context.NSD_SERVICE) as NsdManager).apply {
-            unregisterService(serviceListener)
-        }
+        try {
+            (InstanceEditor.singleton.context.getSystemService(Context.NSD_SERVICE) as NsdManager).apply {
+                unregisterService(serviceListener)
+            }
+        }catch (_: Exception) { }
+
         this.serviceListener = null
     }
 }

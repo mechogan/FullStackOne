@@ -1,13 +1,18 @@
 package org.fullstacked.editor
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import java.lang.Thread.sleep
+import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         if(!InstanceEditor.initialized()) {
             InstanceEditor(this)
         } else {
@@ -34,5 +39,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }.isEnabled = true
+
+        val data: Uri? = intent?.data
+        if(data != null && data.toString().isNotEmpty()) {
+            println("LAUNCH URL [$data]")
+            var webViewClient: WebViewClientCustom? = InstanceEditor.singleton.getWebview()?.webViewClient as WebViewClientCustom
+            thread {
+                while(webViewClient?.ready != true) {
+                    sleep(1000)
+                    InstanceEditor.singleton.context.runOnUiThread {
+                        webViewClient =
+                            InstanceEditor.singleton.getWebview()?.webViewClient as WebViewClientCustom
+                    }
+                }
+                InstanceEditor.singleton.push("launchURL", data.toString())
+            }
+        }
     }
 }

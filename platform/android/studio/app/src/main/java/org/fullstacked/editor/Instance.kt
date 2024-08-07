@@ -2,6 +2,7 @@ package org.fullstacked.editor
 
 import android.annotation.SuppressLint
 import android.app.ActionBar.LayoutParams
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
 import android.view.ViewGroup
@@ -97,11 +98,22 @@ open class Instance(val project: Project, val init: Boolean = true) {
 class WebViewClientCustom(
     private val adapter: Adapter
 ) : WebViewClient() {
+    var ready = false
     private val reqBody = HashMap<Int, String>()
 
     @JavascriptInterface
     fun passRequestBody(reqId: Int, body: String){
         this.reqBody[reqId] = body
+    }
+
+    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        super.onPageStarted(view, url, favicon)
+        this.ready = false
+    }
+
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        this.ready = true
     }
 
     override fun shouldInterceptRequest(
