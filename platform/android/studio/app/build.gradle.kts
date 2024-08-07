@@ -18,11 +18,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        externalNativeBuild {
-            cmake {
-                cppFlags += ""
-            }
-        }
         ndk {
             //noinspection ChromeOsAbiSupport
             abiFilters += listOf("armeabi-v7a","arm64-v8a")
