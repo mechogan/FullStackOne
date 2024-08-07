@@ -38,4 +38,4 @@ Available on
 -   Windows
 -   Linux
 -   Docker
--   Android `Soon`
+-   Android
