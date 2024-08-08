@@ -2,18 +2,25 @@ package org.fullstacked.editor
 
 import android.annotation.SuppressLint
 import android.app.ActionBar.LayoutParams
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -38,8 +45,32 @@ fun createWebView(
     val bgColor = if(isEditor) Color.TRANSPARENT else Color.WHITE
     webView.setBackgroundColor(bgColor)
 
+
+    var fileChooserValueCallback: ValueCallback<Array<Uri>>? = null
+
+    fun createFileChooserResultLauncher(): ActivityResultLauncher<Intent> {
+        return InstanceEditor.singleton.context.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == Activity.RESULT_OK) {
+                fileChooserValueCallback?.onReceiveValue(arrayOf(Uri.parse(it?.data?.dataString)));
+            } else {
+                fileChooserValueCallback?.onReceiveValue(null)
+            }
+        }
+    }
+
+    val fileChooserResultLauncher = createFileChooserResultLauncher()
+
     val webViewClient = WebViewClientCustom(adapter)
     webView.webViewClient = webViewClient
+    webView.webChromeClient = object : WebChromeClient() {
+        override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
+            try {
+                fileChooserValueCallback = filePathCallback;
+                fileChooserResultLauncher.launch(fileChooserParams?.createIntent())
+            } catch (_: Exception) { }
+            return true
+        }
+    }
     webView.settings.javaScriptEnabled = true
     webView.loadUrl("http://localhost")
     webView.addJavascriptInterface(webViewClient, "Android")
