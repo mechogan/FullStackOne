@@ -10,7 +10,7 @@ export function bindPassRequestBody(passRequestBody: (id: number, body: string) 
             if(maybePromise instanceof Promise) {
                 await maybePromise;
             }
-        } 
+        }
         return originalFetch(...args)
     };
 }

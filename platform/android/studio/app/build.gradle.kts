@@ -19,8 +19,7 @@ android {
             useSupportLibrary = true
         }
         ndk {
-            //noinspection ChromeOsAbiSupport
-            abiFilters += listOf("armeabi-v7a","arm64-v8a")
+            abiFilters += listOf("armeabi-v7a","arm64-v8a", "x86_64")
         }
     }
 
@@ -65,7 +64,7 @@ android {
         }
     }
 }
-
+//noinspection UseTomlInstead
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

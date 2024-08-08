@@ -53,7 +53,7 @@ export class tsWorker {
             if (message.data.ready) {
                 rpc().platform()
                     .then(platform => {
-                        this.worker.postMessage({platform});
+                        this.worker.postMessage({ platform });
                         this.isReady = true;
                         this.readyAwaiter.forEach((resolve) => resolve());
                     });

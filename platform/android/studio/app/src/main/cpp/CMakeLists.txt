@@ -13,7 +13,11 @@ cmake_minimum_required(VERSION 3.22.1)
 project("editor")
 
 if(${ANDROID_ABI} MATCHES "arm64-v8a")
-    add_compile_definitions(ANDROID_ABI_64)
+    add_compile_definitions(ANDROID_ABI_arm64)
+endif ()
+
+if(${ANDROID_ABI} MATCHES "x86_64")
+    add_compile_definitions(ANDROID_ABI_x64)
 endif ()
 
 add_library(esbuild SHARED IMPORTED)

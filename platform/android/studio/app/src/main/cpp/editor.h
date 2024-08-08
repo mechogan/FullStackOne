@@ -2,8 +2,10 @@
 // Created by Charles-Philippe Lepage on 2024-07-25.
 //
 #include <jni.h>
-#ifdef ANDROID_ABI_64
+#ifdef ANDROID_ABI_arm64
 #include "esbuild/arm64-v8a/esbuild.h"
+#elif ANDROID_ABI_x64
+#include "esbuild/x86_64/esbuild.h"
 #else
 #include "esbuild/armeabi-v7a/esbuild.h"
 #endif

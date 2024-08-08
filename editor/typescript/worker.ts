@@ -35,12 +35,14 @@ function removeSourceObjects(obj: any) {
     return obj;
 }
 
+const passingBodyToMainThread = new Map<number, () => void>();
+
 self.onmessage = (message: MessageEvent) => {
-    const passingBodyToMainThread = new Map<number, () => void>();
 
     if(message.data.request_id) {
         const resolve = passingBodyToMainThread.get(message.data.request_id);
         resolve?.();
+        passingBodyToMainThread.delete(message.data.request_id)
         return;
     }
 
