@@ -34,8 +34,8 @@ Use some of the most popular tools to rapidly build.
 Available on
 
 -   iOS/iPadOS
+-   Android
 -   MacOS
 -   Windows
 -   Linux
 -   Docker
--   Android
