@@ -44,29 +44,13 @@ fun createWebView(
 
     val bgColor = if(isEditor) Color.TRANSPARENT else Color.WHITE
     webView.setBackgroundColor(bgColor)
-
-
-    var fileChooserValueCallback: ValueCallback<Array<Uri>>? = null
-
-    fun createFileChooserResultLauncher(): ActivityResultLauncher<Intent> {
-        return InstanceEditor.singleton.context.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == Activity.RESULT_OK) {
-                fileChooserValueCallback?.onReceiveValue(arrayOf(Uri.parse(it?.data?.dataString)));
-            } else {
-                fileChooserValueCallback?.onReceiveValue(null)
-            }
-        }
-    }
-
-    val fileChooserResultLauncher = createFileChooserResultLauncher()
-
     val webViewClient = WebViewClientCustom(adapter)
     webView.webViewClient = webViewClient
     webView.webChromeClient = object : WebChromeClient() {
         override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
             try {
-                fileChooserValueCallback = filePathCallback;
-                fileChooserResultLauncher.launch(fileChooserParams?.createIntent())
+                InstanceEditor.singleton.context.fileChooserValueCallback = filePathCallback;
+                InstanceEditor.singleton.context.fileChooserResultLauncher.launch(fileChooserParams?.createIntent())
             } catch (_: Exception) { }
             return true
         }

@@ -38,28 +38,25 @@ function removeSourceObjects(obj: any) {
 const passingBodyToMainThread = new Map<number, () => void>();
 
 self.onmessage = (message: MessageEvent) => {
-
-    if(message.data.request_id) {
+    if (message.data.request_id) {
         const resolve = passingBodyToMainThread.get(message.data.request_id);
         resolve?.();
-        passingBodyToMainThread.delete(message.data.request_id)
+        passingBodyToMainThread.delete(message.data.request_id);
         return;
     }
 
-    if(message.data.platform) {
-
-        if(message.data.platform === "android") {
+    if (message.data.platform) {
+        if (message.data.platform === "android") {
             bindPassRequestBody((id, body) => {
-                return new Promise<void>(resolve => {
+                return new Promise<void>((resolve) => {
                     passingBodyToMainThread.set(id, resolve);
                     self.postMessage({ id, body });
-                })
+                });
             });
         }
 
         return;
     }
-
 
     const { id, methodPath, args } = message.data;
 
@@ -93,7 +90,10 @@ export let methods = {
         if (services) return;
 
         const servicesHost = initLanguageServiceHost(currentDirectory);
-        services = createLanguageService(servicesHost, createDocumentRegistry());
+        services = createLanguageService(
+            servicesHost,
+            createDocumentRegistry()
+        );
         methods = {
             ...methods,
             ...services

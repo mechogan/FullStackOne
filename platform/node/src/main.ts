@@ -327,10 +327,10 @@ function createHandler(mainAdapter: AdapterEditor) {
 
         // the rest can be used as query
         const query = pathAndQuery.join("?");
-        if(query.length) {
+        if (query.length) {
             const searchParams = fastQueryString.parse(query);
             const maybeBody: string = searchParams["body"];
-            if(maybeBody) body = te.encode(decodeURIComponent(maybeBody));
+            if (maybeBody) body = te.encode(decodeURIComponent(maybeBody));
         }
 
         // remove trailing slash

@@ -1,5 +1,8 @@
 package org.fullstacked.editor
 
+import android.content.Intent
+import android.os.Environment
+import android.provider.DocumentsContract
 import org.fullstacked.editor.connectivity.Bonjour
 import org.fullstacked.editor.connectivity.Peer
 import org.fullstacked.editor.connectivity.PeerNearby
@@ -279,6 +282,22 @@ class AdapterEditor(
             "esbuild" -> return this.esbuildSwitch(methodPath.subList(1, methodPath.size), body)
             "connectivity" -> return this.connectivitySwitch(methodPath.subList(1, methodPath.size), body)
             "run" -> return this.run(JSONArray(body).getJSONObject(0))
+            "open" -> {
+                val projectJSON = JSONArray(body).getJSONObject(0)
+                val title = projectJSON.getString("title")
+                val location = projectJSON.getString("location")
+
+                val file = File(this.baseDirectory + "/" + location + "/" + title + ".zip")
+                if(!file.exists()) return false
+
+                val out = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/" + title + ".zip")
+                file.copyTo(out, true)
+
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.setType(DocumentsContract.Document.MIME_TYPE_DIR)
+                InstanceEditor.singleton.context.startActivity(intent)
+                return true
+            }
             "fs" -> {
                 var absolutePath = false
                 var utf8 = false

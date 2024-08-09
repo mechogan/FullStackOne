@@ -153,7 +153,7 @@ open class Adapter(
             "rmdir" -> return this.fs.rmdir(json.getString(0))
             "stat" -> return this.fs.stat(json.getString(0))
             "lstat" -> return this.fs.stat(json.getString(0))
-            "exists" -> return this.fs.exists(json.getString(0)) ?: false
+            "exists" -> return this.fs.exists(json.getString(0))
         }
 
         return null
@@ -368,7 +368,7 @@ class AdapterFS(private val baseDirectory: String) {
         return true
     }
 
-    fun stat(path: String) : Any? {
+    fun stat(path: String) : Any {
         val itemPath = this.baseDirectory + "/" + path
 
         val existsAndIsDirectory = this.itemExistsAndIsDirectory(itemPath)
@@ -394,11 +394,11 @@ class AdapterFS(private val baseDirectory: String) {
         )
     }
 
-    fun exists(path: String) : Any? {
+    fun exists(path: String) : Any {
         val itemPath = this.baseDirectory + "/" + path
 
         val existsAndIsDirectory = this.itemExistsAndIsDirectory(itemPath)
-        if(existsAndIsDirectory == null) return null
+        if(existsAndIsDirectory == null) return false
 
         return mapOf(
             "isFile" to !existsAndIsDirectory

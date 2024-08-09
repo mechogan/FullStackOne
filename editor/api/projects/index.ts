@@ -65,8 +65,8 @@ export default {
         const zipFilename = project.title.replace(/\//, "-") + ".zip";
         const out = project.location + "/" + zipFilename;
 
-        if (await rpc().fs.exists(out)) {
-            await rpc().fs.unlink(out);
+        if (await rpc().fs.exists(out, { absolutePath: true })) {
+            await rpc().fs.unlink(out, { absolutePath: true });
         }
 
         const zipData = await zipDirectory(

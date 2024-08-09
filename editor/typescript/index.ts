@@ -51,8 +51,9 @@ export class tsWorker {
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
             if (message.data.ready) {
-                rpc().platform()
-                    .then(platform => {
+                rpc()
+                    .platform()
+                    .then((platform) => {
                         this.worker.postMessage({ platform });
                         this.isReady = true;
                         this.readyAwaiter.forEach((resolve) => resolve());

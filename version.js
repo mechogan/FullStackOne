@@ -26,7 +26,6 @@ const xcodeFileUpdated = xcodeFileContent.replace(
 );
 fs.writeFileSync(xcodeFile, xcodeFileUpdated);
 
-
 // android
 const gradleFile = "platform/android/studio/app/build.gradle.kts";
 const gradleFileContent = fs.readFileSync(gradleFile, { encoding: "utf-8" });

@@ -1,17 +1,19 @@
-export function bindPassRequestBody(passRequestBody: (id: number, body: string) => Promise<void> | void) {
-    const originalFetch = globalThis.fetch; 
-    (globalThis as typeof window).fetch = async (...args) => { 
-        if(args?.[1]) { 
+export function bindPassRequestBody(
+    passRequestBody: (id: number, body: string) => Promise<void> | void
+) {
+    const originalFetch = globalThis.fetch;
+    (globalThis as typeof window).fetch = async (...args) => {
+        if (args?.[1]) {
             const id = generateRandomId();
-            const headers = args?.[1]?.headers || {}
+            const headers = args?.[1]?.headers || {};
             headers["request-id"] = id.toString();
             args[1].headers = headers;
             const maybePromise = passRequestBody(id, args?.[1]?.body as string);
-            if(maybePromise instanceof Promise) {
+            if (maybePromise instanceof Promise) {
                 await maybePromise;
             }
         }
-        return originalFetch(...args)
+        return originalFetch(...args);
     };
 }
 
