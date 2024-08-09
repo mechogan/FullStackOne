@@ -38,7 +38,7 @@ const esbuild: EsbuildFunctions = {
     load: () => loadEsbuild(configDirectoryAbs),
     install: () =>
         installEsbuild(configDirectoryAbs, (data) => {
-            push("FullStacked", "installEsbuild", JSON.stringify(data));
+            push("FullStacked", "esbuildInstall", JSON.stringify(data));
         })
 };
 
