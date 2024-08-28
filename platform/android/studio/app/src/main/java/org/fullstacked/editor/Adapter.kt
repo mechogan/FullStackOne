@@ -12,6 +12,7 @@ import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.concurrent.TimeUnit
 
 
 open class Adapter(
@@ -160,9 +161,14 @@ open class Adapter(
     }
 
     private fun fetch(json: JSONArray): Any? {
-        val client = OkHttpClient()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
         val request = Request.Builder()
             .url(json.getString(0))
+
 
         var utf8 = false
         var method = "GET"
