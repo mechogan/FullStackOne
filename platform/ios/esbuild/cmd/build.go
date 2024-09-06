@@ -32,5 +32,7 @@ func build(
 	if len(result.Errors) > 0 {
 		errorsJSON, _ := json.Marshal(result.Errors)
 		*errors = C.CString(string(errorsJSON))
+	} else {
+		*errors = C.CString(string(""))
 	}
 }

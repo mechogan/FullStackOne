@@ -38,7 +38,7 @@ const esbuild: EsbuildFunctions = {
     load: () => loadEsbuild(configDirectoryAbs),
     install: () =>
         installEsbuild(configDirectoryAbs, (data) => {
-            push("FullStacked", "installEsbuild", JSON.stringify(data));
+            push("FullStacked", "esbuildInstall", JSON.stringify(data));
         })
 };
 
@@ -88,7 +88,7 @@ const { handler, close } = main(
     Platform.ELECTRON,
     editorDirectory,
     path.resolve(os.homedir(), ".cache", "fullstacked"),
-    path.resolve(__dirname, "..", "js", "index.js"),
+    path.resolve(__dirname, "..", "js", "base.js"),
     directories,
     esbuild,
     open,
@@ -142,9 +142,9 @@ const protocolHandler: (request: Request) => Promise<Response> = async (
     const hostname = url.hostname;
     const id = hostnames.get(hostname);
 
-    const body = new Uint8Array(await request.arrayBuffer());
+    let body = new Uint8Array(await request.arrayBuffer());
 
-    const response = await handler(id, url.pathname, body);
+    const response = await handler(id, url.pathname + url.search, body);
 
     const headers = {
         ["Content-Type"]: response.mimeType

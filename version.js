@@ -2,8 +2,9 @@ import semver from "semver";
 import fs from "fs";
 
 const version = process.argv.at(-1);
-if (!semver.valid(version)) throw `Invalide version [${version}]`;
+if (!semver.valid(version)) throw `Invalid version [${version}]`;
 
+// main, node, electron
 const packagesJSONs = [
     "package.json",
     "platform/node/package.json",
@@ -16,10 +17,20 @@ packagesJSONs.forEach((packageJSON) => {
     fs.writeFileSync(packageJSON, JSON.stringify(json, null, 4));
 });
 
+// iOS
 const xcodeFile = "platform/ios/xcode/FullStacked.xcodeproj/project.pbxproj";
-const content = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
-const updated = content.replace(
+const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
+const xcodeFileUpdated = xcodeFileContent.replace(
     /MARKETING_VERSION = .*?;/g,
-    (value) => `MARKETING_VERSION = ${version};`
+    `MARKETING_VERSION = ${version};`
 );
-fs.writeFileSync(xcodeFile, updated);
+fs.writeFileSync(xcodeFile, xcodeFileUpdated);
+
+// android
+const gradleFile = "platform/android/studio/app/build.gradle.kts";
+const gradleFileContent = fs.readFileSync(gradleFile, { encoding: "utf-8" });
+const gradleFileUpdated = gradleFileContent.replace(
+    /versionName = .*?\n/g,
+    `versionName = "${version}"\n`
+);
+fs.writeFileSync(gradleFile, gradleFileUpdated);

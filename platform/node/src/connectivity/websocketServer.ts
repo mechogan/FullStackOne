@@ -11,7 +11,6 @@ export class WebSocketServer implements Connecter {
     wss: WSS;
 
     connections: { id: string; trusted: boolean; ws: WebSocket }[] = [];
-    connectionRequests = new Set<string>();
 
     onPeerConnection: (
         id: string,

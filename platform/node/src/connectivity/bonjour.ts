@@ -18,7 +18,7 @@ import { getNetworkInterfacesInfo } from "./utils";
 export class Bonjour implements Advertiser, Browser {
     onPeerNearby: (eventType: "new" | "lost", peerNearby: PeerNearby) => void;
 
-    peersNearby: Map<string, PeerNearby> = new Map();
+    peersNearby: Map<string, PeerNearbyBonjour> = new Map();
     bonjour = new BonjourService();
 
     advertiser: Service;
@@ -65,8 +65,6 @@ export class Bonjour implements Advertiser, Browser {
         this.browser?.stop();
 
         this.browser = this.bonjour.find({ type: "fullstacked" }, (service) => {
-            if (service.port === this.wsServer.port) return;
-
             const peerNearby: PeerNearbyBonjour = {
                 type: PEER_ADVERSTISING_METHOD.BONJOUR,
                 peer: {

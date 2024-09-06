@@ -18,7 +18,8 @@ export enum PEER_ADVERSTISING_METHOD {
     UNKNOWN = 0,
     BONJOUR = 1,
     IOS_MULTIPEER = 2,
-    WEB = 3
+    WEB = 3,
+    ANDROID_WIFI_DIRECT = 4
 }
 
 export type WebAddress = {

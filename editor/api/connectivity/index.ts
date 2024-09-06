@@ -151,7 +151,7 @@ const connectivityAPI = {
             ]
                 .flat()
                 .filter(({ peer: { id } }) => {
-                    if (seenPeerID.has(id)) return false;
+                    if (id === me.id || seenPeerID.has(id)) return false;
                     seenPeerID.add(id);
                     return true;
                 });
@@ -226,7 +226,7 @@ const connectivityAPI = {
             rpc().connectivity.advertise.stop();
         }
     },
-    async connect(peerNearby: PeerNearby) {
+    async connect(peerNearby: PeerNearby, verifyAlive = true) {
         for (const peerConnection of peersConnections.values()) {
             // already connected or in the process of connecting
             if (peerConnection.peer?.id === peerNearby.peer?.id) return;
@@ -236,8 +236,7 @@ const connectivityAPI = {
         switch (peerNearby.type) {
             case PEER_ADVERSTISING_METHOD.WEB:
             case PEER_ADVERSTISING_METHOD.BONJOUR:
-                const alive = await verifyWSS(peerNearby);
-                if (!alive) return;
+                if (verifyAlive && !(await verifyWSS(peerNearby))) return;
                 id = crypto.randomUUID();
                 connecterWebSocket.open(id, peerNearby);
                 break;

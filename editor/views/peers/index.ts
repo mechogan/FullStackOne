@@ -1,6 +1,7 @@
 import {
     PEER_ADVERSTISING_METHOD,
     PEER_CONNECTION_STATE,
+    PEER_CONNECTION_TYPE,
     PeerConnectionPairing
 } from "../../../src/connectivity/types";
 import api from "../../api";
@@ -289,15 +290,18 @@ class Peers {
             const address = addressInput.value;
             const port = portInput.value;
 
-            api.connectivity.connect({
-                peer: {
-                    id: null,
-                    name: `Manual Peer Connection [${address.includes(":") ? `[${address}]` : address}:${port}]`
+            api.connectivity.connect(
+                {
+                    peer: {
+                        id: null,
+                        name: `Manual Peer Connection [${address.includes(":") ? `[${address}]` : address}:${port}]`
+                    },
+                    type: PEER_ADVERSTISING_METHOD.BONJOUR,
+                    addresses: [address],
+                    port: parseInt(port)
                 },
-                type: PEER_ADVERSTISING_METHOD.BONJOUR,
-                addresses: [address],
-                port: parseInt(port)
-            });
+                false
+            );
 
             dialog.remove();
             stackNavigation.lock = false;

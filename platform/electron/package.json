@@ -2,7 +2,7 @@
     "name": "FullStacked",
     "author": "FullStacked Org.",
     "description": "Build and run full-stack JS web apps anywhere.",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "main": ".cache/index.js",
     "license": "GPL-3.0",
     "scripts": {
@@ -10,7 +10,7 @@
         "start": "npm run build && electron-forge start",
         "package": "electron-forge package",
         "premake": "npm run build",
-        "make": "electron-forge make",
+        "make": "electron-forge make --arch=x64,arm64",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {

@@ -51,8 +51,20 @@ export class tsWorker {
         this.worker = new Worker("worker-ts.js", { type: "module" });
         this.worker.onmessage = (message) => {
             if (message.data.ready) {
-                this.isReady = true;
-                this.readyAwaiter.forEach((resolve) => resolve());
+                rpc()
+                    .platform()
+                    .then((platform) => {
+                        this.worker.postMessage({ platform });
+                        this.isReady = true;
+                        this.readyAwaiter.forEach((resolve) => resolve());
+                    });
+                return;
+            }
+
+            if (message.data.body) {
+                const { id, body } = message.data;
+                (globalThis as any).Android?.passRequestBody(id, body);
+                this.worker.postMessage({ request_id: id });
                 return;
             }
 

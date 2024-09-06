@@ -190,7 +190,7 @@ export class PackageInstaller {
                 PackageInstaller.updateProgress(pacakgeInfo.name, {
                     progress: 0,
                     total: -1,
-                    error
+                    error: JSON.stringify(error)
                 });
                 pacakgeInfo.errored = error;
             }

@@ -2,6 +2,13 @@ import { SourceMapConsumer } from "source-map-js";
 import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
+import { bindPassRequestBody } from "./android";
+
+if ((globalThis as any).Android) {
+    bindPassRequestBody((id, body) =>
+        (globalThis as any).Android.passRequestBody(id, body)
+    );
+}
 
 (globalThis as any).process = {
     platform: "browser"
@@ -9,8 +16,14 @@ import type { AwaitAll, AwaitNone } from "../editor/rpc";
 
 function syncRequest(pathComponents: string[], ...args) {
     const request = new XMLHttpRequest();
-    request.open("POST", pathComponents.join("/"), false);
-    request.send(JSON.stringify(args));
+    const searchParams = new URLSearchParams();
+    searchParams.set("body", encodeURIComponent(JSON.stringify(args)));
+    request.open(
+        "GET",
+        pathComponents.join("/") + "?" + searchParams.toString(),
+        false
+    );
+    request.send();
 
     const contentType = request.getResponseHeader("content-type");
     let data: any;

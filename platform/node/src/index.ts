@@ -60,9 +60,8 @@ const push: PushFunction = (id, messageType, message) => {
 const createServerHandler =
     (id: string) =>
     async (req: http.IncomingMessage, res: http.ServerResponse) => {
-        const path = req.url;
         const body = await readBody(req);
-        const response = await handler(id, path, body);
+        const response = await handler(id, req.url, body);
         respond(response, res);
     };
 
@@ -123,7 +122,7 @@ const { handler, close } = main(
     isWebContainer ? Platform.WEBCONTAINER : Platform.NODE,
     currentDir + "/editor",
     path.resolve(os.homedir(), ".cache", "fullstacked"),
-    path.resolve(currentDir, "js", "index.js"),
+    path.resolve(currentDir, "js", "base.js"),
     directories,
     {
         load: async () => esbuild,
