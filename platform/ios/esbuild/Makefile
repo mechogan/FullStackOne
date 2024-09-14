@@ -2,7 +2,6 @@
 # https://rogchap.com/2020/09/14/running-go-code-on-ios-and-android/
 
 ESBUILD_DIR = $(CURDIR)/../../../lib/esbuild
-GO_EXEC = $(CURDIR)/../../../lib/go/bin/go
 IOS_OUT = $(CURDIR)/out
 
 ios-arm64:
@@ -14,7 +13,7 @@ ios-arm64:
 	SDK=iphoneos \
 	CC=$(CURDIR)/clangwrap.sh \
 	CGO_CFLAGS="-fembed-bitcode" \
-	$(GO_EXEC) build -buildmode=c-archive -tags ios -o $(IOS_OUT)/ios-arm64.a ./cmd/esbuild && \
+	go build -buildmode=c-archive -tags ios -o $(IOS_OUT)/ios-arm64.a ./cmd/esbuild && \
 	cd $(ESBUILD_DIR) && git clean -f
 
 ios-x86_64:
@@ -25,7 +24,7 @@ ios-x86_64:
 	GOARCH=amd64 \
 	SDK=iphonesimulator \
 	CC=$(CURDIR)/clangwrap.sh \
-	$(GO_EXEC) build -buildmode=c-archive -tags ios -o $(IOS_OUT)/ios-x86_64.a ./cmd/esbuild && \
+	go build -buildmode=c-archive -tags ios -o $(IOS_OUT)/ios-x86_64.a ./cmd/esbuild && \
 	cd $(ESBUILD_DIR) && git clean -f
 
 ios: ios-arm64 ios-x86_64
@@ -43,7 +42,7 @@ macos-arm64:
 	SDK=macosx \
 	CC=$(CURDIR)/clangwrap.sh \
 	CGO_CFLAGS="-fembed-bitcode -target x86_64-apple-ios-macabi" \
-	$(GO_EXEC) build -buildmode=c-archive -tags maccatalyst -o $(IOS_OUT)/macos-arm64.a ./cmd/esbuild && \
+	go build -buildmode=c-archive -tags maccatalyst -o $(IOS_OUT)/macos-arm64.a ./cmd/esbuild && \
 	cd $(ESBUILD_DIR) && git clean -f
 
 macos-x86_64:
@@ -55,7 +54,7 @@ macos-x86_64:
 	SDK=macosx \
 	CC=$(CURDIR)/clangwrap.sh \
 	CGO_CFLAGS="-target x86_64-apple-ios-macabi" \
-	$(GO_EXEC) build -buildmode=c-archive -tags maccatalyst -o $(IOS_OUT)/macos-x86_64.a ./cmd/esbuild && \
+	go build -buildmode=c-archive -tags maccatalyst -o $(IOS_OUT)/macos-x86_64.a ./cmd/esbuild && \
 	cd $(ESBUILD_DIR) && git clean -f
 
 macos: macos-arm64 macos-x86_64
