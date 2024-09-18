@@ -2,13 +2,11 @@ package org.fullstacked.editor
 
 import android.annotation.SuppressLint
 import android.app.ActionBar.LayoutParams
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
 import android.webkit.ValueCallback
@@ -17,11 +15,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.LinearLayout
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
@@ -34,7 +27,7 @@ var id = 0
 fun createWebView(
     ctx: MainActivity,
     adapter: Adapter,
-    isEditor: Boolean = false
+    isEditor: Boolean = false,
 ) : WebView {
     WebView.setWebContentsDebuggingEnabled(true)
     val webView = WebView(ctx)
@@ -111,7 +104,7 @@ open class Instance(val project: Project, val init: Boolean = true) {
 }
 
 class WebViewClientCustom(
-    private val adapter: Adapter
+    private val adapter: Adapter,
 ) : WebViewClient() {
     var ready = false
     private val reqBody = HashMap<Int, String>()
@@ -131,9 +124,18 @@ class WebViewClientCustom(
         this.ready = true
     }
 
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        if(request?.url?.host == "localhost") return super.shouldOverrideUrlLoading(view, request)
+
+        InstanceEditor.singleton.context.startActivity(
+            Intent(Intent.ACTION_VIEW, request?.url)
+        )
+        return true
+    }
+
     override fun shouldInterceptRequest(
         view: WebView?,
-        request: WebResourceRequest?
+        request: WebResourceRequest?,
     ): WebResourceResponse? {
         if(request?.url?.host != "localhost") return super.shouldInterceptRequest(view, request);
 
@@ -169,9 +171,11 @@ class WebViewClientCustom(
 
         // if we managed to get a file, respond
         if(inputStream != null) {
-            val ext = MimeTypeMap.getFileExtensionFromUrl(pathname)
+            var ext = MimeTypeMap.getFileExtensionFromUrl(pathname)
+            if(ext == "mjs") ext = "js"
+            val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
             return WebResourceResponse(
-                MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext),
+                mimeType,
                 "",
                 inputStream
             )
