@@ -13,6 +13,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.PathWalkOption
 
 
 open class Adapter(
@@ -341,21 +342,45 @@ class AdapterFS(private val baseDirectory: String) {
         }
 
         val dir = File(itemPath)
-        val files = arrayListOf<File>()
+        val files = arrayListOf<Map<String, Any>>()
 
-        if(recursive)
-            dir.walk().forEach { files.add(it) }
-        else
-            dir.listFiles()?.forEach { files.add(it) }
+        if(recursive) {
+            val directories = arrayListOf<String>()
+            dir.walk()
+                .onEnter { currentDir -> directories.add(currentDir.name) }
+                .onLeave { _ ->
+                    directories.removeLast()
+                }
+                .forEach {
+                    if(it.absolutePath != dir.absolutePath) {
+                        val directoryName = directories.subList(1, directories.size).joinToString("/")
+                        if(directoryName.isNotEmpty()) {
+                            files.add(mapOf(
+                                "name" to  directoryName + "/" + it.name,
+                                "isDirectory" to it.isDirectory
+                            ))
+                        } else {
+                            files.add(mapOf(
+                                "name" to it.name,
+                                "isDirectory" to it.isDirectory
+                            ))
+                        }
+                    }
+                }
+        } else {
+            dir.listFiles()?.forEach {
+                files.add(
+                    mapOf(
+                        "name" to it.name,
+                        "isDirectory" to it.isDirectory
+                    )
+                )
+            }
+        }
 
-        if (!withFileTypes) return files.map { file -> file.name }
+        if (!withFileTypes) return files.map { item -> item["name"] }
 
-        val filesWithTypes = files.map { file -> mapOf(
-            "name" to file.name,
-            "isDirectory" to file.isDirectory
-        )}
-
-        return filesWithTypes
+        return files
     }
 
     fun mkdir(path: String): Boolean {
