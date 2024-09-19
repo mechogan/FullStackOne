@@ -13,7 +13,7 @@ import {
 } from "@codemirror/lint";
 import { Extension, Prec } from "@codemirror/state";
 import rpc from "../../rpc";
-import { tsWorker, tsWorkerDelegate } from "../../typescript";
+import { tsWorker } from "../../typescript";
 import { PackageInstaller } from "../../packages/installer";
 import prettier from "prettier";
 import prettierPluginEstree from "prettier/plugins/estree";
@@ -35,7 +35,8 @@ enum UTF8_Ext {
     CSS = ".css",
     JSON = ".json",
     SASS = ".sass",
-    SCSS = ".scss"
+    SCSS = ".scss",
+    LIQUID = ".liquid"
 }
 
 enum IMAGE_Ext {
@@ -494,6 +495,12 @@ export class Editor {
         } else if (filename.endsWith(UTF8_Ext.MARKDOWN)) {
             extensions.push(
                 (await import("@codemirror/lang-markdown")).markdown()
+            );
+        } else if (filename.endsWith(UTF8_Ext.LIQUID)) {
+            const liquidLang = await import("@codemirror/lang-liquid")
+            extensions.push(
+                liquidLang.liquid(),
+                liquidLang.closePercentBrace
             );
         }
 
