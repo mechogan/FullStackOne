@@ -36,3 +36,8 @@ func build(
 		*errors = C.CString(string(""))
 	}
 }
+
+//export version
+func version(VersionStr **C.char) {
+	*VersionStr = C.CString(esbuildVersion)
+}

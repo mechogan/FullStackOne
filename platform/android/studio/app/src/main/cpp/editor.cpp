@@ -40,3 +40,13 @@ JNIEXPORT jstring JNICALL Java_org_fullstacked_editor_AdapterEditor_build
 
     return env->NewStringUTF(errors);
 }
+
+JNIEXPORT jstring JNICALL Java_org_fullstacked_editor_AdapterEditor_version
+        (JNIEnv *env, jobject obj)
+{
+    char* versionPtr;
+
+    version(&versionPtr);
+
+    return env->NewStringUTF(versionPtr);
+}

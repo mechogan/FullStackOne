@@ -13,6 +13,7 @@ export type AdapterEditor = Adapter & {
     directories: SetupDirectories;
 
     esbuild: {
+        version(): Promise<string>;
         baseJS(): Promise<string>;
         tmpFile: {
             write(name: string, content: string): Promise<string>;

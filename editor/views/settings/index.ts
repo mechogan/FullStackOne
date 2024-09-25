@@ -7,6 +7,7 @@ import gitAuth from "../git-auth";
 import projectView from "../project";
 import stackNavigation from "../../stack-navigation";
 import { constructURL } from "../../api/connectivity/web";
+import version from "./version";
 
 export class Settings {
     private async renderGitAuths() {
@@ -498,6 +499,8 @@ export class Settings {
         container.append(await this.renderConnectivity());
 
         container.append(await this.renderGitAuths());
+
+        container.append(await version());
 
         return container;
     }

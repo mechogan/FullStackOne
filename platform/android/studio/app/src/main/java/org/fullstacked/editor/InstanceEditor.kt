@@ -73,6 +73,8 @@ class AdapterEditor(
         }
     }
 
+    private external fun version(): String
+
     private external fun build(
         input: String,
         outdir: String,
@@ -100,6 +102,7 @@ class AdapterEditor(
 
     private fun esbuildSwitch(methodPath: List<String>, body: String?) : Any? {
         when (methodPath.first()) {
+            "version" -> return version()
             "check" -> return true
             "baseJS" -> return convertInputStreamToString(InstanceEditor.singleton.context.assets.open("base.js"))
             "tmpFile" -> {

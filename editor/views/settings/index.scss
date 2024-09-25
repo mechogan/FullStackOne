@@ -157,4 +157,10 @@
             }
         }
     }
+
+    .version-with-badge {
+        display: flex;
+        align-items: center;
+        gap: spacing();
+    }
 }

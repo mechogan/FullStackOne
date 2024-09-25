@@ -110,3 +110,7 @@ child_process.execSync(
         stdio: "inherit"
     }
 );
+
+const { version } = JSON.parse(fs.readFileSync("package.json", { encoding: "utf-8" }));
+fs.writeFileSync("editor/build/version.txt", version);
+
