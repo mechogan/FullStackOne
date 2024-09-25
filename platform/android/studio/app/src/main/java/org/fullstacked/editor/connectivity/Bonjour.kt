@@ -53,8 +53,9 @@ class Bonjour(private val webSocketServer: WSS) : ServiceListener {
         fun getIpAddress(): List<LinkAddress> {
             val connectivityManager = InstanceEditor.singleton.context.getSystemService(Context.CONNECTIVITY_SERVICE)
             if (connectivityManager is ConnectivityManager) {
-                val link =  connectivityManager.getLinkProperties(connectivityManager.activeNetwork) as LinkProperties
-                return link.linkAddresses
+                val link =  connectivityManager.getLinkProperties(connectivityManager.activeNetwork)
+                if(link != null)
+                    return link.linkAddresses
             }
 
             return listOf()
@@ -72,7 +73,9 @@ class Bonjour(private val webSocketServer: WSS) : ServiceListener {
         if(this.jmdns == null) {
             val addr = InetAddress.getLocalHost()
             val hostname = InetAddress.getByName(addr.hostName).toString()
-            this.jmdns = JmDNS.create(addr, hostname)
+            try {
+                this.jmdns = JmDNS.create(addr, hostname)
+            } catch (_: Exception) {  }
         }
         this.jmdns?.addServiceListener("$serviceType.local.", this)
         this.jmdns?.list("$serviceType.local.")
