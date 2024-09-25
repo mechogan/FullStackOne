@@ -64,13 +64,22 @@ open class Adapter(
     private fun fsSwitch(method: String, json: JSONArray) : Any? {
         when (method) {
             "readFile" -> {
+                if(json.length() == 0) {
+                    return ""
+                }
+
                 var utf8 = false
                 if(json.length() > 1) {
-                    val opt = json.getJSONObject(1)
                     try {
+                        val opt = json.getJSONObject(1)
                         utf8 = opt.getString("encoding") == "utf8"
-                    } catch (_: Exception) { }
+                    } catch (_: Exception) {
+                        try {
+                            utf8 = json.getString(1) == "utf8"
+                        } catch (_: Exception) { }
+                    }
                 }
+
                 return this.fs.readFile(json.getString(0), utf8)
             }
             "writeFile" -> {
@@ -91,8 +100,8 @@ open class Adapter(
 
                 var recursive = false
                 if(json.length() > 2) {
-                    val opt = json.getJSONObject(2)
                     try {
+                        val opt = json.getJSONObject(2)
                         recursive = opt.getBoolean("recursive")
                     } catch (_: Exception) { }
                 }
@@ -316,11 +325,17 @@ class AdapterFS(private val baseDirectory: String) {
         return true
     }
 
-    fun unlink(path: String): Boolean? {
+    fun unlink(path: String): Any {
         val itemPath = this.baseDirectory + "/" + path
 
         val existsAndIsDirectory = this.itemExistsAndIsDirectory(itemPath)
-        if(existsAndIsDirectory == null || existsAndIsDirectory) return null
+        if(existsAndIsDirectory == null || existsAndIsDirectory) {
+            return AdapterError(
+                code = if(existsAndIsDirectory != null) "EISDIR" else "ENOENT",
+                path = path,
+                syscall = "unlink"
+            )
+        }
 
         val file = File(itemPath)
         file.delete()
