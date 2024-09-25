@@ -101,6 +101,7 @@ export function main(
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
         connectivity,
         esbuild: {
+            version: async () => esbuildModule.version,
             baseJS: () =>
                 fs.promises.readFile(baseJSFile, { encoding: "utf8" }),
             check: () => !!esbuildModule,

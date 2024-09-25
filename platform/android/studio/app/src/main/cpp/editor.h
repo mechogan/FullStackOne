@@ -18,6 +18,10 @@ extern "C" {
 JNIEXPORT jstring JNICALL Java_org_fullstacked_editor_AdapterEditor_build
         (JNIEnv *env, jobject jobj, jstring input, jstring out, jstring nodePath);
 
+
+JNIEXPORT jstring JNICALL Java_org_fullstacked_editor_AdapterEditor_version
+        (JNIEnv *env, jobject jobj);
+
 }
 
 #endif //FULLSTACKED_EDITOR_EDITOR_H

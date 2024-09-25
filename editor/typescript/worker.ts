@@ -10,7 +10,8 @@ import {
     ModuleResolutionKind,
     ScriptSnapshot,
     ScriptTarget,
-    isSourceFile
+    isSourceFile,
+    version
 } from "typescript";
 import type { AdapterEditor } from "../rpc";
 import type { rpcSync as rpcSyncFn } from "../../src/index";
@@ -86,6 +87,7 @@ let services: LanguageService;
 let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
+    version() { return version },
     start(currentDirectory: string) {
         if (services) return;
 

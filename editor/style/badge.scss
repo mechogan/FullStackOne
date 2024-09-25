@@ -1,0 +1,22 @@
+@import "./colors";
+@import "./typography";
+@import "./border";
+
+.badge {
+    font-size: $font-size-xs;
+    padding: 3px 6px;
+    font-weight: bold;
+    color: white;
+    border-radius: $border-radius;
+
+
+    background-color: $blue;
+
+    &.warning {
+        background-color: $yellow;
+        color: $black;
+    }
+    &.accent {
+        background-color: $blue-light;
+    }
+}

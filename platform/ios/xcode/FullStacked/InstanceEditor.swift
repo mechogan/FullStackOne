@@ -164,6 +164,11 @@ class AdapterEditor: Adapter {
                 break
             case "esbuild":
                 switch(methodPath[1]) {
+                case "version":
+                    var versionStrPtr = UnsafeMutablePointer<Int8>(nil)
+                    version(&versionStrPtr)
+                    let versionStr = String.init(cString: versionStrPtr!, encoding: .utf8)
+                    return done(versionStr)
                 case "baseJS":
                     let content = FileManager.default.contents(atPath: self.baseJSFile)!
                     return done(String(data: content, encoding: .utf8)!)
