@@ -489,7 +489,7 @@ export class Editor {
         ) {
             extensions.push(
                 (await import("@codemirror/lang-sass")).sass({
-                    indented: filename.endsWith(UTF8_Ext.SCSS)
+                    indented: filename.endsWith(UTF8_Ext.SASS)
                 })
             );
         } else if (filename.endsWith(UTF8_Ext.MARKDOWN)) {
