@@ -30,9 +30,9 @@ argparser = argparse.ArgumentParser(add_help=False)
 argparser.add_argument('package_name',
                        help='The package name. Example: com.android.sample')
 argparser.add_argument('aab_file',
-                       nargs='?',
-                       default='test.aab',
                        help='The path to the .aab file to upload.')
+argparser.add_argument('app_version',
+                       help='x.x.x')
 
 
 def main(argv):
@@ -48,6 +48,7 @@ def main(argv):
   # Process flags and read their values.
   package_name = flags.package_name
   aab_file = flags.aab_file
+  app_version = flags.app_version
 
   try:
     edit_request = service.edits().insert(body={}, packageName=package_name)
@@ -66,7 +67,7 @@ def main(argv):
         track=TRACK,
         packageName=package_name,
         body={u'releases': [{
-            u'name': u'release',
+            u'name': str(app_version),
             u'versionCodes': [str(aab_response['versionCode'])],
             u'status': u'completed',
         }]}).execute()

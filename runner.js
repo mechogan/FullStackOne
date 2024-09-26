@@ -274,7 +274,7 @@ child_process.execSync(`jarsigner -keystore ${androidKeys.FILE} -storepass ${and
     stdio: "inherit"
 });
 
-child_process.execSync(`python upload.py org.fullstacked.editor ${aabFile}`, {
+child_process.execSync(`python upload.py org.fullstacked.editor ${aabFile} ${currentVersion}`, {
     stdio: "inherit",
     cwd: androidDirectory
 })
