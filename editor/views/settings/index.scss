@@ -158,9 +158,20 @@
         }
     }
 
-    .version-with-badge {
+    .version-editor {
         display: flex;
-        align-items: center;
-        gap: spacing();
+        flex-direction: column;
+        gap: spacing(0.5);
+        align-items: flex-end;
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            gap: spacing(0.5);
+            text-align: right;
+        }
+        .ref {
+            grid-area: ref;
+            font-size: $font-size-xs;
+        }
     }
 }

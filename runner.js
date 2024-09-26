@@ -41,6 +41,17 @@ try {
     notifyError("Failed to run [npm ci]");
 }
 
+const electronDirectory = "platform/electron";
+try {
+    child_process.execSync("npm ci", {
+        cwd: electronDirectory,
+        stdio: "inherit"
+    });
+} catch (e) {
+    console.error(e);
+    notifyError("Failed to run [npm ci] in electron directory");
+}
+
 try {
     child_process.execSync("npm run build", { stdio: "inherit" });
 } catch (e) {
@@ -91,17 +102,13 @@ try {
 
 ////////////// electron ////////////////
 
-const electronDirectory = "platform/electron";
+const electronOutDirectory = `${electronDirectory}/out`;
+if (fs.existsSync(electronOutDirectory)) fs.rmSync(electronOutDirectory, { recursive: true, force: true });
 
 const electronPackageJsonFile = `${electronDirectory}/package.json`;
 const electronPackageJson = JSON.parse(fs.readFileSync(electronPackageJsonFile, { encoding: "utf-8" }))
 electronPackageJson.version = currentVersion;
 fs.writeFileSync(electronPackageJsonFile, JSON.stringify(electronPackageJson, null, 4));
-
-child_process.execSync("npm ci", {
-    cwd: electronDirectory,
-    stdio: "inherit"
-});
 
 const releaseFileNames = [
     `fullstacked-${currentVersion}-darwin-arm64.zip`,
@@ -119,10 +126,10 @@ child_process.execSync("npm run make -- --platform darwin", {
     stdio: "inherit"
 });
 
-child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(0)} --file=${electronDirectory}/out/make/zip/darwin/arm64/FullStacked-darwin-arm64-${currentVersion}.zip`, {
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(0)} --file=${electronOutDirectory}/make/zip/darwin/arm64/FullStacked-darwin-arm64-${currentVersion}.zip`, {
     stdio: "inherit"
 });
-child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(1)} --file=${electronDirectory}/out/make/zip/darwin/x64/FullStacked-darwin-x64-${currentVersion}.zip`, {
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(1)} --file=${electronOutDirectory}/make/zip/darwin/x64/FullStacked-darwin-x64-${currentVersion}.zip`, {
     stdio: "inherit"
 });
 
@@ -142,7 +149,7 @@ async function zipExe(directory, filename) {
     const zipWriter = new zip.ZipWriter(zipFileStream.writable);
     await zipWriter.add(filename, readableStream);
     await zipWriter.close();
-    
+
     const zipBlob = await zipFileBlobPromise
     const zipFileName = filename.split(".").slice(0, -1).join(".") + ".zip";
     fs.writeFileSync(`${directory}/${zipFileName}`, Buffer.from(await zipBlob.arrayBuffer()))
@@ -153,16 +160,29 @@ await Promise.all([
     zipExe(`${electronDirectory}/out/make/squirrel.windows/x64`, `FullStacked-${currentVersion} Setup.exe`)
 ])
 
-child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(2)} --file="${electronDirectory}/out/make/squirrel.windows/arm64/FullStacked-${currentVersion} Setup.zip"`, {
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(2)} --file="${electronOutDirectory}/make/squirrel.windows/arm64/FullStacked-${currentVersion} Setup.zip"`, {
     stdio: "inherit"
 });
-child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(3)} --file="${electronDirectory}/out/make/squirrel.windows/x64/FullStacked-${currentVersion} Setup.zip"`, {
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(3)} --file="${electronOutDirectory}/make/squirrel.windows/x64/FullStacked-${currentVersion} Setup.zip"`, {
     stdio: "inherit"
 });
 
 
 child_process.execSync("npm run make -- --platform linux", {
     cwd: electronDirectory,
+    stdio: "inherit"
+});
+
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(4)} --file=${electronOutDirectory}/make/deb/arm64/fullstacked_${currentVersion}_arm64.deb`, {
+    stdio: "inherit"
+});
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(5)} --file=${electronOutDirectory}/make/deb/x64/fullstacked_${currentVersion}_amd64.deb`, {
+    stdio: "inherit"
+});
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(6)} --file=${electronOutDirectory}/make/rpm/arm64/FullStacked-${currentVersion}-1.arm64.rpm`, {
+    stdio: "inherit"
+});
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(7)} --file=${electronOutDirectory}/make/rpm/x64/FullStacked-${currentVersion}-1.x86_64.rpm`, {
     stdio: "inherit"
 });
 
