@@ -2,6 +2,7 @@ import fs from "fs";
 import child_process from "child_process";
 import semver from "semver";
 import * as zip from "@zip.js/zip.js";
+import dotenv from "dotenv";
 
 async function getLatestReleaseVersion() {
     const response = await fetch("https://api.github.com/repos/fullstackedorg/editor/releases/latest");
@@ -189,7 +190,57 @@ child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVer
 
 /////////////// ios /////////////////
 
+const iosDirectory = "platform/ios";
+
+child_process.execSync("make ios", {
+    cwd: `${iosDirectory}/esbuild`,
+    stdio: "inherit"
+});
+
+const commitNumber = child_process.execSync("git rev-list --count --all").toString().trim();
+
+const xcodeFile = `${iosDirectory}/xcode/FullStacked.xcodeproj/project.pbxproj`;
+const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
+const xcodeFileUpdated = xcodeFileContent
+    .replace(
+        /MARKETING_VERSION = .*?;/g,
+        `MARKETING_VERSION = ${currentVersion};`
+    )
+    .replace(
+        /CURRENT_PROJECT_VERSION = .*?;/g,
+        `CURRENT_PROJECT_VERSION = ${commitNumber};`
+    );
+fs.writeFileSync(xcodeFile, xcodeFileUpdated);
+
+const xcodeDirectory = `${process.cwd()}/${iosDirectory}/xcode`;
+const archivePath = `${process.cwd()}/${iosDirectory}/FullStacked.xcarchive`;
+const pkgDirectory = `${process.cwd()}/${iosDirectory}/pkg`;
+
+if (fs.existsSync(archivePath)) fs.rmSync(archivePath, { recursive: true, force: true });
+if (fs.existsSync(pkgDirectory)) fs.rmSync(pkgDirectory, { recursive: true, force: true });
+
+const appleKeys = dotenv.parse(fs.readFileSync(`${iosDirectory}/APPLE_KEYS.env`));
+
+child_process.execSync(`xcodebuild -project ${xcodeDirectory}/FullStacked.xcodeproj -scheme FullStacked -sdk iphoneos -configuration Release clean`, {
+    stdio: "inherit"
+});
+child_process.execSync(`xcodebuild -project ${xcodeDirectory}/FullStacked.xcodeproj -scheme FullStacked -sdk iphoneos -configuration Release archive -archivePath ${archivePath}`, {
+    stdio: "inherit"
+});
+child_process.execSync(`xcodebuild -exportArchive -archivePath ${archivePath} -exportOptionsPlist ${process.cwd()}/${iosDirectory}/exportOptions.plist -exportPath ${pkgDirectory} -allowProvisioningUpdates`, {
+    stdio: "inherit"
+});
+child_process.execSync(`xcrun altool --upload-app --file /FullStacked.ipa -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`, {
+    stdio: "inherit",
+    env: {
+        API_PRIVATE_KEYS_DIR: appleKeys.APPLE_API_KEY_DIRECTORY
+    }
+})
+
 ///////////// android //////////////
 
+
+
 ///////////// docker ///////////////
+
 
