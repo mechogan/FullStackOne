@@ -279,8 +279,20 @@ child_process.execSync(`python upload.py org.fullstacked.editor ${aabFile} ${cur
     cwd: androidDirectory
 })
 
-
-
 ///////////// docker ///////////////
 
+const dockerDirectory = "platform/docker";
 
+child_process.execSync(`npm ci`, {
+    stdio: "inherit",
+    cwd: "lib/puppeteer-stream"
+})
+
+child_process.execSync("node build --image beta", {
+    stdio: "inherit",
+    cwd: dockerDirectory
+})
+
+child_process.execSync("docker push fullstackedorg/editor:beta", {
+    stdio: "inherit"
+})
