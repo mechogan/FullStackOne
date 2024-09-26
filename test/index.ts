@@ -29,9 +29,6 @@ child_process.execSync(`node ${build("p2p.ts")}`, {
     stdio: "inherit"
 });
 
-// ios
-child_process.execSync(`node ${build("ios.ts")}`, { stdio: "inherit" });
-
 // webcontainer
 child_process.execSync(`node ${build("webcontainer/test.ts")}`, {
     stdio: "inherit"

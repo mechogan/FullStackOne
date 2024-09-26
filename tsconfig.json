@@ -8,6 +8,7 @@
     "exclude": [
         "lib",
         "platform/android",
+        "platform/ios",
         "platform/docker",
         "platform/electron",
         "platform/node/editor",
