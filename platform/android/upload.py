@@ -23,7 +23,7 @@ from oauth2client import client
 import mimetypes
 mimetypes.add_type('application/octet-stream', '.aab')
 
-TRACK = 'internal'  # Can be 'internal', 'alpha', beta', 'production' or 'rollout'
+TRACK = 'alpha'  # Can be 'internal', 'alpha', beta', 'production' or 'rollout'
 
 # Declare command-line flags.
 argparser = argparse.ArgumentParser(add_help=False)
