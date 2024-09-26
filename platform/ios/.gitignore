@@ -1,0 +1,4 @@
+*.xcarchive
+pkg
+exportOptions.plist
+*.env

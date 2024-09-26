@@ -230,7 +230,7 @@ child_process.execSync(`xcodebuild -project ${xcodeDirectory}/FullStacked.xcodep
 child_process.execSync(`xcodebuild -exportArchive -archivePath ${archivePath} -exportOptionsPlist ${process.cwd()}/${iosDirectory}/exportOptions.plist -exportPath ${pkgDirectory} -allowProvisioningUpdates`, {
     stdio: "inherit"
 });
-child_process.execSync(`xcrun altool --upload-app --file /FullStacked.ipa -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`, {
+child_process.execSync(`xcrun altool --upload-app --file ${pkgDirectory}/FullStacked.ipa -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`, {
     stdio: "inherit",
     env: {
         API_PRIVATE_KEYS_DIR: appleKeys.APPLE_API_KEY_DIRECTORY
@@ -238,6 +238,8 @@ child_process.execSync(`xcrun altool --upload-app --file /FullStacked.ipa -t ios
 })
 
 ///////////// android //////////////
+
+
 
 
 
