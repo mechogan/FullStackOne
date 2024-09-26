@@ -66,7 +66,7 @@ def main(argv):
         track=TRACK,
         packageName=package_name,
         body={u'releases': [{
-            u'name': u'My first API release',
+            u'name': u'release',
             u'versionCodes': [str(aab_response['versionCode'])],
             u'status': u'completed',
         }]}).execute()
