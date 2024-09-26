@@ -1,6 +1,7 @@
 import fs from "fs";
 import child_process from "child_process";
 import semver from "semver";
+import * as zip from "@zip.js/zip.js";
 
 async function getLatestReleaseVersion() {
     const response = await fetch("https://api.github.com/repos/fullstackedorg/editor/releases/latest");
@@ -24,7 +25,6 @@ function notifyError(message) {
     console.log(message);
     process.exit(1);
 }
-
 
 
 const currentVersion = JSON.parse(fs.readFileSync("package.json", { encoding: "utf-8" })).version;
@@ -56,7 +56,8 @@ try {
 }
 
 
-// node
+/////////// node /////////////
+
 async function getLatestBeta() {
     const response = await fetch("https://registry.npmjs.org/@fullstacked/editor/beta");
     const { version } = await response.json();
@@ -72,7 +73,7 @@ const build = semver.eq(latestBetaVersion, currentVersion)
     : 0;
 
 const nodeDirectory = "platform/node";
-const nodePackageJsonFile = `${nodeDirectory}/package.json`;    
+const nodePackageJsonFile = `${nodeDirectory}/package.json`;
 const nodePackageJson = JSON.parse(fs.readFileSync(nodePackageJsonFile, { encoding: "utf-8" }));
 nodePackageJson.version = currentVersion + "-" + build;
 fs.writeFileSync(nodePackageJsonFile, JSON.stringify(nodePackageJson, null, 4));
@@ -82,18 +83,93 @@ try {
         cwd: nodeDirectory,
         stdio: "inherit"
     })
-} catch(e) {
+} catch (e) {
     console.error(e);
     notifyError("Failed to publish node to npmjs");
 }
 
 
-// electron
+////////////// electron ////////////////
+
+const electronDirectory = "platform/electron";
+
+const electronPackageJsonFile = `${electronDirectory}/package.json`;
+const electronPackageJson = JSON.parse(fs.readFileSync(electronPackageJsonFile, { encoding: "utf-8" }))
+electronPackageJson.version = currentVersion;
+fs.writeFileSync(electronPackageJsonFile, JSON.stringify(electronPackageJson, null, 4));
+
+child_process.execSync("npm ci", {
+    cwd: electronDirectory,
+    stdio: "inherit"
+});
+
+const releaseFileNames = [
+    `fullstacked-${currentVersion}-darwin-arm64.zip`,
+    `fullstacked-${currentVersion}-darwin-x64.zip`,
+    `fullstacked-${currentVersion}-win32-arm64.zip`,
+    `fullstacked-${currentVersion}-win32-x64.zip`,
+    `fullstacked-${currentVersion}-linux-arm64.deb`,
+    `fullstacked-${currentVersion}-linux-x64.deb`,
+    `fullstacked-${currentVersion}-linux-arm64.rpm`,
+    `fullstacked-${currentVersion}-linux-x64.rpm`,
+]
+
+child_process.execSync("npm run make -- --platform darwin", {
+    cwd: electronDirectory,
+    stdio: "inherit"
+});
+
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(0)} --file=${electronDirectory}/out/make/zip/darwin/arm64/FullStacked-darwin-arm64-${currentVersion}.zip`, {
+    stdio: "inherit"
+});
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(1)} --file=${electronDirectory}/out/make/zip/darwin/x64/FullStacked-darwin-x64-${currentVersion}.zip`, {
+    stdio: "inherit"
+});
 
 
-// ios
+child_process.execSync("npm run make -- --platform win32", {
+    cwd: electronDirectory,
+    stdio: "inherit"
+});
 
-// android
+async function zipExe(directory, filename) {
+    const zipFileStream = new TransformStream();
+    const zipFileBlobPromise = new Response(zipFileStream.readable).blob();
 
-// docker
+    const data = fs.readFileSync(`${directory}/${filename}`);
+    const readableStream = new Blob([data]).stream();
+
+    const zipWriter = new zip.ZipWriter(zipFileStream.writable);
+    await zipWriter.add(filename, readableStream);
+    await zipWriter.close();
+    
+    const zipBlob = await zipFileBlobPromise
+    const zipFileName = filename.split(".").slice(0, -1).join(".") + ".zip";
+    fs.writeFileSync(`${directory}/${zipFileName}`, Buffer.from(await zipBlob.arrayBuffer()))
+}
+
+await Promise.all([
+    zipExe(`${electronDirectory}/out/make/squirrel.windows/arm64`, `FullStacked-${currentVersion} Setup.exe`),
+    zipExe(`${electronDirectory}/out/make/squirrel.windows/x64`, `FullStacked-${currentVersion} Setup.exe`)
+])
+
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(2)} --file="${electronDirectory}/out/make/squirrel.windows/arm64/FullStacked-${currentVersion} Setup.zip"`, {
+    stdio: "inherit"
+});
+child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${releaseFileNames.at(3)} --file="${electronDirectory}/out/make/squirrel.windows/x64/FullStacked-${currentVersion} Setup.zip"`, {
+    stdio: "inherit"
+});
+
+
+child_process.execSync("npm run make -- --platform linux", {
+    cwd: electronDirectory,
+    stdio: "inherit"
+});
+
+
+/////////////// ios /////////////////
+
+///////////// android //////////////
+
+///////////// docker ///////////////
 
