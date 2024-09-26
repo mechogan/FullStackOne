@@ -21,10 +21,9 @@ import sys
 from apiclient import sample_tools
 from oauth2client import client
 import mimetypes
-
 mimetypes.add_type('application/octet-stream', '.aab')
 
-TRACK = 'beta'
+TRACK = 'alpha'  # Can be 'internal', 'alpha', beta', 'production' or 'rollout'
 
 # Declare command-line flags.
 argparser = argparse.ArgumentParser(add_help=False)

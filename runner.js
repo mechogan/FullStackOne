@@ -242,37 +242,37 @@ const commitNumber = child_process.execSync("git rev-list --count --all").toStri
 
 const androidDirectory = "platform/android";
 
-// child_process.execSync("make android", {
-//     cwd: `${androidDirectory}/esbuild`,
-//     stdio: "inherit"
-// });
+child_process.execSync("make android", {
+    cwd: `${androidDirectory}/esbuild`,
+    stdio: "inherit"
+});
 
-// const gradleFile = `${androidDirectory}/studio/app/build.gradle.kts`;
-// const gradleFileContent = fs.readFileSync(gradleFile, { encoding: "utf-8" });
-// const gradleFileUpdated = gradleFileContent
-//     .replace(
-//         /versionName = ".*?"/g,
-//         `versionName = "${currentVersion}"`
-//     )
-//     .replace(
-//         /versionCode = .*?\n/g,
-//         `versionCode = ${commitNumber}\n`
-//     );
-// fs.writeFileSync(gradleFile, gradleFileUpdated);
+const gradleFile = `${androidDirectory}/studio/app/build.gradle.kts`;
+const gradleFileContent = fs.readFileSync(gradleFile, { encoding: "utf-8" });
+const gradleFileUpdated = gradleFileContent
+    .replace(
+        /versionName = ".*?"/g,
+        `versionName = "${currentVersion}"`
+    )
+    .replace(
+        /versionCode = .*?\n/g,
+        `versionCode = ${commitNumber}\n`
+    );
+fs.writeFileSync(gradleFile, gradleFileUpdated);
 
-// child_process.execSync("./gradlew bundleRelease", {
-//     cwd: `${androidDirectory}/studio`,
-//     stdio: "inherit"
-// });
+child_process.execSync("./gradlew bundleRelease", {
+    cwd: `${androidDirectory}/studio`,
+    stdio: "inherit"
+});
 
-// const androidKeys = dotenv.parse(fs.readFileSync(`${androidDirectory}/ANDROID_KEYS.env`));
+const androidKeys = dotenv.parse(fs.readFileSync(`${androidDirectory}/ANDROID_KEYS.env`));
 
 const aabFile = `${process.cwd()}/${androidDirectory}/studio/app/build/outputs/bundle/release/app-release.aab`;
 
-// child_process.execSync(`jarsigner -keystore ${androidKeys.FILE} -storepass ${androidKeys.PASSPHRASE} ${aabFile} ${androidKeys.KEY}`, {
-//     cwd: `${androidDirectory}/studio`,
-//     stdio: "inherit"
-// });
+child_process.execSync(`jarsigner -keystore ${androidKeys.FILE} -storepass ${androidKeys.PASSPHRASE} ${aabFile} ${androidKeys.KEY}`, {
+    cwd: `${androidDirectory}/studio`,
+    stdio: "inherit"
+});
 
 child_process.execSync(`python upload.py org.fullstacked.editor ${aabFile}`, {
     stdio: "inherit",
