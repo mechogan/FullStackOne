@@ -3,7 +3,7 @@ import fs from "fs";
 import child_process from "child_process";
 
 if (fs.existsSync("package")) {
-    fs.rmSync("package", { recursive: true });
+    fs.rmSync("package", { recursive: true, force: true });
 }
 
 fs.mkdirSync("package");
@@ -45,8 +45,10 @@ esbuild.buildSync({
 
 fs.cpSync("src/remote/client/index.html", "package/dist/index.html");
 
-if (process.argv.includes("--image")) {
-    child_process.execSync("docker build -t fullstackedorg/editor .", {
+const buildImage = process.argv.indexOf("--image")
+if (buildImage >= 0) {
+    const tag = process.argv.at(buildImage + 1) || "latest";
+    child_process.execSync(`docker build -t fullstackedorg/editor:${tag} .`, {
         stdio: "inherit"
     });
 } else {

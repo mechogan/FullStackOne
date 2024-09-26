@@ -14,13 +14,23 @@ export default async function () {
 
     versionEditor.innerHTML = `<label>Editor</label>`;
 
-    const currentVersion = await rpc().fs.readFile("version.txt", { encoding: "utf8" }) as string;
+    const currentVersion: {
+        version: string,
+        branch: string,
+        commit: string
+    } = JSON.parse(await rpc().fs.readFile("version.json", { encoding: "utf8" }) as string);
 
     const versionEditorContainer = document.createElement("div");
-    versionEditorContainer.classList.add("version-with-badge");
-    versionEditorContainer.innerText = currentVersion
-    versionEditor.append(versionEditorContainer);
+    versionEditorContainer.classList.add("version-editor");
 
+    versionEditorContainer.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`
+
+    const versionWithBadge = document.createElement("div");
+    versionWithBadge.innerHTML = `<div class="version">${currentVersion.version}</div>`;
+    
+    versionEditorContainer.prepend(versionWithBadge);
+
+    versionEditor.append(versionEditorContainer);
     container.append(versionEditor);
 
     getLatestVersionTag()
@@ -28,19 +38,19 @@ export default async function () {
             const badge = document.createElement("div");
             badge.classList.add("badge");
 
-            if(semver.gt(currentVersion, latestVersion)) {
+            if(semver.gt(currentVersion.version, latestVersion)) {
                 badge.classList.add("accent");
                 badge.innerText = "Development";
             }
-            else if(semver.eq(currentVersion, latestVersion)) {
+            else if(semver.eq(currentVersion.version, latestVersion)) {
                 badge.innerText = "Latest";
             }
-            else if(semver.lt(currentVersion, latestVersion)) {
+            else if(semver.lt(currentVersion.version, latestVersion)) {
                 badge.classList.add("warning");
                 badge.innerText = "Update Available";
             }
 
-            versionEditorContainer.prepend(badge);
+            versionWithBadge.prepend(badge);
         })
 
 

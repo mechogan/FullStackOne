@@ -15,7 +15,7 @@ export default async function (
     for (const file of demoFiles) {
         const filename = file.slice(directory.length + 1);
         if (ignore && ignore(filename)) continue;
-        zipWriter.add(
+        await zipWriter.add(
             filename,
             new zip.Uint8ArrayReader((await readFileFn(file)) as Uint8Array)
         );

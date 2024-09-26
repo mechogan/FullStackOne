@@ -109,7 +109,8 @@ const restartBrowserStreaming = async () => {
                     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
                     : "/usr/bin/chromium-browser",
             defaultViewport,
-            headless: "new"
+            headless: "new",
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
         });
         page = await browser.newPage();
         page.on("console", (message) =>
