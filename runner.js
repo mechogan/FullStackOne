@@ -3,6 +3,14 @@ import child_process from "child_process";
 import semver from "semver";
 import * as zip from "@zip.js/zip.js";
 import dotenv from "dotenv";
+import {
+    CreateMultipartUploadCommand,
+    UploadPartCommand,
+    CompleteMultipartUploadCommand,
+    AbortMultipartUploadCommand,
+    S3Client,
+} from "@aws-sdk/client-s3";
+import prettyMs from 'pretty-ms';
 
 async function getLatestReleaseVersion() {
     const response = await fetch("https://api.github.com/repos/fullstackedorg/editor/releases/latest");
@@ -24,7 +32,7 @@ function pullAndExit() {
 
 function notifyError(message, exit = true) {
     console.log(message);
-    if(exit)
+    if (exit)
         process.exit(1);
 }
 
@@ -37,6 +45,7 @@ if (semver.lte(currentVersion, latestReleaseVersion)) {
 
 const commitNumber = child_process.execSync("git rev-list --count --all").toString().trim();
 
+const start = new Date();
 
 try {
     child_process.execSync("npm ci", { stdio: "inherit" });
@@ -46,29 +55,29 @@ try {
 }
 
 const electronDirectory = "platform/electron";
-try {
-    child_process.execSync("npm ci", {
-        cwd: electronDirectory,
-        stdio: "inherit"
-    });
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to run [npm ci] in electron directory");
-}
+// try {
+//     child_process.execSync("npm ci", {
+//         cwd: electronDirectory,
+//         stdio: "inherit"
+//     });
+// } catch (e) {
+//     console.error(e);
+//     notifyError("Failed to run [npm ci] in electron directory");
+// }
 
-try {
-    child_process.execSync("npm run build", { stdio: "inherit" });
-} catch (e) {
-    console.error(e)
-    notifyError("Failed to run [npm run build]");
-}
+// try {
+//     child_process.execSync("npm run build", { stdio: "inherit" });
+// } catch (e) {
+//     console.error(e)
+//     notifyError("Failed to run [npm run build]");
+// }
 
-try {
-    child_process.execSync("npm test", { stdio: "inherit" });
-} catch (e) {
-    console.error(e)
-    notifyError("Failed to run [npm test]");
-}
+// try {
+//     child_process.execSync("npm test", { stdio: "inherit" });
+// } catch (e) {
+//     console.error(e)
+//     notifyError("Failed to run [npm test]");
+// }
 
 
 
@@ -76,24 +85,10 @@ try {
 
 const nodeDirectory = "platform/node";
 
-async function getLatestBeta() {
-    const response = await fetch("https://registry.npmjs.org/@fullstacked/editor/beta");
-    const { version } = await response.json();
-    return version;
-}
-
 const NODE_BUILD = async () => {
-    const latestBeta = await getLatestBeta();
-
-    const [latestBetaVersion, latestBetaBuild] = latestBeta.split("-")
-
-    const build = semver.eq(latestBetaVersion, currentVersion)
-        ? parseInt(latestBetaBuild) + 1
-        : 0;
-
     const nodePackageJsonFile = `${nodeDirectory}/package.json`;
     const nodePackageJson = JSON.parse(fs.readFileSync(nodePackageJsonFile, { encoding: "utf-8" }));
-    nodePackageJson.version = currentVersion + "-" + build;
+    nodePackageJson.version = currentVersion + "-" + commitNumber;
     fs.writeFileSync(nodePackageJsonFile, JSON.stringify(nodePackageJson, null, 4));
 
     child_process.execSync("npm run build", {
@@ -160,50 +155,144 @@ const ELECTRON_BUILD = () => {
 
 const releaseFileNames = [
     {
-        out: `zip/darwin/arm64/FullStacked-darwin-arm64-${currentVersion}.zip`,
-        bin: `fullstacked-${currentVersion}-darwin-arm64.zip`
+        file: `zip/darwin/arm64/FullStacked-darwin-arm64-${currentVersion}.zip`,
+        key: `fullstacked-${currentVersion}-darwin-arm64.zip`
     },
     {
-        out: `zip/darwin/x64/FullStacked-darwin-x64-${currentVersion}.zip`,
-        bin: `fullstacked-${currentVersion}-darwin-x64.zip`
+        file: `zip/darwin/x64/FullStacked-darwin-x64-${currentVersion}.zip`,
+        key: `fullstacked-${currentVersion}-darwin-x64.zip`
     },
     {
-        out: `squirrel.windows/arm64/FullStacked-${currentVersion} Setup.zip`,
-        bin: `fullstacked-${currentVersion}-win32-arm64.zip`
+        file: `squirrel.windows/arm64/FullStacked-${currentVersion} Setup.zip`,
+        key: `fullstacked-${currentVersion}-win32-arm64.zip`
     },
     {
-        out: `squirrel.windows/x64/FullStacked-${currentVersion} Setup.zip`,
-        bin: `fullstacked-${currentVersion}-win32-x64.zip`
+        file: `squirrel.windows/x64/FullStacked-${currentVersion} Setup.zip`,
+        key: `fullstacked-${currentVersion}-win32-x64.zip`
     },
     {
-        out: `deb/arm64/fullstacked_${currentVersion}_arm64.deb`,
-        bin: `fullstacked-${currentVersion}-linux-arm64.deb`
+        file: `deb/arm64/fullstacked_${currentVersion}_arm64.deb`,
+        key: `fullstacked-${currentVersion}-linux-arm64.deb`
     },
     {
-        out: `deb/x64/fullstacked_${currentVersion}_amd64.deb`,
-        bin: `fullstacked-${currentVersion}-linux-x64.deb`
+        file: `deb/x64/fullstacked_${currentVersion}_amd64.deb`,
+        key: `fullstacked-${currentVersion}-linux-x64.deb`
     },
     {
-        out: `rpm/arm64/FullStacked-${currentVersion}-1.arm64.rpm`,
-        bin: `fullstacked-${currentVersion}-linux-arm64.rpm`,
+        file: `rpm/arm64/FullStacked-${currentVersion}-1.arm64.rpm`,
+        key: `fullstacked-${currentVersion}-linux-arm64.rpm`,
     },
     {
-        out: `rpm/x64/FullStacked-${currentVersion}-1.x86_64.rpm`,
-        bin: `fullstacked-${currentVersion}-linux-x64.rpm`,
+        file: `rpm/x64/FullStacked-${currentVersion}-1.x86_64.rpm`,
+        key: `fullstacked-${currentVersion}-linux-x64.rpm`,
     }
 ]
 
 const electronMakeDirectory = `${electronOutDirectory}/make`;
 const cloudflareKeys = dotenv.parse(fs.readFileSync(`${electronDirectory}/CLOUDFLARE.env`));
 
-const ELECTRON_DEPLOY = () => {
-    for (const { out, bin } of releaseFileNames) {
-        child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${bin} --file=${electronMakeDirectory}/${out}`, {
-            stdio: "inherit",
-            env: {
-                CLOUDFLARE_ACCOUNT_ID: cloudflareKeys.CLOUDFLARE_ACCOUNT_ID
+const s3Client = new S3Client({
+    region: "auto",
+    endpoint: `https://${cloudflareKeys.ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+        accessKeyId: cloudflareKeys.ACCESS_KEY_ID,
+        secretAccessKey: cloudflareKeys.SECRET_ACCESS_KEY,
+    },
+});
+const Bucket = cloudflareKeys.BUCKET;
+
+const tenMB = 10 * 1024 * 1024;
+
+const UPLOAD = async ({ file, key }) => {
+    const Key = `releases/${currentVersion}/${key}`;
+    const filePath = `${electronMakeDirectory}/${file}`;
+
+    console.log(`Uploading [${filePath}] to Bucket: [${Bucket}] Key: [${Key}]`);
+
+    const buffer = fs.readFileSync(filePath);
+
+    let UploadId;
+
+    try {
+        const multipartUpload = await s3Client.send(
+            new CreateMultipartUploadCommand({ Bucket, Key })
+        );
+
+        UploadId = multipartUpload.UploadId;
+
+        const uploadPromises = [];
+        const partsCount = Math.ceil(buffer.byteLength / tenMB);
+
+        let uploadedParts = 0;
+        for (let i = 0; i < partsCount; i++) {
+            const start = i * tenMB;
+            const end = start + tenMB;
+            uploadPromises.push(
+                s3Client
+                    .send(
+                        new UploadPartCommand({
+                            Bucket,
+                            Key,
+                            UploadId,
+                            Body: buffer.subarray(start, end),
+                            PartNumber: i + 1,
+                        }),
+                    )
+                    .then((d) => {
+                        uploadedParts++;
+                        console.log(`Uploaded ${uploadedParts}/${partsCount} for [${key}]`);
+                        return d;
+                    }),
+            );
+        }
+
+        const uploadResults = await Promise.all(uploadPromises);
+
+        return await s3Client.send(
+            new CompleteMultipartUploadCommand({
+                Bucket,
+                Key,
+                UploadId,
+                MultipartUpload: {
+                    Parts: uploadResults.map(({ ETag }, i) => ({
+                        ETag,
+                        PartNumber: i + 1,
+                    })),
+                },
+            }),
+        );
+    } catch (err) {
+        if (UploadId) {
+            const abortCommand = new AbortMultipartUploadCommand({
+                Bucket,
+                Key,
+                UploadId,
+            });
+
+            await s3Client.send(abortCommand);
+        }
+
+        throw err
+    }
+}
+
+const ELECTRON_DEPLOY = async () => {
+    for (const item of releaseFileNames) {
+        let tries = 3, success = false;
+
+        while(tries && !success) {
+            try {
+                await UPLOAD(item);
+                success = true;
+            } catch(e) {
+                console.error(e);
+                tries--;
             }
-        });
+        }
+
+        if(!success) {
+            console.log(`Failed to upload ${item.key}`);
+        }
     }
 }
 
@@ -273,7 +362,7 @@ const ANDROID_BUILD = () => {
         cwd: `${androidDirectory}/esbuild`,
         stdio: "inherit"
     });
-    
+
     const gradleFile = `${androidDirectory}/studio/app/build.gradle.kts`;
     const gradleFileContent = fs.readFileSync(gradleFile, { encoding: "utf-8" });
     const gradleFileUpdated = gradleFileContent
@@ -286,12 +375,12 @@ const ANDROID_BUILD = () => {
             `versionCode = ${commitNumber}\n`
         );
     fs.writeFileSync(gradleFile, gradleFileUpdated);
-    
+
     child_process.execSync("./gradlew bundleRelease", {
         cwd: `${androidDirectory}/studio`,
         stdio: "inherit"
     });
-    
+
     child_process.execSync(`jarsigner -keystore ${androidKeys.FILE} -storepass ${androidKeys.PASSPHRASE} ${aabFile} ${androidKeys.KEY}`, {
         cwd: `${androidDirectory}/studio`,
         stdio: "inherit"
@@ -315,7 +404,7 @@ const DOCKER_BUILD = () => {
         stdio: "inherit",
         cwd: "lib/puppeteer-stream"
     })
-    
+
     child_process.execSync("node build --image beta", {
         stdio: "inherit",
         cwd: dockerDirectory
@@ -333,70 +422,79 @@ const DOCKER_DEPLOY = () => {
 ///////// BUILD ////////
 
 
-try {
-    await NODE_BUILD();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to build for node")
-}
-try {
-    await ELECTRON_BUILD();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to build for electron")
-}
-try {
-    IOS_BUILD();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to build for ios")
-}
-try {
-    ANDROID_BUILD();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to build for android")
-}
-try {
-    DOCKER_BUILD();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to build for docker")
-}
+// try {
+//     await NODE_BUILD();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to build for node")
+// }
+// try {
+//     await ELECTRON_BUILD();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to build for electron")
+// }
+// try {
+//     IOS_BUILD();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to build for ios")
+// }
+// try {
+//     ANDROID_BUILD();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to build for android")
+// }
+// try {
+//     DOCKER_BUILD();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to build for docker")
+// }
 
 
 ///////// DEPLOY ////////
 
 
+// try {
+//     NODE_DEPLOY();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to deploy for node", false)
+// }
 try {
-    NODE_DEPLOY();
-} catch(e) {
+    await ELECTRON_DEPLOY();
+} catch (e) {
     console.error(e);
-    notifyError("Failed to deploy for node", false)
+    notifyError("Failed to deploy for electron", false)
 }
-try {
-    ELECTRON_DEPLOY();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to deplooy for electron", false)
-}
-try {
-    IOS_DEPLOY();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to deploy for ios", false)
-}
-try {
-    ANDROID_DEPLOY();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to deploy for android", false)
-}
-try {
-    DOCKER_DEPLOY();
-} catch(e) {
-    console.error(e);
-    notifyError("Failed to deploy for docker", false)
-}
+// try {
+//     IOS_DEPLOY();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to deploy for ios", false)
+// }
+// try {
+//     ANDROID_DEPLOY();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to deploy for android", false)
+// }
+// try {
+//     DOCKER_DEPLOY();
+// } catch(e) {
+//     console.error(e);
+//     notifyError("Failed to deploy for docker", false)
+// }
 
+const end = new Date();
 
+const branch = child_process.execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
+const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
+
+console.log(`Released ${currentVersion} - ${commit.slice(0, 8)} (${branch})`);
+console.log("----------------")
+console.log(`Started at ${start.toLocaleDateString()}`);
+console.log(`Ended at ${end.toLocaleDateString()}`);
+console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
