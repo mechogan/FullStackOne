@@ -147,17 +147,40 @@ await demoPage2.goto(`http://localhost:${port2 + 1}`);
 
 await sleep(5000);
 
-const minusButton = await demoPage1.waitForSelector("#counter button");
-await minusButton.click();
+const getResult = () =>
+    document.querySelector("#counter > div > div")?.textContent;
+
+tries = 3;
+while (tries) {
+    const minusButton = await demoPage1.waitForSelector("#counter button");
+    await minusButton.click();
+
+    const count = await demoPage1.evaluate(getResult);
+    if(count === "-1") break;
+
+    tries--;
+
+    await demoPage1.bringToFront();
+
+    if (!tries) throwError("Unable to decrement");
+}
 
 await sleep(5000);
 
-const getResult = () =>
-    document.querySelector("#counter > div > div")?.textContent;
+await demoPage1.bringToFront();
+
+await sleep(2000);
+
+await demoPage2.bringToFront();
+
+await sleep(2000);
+
 const result1 = await demoPage1.evaluate(getResult);
 const result2 = await demoPage2.evaluate(getResult);
 
 if (result1 !== "-1" || result2 !== "-1") {
+    console.log("failed");
+    await sleep(1000000)
     onError(
         `Failed to broacast result. Results: Page 1 [${result1}], Page 2 [${result2}]`
     );
