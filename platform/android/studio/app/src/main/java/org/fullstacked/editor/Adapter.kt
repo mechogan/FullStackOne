@@ -1,7 +1,9 @@
 package org.fullstacked.editor
 
+import android.webkit.URLUtil
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
@@ -175,9 +177,12 @@ open class Adapter(
             .writeTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
-        val request = Request.Builder()
-            .url(json.getString(0))
 
+        var request: Builder? = null
+        try {
+            request = Builder()
+                .url(json.getString(0))
+        } catch (e: Exception) { return null }
 
         var utf8 = false
         var method = "GET"
