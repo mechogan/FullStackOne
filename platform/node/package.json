@@ -2,7 +2,7 @@
     "name": "@fullstacked/editor",
     "description": "Build and run full-stack JS apps on any platform.",
     "author": "FullStacked Org.",
-    "version": "0.8.2-5",
+    "version": "0.8.2-481",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"

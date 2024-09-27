@@ -47,37 +47,37 @@ const commitNumber = child_process.execSync("git rev-list --count --all").toStri
 
 const start = new Date();
 
-try {
-    child_process.execSync("npm ci", { stdio: "inherit" });
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to run [npm ci]");
-}
+// try {
+//     child_process.execSync("npm ci", { stdio: "inherit" });
+// } catch (e) {
+//     console.error(e);
+//     notifyError("Failed to run [npm ci]");
+// }
 
 const electronDirectory = "platform/electron";
-try {
-    child_process.execSync("npm ci", {
-        cwd: electronDirectory,
-        stdio: "inherit"
-    });
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to run [npm ci] in electron directory");
-}
+// try {
+//     child_process.execSync("npm ci", {
+//         cwd: electronDirectory,
+//         stdio: "inherit"
+//     });
+// } catch (e) {
+//     console.error(e);
+//     notifyError("Failed to run [npm ci] in electron directory");
+// }
 
-try {
-    child_process.execSync("npm run build", { stdio: "inherit" });
-} catch (e) {
-    console.error(e)
-    notifyError("Failed to run [npm run build]");
-}
+// try {
+//     child_process.execSync("npm run build", { stdio: "inherit" });
+// } catch (e) {
+//     console.error(e)
+//     notifyError("Failed to run [npm run build]");
+// }
 
-try {
-    child_process.execSync("npm test", { stdio: "inherit" });
-} catch (e) {
-    console.error(e)
-    notifyError("Failed to run [npm test]");
-}
+// try {
+//     child_process.execSync("npm test", { stdio: "inherit" });
+// } catch (e) {
+//     console.error(e)
+//     notifyError("Failed to run [npm test]");
+// }
 
 
 
@@ -125,7 +125,29 @@ async function zipExe(directory, filename) {
     fs.writeFileSync(`${directory}/${zipFileName}`, Buffer.from(await zipBlob.arrayBuffer()))
 }
 
-const ELECTRON_BUILD = () => {
+const ELECTRON_MAKE = (platform) => {
+    console.log(`Starting Electron Forge make for [${platform}]`);
+    const makeProcess = child_process.exec(`npx electron-forge make --arch=x64,arm64 --platform=${platform}`, {
+        cwd: electronDirectory
+    });
+    return new Promise((resolve, reject) => {
+        let errored = false;
+        makeProcess.stdout.on("data", (chunk) => process.stdout.write(`[${platform}]: ${chunk.toString()}`));
+        makeProcess.stderr.on("data", (chunk) => process.stderr.write(`[${platform}]: ${chunk.toString()}`));
+        makeProcess.on("error", error => {
+            console.log(`Failed Electron Forge make for [${platform}]`);
+            errored = true;
+            reject(error)
+        });
+        makeProcess.on("exit", () => {
+            if (errored) return;
+            console.log(`Finished Electron Forge make for [${platform}]`);
+            resolve();
+        });
+    })
+}
+
+const ELECTRON_BUILD = async () => {
     if (fs.existsSync(electronOutDirectory)) fs.rmSync(electronOutDirectory, { recursive: true, force: true });
 
     const electronPackageJsonFile = `${electronDirectory}/package.json`;
@@ -133,18 +155,12 @@ const ELECTRON_BUILD = () => {
     electronPackageJson.version = currentVersion;
     fs.writeFileSync(electronPackageJsonFile, JSON.stringify(electronPackageJson, null, 4));
 
-    child_process.execSync("npm run make -- --platform darwin", {
+    child_process.execSync("npm run build", {
         cwd: electronDirectory,
         stdio: "inherit"
     });
-    child_process.execSync("npm run make -- --platform win32", {
-        cwd: electronDirectory,
-        stdio: "inherit"
-    });
-    child_process.execSync("npm run make -- --platform linux", {
-        cwd: electronDirectory,
-        stdio: "inherit"
-    });
+
+    await Promise.all(["darwin", "win32", "linux"].map(ELECTRON_MAKE))
 
     return Promise.all([
         zipExe(`${electronDirectory}/out/make/squirrel.windows/arm64`, `FullStacked-${currentVersion} Setup.exe`),
@@ -191,19 +207,22 @@ const releaseFileNames = [
 const electronMakeDirectory = `${electronOutDirectory}/make`;
 const cloudflareKeys = dotenv.parse(fs.readFileSync(`${electronDirectory}/CLOUDFLARE.env`));
 
-const s3Client = new S3Client({
-    region: "auto",
-    endpoint: `https://${cloudflareKeys.ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-        accessKeyId: cloudflareKeys.ACCESS_KEY_ID,
-        secretAccessKey: cloudflareKeys.SECRET_ACCESS_KEY,
-    },
-});
 const Bucket = cloudflareKeys.BUCKET;
 
 const tenMB = 10 * 1024 * 1024;
 
 const UPLOAD = async ({ file, key }) => {
+    const s3Client = new S3Client({
+        region: "auto",
+        endpoint: `https://${cloudflareKeys.ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+            accessKeyId: cloudflareKeys.ACCESS_KEY_ID,
+            secretAccessKey: cloudflareKeys.SECRET_ACCESS_KEY,
+        },
+        maxAttempts: 10,
+        retryMode: "standard"
+    });
+
     const Key = `releases/${currentVersion}/${key}`;
     const filePath = `${electronMakeDirectory}/${file}`;
 
@@ -215,7 +234,7 @@ const UPLOAD = async ({ file, key }) => {
 
     try {
         const multipartUpload = await s3Client.send(
-            new CreateMultipartUploadCommand({ Bucket, Key })
+            new CreateMultipartUploadCommand({ Bucket, Key }),
         );
 
         UploadId = multipartUpload.UploadId;
@@ -227,26 +246,22 @@ const UPLOAD = async ({ file, key }) => {
         for (let i = 0; i < partsCount; i++) {
             const start = i * tenMB;
             const end = start + tenMB;
-            uploadPromises.push(
-                s3Client
-                    .send(
-                        new UploadPartCommand({
-                            Bucket,
-                            Key,
-                            UploadId,
-                            Body: buffer.subarray(start, end),
-                            PartNumber: i + 1,
-                        }),
-                    )
-                    .then((d) => {
-                        uploadedParts++;
-                        console.log(`Uploaded ${uploadedParts}/${partsCount} for [${key}]`);
-                        return d;
+            await s3Client
+                .send(
+                    new UploadPartCommand({
+                        Bucket,
+                        Key,
+                        UploadId,
+                        Body: buffer.subarray(start, end),
+                        PartNumber: i + 1,
                     }),
-            );
+                )
+                .then((d) => {
+                    uploadedParts++;
+                    console.log(`Uploaded ${uploadedParts}/${partsCount} for [${key}]`);
+                    return d;
+                });
         }
-
-        const uploadResults = await Promise.all(uploadPromises);
 
         return await s3Client.send(
             new CompleteMultipartUploadCommand({
@@ -277,23 +292,7 @@ const UPLOAD = async ({ file, key }) => {
 }
 
 const ELECTRON_DEPLOY = async () => {
-    for (const item of releaseFileNames) {
-        let tries = 3, success = false;
-
-        while(tries && !success) {
-            try {
-                await UPLOAD(item);
-                success = true;
-            } catch(e) {
-                console.error(e);
-                tries--;
-            }
-        }
-
-        if(!success) {
-            console.log(`Failed to upload ${item.key}`);
-        }
-    }
+    return Promise.all(releaseFileNames.map(UPLOAD))
 }
 
 /////////////// ios /////////////////
@@ -430,7 +429,7 @@ try {
 }
 try {
     await ELECTRON_BUILD();
-} catch(e) {
+} catch (e) {
     console.error(e);
     notifyError("Failed to build for electron")
 }
