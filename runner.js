@@ -55,29 +55,29 @@ try {
 }
 
 const electronDirectory = "platform/electron";
-// try {
-//     child_process.execSync("npm ci", {
-//         cwd: electronDirectory,
-//         stdio: "inherit"
-//     });
-// } catch (e) {
-//     console.error(e);
-//     notifyError("Failed to run [npm ci] in electron directory");
-// }
+try {
+    child_process.execSync("npm ci", {
+        cwd: electronDirectory,
+        stdio: "inherit"
+    });
+} catch (e) {
+    console.error(e);
+    notifyError("Failed to run [npm ci] in electron directory");
+}
 
-// try {
-//     child_process.execSync("npm run build", { stdio: "inherit" });
-// } catch (e) {
-//     console.error(e)
-//     notifyError("Failed to run [npm run build]");
-// }
+try {
+    child_process.execSync("npm run build", { stdio: "inherit" });
+} catch (e) {
+    console.error(e)
+    notifyError("Failed to run [npm run build]");
+}
 
-// try {
-//     child_process.execSync("npm test", { stdio: "inherit" });
-// } catch (e) {
-//     console.error(e)
-//     notifyError("Failed to run [npm test]");
-// }
+try {
+    child_process.execSync("npm test", { stdio: "inherit" });
+} catch (e) {
+    console.error(e)
+    notifyError("Failed to run [npm test]");
+}
 
 
 
@@ -422,71 +422,71 @@ const DOCKER_DEPLOY = () => {
 ///////// BUILD ////////
 
 
-// try {
-//     await NODE_BUILD();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to build for node")
-// }
-// try {
-//     await ELECTRON_BUILD();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to build for electron")
-// }
-// try {
-//     IOS_BUILD();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to build for ios")
-// }
-// try {
-//     ANDROID_BUILD();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to build for android")
-// }
-// try {
-//     DOCKER_BUILD();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to build for docker")
-// }
+try {
+    await NODE_BUILD();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to build for node")
+}
+try {
+    await ELECTRON_BUILD();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to build for electron")
+}
+try {
+    IOS_BUILD();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to build for ios")
+}
+try {
+    ANDROID_BUILD();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to build for android")
+}
+try {
+    DOCKER_BUILD();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to build for docker")
+}
 
 
 ///////// DEPLOY ////////
 
 
-// try {
-//     NODE_DEPLOY();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to deploy for node", false)
-// }
+try {
+    NODE_DEPLOY();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to deploy for node", false)
+}
 try {
     await ELECTRON_DEPLOY();
 } catch (e) {
     console.error(e);
     notifyError("Failed to deploy for electron", false)
 }
-// try {
-//     IOS_DEPLOY();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to deploy for ios", false)
-// }
-// try {
-//     ANDROID_DEPLOY();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to deploy for android", false)
-// }
-// try {
-//     DOCKER_DEPLOY();
-// } catch(e) {
-//     console.error(e);
-//     notifyError("Failed to deploy for docker", false)
-// }
+try {
+    IOS_DEPLOY();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to deploy for ios", false)
+}
+try {
+    ANDROID_DEPLOY();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to deploy for android", false)
+}
+try {
+    DOCKER_DEPLOY();
+} catch(e) {
+    console.error(e);
+    notifyError("Failed to deploy for docker", false)
+}
 
 const end = new Date();
 
@@ -495,6 +495,6 @@ const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
 
 console.log(`Released ${currentVersion} - ${commit.slice(0, 8)} (${branch})`);
 console.log("----------------")
-console.log(`Started at ${start.toLocaleDateString()}`);
-console.log(`Ended at ${end.toLocaleDateString()}`);
+console.log(`Started at ${start.toLocaleString()}`);
+console.log(`Ended at ${end.toLocaleString()}`);
 console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
