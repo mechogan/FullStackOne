@@ -239,14 +239,13 @@ const UPLOAD = async ({ file, key }) => {
 
         UploadId = multipartUpload.UploadId;
 
-        const uploadPromises = [];
         const partsCount = Math.ceil(buffer.byteLength / tenMB);
 
-        let uploadedParts = 0;
+        const uploadResults = [];
         for (let i = 0; i < partsCount; i++) {
             const start = i * tenMB;
             const end = start + tenMB;
-            await s3Client
+            uploadResults.push(await s3Client
                 .send(
                     new UploadPartCommand({
                         Bucket,
@@ -257,13 +256,12 @@ const UPLOAD = async ({ file, key }) => {
                     }),
                 )
                 .then((d) => {
-                    uploadedParts++;
-                    console.log(`Uploaded ${uploadedParts}/${partsCount} for [${key}]`);
+                    console.log(`Uploaded ${uploadResults.length + 1}/${partsCount} for [${key}]`);
                     return d;
-                });
+                }));
         }
 
-        return await s3Client.send(
+        await s3Client.send(
             new CompleteMultipartUploadCommand({
                 Bucket,
                 Key,
@@ -276,6 +274,8 @@ const UPLOAD = async ({ file, key }) => {
                 },
             }),
         );
+
+        console.log(`Uploaded [${Key}]`);
     } catch (err) {
         if (UploadId) {
             const abortCommand = new AbortMultipartUploadCommand({
