@@ -47,37 +47,37 @@ const commitNumber = child_process.execSync("git rev-list --count --all").toStri
 
 const start = new Date();
 
-// try {
-//     child_process.execSync("npm ci", { stdio: "inherit" });
-// } catch (e) {
-//     console.error(e);
-//     notifyError("Failed to run [npm ci]");
-// }
+try {
+    child_process.execSync("npm ci", { stdio: "inherit" });
+} catch (e) {
+    console.error(e);
+    notifyError("Failed to run [npm ci]");
+}
 
 const electronDirectory = "platform/electron";
-// try {
-//     child_process.execSync("npm ci", {
-//         cwd: electronDirectory,
-//         stdio: "inherit"
-//     });
-// } catch (e) {
-//     console.error(e);
-//     notifyError("Failed to run [npm ci] in electron directory");
-// }
+try {
+    child_process.execSync("npm ci", {
+        cwd: electronDirectory,
+        stdio: "inherit"
+    });
+} catch (e) {
+    console.error(e);
+    notifyError("Failed to run [npm ci] in electron directory");
+}
 
-// try {
-//     child_process.execSync("npm run build", { stdio: "inherit" });
-// } catch (e) {
-//     console.error(e)
-//     notifyError("Failed to run [npm run build]");
-// }
+try {
+    child_process.execSync("npm run build", { stdio: "inherit" });
+} catch (e) {
+    console.error(e)
+    notifyError("Failed to run [npm run build]");
+}
 
-// try {
-//     child_process.execSync("npm test", { stdio: "inherit" });
-// } catch (e) {
-//     console.error(e)
-//     notifyError("Failed to run [npm test]");
-// }
+try {
+    child_process.execSync("npm test", { stdio: "inherit" });
+} catch (e) {
+    console.error(e)
+    notifyError("Failed to run [npm test]");
+}
 
 
 
