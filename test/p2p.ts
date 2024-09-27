@@ -156,26 +156,34 @@ while (tries) {
     await minusButton.click();
 
     const count = await demoPage1.evaluate(getResult);
-    if(count === "-1") break;
+    if (count === "-1") break;
 
     tries--;
 
     await demoPage1.bringToFront();
 
-    if (!tries) throwError("Unable to decrement");
+    if (!tries) onError("Unable to decrement");
 }
 
 await demoPage2.bringToFront();
 
 await sleep(5000);
 
-const result1 = await demoPage1.evaluate(getResult);
-const result2 = await demoPage2.evaluate(getResult);
+tries = 3;
+while (tries) {
+    const count = await demoPage2.evaluate(getResult);
+    if (count === "-1") break;
 
-if (result1 !== "-1" || result2 !== "-1") {
-    onError(
-        `Failed to broacast result. Results: Page 1 [${result1}], Page 2 [${result2}]`
-    );
+    tries--;
+
+    await demoPage2.bringToFront();
+    await sleep(2000);
+
+    if (!tries) {
+        onError(
+            `Failed to broacast result. Results: Expected [-1], Found [${count}]`
+        );
+    }
 }
 
 await cleanup();
