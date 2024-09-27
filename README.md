@@ -14,7 +14,7 @@ Build, run and share applications all within the same environment.
 
 No server needed. Make multi-user functionalities with the built-in peer-to-peer connectivity.
 
-### Web-Like Apps
+### Web-Like Apps 
 
 Use some of the most popular tools to rapidly build.
 
