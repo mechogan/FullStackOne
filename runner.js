@@ -194,11 +194,15 @@ const releaseFileNames = [
 ]
 
 const electronMakeDirectory = `${electronOutDirectory}/make`;
+const cloudflareKeys = dotenv.parse(fs.readFileSync(`${electronDirectory}/CLOUDFLARE.env`));
 
 const ELECTRON_DEPLOY = () => {
     for (const { out, bin } of releaseFileNames) {
         child_process.execSync(`wrangler r2 object put fullstacked/releases/${currentVersion}/${bin} --file=${electronMakeDirectory}/${out}`, {
-            stdio: "inherit"
+            stdio: "inherit",
+            env: {
+                CLOUDFLARE_ACCOUNT_ID: cloudflareKeys.CLOUDFLARE_ACCOUNT_ID
+            }
         });
     }
 }
