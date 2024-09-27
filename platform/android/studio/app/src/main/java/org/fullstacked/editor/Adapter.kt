@@ -1,8 +1,6 @@
 package org.fullstacked.editor
 
-import android.webkit.URLUtil
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
@@ -15,7 +13,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.TimeUnit
-
 
 open class Adapter(
     val projectId: String,
