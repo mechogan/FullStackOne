@@ -291,8 +291,24 @@ const UPLOAD = async ({ file, key }) => {
     }
 }
 
+const tryUploadingUntilSuccess = async (item) => {
+    let tries = 0, success = false;
+    while(!success) {
+        tries++
+        try {
+            console.log(`Trying to upload [${item.key}] try ${tries}.`);
+            await UPLOAD(item);
+            success = true;
+        } catch(e) {
+            console.error(e)
+        }
+    }
+    
+    console.log(`Managed to upload [${item.key}] after ${tries} try.`);
+}
+
 const ELECTRON_DEPLOY = async () => {
-    return Promise.all(releaseFileNames.map(UPLOAD))
+    return Promise.all(releaseFileNames.map(tryUploadingUntilSuccess))
 }
 
 /////////////// ios /////////////////
