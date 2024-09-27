@@ -1,7 +1,7 @@
 package org.fullstacked.editor
 
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
@@ -13,7 +13,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.TimeUnit
-
 
 open class Adapter(
     val projectId: String,
@@ -175,9 +174,12 @@ open class Adapter(
             .writeTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
-        val request = Request.Builder()
-            .url(json.getString(0))
 
+        var request: Builder? = null
+        try {
+            request = Builder()
+                .url(json.getString(0))
+        } catch (e: Exception) { return null }
 
         var utf8 = false
         var method = "GET"
