@@ -518,12 +518,13 @@ console.log(`Ended at ${end.toLocaleString()}`);
 console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
 
 
-async function waitForNextCommit(){
+const waitForNextCommit = async () => {
+    console.log(`${new Date().toLocaleString()} - Current commit [${commit}]`);
     while(commit === await getLatestCommit()) {
-        await new Promise(res => setTimeout(res, 1000 * 5)) // 30sec
+        await new Promise(res => setTimeout(res, 1000 * 60 * 3)) // 3 min
     }
 
     pullAndExit();
 }
 
-waitForNextCommit();
+setTimeout(waitForNextCommit, 1000 * 60 * 10) // 10 min
