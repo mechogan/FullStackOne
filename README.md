@@ -1,6 +1,6 @@
 <img height=100 width=100 src="editor/assets/dev-icon.png" />
 
-# FullStacked Editor 
+# FullStacked Editor
 
 [Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org)
 
