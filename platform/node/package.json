@@ -1,6 +1,6 @@
 {
     "name": "@fullstacked/editor",
-    "description": "Build and run full-stack JS apps on any platform.",
+    "description": "Create Local-First Web-Like Apps On Any Platform.",
     "author": "FullStacked Org.",
     "version": "0.8.2-495",
     "main": "index.js",
@@ -20,11 +20,11 @@
     },
     "type": "module",
     "dependencies": {
-        "esbuild": "^0.21.5"
+        "esbuild": "^0.24.0"
     },
     "devDependencies": {
         "bonjour-service": "^1.2.1",
-        "mime": "^4.0.3",
-        "ws": "^8.17.1"
+        "mime": "^4.0.4",
+        "ws": "^8.18.0"
     }
 }
