@@ -12,7 +12,9 @@ module.exports = {
         },
         osxNotarize: {
             tool: "notarytool",
-            appleApiKey: appleKeys.APPLE_API_KEY_DIRECTORY + `/AuthKey_${appleKeys.APPLE_API_KEY_ID}.p8` ,
+            appleApiKey:
+                appleKeys.APPLE_API_KEY_DIRECTORY +
+                `/AuthKey_${appleKeys.APPLE_API_KEY_ID}.p8`,
             appleApiKeyId: appleKeys.APPLE_API_KEY_ID,
             appleApiIssuer: appleKeys.APPLE_API_ISSUER
         },

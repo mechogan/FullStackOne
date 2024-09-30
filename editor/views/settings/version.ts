@@ -15,51 +15,50 @@ export default async function () {
     versionEditor.innerHTML = `<label>Editor</label>`;
 
     const currentVersion: {
-        version: string,
-        branch: string,
-        commit: string
-    } = JSON.parse(await rpc().fs.readFile("version.json", { encoding: "utf8" }) as string);
+        version: string;
+        branch: string;
+        commit: string;
+    } = JSON.parse(
+        (await rpc().fs.readFile("version.json", {
+            encoding: "utf8"
+        })) as string
+    );
 
     const versionEditorContainer = document.createElement("div");
     versionEditorContainer.classList.add("version-editor");
 
-    versionEditorContainer.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`
+    versionEditorContainer.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`;
 
     const versionWithBadge = document.createElement("div");
     versionWithBadge.innerHTML = `<div class="version">${currentVersion.version}</div>`;
-    
+
     versionEditorContainer.prepend(versionWithBadge);
 
     versionEditor.append(versionEditorContainer);
     container.append(versionEditor);
 
-    getLatestVersionTag()
-        .then(latestVersion => {
-            const badge = document.createElement("div");
-            badge.classList.add("badge");
+    getLatestVersionTag().then((latestVersion) => {
+        const badge = document.createElement("div");
+        badge.classList.add("badge");
 
-            if(semver.gt(currentVersion.version, latestVersion)) {
-                badge.classList.add("accent");
-                badge.innerText = "Development";
-            }
-            else if(semver.eq(currentVersion.version, latestVersion)) {
-                badge.innerText = "Latest";
-            }
-            else if(semver.lt(currentVersion.version, latestVersion)) {
-                badge.classList.add("warning");
-                badge.innerText = "Update Available";
-            }
+        if (semver.gt(currentVersion.version, latestVersion)) {
+            badge.classList.add("accent");
+            badge.innerText = "Development";
+        } else if (semver.eq(currentVersion.version, latestVersion)) {
+            badge.innerText = "Latest";
+        } else if (semver.lt(currentVersion.version, latestVersion)) {
+            badge.classList.add("warning");
+            badge.innerText = "Update Available";
+        }
 
-            versionWithBadge.prepend(badge);
-        })
-
+        versionWithBadge.prepend(badge);
+    });
 
     const versionEsbuild = document.createElement("div");
     versionEsbuild.classList.add("setting-row");
 
-
     versionEsbuild.innerHTML = `<label>Esbuild</label>
-        <div>${await rpc().esbuild.version()}</div>`
+        <div>${await rpc().esbuild.version()}</div>`;
 
     container.append(versionEsbuild);
 
@@ -68,22 +67,24 @@ export default async function () {
 
     const appendTypeScriptVersion = async () => {
         versionTypeScript.innerHTML = `<label>TypeScript</label>
-            <div>${await Editor.tsWorker.call().version()}</div>`
+            <div>${await Editor.tsWorker.call().version()}</div>`;
 
         container.append(versionTypeScript);
-    }
+    };
 
-    if(!Editor.tsWorker)
+    if (!Editor.tsWorker)
         Editor.restartTSWorker().then(appendTypeScriptVersion);
-    else
-        appendTypeScriptVersion();
+    else appendTypeScriptVersion();
 
     return container;
 }
 
-async function getLatestVersionTag(){
-    const response = await rpc().fetch("https://api.github.com/repos/fullstackedorg/editor/releases/latest", {
-        encoding: "utf8"
-    });
-    return JSON.parse(response.body as string).tag_name
+async function getLatestVersionTag() {
+    const response = await rpc().fetch(
+        "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
+        {
+            encoding: "utf8"
+        }
+    );
+    return JSON.parse(response.body as string).tag_name;
 }

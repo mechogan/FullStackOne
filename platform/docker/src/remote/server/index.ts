@@ -110,7 +110,7 @@ const restartBrowserStreaming = async () => {
                     : "/usr/bin/chromium-browser",
             defaultViewport,
             headless: "new",
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"]
         });
         page = await browser.newPage();
         page.on("console", (message) =>

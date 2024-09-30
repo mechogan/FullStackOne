@@ -45,7 +45,7 @@ esbuild.buildSync({
 
 fs.cpSync("src/remote/client/index.html", "package/dist/index.html");
 
-const buildImage = process.argv.indexOf("--image")
+const buildImage = process.argv.indexOf("--image");
 if (buildImage >= 0) {
     const tag = process.argv.at(buildImage + 1) || "latest";
     child_process.execSync(`docker build -t fullstackedorg/editor:${tag} .`, {

@@ -497,11 +497,8 @@ export class Editor {
                 (await import("@codemirror/lang-markdown")).markdown()
             );
         } else if (filename.endsWith(UTF8_Ext.LIQUID)) {
-            const liquidLang = await import("@codemirror/lang-liquid")
-            extensions.push(
-                liquidLang.liquid(),
-                liquidLang.closePercentBrace
-            );
+            const liquidLang = await import("@codemirror/lang-liquid");
+            extensions.push(liquidLang.liquid(), liquidLang.closePercentBrace);
         }
 
         return extensions;
