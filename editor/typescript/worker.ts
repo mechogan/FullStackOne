@@ -87,7 +87,9 @@ let services: LanguageService;
 let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
-    version() { return version },
+    version() {
+        return version;
+    },
     start(currentDirectory: string) {
         if (services) return;
 

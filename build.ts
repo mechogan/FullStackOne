@@ -111,11 +111,19 @@ child_process.execSync(
     }
 );
 
-const { version } = JSON.parse(fs.readFileSync("package.json", { encoding: "utf-8" }));
-const branch = child_process.execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
+const { version } = JSON.parse(
+    fs.readFileSync("package.json", { encoding: "utf-8" })
+);
+const branch = child_process
+    .execSync("git rev-parse --abbrev-ref HEAD")
+    .toString()
+    .trim();
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
-fs.writeFileSync("editor/build/version.json", JSON.stringify({
-    version,
-    branch,
-    commit
-}))
+fs.writeFileSync(
+    "editor/build/version.json",
+    JSON.stringify({
+        version,
+        branch,
+        commit
+    })
+);
