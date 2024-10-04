@@ -12,6 +12,15 @@ import {
 } from "@aws-sdk/client-s3";
 import prettyMs from "pretty-ms";
 
+
+const branch = "main";
+const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
+const commitNumber = child_process
+    .execSync("git rev-list --count --all")
+    .toString()
+    .trim();
+const release = process.argv.includes("--release");
+
 async function getLatestReleaseVersion() {
     const response = await fetch(
         "https://api.github.com/repos/fullstackedorg/editor/releases/latest"
@@ -22,7 +31,7 @@ async function getLatestReleaseVersion() {
 
 async function getLatestCommit() {
     const response = await fetch(
-        "https://api.github.com/repos/fullstackedorg/editor/git/refs/heads/main"
+        `https://api.github.com/repos/fullstackedorg/editor/git/refs/heads/${branch}`
     );
     const {
         object: { sha }
@@ -42,9 +51,20 @@ function pullAndExit() {
     process.exit(0);
 }
 
-function notifyError(message, exit = true) {
+async function waitForNextCommit() {
+    console.log(`${new Date().toLocaleString()} - Current commit [${commit}]`);
+    while (commit === (await getLatestCommit())) {
+        await new Promise((res) => setTimeout(res, 1000 * 60 * 3)); // 3 min
+    }
+
+    pullAndExit();
+};
+
+async function notifyError(message, halt = true) {
     console.log(`${new Date().toLocaleString()} - ${message}`);
-    if (exit) process.exit(1);
+    if(halt) {
+        await waitForNextCommit();
+    }
 }
 
 const currentVersion = JSON.parse(
@@ -57,11 +77,6 @@ if (semver.lte(currentVersion, latestReleaseVersion)) {
         `Trying to run same or older version. Current [${currentVersion}] | Latest [${latestReleaseVersion}]`
     );
 }
-
-const commitNumber = child_process
-    .execSync("git rev-list --count --all")
-    .toString()
-    .trim();
 
 const start = new Date();
 
@@ -99,7 +114,7 @@ const NODE_BUILD = async () => {
 };
 
 const NODE_DEPLOY = () => {
-    child_process.execSync("npm publish --tag beta", {
+    child_process.execSync(`npm publish${release ? "" : " --tag beta"}`, {
         cwd: nodeDirectory,
         stdio: "inherit"
     });
@@ -462,14 +477,14 @@ const DOCKER_BUILD = () => {
         cwd: "lib/puppeteer-stream"
     });
 
-    child_process.execSync("node build --image beta", {
+    child_process.execSync(`node build --image ${release ? "latest" : "beta"}`, {
         stdio: "inherit",
         cwd: dockerDirectory
     });
 };
 
 const DOCKER_DEPLOY = () => {
-    child_process.execSync("docker push fullstackedorg/editor:beta", {
+    child_process.execSync(`docker push fullstackedorg/editor:${release ? "latest" : "beta"}`, {
         stdio: "inherit"
     });
 };
@@ -564,25 +579,10 @@ try {
 
 const end = new Date();
 
-const branch = child_process
-    .execSync("git rev-parse --abbrev-ref HEAD")
-    .toString()
-    .trim();
-const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
-
-console.log(`Released ${currentVersion} - ${commit.slice(0, 8)} (${branch})`);
+console.log(`Released ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`);
 console.log("----------------");
 console.log(`Started at ${start.toLocaleString()}`);
 console.log(`Ended at ${end.toLocaleString()}`);
 console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
-
-const waitForNextCommit = async () => {
-    console.log(`${new Date().toLocaleString()} - Current commit [${commit}]`);
-    while (commit === (await getLatestCommit())) {
-        await new Promise((res) => setTimeout(res, 1000 * 60 * 3)); // 3 min
-    }
-
-    pullAndExit();
-};
 
 setTimeout(waitForNextCommit, 1000 * 60 * 10); // 10 min
