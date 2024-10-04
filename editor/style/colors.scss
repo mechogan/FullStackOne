@@ -1,4 +1,4 @@
-@use 'sass:color';
+@use "sass:color";
 
 $blue: rgb(0, 122, 255);
 $blue-active: rgb(25, 108, 197);
@@ -16,8 +16,9 @@ $yellow: #ffcc00;
 
 @function colorOpacity($color, $opacity) {
     @return rgba(
-        color.channel($color, "red", $space: rgb), 
-        color.channel($color, "green", $space: rgb), 
-        color.channel($color, "blue", $space: rgb), 
-        $opacity);
+        color.channel($color, "red", $space: rgb),
+        color.channel($color, "green", $space: rgb),
+        color.channel($color, "blue", $space: rgb),
+        $opacity
+    );
 }

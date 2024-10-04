@@ -370,7 +370,7 @@ export class Editor {
                         message:
                             typeof tsError.messageText === "string"
                                 ? tsError.messageText
-                                : tsError?.messageText?.messageText ?? ""
+                                : (tsError?.messageText?.messageText ?? "")
                     }));
                 };
 

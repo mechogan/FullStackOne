@@ -12,7 +12,6 @@ import {
 } from "@aws-sdk/client-s3";
 import prettyMs from "pretty-ms";
 
-
 const branch = "main";
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
 const commitNumber = child_process
@@ -58,11 +57,11 @@ async function waitForNextCommit() {
     }
 
     pullAndExit();
-};
+}
 
 async function notifyError(message, halt = true) {
     console.log(`${new Date().toLocaleString()} - ${message}`);
-    if(halt) {
+    if (halt) {
         await waitForNextCommit();
     }
 }
@@ -477,16 +476,22 @@ const DOCKER_BUILD = () => {
         cwd: "lib/puppeteer-stream"
     });
 
-    child_process.execSync(`node build --image ${release ? "latest" : "beta"}`, {
-        stdio: "inherit",
-        cwd: dockerDirectory
-    });
+    child_process.execSync(
+        `node build --image ${release ? "latest" : "beta"}`,
+        {
+            stdio: "inherit",
+            cwd: dockerDirectory
+        }
+    );
 };
 
 const DOCKER_DEPLOY = () => {
-    child_process.execSync(`docker push fullstackedorg/editor:${release ? "latest" : "beta"}`, {
-        stdio: "inherit"
-    });
+    child_process.execSync(
+        `docker push fullstackedorg/editor:${release ? "latest" : "beta"}`,
+        {
+            stdio: "inherit"
+        }
+    );
 };
 
 /////// BUILD AND TESTS ////////
@@ -505,10 +510,8 @@ while (tries) {
 
 if (tries === 0) {
     notifyError(
-        "Failed 5 times to run build and test. Waiting for next commit.",
-        false
+        "Failed 5 times to run build and test. Waiting for next commit."
     );
-    await waitForNextCommit();
 }
 
 ///////// BUILD PLATFORMS ////////
@@ -579,7 +582,9 @@ try {
 
 const end = new Date();
 
-console.log(`Released ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`);
+console.log(
+    `Released ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`
+);
 console.log("----------------");
 console.log(`Started at ${start.toLocaleString()}`);
 console.log(`Ended at ${end.toLocaleString()}`);
