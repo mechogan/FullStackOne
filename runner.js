@@ -1,3 +1,6 @@
+// loop this runner with
+// while true; do node runner.js; done
+
 import fs from "fs";
 import child_process from "child_process";
 import semver from "semver";
@@ -52,6 +55,7 @@ function pullAndExit() {
 
 async function waitForNextCommit() {
     console.log(`${new Date().toLocaleString()} - Current commit [${commit}]`);
+    console.log("Waiting for next commit.");
     while (commit === (await getLatestCommit())) {
         await new Promise((res) => setTimeout(res, 1000 * 60 * 3)); // 3 min
     }
@@ -509,9 +513,7 @@ while (tries) {
 }
 
 if (tries === 0) {
-    notifyError(
-        "Failed 5 times to run build and test."
-    );
+    notifyError("Failed 5 times to run build and test.");
 }
 
 ///////// BUILD PLATFORMS ////////
@@ -583,11 +585,11 @@ try {
 const end = new Date();
 
 console.log(
-    `Released ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`
+    `${release ? "Released" : "Prereleased"} ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`
 );
 console.log("----------------");
 console.log(`Started at ${start.toLocaleString()}`);
 console.log(`Ended at ${end.toLocaleString()}`);
 console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
 
-setTimeout(waitForNextCommit, 1000 * 60 * 10); // 10 min
+setTimeout(waitForNextCommit, 1000 * 60 * 5); // 5 min
