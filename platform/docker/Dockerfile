@@ -13,6 +13,6 @@ USER node
 
 RUN cd /fullstacked && \
     npm init -y && \
-    npm i esbuild@0.21.5 ./puppeteer-stream.tgz
+    npm i esbuild@0.24.0 ./puppeteer-stream.tgz
 
 CMD ["/sbin/tini", "--", "node", "/fullstacked/index.mjs"]
