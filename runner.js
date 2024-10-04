@@ -510,7 +510,7 @@ while (tries) {
 
 if (tries === 0) {
     notifyError(
-        "Failed 5 times to run build and test. Waiting for next commit."
+        "Failed 5 times to run build and test."
     );
 }
 
