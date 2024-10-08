@@ -2,7 +2,7 @@
 
 # FullStacked Editor
 
-[Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org)
+[Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org) | [Figma](https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups)
 
 Create local-first web-like apps on any platform.
 

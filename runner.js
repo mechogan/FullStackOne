@@ -97,7 +97,7 @@ const NODE_BUILD = async () => {
     const nodePackageJson = JSON.parse(
         fs.readFileSync(nodePackageJsonFile, { encoding: "utf-8" })
     );
-    
+
     nodePackageJson.version = release
         ? currentVersion
         : currentVersion + "-" + commitNumber;
@@ -495,9 +495,7 @@ const DOCKER_DEPLOY = () => {
     );
 };
 
-
 async function run() {
-
     const start = new Date();
 
     if (!release && semver.lte(currentVersion, latestReleaseVersion)) {
