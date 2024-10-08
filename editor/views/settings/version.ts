@@ -27,12 +27,10 @@ export default async function () {
     const versionEditorContainer = document.createElement("div");
     versionEditorContainer.classList.add("version-editor");
 
-    versionEditorContainer.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`;
-
     const versionWithBadge = document.createElement("div");
     versionWithBadge.innerHTML = `<div class="version">${currentVersion.version}</div>`;
 
-    versionEditorContainer.prepend(versionWithBadge);
+    versionEditorContainer.append(versionWithBadge);
 
     versionEditor.append(versionEditorContainer);
     container.append(versionEditor);
@@ -40,18 +38,21 @@ export default async function () {
     getLatestVersionTag().then((latestVersion) => {
         const badge = document.createElement("div");
         badge.classList.add("badge");
+        versionWithBadge.prepend(badge);
 
         if (semver.gt(currentVersion.version, latestVersion)) {
             badge.classList.add("accent");
             badge.innerText = "Development";
+
+            const branchAndCommit = document.createElement("div");
+            branchAndCommit.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`;
+            versionEditorContainer.append(branchAndCommit);
         } else if (semver.eq(currentVersion.version, latestVersion)) {
             badge.innerText = "Latest";
         } else if (semver.lt(currentVersion.version, latestVersion)) {
             badge.classList.add("warning");
             badge.innerText = "Update Available";
         }
-
-        versionWithBadge.prepend(badge);
     });
 
     const versionEsbuild = document.createElement("div");

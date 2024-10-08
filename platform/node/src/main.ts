@@ -27,7 +27,10 @@ export type PushFunction = (
     messageType: string,
     data: string
 ) => void;
-export type OpenFunction = (id: string, project?: Project) => void;
+export type OpenFunction = (
+    id: string,
+    project?: Project
+) => void | Promise<void>;
 export type OpenDirectoryFunction = (directory: string) => void;
 
 export type Response = {
@@ -142,7 +145,7 @@ export function main(
                 instances.set(instance.id, instance);
             }
 
-            open(instance.id, instance.project);
+            return open(instance.id, instance.project);
         },
         open: (project) => openDirectory(project.location)
     };
