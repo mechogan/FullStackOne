@@ -27,7 +27,10 @@ export type PushFunction = (
     messageType: string,
     data: string
 ) => void;
-export type OpenFunction = (id: string, project?: Project) => void;
+export type OpenFunction = (
+    id: string,
+    project?: Project
+) => void | Promise<void>;
 export type OpenDirectoryFunction = (directory: string) => void;
 
 export type Response = {

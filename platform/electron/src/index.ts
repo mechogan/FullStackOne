@@ -42,7 +42,7 @@ const esbuild: EsbuildFunctions = {
         })
 };
 
-const open: OpenFunction = async (id, project) => {
+const open: OpenFunction = (id, project) => {
     let window = runningInstances.get(id);
 
     if (!window) {
@@ -65,8 +65,8 @@ const open: OpenFunction = async (id, project) => {
         });
 
         return window.loadURL(`http://${hostname}`);
-    } 
-    
+    }
+
     window.reload();
     window.focus();
 };
