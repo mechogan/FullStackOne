@@ -6,7 +6,6 @@ import url from "url";
 import os from "os";
 import { WebSocketServer, WebSocket } from "ws";
 import { launch, getStream } from "puppeteer-stream";
-import type { Transform } from "stream";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 

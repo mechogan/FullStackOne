@@ -42,7 +42,7 @@ const esbuild: EsbuildFunctions = {
         })
 };
 
-const open: OpenFunction = (id, project) => {
+const open: OpenFunction = async (id, project) => {
     let window = runningInstances.get(id);
 
     if (!window) {
@@ -55,8 +55,6 @@ const open: OpenFunction = (id, project) => {
             icon: "icons/icon.png"
         });
 
-        window.loadURL(`http://${hostname}`);
-
         hostnames.set(hostname, id);
         runningInstances.set(id, window);
 
@@ -65,10 +63,12 @@ const open: OpenFunction = (id, project) => {
             runningInstances.delete(id);
             close(id);
         });
-    } else {
-        window.reload();
-        window.focus();
-    }
+
+        return window.loadURL(`http://${hostname}`);
+    } 
+    
+    window.reload();
+    window.focus();
 };
 
 const push: PushFunction = (id, messageType, message) => {
@@ -163,10 +163,11 @@ const protocolHandler: (request: Request) => Promise<Response> = async (
 app.whenReady().then(async () => {
     protocol.handle("http", protocolHandler);
 
-    open("FullStacked", {
-        title: "localhost",
+    await open("FullStacked", {
+        title: "FullStacked",
         id: null,
         location: null,
         createdDate: null
     });
+    maybeLaunchURL(launchURL);
 });

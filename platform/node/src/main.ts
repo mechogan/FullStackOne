@@ -142,7 +142,7 @@ export function main(
                 instances.set(instance.id, instance);
             }
 
-            open(instance.id, instance.project);
+            return open(instance.id, instance.project);
         },
         open: (project) => openDirectory(project.location)
     };
