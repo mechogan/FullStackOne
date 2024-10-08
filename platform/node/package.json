@@ -2,7 +2,7 @@
     "name": "@fullstacked/editor",
     "description": "Create Local-First Web-Like Apps On Any Platform.",
     "author": "FullStacked Org.",
-    "version": "0.8.2-508",
+    "version": "0.8.3-515",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"

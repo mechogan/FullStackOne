@@ -63,10 +63,10 @@ async function waitForNextCommit() {
     pullAndExit();
 }
 
-async function notifyError(message, halt = true) {
+function notifyError(message, halt = true) {
     console.log(`${new Date().toLocaleString()} - ${message}`);
     if (halt) {
-        await waitForNextCommit();
+        return waitForNextCommit();
     }
 }
 
@@ -81,11 +81,10 @@ if (semver.lte(currentVersion, latestReleaseVersion)) {
     );
 }
 
-const start = new Date();
-
 const electronDirectory = "platform/electron";
 
 const BUILD_AND_TEST = () => {
+    child_process.execSync("docker info", { stdio: "inherit" });
     child_process.execSync("npm ci", { stdio: "inherit" });
     child_process.execSync("npm ci", {
         cwd: electronDirectory,
@@ -498,98 +497,106 @@ const DOCKER_DEPLOY = () => {
     );
 };
 
-/////// BUILD AND TESTS ////////
 
-let tries = 5;
-while (tries) {
-    try {
-        BUILD_AND_TEST();
-        break;
-    } catch (e) {
-        notifyError("Failed build and test", false);
+async function run() {
+
+    const start = new Date();
+
+    /////// BUILD AND TESTS ////////
+
+    let tries = 5;
+    while (tries) {
+        try {
+            BUILD_AND_TEST();
+            break;
+        } catch (e) {
+            notifyError("Failed build and test", false);
+        }
+
+        tries--;
     }
 
-    tries--;
+    if (tries === 0) {
+        await notifyError("Failed 5 times to run build and test.");
+    }
+
+    ///////// BUILD PLATFORMS ////////
+
+    try {
+        await NODE_BUILD();
+    } catch (e) {
+        console.error(e);
+        await notifyError("Failed to build for node");
+    }
+    try {
+        await ELECTRON_BUILD();
+    } catch (e) {
+        console.error(e);
+        await notifyError("Failed to build for electron");
+    }
+    try {
+        IOS_BUILD();
+    } catch (e) {
+        console.error(e);
+        await notifyError("Failed to build for ios");
+    }
+    try {
+        ANDROID_BUILD();
+    } catch (e) {
+        console.error(e);
+        await notifyError("Failed to build for android");
+    }
+    try {
+        DOCKER_BUILD();
+    } catch (e) {
+        console.error(e);
+        await notifyError("Failed to build for docker");
+    }
+
+    ///////// DEPLOY PLATFORMS ////////
+
+    try {
+        NODE_DEPLOY();
+    } catch (e) {
+        console.error(e);
+        notifyError("Failed to deploy for node", false);
+    }
+    try {
+        await ELECTRON_DEPLOY();
+    } catch (e) {
+        console.error(e);
+        notifyError("Failed to deploy for electron", false);
+    }
+    try {
+        IOS_DEPLOY();
+    } catch (e) {
+        console.error(e);
+        notifyError("Failed to deploy for ios", false);
+    }
+    try {
+        ANDROID_DEPLOY();
+    } catch (e) {
+        console.error(e);
+        notifyError("Failed to deploy for android", false);
+    }
+    try {
+        DOCKER_DEPLOY();
+    } catch (e) {
+        console.error(e);
+        notifyError("Failed to deploy for docker", false);
+    }
+
+    const end = new Date();
+
+    console.log(
+        `${release ? "Released" : "Prereleased"} ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`
+    );
+    console.log("----------------");
+    console.log(`Started at ${start.toLocaleString()}`);
+    console.log(`Ended at ${end.toLocaleString()}`);
+    console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
+
+    setTimeout(waitForNextCommit, 1000 * 60 * 5); // 5 min
 }
 
-if (tries === 0) {
-    notifyError("Failed 5 times to run build and test.");
-}
-
-///////// BUILD PLATFORMS ////////
-
-try {
-    await NODE_BUILD();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to build for node");
-}
-try {
-    await ELECTRON_BUILD();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to build for electron");
-}
-try {
-    IOS_BUILD();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to build for ios");
-}
-try {
-    ANDROID_BUILD();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to build for android");
-}
-try {
-    DOCKER_BUILD();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to build for docker");
-}
-
-///////// DEPLOY PLATFORMS ////////
-
-try {
-    NODE_DEPLOY();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to deploy for node", false);
-}
-try {
-    await ELECTRON_DEPLOY();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to deploy for electron", false);
-}
-try {
-    IOS_DEPLOY();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to deploy for ios", false);
-}
-try {
-    ANDROID_DEPLOY();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to deploy for android", false);
-}
-try {
-    DOCKER_DEPLOY();
-} catch (e) {
-    console.error(e);
-    notifyError("Failed to deploy for docker", false);
-}
-
-const end = new Date();
-
-console.log(
-    `${release ? "Released" : "Prereleased"} ${currentVersion} (${commitNumber}) - ${commit.slice(0, 8)} (${branch})`
-);
-console.log("----------------");
-console.log(`Started at ${start.toLocaleString()}`);
-console.log(`Ended at ${end.toLocaleString()}`);
-console.log(`Took ${prettyMs(end.getTime() - start.getTime())}`);
-
-setTimeout(waitForNextCommit, 1000 * 60 * 5); // 5 min
+run();
