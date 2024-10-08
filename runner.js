@@ -75,12 +75,6 @@ const currentVersion = JSON.parse(
 ).version;
 const latestReleaseVersion = await getLatestReleaseVersion();
 
-if (semver.lte(currentVersion, latestReleaseVersion)) {
-    notifyError(
-        `Trying to run same or older version. Current [${currentVersion}] | Latest [${latestReleaseVersion}]`
-    );
-}
-
 const electronDirectory = "platform/electron";
 
 const BUILD_AND_TEST = () => {
@@ -103,7 +97,11 @@ const NODE_BUILD = async () => {
     const nodePackageJson = JSON.parse(
         fs.readFileSync(nodePackageJsonFile, { encoding: "utf-8" })
     );
-    nodePackageJson.version = currentVersion + "-" + commitNumber;
+    
+    nodePackageJson.version = release
+        ? currentVersion
+        : currentVersion + "-" + commitNumber;
+
     fs.writeFileSync(
         nodePackageJsonFile,
         JSON.stringify(nodePackageJson, null, 4)
@@ -502,6 +500,12 @@ async function run() {
 
     const start = new Date();
 
+    if (!release && semver.lte(currentVersion, latestReleaseVersion)) {
+        await notifyError(
+            `Trying to run same or older version. Current [${currentVersion}] | Latest [${latestReleaseVersion}]`
+        );
+    }
+
     /////// BUILD AND TESTS ////////
 
     let tries = 5;
@@ -528,24 +532,28 @@ async function run() {
         console.error(e);
         await notifyError("Failed to build for node");
     }
-    try {
-        await ELECTRON_BUILD();
-    } catch (e) {
-        console.error(e);
-        await notifyError("Failed to build for electron");
+
+    if (!release) {
+        try {
+            await ELECTRON_BUILD();
+        } catch (e) {
+            console.error(e);
+            await notifyError("Failed to build for electron");
+        }
+        try {
+            IOS_BUILD();
+        } catch (e) {
+            console.error(e);
+            await notifyError("Failed to build for ios");
+        }
+        try {
+            ANDROID_BUILD();
+        } catch (e) {
+            console.error(e);
+            await notifyError("Failed to build for android");
+        }
     }
-    try {
-        IOS_BUILD();
-    } catch (e) {
-        console.error(e);
-        await notifyError("Failed to build for ios");
-    }
-    try {
-        ANDROID_BUILD();
-    } catch (e) {
-        console.error(e);
-        await notifyError("Failed to build for android");
-    }
+
     try {
         DOCKER_BUILD();
     } catch (e) {
@@ -561,24 +569,28 @@ async function run() {
         console.error(e);
         notifyError("Failed to deploy for node", false);
     }
-    try {
-        await ELECTRON_DEPLOY();
-    } catch (e) {
-        console.error(e);
-        notifyError("Failed to deploy for electron", false);
+
+    if (!release) {
+        try {
+            await ELECTRON_DEPLOY();
+        } catch (e) {
+            console.error(e);
+            notifyError("Failed to deploy for electron", false);
+        }
+        try {
+            IOS_DEPLOY();
+        } catch (e) {
+            console.error(e);
+            notifyError("Failed to deploy for ios", false);
+        }
+        try {
+            ANDROID_DEPLOY();
+        } catch (e) {
+            console.error(e);
+            notifyError("Failed to deploy for android", false);
+        }
     }
-    try {
-        IOS_DEPLOY();
-    } catch (e) {
-        console.error(e);
-        notifyError("Failed to deploy for ios", false);
-    }
-    try {
-        ANDROID_DEPLOY();
-    } catch (e) {
-        console.error(e);
-        notifyError("Failed to deploy for android", false);
-    }
+
     try {
         DOCKER_DEPLOY();
     } catch (e) {
