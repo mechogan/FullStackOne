@@ -3,7 +3,7 @@ import path from "path";
 import * as sass from "sass";
 import { build } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
-import esbuild, { buildSync } from "esbuild";
+import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
 
@@ -96,7 +96,7 @@ const styleEntrypoint = "editor/new-ui.scss";
 const { css } = await sass.compileAsync(styleEntrypoint);
 await fs.promises.writeFile("editor/build/new-ui.css", css);
 
-buildSync({
+esbuild.buildSync({
     entryPoints: ["editor/new-ui.ts"],
     outfile: "editor/build/new-ui.js",
     bundle: true
