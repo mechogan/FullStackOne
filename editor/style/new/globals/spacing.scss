@@ -1,0 +1,10 @@
+@use "../values/spacing.scss";
+
+html, body {
+    margin: 0;
+    width: 100%;
+}
+
+body {
+    padding: spacing.$medium;
+}

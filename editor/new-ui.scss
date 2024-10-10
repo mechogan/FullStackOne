@@ -1,0 +1,33 @@
+/* 
+All styles follows the official figma design file
+https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
+*/
+@use "./style/new/values/spacing.scss";
+
+// globals
+@import "./style/new/globals/colors.scss";
+@import "./style/new/globals/spacing.scss";
+@import "./style/new/globals/typography.scss";
+@import "./style/new/globals/input.scss";
+
+// components
+@import "./style/new/components/badge.scss";
+@import "./style/new/components/button.scss";
+@import "./style/new/components/icon.scss";
+@import "./style/new/components/inputs.scss";
+
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+}
+
+// Preview purposes
+// to delete
+body,
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: spacing.$small;
+}

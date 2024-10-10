@@ -1,0 +1,131 @@
+/* 
+This file must follow the figma design
+https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=158-3127
+*/
+@use "../values/spacing.scss";
+@use "../values/colors.scss";
+
+@mixin hide-input {
+    height: 0;
+    width: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+.input-text,
+.input-file,
+.input-switch {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$x-small;
+}
+
+.input-file {
+    input {
+        @include hide-input;
+    }
+
+    > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: spacing.$small;
+    }
+}
+
+$handle-size: 22px;
+
+$outer-size: $handle-size * 2 + 8;
+.input-switch {
+    input {
+        @include hide-input;
+    }
+
+    > div {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+
+        user-select: none;
+        -webkit-user-select: none;
+
+        > div {
+            height: spacing.$large;
+            width: $outer-size;
+            background-color: colors.$gray;
+            padding: 4px;
+            border-radius: calc($outer-size / 2);
+            transition: 0.2s background-color;
+            cursor: pointer;
+
+            > div {
+                height: $handle-size;
+                width: $handle-size;
+                background-color: colors.$light;
+                border-radius: calc($handle-size / 2);
+                margin-left: 0;
+                transition: 0.2s margin-left;
+            }
+        }
+    }
+
+    &.checked {
+        > div {
+            > div {
+                background-color: colors.$blue;
+                > div {
+                    margin-left: $handle-size;
+                }
+            }
+        }
+    }
+}
+
+$input-radio-size: 18px;
+.input-radio,
+.input-checkbox {
+    input {
+        @include hide-input;
+    }
+    
+    > div {
+
+        height: $input-radio-size;
+        width: $input-radio-size;
+        border-radius: 50%;
+        background-color: colors.$light;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        user-select: none;
+        -webkit-user-select: none;
+
+        cursor: pointer;
+
+        > div {
+            height: $input-radio-size - 6px;
+            width: $input-radio-size - 6px;
+            border-radius: 50%;
+        }
+    }
+
+    &.checked {
+        > div > div {
+            background-color: colors.$blue;
+        }
+    }
+}
+
+.input-checkbox {
+    > div {
+        border-radius: spacing.$x-small;
+        > div {
+            border-radius: 3px;
+        }
+    }
+}

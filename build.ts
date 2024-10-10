@@ -3,7 +3,7 @@ import path from "path";
 import * as sass from "sass";
 import { build } from "./platform/node/src/build";
 import { scan } from "./editor/api/projects/scan";
-import esbuild from "esbuild";
+import esbuild, { buildSync } from "esbuild";
 import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
 
@@ -41,6 +41,7 @@ esbuild.buildSync({
 if (fs.existsSync("editor/build"))
     fs.rmSync("editor/build", { recursive: true });
 
+// old-styles
 const scssFiles = (await scan("editor", fs.promises.readdir as any)).filter(
     (filePath) => filePath.endsWith(".scss")
 );
@@ -51,6 +52,7 @@ const compileScss = async (scssFile: string) => {
 };
 const compilePromises = scssFiles.map(compileScss);
 await Promise.all(compilePromises);
+// end old-styles
 
 const toBuild = [
     ["editor/index.ts", "index"],
@@ -88,6 +90,23 @@ fs.cpSync("editor/index.html", "editor/build/index.html");
 fs.cpSync("editor/assets", "editor/build/assets", {
     recursive: true
 });
+
+// new-ui
+const styleEntrypoint = "editor/new-ui.scss";
+const { css } = await sass.compileAsync(styleEntrypoint);
+await fs.promises.writeFile("editor/build/new-ui.css", css);
+
+buildSync({
+    entryPoints: ["editor/new-ui.ts"],
+    outfile: "editor/build/new-ui.js",
+    bundle: true
+});
+
+await fs.promises.copyFile("editor/new-ui.html", "editor/build/new-ui.html");
+fs.cpSync("editor/icons", "editor/build/icons", {
+    recursive: true
+});
+// end new-ui
 
 const sampleDemoDir = "editor-sample-demo";
 if (fs.existsSync(sampleDemoDir)) {

@@ -1,0 +1,26 @@
+/* 
+This file must follow the figma local color styles
+https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
+*/
+@use "sass:color";
+
+$blue-accent: #04B8EC;
+$blue: #007AFF;
+$blue-dark: #1E293B;
+$dark: #15171B;
+$red: #FF453A;
+$green: #30D158;
+$yellow: #FFCC00;
+$light: #FFFFFF;
+$gray: #8C929B;
+$gray-dark: #404958;
+$overlay: #15171B99;
+
+@function opacity($color, $opacity) {
+    @return rgba(
+        color.channel($color, "red", $space: rgb),
+        color.channel($color, "green", $space: rgb),
+        color.channel($color, "blue", $space: rgb),
+        calc($opacity / 100)
+    );
+}
