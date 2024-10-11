@@ -119,13 +119,13 @@ function ProjectTile(project: Project) {
 
         const buttonsGroup = ButtonGroup([
             Button({
-                text: "Share",
-                iconLeft: "Export"
-            }),
-            Button({
                 text: "Delete",
                 iconLeft: "Trash",
                 color: "red"
+            }),
+            Button({
+                text: "Share",
+                iconLeft: "Export"
             })
         ]);
 
