@@ -2,8 +2,8 @@
 This file must follow the figma design
 https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=101-1212
 */
-@use "../values/colors.scss";
-@use "../values/spacing.scss";
+@use "../../style/new/values/colors.scss";
+@use "../../style/new/values/spacing.scss";
 
 .badge {
     color: colors.$light;

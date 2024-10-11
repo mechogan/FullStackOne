@@ -1,0 +1,39 @@
+.popover {
+    position: absolute;
+    z-index: 11;
+
+    &.top {
+        top: 0;
+    }
+    &.center-y {
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    &.bottom {
+        bottom: 0;
+    }
+
+    &.left {
+        left: 0;
+    }
+    &.center-x {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    &.right {
+        right: 0;
+    }
+
+    &.center-x.center-y {
+        transform: translate(-50%, -50%);
+    }
+}
+
+.popover-overlay {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+}

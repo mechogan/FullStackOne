@@ -6,6 +6,7 @@ import stackNavigation from "./stack-navigation";
 import { BG_COLOR } from "./constants";
 import projectsView from "./views/projects";
 import projectView from "./views/project";
+import { Projects } from "./views/new/projects";
 
 document.body.classList.add("hover");
 window.addEventListener("touchstart", () => {
@@ -29,9 +30,9 @@ const app = async () => {
     // init connectivity
     await api.connectivity.init();
 
-    const projectsRendered = await projectsView.render();
     document.querySelector("#splash").remove();
-    stackNavigation.navigate(projectsRendered, BG_COLOR);
+    const projectsView = Projects();
+    stackNavigation.navigate(projectsView, BG_COLOR);
 
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);

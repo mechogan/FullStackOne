@@ -11,23 +11,19 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 @import "./style/new/globals/input.scss";
 
 // components
-@import "./style/new/components/badge.scss";
-@import "./style/new/components/button.scss";
-@import "./style/new/components/icon.scss";
-@import "./style/new/components/inputs.scss";
+@import "./components/primitives/badge.scss";
+@import "./components/primitives/button.scss";
+@import "./components/primitives/icon.scss";
+@import "./components/primitives/inputs.scss";
+@import "./components/top-bar.scss";
+@import "./components/popover.scss";
+
+// views
+@import "./views/new/projects.scss";
+@import "./views/new/add-project/index.scss";
 
 * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     box-sizing: border-box;
-}
-
-// Preview purposes
-// to delete
-body,
-form {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: spacing.$small;
 }

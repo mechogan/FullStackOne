@@ -1,0 +1,27 @@
+@use "../style/new/values/spacing.scss";
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: calc(100% + spacing.$small);
+    margin-left: 0 - spacing.$small;
+    &.no-back {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    > div:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    > div:last-child {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: spacing.$small;
+    }
+}

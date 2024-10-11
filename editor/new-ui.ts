@@ -1,6 +1,6 @@
-import { Badge } from "./components/badge";
-import { Button, ButtonGroup } from "./components/button";
-import { InputCheckbox, InputFile, InputRadio, InputSwitch, InputText } from "./components/inputs";
+import { Badge } from "./components/primitives/badge";
+import { Button, ButtonGroup } from "./components/primitives/button";
+import { InputCheckbox, InputFile, InputRadio, InputSwitch, InputText } from "./components/primitives/inputs";
 
 // Typography
 const heading1 = document.createElement("h1");
