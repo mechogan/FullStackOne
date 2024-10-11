@@ -24,25 +24,24 @@ export function AddProject() {
         text: "Clone git repository",
         iconLeft: "Git"
     });
-    cloneGitButton.onclick = () => stackNavigation.navigate(CloneGit(), BG_COLOR);
+    cloneGitButton.onclick = () =>
+        stackNavigation.navigate(CloneGit(), BG_COLOR);
 
     const importZipButton = Button({
         text: "Import zip",
         iconLeft: "Archive"
     });
-    importZipButton.onclick = () => stackNavigation.navigate(ImportZip(), BG_COLOR);
+    importZipButton.onclick = () =>
+        stackNavigation.navigate(ImportZip(), BG_COLOR);
 
     const createEmptyButton = Button({
         text: "Create empty project",
         iconLeft: "Glitter"
     });
-    createEmptyButton.onclick = () => stackNavigation.navigate(CreateEmpty(), BG_COLOR);
+    createEmptyButton.onclick = () =>
+        stackNavigation.navigate(CreateEmpty(), BG_COLOR);
 
-    buttonsContainer.append(
-        cloneGitButton,
-        importZipButton,
-        createEmptyButton
-    );
+    buttonsContainer.append(cloneGitButton, importZipButton, createEmptyButton);
     container.append(buttonsContainer);
 
     return container;

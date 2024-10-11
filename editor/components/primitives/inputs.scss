@@ -13,6 +13,7 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=158-3127
     margin: 0;
     position: absolute;
     z-index: -1;
+    opacity: 0;
 }
 
 .input-text,
@@ -90,9 +91,8 @@ $input-radio-size: 18px;
     input {
         @include hide-input;
     }
-    
-    > div {
 
+    > div {
         height: $input-radio-size;
         width: $input-radio-size;
         border-radius: 50%;

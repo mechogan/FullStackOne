@@ -4,8 +4,7 @@ import { TopBar } from "../../../components/top-bar";
 
 export function CreateEmpty() {
     const container = document.createElement("div");
-    container.id = "create-empty";
-    container.classList.add("view");
+    container.classList.add("view", "create-form");
 
     const topBar = TopBar({
         title: "Create empty project"
@@ -17,25 +16,24 @@ export function CreateEmpty() {
 
     const inputTitle = InputText({
         label: "Title"
-    })
+    });
     const inputIdentifier = InputText({
         label: "Identifier"
-    })
+    });
 
     const createButton = Button({
         text: "Create"
     });
 
-    form.onsubmit = e => {
+    form.onsubmit = (e) => {
         e.preventDefault();
-    }
+    };
 
     form.append(inputTitle.container, inputIdentifier.container, createButton);
 
     container.append(form);
 
-    setTimeout(() => inputTitle.input.focus(), 1)
-    
-    
+    setTimeout(() => inputTitle.input.focus(), 1);
+
     return container;
 }

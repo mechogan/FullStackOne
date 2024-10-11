@@ -16,11 +16,14 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 @import "./components/primitives/icon.scss";
 @import "./components/primitives/inputs.scss";
 @import "./components/top-bar.scss";
+@import "./components/view-scrollable.scss";
 @import "./components/popover.scss";
+@import "./components/loader.scss";
 
 // views
 @import "./views/new/projects.scss";
 @import "./views/new/add-project/index.scss";
+@import "./views/new/settings.scss";
 
 * {
     -webkit-font-smoothing: antialiased;

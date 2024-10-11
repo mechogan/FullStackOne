@@ -1,6 +1,7 @@
 @use "../values/colors.scss";
 
-html, body {
+html,
+body {
     background-color: colors.$blue-dark;
     color: colors.$light;
 }

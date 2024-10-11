@@ -4,17 +4,17 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 */
 @use "sass:color";
 
-$blue-accent: #04B8EC;
-$blue: #007AFF;
-$blue-dark: #1E293B;
-$dark: #15171B;
-$red: #FF453A;
-$green: #30D158;
-$yellow: #FFCC00;
-$light: #FFFFFF;
-$gray: #8C929B;
+$blue-accent: #04b8ec;
+$blue: #007aff;
+$blue-dark: #1e293b;
+$dark: #15171b;
+$red: #ff453a;
+$green: #30d158;
+$yellow: #ffcc00;
+$light: #ffffff;
+$gray: #8c929b;
 $gray-dark: #404958;
-$overlay: #15171B99;
+$overlay: #15171b99;
 
 @function opacity($color, $opacity) {
     @return rgba(

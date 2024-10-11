@@ -1,11 +1,11 @@
 type PopoverOpts = {
-    anchor: HTMLElement,
-    content: HTMLElement,
+    anchor: HTMLElement;
+    content: HTMLElement;
     align: {
-        y: "top" | "center" | "bottom",
-        x: "left" | "center" | "right"
-    }
-}
+        y: "top" | "center" | "bottom";
+        x: "left" | "center" | "right";
+    };
+};
 
 export function Popover(opts: PopoverOpts) {
     const anchorStyle = getComputedStyle(opts.anchor);
@@ -48,25 +48,22 @@ export function Popover(opts: PopoverOpts) {
         overlay.remove();
         container.remove();
         unlockScroll(opts.anchor);
-    }
+    };
 
-    container.addEventListener("click", e => {
+    container.addEventListener("click", (e) => {
         e.stopPropagation();
-        remove()
+        remove();
     });
 
-    container.addEventListener("scroll", e => {
+    container.addEventListener("scroll", (e) => {
         e.stopPropagation();
-        remove()
+        remove();
     });
 
     overlay.onclick = () => remove();
 
     lockScroll(opts.anchor);
-    opts.anchor.append(
-        overlay,
-        container
-    );
+    opts.anchor.append(overlay, container);
 }
 
 const lockedScroll = (e: Event) => {
@@ -77,29 +74,27 @@ const lockedScroll = (e: Event) => {
 
 const keys = ["ArrowDown", "ArrowUp", "PageUp", "PageDown"];
 const lockedKeys = (e: KeyboardEvent) => {
-    if(keys.includes(e.key)) {
+    if (keys.includes(e.key)) {
         return lockedScroll(e);
     }
-}
+};
 
-
-
-function lockScroll(el: HTMLElement){
+function lockScroll(el: HTMLElement) {
     el.addEventListener("scroll", lockedScroll);
     el.addEventListener("wheel", lockedScroll);
     el.addEventListener("touchmove", lockedScroll);
     el.addEventListener("keydown", lockedKeys);
-    if(el.parentElement) {
-        lockScroll(el.parentElement)
+    if (el.parentElement) {
+        lockScroll(el.parentElement);
     }
 }
 
-function unlockScroll(el: HTMLElement){
+function unlockScroll(el: HTMLElement) {
     el.removeEventListener("scroll", lockedScroll);
     el.removeEventListener("wheel", lockedScroll);
     el.removeEventListener("touchmove", lockedScroll);
     el.removeEventListener("keydown", lockedKeys);
-    if(el.parentElement) {
-        unlockScroll(el.parentElement)
+    if (el.parentElement) {
+        unlockScroll(el.parentElement);
     }
 }

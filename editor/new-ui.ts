@@ -1,6 +1,12 @@
 import { Badge } from "./components/primitives/badge";
 import { Button, ButtonGroup } from "./components/primitives/button";
-import { InputCheckbox, InputFile, InputRadio, InputSwitch, InputText } from "./components/primitives/inputs";
+import {
+    InputCheckbox,
+    InputFile,
+    InputRadio,
+    InputSwitch,
+    InputText
+} from "./components/primitives/inputs";
 
 // Typography
 const heading1 = document.createElement("h1");
@@ -45,9 +51,10 @@ document.body.append(
 
 // Badge
 const text = "Badge";
-document.body.append(Badge({
-    text,
-}),
+document.body.append(
+    Badge({
+        text
+    }),
     Badge({
         text,
         type: "success"
@@ -68,48 +75,47 @@ document.body.append(Badge({
         text,
         type: "info-2"
     })
-)
-
+);
 
 // Button
 const buttonDefault = Button({
     iconLeft: "Git",
     iconRight: "Git",
     text: "Button"
-})
+});
 
 const buttonDanger = Button({
     iconLeft: "Git",
     iconRight: "Git",
     text: "Button",
     color: "red"
-})
+});
 
 const buttonDisabled = Button({
     iconLeft: "Git",
     iconRight: "Git",
     text: "Button"
-})
+});
 buttonDisabled.disabled = true;
 
 const buttonText = Button({
     text: "Button",
     style: "text"
-})
+});
 const buttonTextDisabled = Button({
     text: "Button",
     style: "text"
-})
+});
 buttonTextDisabled.disabled = true;
 
 const buttonIconSmall = Button({
     style: "icon-small",
     iconLeft: "Arrow"
-})
+});
 const buttonIconLarge = Button({
     style: "icon-large",
     iconLeft: "Arrow"
-})
+});
 
 const buttonGroup = ButtonGroup([
     Button({
@@ -128,7 +134,7 @@ const buttonGroup = ButtonGroup([
         text: "Button",
         color: "red"
     })
-])
+]);
 
 document.body.append(
     buttonDefault,
@@ -149,18 +155,18 @@ const inputText = InputText({
 });
 
 const inputFile = InputFile({
-    label: "Input Label",
+    label: "Input Label"
 });
 
 const inputSwitch = InputSwitch({
     label: "Input Label"
-})
+});
 
 const inputRadio = InputRadio();
 const inputCheckbox = InputCheckbox();
 
 form.append(
-    inputText.container, 
+    inputText.container,
     inputFile.container,
     inputSwitch.container,
     inputRadio.container,

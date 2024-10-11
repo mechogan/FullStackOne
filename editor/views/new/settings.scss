@@ -1,0 +1,30 @@
+@use "../../style/new/values/spacing.scss";
+
+#settings {
+    .top-bar {
+        padding-bottom: spacing.$medium;
+    }
+
+    .scrollable {
+        gap: spacing.$large;
+
+        > div {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+    }
+
+    .packages {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: spacing.$small;
+    }
+
+    .connectivity {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+    }
+}

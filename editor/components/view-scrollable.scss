@@ -1,0 +1,22 @@
+@use "../style/new/values/spacing.scss";
+
+.view-scrollable {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    padding: spacing.$medium;
+
+    .scrollable {
+        overflow: auto;
+        margin-left: 0 - spacing.$medium;
+        margin-right: 0 - spacing.$medium;
+        margin-bottom: 0 - spacing.$medium;
+        padding-left: spacing.$medium;
+        padding-right: spacing.$medium;
+        padding-bottom: spacing.$medium;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+}

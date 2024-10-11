@@ -2,10 +2,10 @@ import stackNavigation from "../stack-navigation";
 import { Button } from "./primitives/button";
 
 type TopBarOpts = {
-    noBack: boolean,
-    title: string,
-    actions: HTMLElement[]
-}
+    noBack: boolean;
+    title: string;
+    actions: HTMLElement[];
+};
 
 export function TopBar(opts?: Partial<TopBarOpts>) {
     const container = document.createElement("div");
@@ -13,7 +13,7 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
 
     const left = document.createElement("div");
 
-    if(!opts?.noBack) {
+    if (!opts?.noBack) {
         const backButton = Button({
             style: "icon-large",
             iconLeft: "Arrow"
@@ -23,10 +23,10 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
 
         left.append(backButton);
     } else {
-        container.classList.add("no-back")
+        container.classList.add("no-back");
     }
 
-    if(opts?.title) {
+    if (opts?.title) {
         const title = document.createElement("h1");
         title.innerText = opts.title;
         left.append(title);
@@ -34,8 +34,8 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
 
     const right = document.createElement("div");
 
-    if(opts?.actions) {
-        right.append(...opts.actions)
+    if (opts?.actions) {
+        right.append(...opts.actions);
     }
 
     container.append(left, right);

@@ -1,4 +1,5 @@
 @use "../../../style/new/values/spacing.scss";
+@use "../../../style/new/values/colors.scss";
 
 #add-project {
     .buttons {
@@ -10,7 +11,15 @@
     }
 }
 
-#create-empty {
+.create-form {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .top-bar {
+        padding-bottom: spacing.$medium;
+    }
+
     form {
         display: flex;
         flex-direction: column;
@@ -21,10 +30,38 @@
 
         margin: 0 auto;
 
-        padding-top: spacing.$large;
+        padding-top: spacing.$small;
 
         button {
             align-self: flex-end;
         }
+    }
+}
+
+.create-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: spacing.$medium;
+    padding: spacing.$medium 0;
+    .loader {
+        width: 60px;
+    }
+}
+
+.create-terminal {
+    background-color: colors.$dark;
+    border: 1px solid colors.$gray;
+    color: colors.$light;
+    overflow: auto;
+    height: 100%;
+    border-radius: spacing.$x-small;
+    min-height: 250px;
+    flex: 1;
+    > div {
+        padding: spacing.$medium;
+        min-height: 100%;
     }
 }

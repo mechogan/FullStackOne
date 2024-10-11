@@ -1,8 +1,8 @@
 import { Button } from "./button";
 
 type InputOpts = {
-    label: string
-}
+    label: string;
+};
 
 export function InputText(opts?: Partial<InputOpts>) {
     const container = document.createElement("div");
@@ -19,7 +19,7 @@ export function InputText(opts?: Partial<InputOpts>) {
     return {
         container,
         input
-    }
+    };
 }
 
 export function InputFile(opts?: Partial<InputOpts>) {
@@ -43,7 +43,7 @@ export function InputFile(opts?: Partial<InputOpts>) {
     input.addEventListener("change", () => {
         const file = input.files[0];
         fileName.innerText = file?.name || "No file chosen";
-    })
+    });
 
     const button = Button({
         iconRight: "File",
@@ -55,17 +55,14 @@ export function InputFile(opts?: Partial<InputOpts>) {
         input.click();
     };
 
-    overrideUI.append(
-        fileName,
-        button
-    );
+    overrideUI.append(fileName, button);
 
     container.append(overrideUI);
 
     return {
         container,
         input
-    }
+    };
 }
 
 export function InputSwitch(opts?: Partial<InputOpts>) {
@@ -80,10 +77,8 @@ export function InputSwitch(opts?: Partial<InputOpts>) {
     input.type = "checkbox";
 
     input.addEventListener("change", () => {
-        if (input.checked)
-            container.classList.add("checked")
-        else
-            container.classList.remove("checked")
+        if (input.checked) container.classList.add("checked");
+        else container.classList.remove("checked");
     });
 
     container.append(input);
@@ -100,7 +95,7 @@ export function InputSwitch(opts?: Partial<InputOpts>) {
     return {
         input,
         container
-    }
+    };
 }
 
 export function InputRadio() {
@@ -111,11 +106,9 @@ export function InputRadio() {
     input.type = "radio";
 
     input.addEventListener("change", () => {
-        if (input.checked)
-            container.classList.add("checked")
-        else
-            container.classList.remove("checked")
-    })
+        if (input.checked) container.classList.add("checked");
+        else container.classList.remove("checked");
+    });
 
     const overrideUI = document.createElement("div");
     overrideUI.onclick = () => input.click();
@@ -127,7 +120,7 @@ export function InputRadio() {
     return {
         container,
         input
-    }
+    };
 }
 
 export function InputCheckbox() {
@@ -138,11 +131,9 @@ export function InputCheckbox() {
     input.type = "checkbox";
 
     input.addEventListener("change", () => {
-        if (input.checked)
-            container.classList.add("checked")
-        else
-            container.classList.remove("checked")
-    })
+        if (input.checked) container.classList.add("checked");
+        else container.classList.remove("checked");
+    });
 
     const overrideUI = document.createElement("div");
     overrideUI.onclick = () => input.click();
@@ -154,26 +145,27 @@ export function InputCheckbox() {
     return {
         container,
         input
-    }
+    };
 }
-
 
 // input observer
 const updateOverriddenInputs = () => {
-    const inputsChecked = document.querySelectorAll<HTMLInputElement>("input[type=checkbox], input[type=radio]");
-    inputsChecked.forEach(input => {
+    const inputsChecked = document.querySelectorAll<HTMLInputElement>(
+        "input[type=checkbox], input[type=radio]"
+    );
+    inputsChecked.forEach((input) => {
         const parent = input.parentElement;
-        if (input.checked)
-            parent.classList.add("checked")
-        else
-            parent.classList.remove("checked")
+        if (input.checked) parent.classList.add("checked");
+        else parent.classList.remove("checked");
     });
 
-    const inputsFile = document.querySelectorAll<HTMLInputElement>("input[type=file]");
-    inputsFile.forEach(inputFile => {
+    const inputsFile =
+        document.querySelectorAll<HTMLInputElement>("input[type=file]");
+    inputsFile.forEach((inputFile) => {
         const file = inputFile.files[0];
-        const fileName = inputFile.nextElementSibling.children[0] as HTMLSpanElement;
+        const fileName = inputFile.nextElementSibling
+            .children[0] as HTMLSpanElement;
         fileName.innerText = file?.name || "No file chosen";
-    })
-}
+    });
+};
 setInterval(updateOverriddenInputs, 100);

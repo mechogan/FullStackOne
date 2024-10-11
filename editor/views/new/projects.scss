@@ -3,32 +3,17 @@
 @use "../../style/new/values/breakpoints.scss";
 
 #projects-view {
-    display: flex;
-    flex-direction: column;
-    gap: spacing.$medium;
-
-    height: 100%;
-    overflow: hidden;
-    
-    > .scrollable {
-        overflow: auto;
-        margin-left: 0 - spacing.$medium;
-        margin-right: 0 - spacing.$medium;
-        margin-bottom: 0 - spacing.$medium;
-        padding-left: spacing.$medium;
-        padding-right: spacing.$medium;
+    .top-bar {
         padding-bottom: spacing.$medium;
-        display: flex;
-        flex-direction: column;
-        gap: spacing.$medium;
     }
-
     .search-and-add {
         width: 100%;
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
         gap: spacing.$small;
+
+        padding-bottom: spacing.$medium;
 
         > div:first-child {
             flex: 1;

@@ -1,9 +1,9 @@
-const iconsDirectory = "/icons"
+const iconsDirectory = "/icons";
 
 export function Icon(name: string) {
     const container = document.createElement("div");
     container.classList.add("icon");
-    loadIcon(name).then(svgData => container.innerHTML = svgData)
+    loadIcon(name).then((svgData) => (container.innerHTML = svgData));
     return container;
 }
 
