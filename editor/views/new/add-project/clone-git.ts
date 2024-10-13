@@ -34,7 +34,7 @@ export function CloneGit() {
 
     scrollable.append(form, loader, consoleTerminal.container);
 
-    consoleTerminal.text.innerText = "Verbose Project...";
+    consoleTerminal.text.innerText = "Verbose progress...";
 
     return container;
 }

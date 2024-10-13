@@ -10,7 +10,11 @@ type PopoverOpts = {
 export function Popover(opts: PopoverOpts) {
     const anchorStyle = getComputedStyle(opts.anchor);
 
-    opts.anchor.style.position = anchorStyle.position || "relative";
+    opts.anchor.style.position = anchorStyle.position
+        ? anchorStyle.position === "static"
+            ? "relative"
+            : anchorStyle.position
+        : "relative";
 
     const container = document.createElement("div");
     container.classList.add("popover");
@@ -60,7 +64,10 @@ export function Popover(opts: PopoverOpts) {
         remove();
     });
 
-    overlay.onclick = () => remove();
+    overlay.onclick = (e) => {
+        e.stopPropagation();
+        remove();
+    };
 
     lockScroll(opts.anchor);
     opts.anchor.append(overlay, container);

@@ -245,7 +245,7 @@ export class Settings {
             (await fetch("assets/icons/delete.svg")).text()
         ]);
 
-        connectivitySettings.webAddreses?.forEach(async (webAddr, index) => {
+        connectivitySettings.webAddresses?.forEach(async (webAddr, index) => {
             const li = document.createElement("li");
             li.innerHTML = `
                 <div>
@@ -286,7 +286,7 @@ export class Settings {
             deleteButton.innerHTML = deleteIcon;
             deleteButton.addEventListener("click", async () => {
                 li.remove();
-                connectivitySettings.webAddreses.splice(index, 1);
+                connectivitySettings.webAddresses.splice(index, 1);
 
                 await api.config.save(
                     CONFIG_TYPE.CONNECTIVITY,
@@ -371,13 +371,13 @@ export class Settings {
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
 
-                if (!connectivitySettings.webAddreses) {
-                    connectivitySettings.webAddreses = [];
+                if (!connectivitySettings.webAddresses) {
+                    connectivitySettings.webAddresses = [];
                 }
 
                 const port = parseInt(portInput.value);
 
-                connectivitySettings.webAddreses.push({
+                connectivitySettings.webAddresses.push({
                     hostname: addressInput.value,
                     port: isNaN(port) ? null : port,
                     secure: secureInput.checked

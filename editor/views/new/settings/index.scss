@@ -1,0 +1,84 @@
+@use "../../../style/new/values/spacing.scss";
+@use "../../../style/new/values/colors.scss";
+@use "../../../style/new/values/typography.scss";
+
+#settings {
+    .top-bar {
+        padding-bottom: spacing.$medium;
+    }
+
+    .scrollable {
+        gap: spacing.$large;
+
+        > div {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+    }
+
+    .packages {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: spacing.$small;
+    }
+
+    .connectivity {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+
+        .web-addresses {
+            > div:first-child {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: spacing.$small;
+            }
+
+            ul {
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$small;
+            }
+
+            li {
+                background-color: colors.$gray-dark;
+                border: 1px solid colors.$gray;
+                padding: spacing.$small;
+                font-size: typography.$small;
+                border-radius: spacing.$x-small;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                > div {
+                    display: flex;
+                    align-items: center;
+                    gap: spacing.$small;
+                    &:first-child {
+                        .icon {
+                            height: 18px;
+                            width: 18px;
+                            color: colors.$yellow;
+                        }
+                    }
+                    &:last-child {
+                        > button {
+                            color: colors.$light;
+                        }
+                    }
+                }
+            }
+        }
+
+        .network-interfaces {
+            > div:first-child {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: spacing.$small;
+            }
+        }
+    }
+}

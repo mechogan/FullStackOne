@@ -29,7 +29,7 @@ export function ImportZip() {
 
     scrollable.append(form, loader, consoleTerminal.container);
 
-    consoleTerminal.text.innerText += "Verbose Progress...";
+    consoleTerminal.text.innerText += "Verbose progress...";
 
     return container;
 }

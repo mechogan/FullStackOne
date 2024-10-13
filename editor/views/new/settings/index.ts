@@ -1,8 +1,8 @@
-import api from "../../api";
-import { Button } from "../../components/primitives/button";
-import { InputSwitch, InputText } from "../../components/primitives/inputs";
-import { TopBar } from "../../components/top-bar";
-import { ViewScrollable } from "../../components/view-scrollable";
+import api from "../../../api";
+import { Button } from "../../../components/primitives/button";
+import { TopBar } from "../../../components/top-bar";
+import { ViewScrollable } from "../../../components/view-scrollable";
+import { Connectivity } from "./connectivity";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -41,23 +41,4 @@ function Packages() {
     });
 
     return packages;
-}
-
-function Connectivity() {
-    const container = document.createElement("div");
-    container.classList.add("connectivity");
-
-    container.innerHTML = `<h2>Connectivity</h2>`;
-
-    const autoConnect = InputSwitch({
-        label: "Connect automatically to nearby trusted peers"
-    });
-
-    const deviceName = InputText({
-        label: "Device Name"
-    });
-
-    container.append(autoConnect.container, deviceName.container);
-
-    return container;
 }
