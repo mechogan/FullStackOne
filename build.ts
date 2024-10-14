@@ -138,11 +138,16 @@ const branch = child_process
     .toString()
     .trim();
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
+const commitNumber = child_process
+    .execSync("git rev-list --count --all")
+    .toString()
+    .trim();
 fs.writeFileSync(
     "editor/build/version.json",
     JSON.stringify({
         version,
         branch,
-        commit
+        commit,
+        commitNumber
     })
 );

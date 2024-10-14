@@ -3,6 +3,8 @@ import { Button } from "../../../components/primitives/button";
 import { TopBar } from "../../../components/top-bar";
 import { ViewScrollable } from "../../../components/view-scrollable";
 import { Connectivity } from "./connectivity";
+import { GitAuthentications } from "./git-authentications";
+import { Version } from "./version";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -15,7 +17,12 @@ export function Settings() {
 
     container.prepend(topBar);
 
-    scrollable.append(Packages(), Connectivity());
+    scrollable.append(
+        Packages(),
+        Connectivity(),
+        GitAuthentications(),
+        Version()
+    );
 
     return container;
 }

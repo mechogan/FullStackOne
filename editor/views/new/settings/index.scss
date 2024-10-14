@@ -79,6 +79,92 @@
                 align-items: flex-start;
                 padding-bottom: spacing.$small;
             }
+
+            ul {
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$small;
+
+                li {
+                    background-color: colors.$gray-dark;
+                    border: 1px solid colors.$gray;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: spacing.$small;
+                    border-radius: spacing.$x-small;
+                    font-size: typography.$small;
+                }
+            }
+        }
+    }
+
+    .git-authentications {
+        > div:first-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: spacing.$small;
+        }
+
+        ul {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$small;
+
+            li {
+                background-color: colors.$gray-dark;
+                border: 1px solid colors.$gray;
+                padding: spacing.$small;
+                border-radius: spacing.$x-small;
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$small;
+
+                > div:first-child {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+
+                    .icon {
+                        color: colors.$light;
+                    }
+                }
+
+                > div:not(:first-child) {
+                    display: flex;
+                    flex-direction: column;
+                    gap: spacing.$x-small;
+                }
+            }
+        }
+    }
+
+    .version {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+
+            > div {
+                align-self: flex-end;
+            }
+        }
+
+        .editor-version {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+
+            > div:first-child {
+                display: flex;
+                align-items: flex-end;
+                gap: spacing.$x-small;
+            }
         }
     }
 }

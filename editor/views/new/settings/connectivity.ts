@@ -1,12 +1,17 @@
 import type { WebAddress } from "../../../../src/connectivity/types";
 import api from "../../../api";
+import rpc from "../../../rpc";
 import { CONFIG_TYPE } from "../../../api/config/types";
 import { constructURL } from "../../../api/connectivity/web";
 import { Popover } from "../../../components/popover";
 import { Badge } from "../../../components/primitives/badge";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
-import { InputSwitch, InputText } from "../../../components/primitives/inputs";
+import {
+    InputRadio,
+    InputSwitch,
+    InputText
+} from "../../../components/primitives/inputs";
 
 export function Connectivity() {
     const container = document.createElement("div");
@@ -152,13 +157,40 @@ function NetworkInterfaces() {
         <label>Default Network Interface</label>
     `;
 
+    const form = document.createElement("form");
+
     const addButton = Button({
         text: "Clear"
     });
 
+    addButton.onclick = () => {
+        form.reset();
+    };
+
     top.append(addButton);
 
-    container.append(top);
+    container.append(top, form);
+
+    rpc()
+        .connectivity.infos()
+        .then(({ networkInterfaces }) => {
+            const list = document.createElement("ul");
+
+            networkInterfaces.forEach((inet) => {
+                const item = document.createElement("li");
+
+                const name = document.createElement("div");
+                name.innerText = inet.name;
+
+                const inputRadio = InputRadio();
+                inputRadio.input.name = "inet";
+
+                item.append(name, inputRadio.container);
+                list.append(item);
+            });
+
+            form.append(list);
+        });
 
     return container;
 }
