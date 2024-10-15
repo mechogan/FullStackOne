@@ -6,7 +6,11 @@ import { CloneGit } from "./clone-git";
 import { CreateEmpty } from "./create-empty";
 import { ImportZip } from "./import-zip";
 
-export function AddProject() {
+export type AddProjectOpts = {
+    didAddProject: () => void;
+};
+
+export function AddProject(opts: AddProjectOpts) {
     const container = document.createElement("div");
     container.id = "add-project";
     container.classList.add("view");
@@ -32,7 +36,7 @@ export function AddProject() {
         iconLeft: "Archive"
     });
     importZipButton.onclick = () =>
-        stackNavigation.navigate(ImportZip(), BG_COLOR);
+        stackNavigation.navigate(ImportZip(opts), BG_COLOR);
 
     const createEmptyButton = Button({
         text: "Create empty project",

@@ -1,9 +1,12 @@
+import { AddProjectOpts } from ".";
+import api from "../../../api";
 import { Loader } from "../../../components/loader";
 import { InputFile } from "../../../components/primitives/inputs";
 import { TopBar } from "../../../components/top-bar";
 import { ViewScrollable } from "../../../components/view-scrollable";
+import stackNavigation from "../../../stack-navigation";
 
-export function ImportZip() {
+export function ImportZip(opts: AddProjectOpts) {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -21,15 +24,33 @@ export function ImportZip() {
 
     form.append(zipFileInput.container);
 
-    const loader = CreateLoader({
-        text: "Importing Project..."
-    });
+    zipFileInput.input.onchange = () => {
+        const file = zipFileInput.input.files?.[0];
+        if (!file) return;
 
-    const consoleTerminal = ConsoleTerminal();
+        zipFileInput.input.disabled = true;
 
-    scrollable.append(form, loader, consoleTerminal.container);
+        const loader = CreateLoader({
+            text: "Importing Project..."
+        });
 
-    consoleTerminal.text.innerText += "Verbose progress...";
+        const consoleTerminal = ConsoleTerminal();
+
+        scrollable.append(loader, consoleTerminal.container);
+
+        api.projects
+            .importZIP(file, (message) => {
+                consoleTerminal.text.innerText += `${message}\n`;
+                consoleTerminal.text.scrollIntoView(false);
+            })
+            .then(() => {
+                opts.didAddProject();
+                stackNavigation.back();
+                stackNavigation.back();
+            });
+    };
+
+    scrollable.append(form);
 
     return container;
 }
@@ -50,7 +71,7 @@ export function ConsoleTerminal() {
     const container = document.createElement("div");
     container.classList.add("create-terminal");
 
-    const text = document.createElement("div");
+    const text = document.createElement("pre");
     container.append(text);
 
     return { container, text };

@@ -62,7 +62,7 @@
     border-radius: spacing.$x-small;
     min-height: 250px;
     flex: 1;
-    > div {
+    > pre {
         padding: spacing.$medium;
         min-height: 100%;
     }

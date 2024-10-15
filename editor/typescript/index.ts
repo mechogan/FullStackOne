@@ -36,11 +36,11 @@ export class tsWorker {
     dispose() {
         this.worker?.terminate();
         this.worker = null;
-        
+
         for (const [id, promiseResolve] of this.reqs.entries()) {
             try {
                 promiseResolve(undefined);
-            } catch(e) {}
+            } catch (e) {}
         }
         this.reqs.clear();
         this.reqsCount = 0;
@@ -51,7 +51,7 @@ export class tsWorker {
     start(workingDirectory: string) {
         if (this.worker) return;
 
-        return new Promise<void>(resolve => {
+        return new Promise<void>((resolve) => {
             this.worker = new Worker("worker-ts.js", { type: "module" });
             this.worker.onmessage = async (message) => {
                 if (message.data.ready) {
@@ -59,15 +59,11 @@ export class tsWorker {
                     this.worker.postMessage({ platform });
                     await this.call().start(workingDirectory);
                     resolve();
-                } 
-                
-                else if (message.data.body) {
+                } else if (message.data.body) {
                     const { id, body } = message.data;
                     (globalThis as any).Android?.passRequestBody(id, body);
                     this.worker.postMessage({ request_id: id });
-                } 
-                
-                else {
+                } else {
                     const { id, data } = message.data;
                     const promiseResolve = this.reqs.get(id);
                     promiseResolve(data);
@@ -91,12 +87,12 @@ type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-    ? (
-        ...args: T[K] extends (...args: infer P) => any ? P : never[]
-    ) => OnlyOnePromise<
-        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-    >
-    : T[K] extends object
-    ? AwaitAll<T[K]>
-    : () => Promise<T[K]>;
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => OnlyOnePromise<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : T[K] extends object
+          ? AwaitAll<T[K]>
+          : () => Promise<T[K]>;
 };

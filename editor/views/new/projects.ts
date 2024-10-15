@@ -1,5 +1,6 @@
 import api from "../../api";
 import { Project as ProjectType } from "../../api/config/types";
+import { Dialog } from "../../components/dialog";
 import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
@@ -7,7 +8,7 @@ import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { BG_COLOR } from "../../constants";
 import stackNavigation from "../../stack-navigation";
-import { AddProject } from "./add-project";
+import { AddProject, AddProjectOpts } from "./add-project";
 import { Peers } from "./peers";
 import { Project } from "./project";
 import { Settings } from "./settings";
@@ -18,7 +19,14 @@ export function Projects() {
 
     container.prepend(TopBar());
 
-    scrollable.append(SearchAndAdd(), ProjectsList());
+    const projectList = ProjectsList();
+
+    scrollable.append(
+        SearchAndAdd({
+            didAddProject: () => projectList.replaceWith(ProjectsList())
+        }),
+        projectList
+    );
 
     return container;
 }
@@ -49,7 +57,7 @@ function TopBar() {
     return topBar;
 }
 
-function SearchAndAdd() {
+function SearchAndAdd(opts: AddProjectOpts) {
     const container = document.createElement("div");
     container.classList.add("search-and-add");
 
@@ -63,7 +71,7 @@ function SearchAndAdd() {
     });
 
     addButton.onclick = () => {
-        stackNavigation.navigate(AddProject(), BG_COLOR);
+        stackNavigation.navigate(AddProject(opts), BG_COLOR);
     };
 
     container.append(inputText.container, addButton);
@@ -76,9 +84,15 @@ function ProjectsList() {
     container.classList.add("projects-list");
 
     api.projects.list().then((projects) => {
-        projects.forEach((project) => {
-            container.append(ProjectTile(project));
-        });
+        projects
+            .sort((a, b) => {
+                const lastDateA = a.updatedDate || a.createdDate;
+                const lastDateB = b.updatedDate || b.createdDate;
+                return lastDateB - lastDateA;
+            })
+            .forEach((project) => {
+                container.append(ProjectTile(project));
+            });
     });
 
     return container;
@@ -110,12 +124,44 @@ function ProjectTile(project: ProjectType) {
         const content = document.createElement("div");
         content.classList.add("options-popover");
 
+        const deleteButton = Button({
+            text: "Delete",
+            iconLeft: "Trash",
+            color: "red"
+        });
+        deleteButton.onclick = () => {
+            const confirm = document.createElement("div");
+            confirm.classList.add("confirm");
+
+            confirm.innerHTML = `<p>Are you sure you want to delete <b>${project.title}</b>?</p>`;
+
+            const buttonRow = document.createElement("div");
+
+            const keepButton = Button({
+                style: "text",
+                text: "Keep"
+            });
+            const deleteButton = Button({
+                color: "red",
+                text: "Delete"
+            });
+
+            buttonRow.append(keepButton, deleteButton);
+
+            confirm.append(buttonRow);
+
+            const { remove } = Dialog(confirm);
+
+            keepButton.onclick = remove;
+            deleteButton.onclick = () => {
+                api.projects.delete(project);
+                remove();
+                container.remove();
+            };
+        };
+
         const buttonsGroup = ButtonGroup([
-            Button({
-                text: "Delete",
-                iconLeft: "Trash",
-                color: "red"
-            }),
+            deleteButton,
             Button({
                 text: "Share",
                 iconLeft: "Export"

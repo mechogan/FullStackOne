@@ -23,12 +23,12 @@ export function Project(project: ProjectType) {
     WorkerTS.working = () => {
         tsButton.disabled = false;
 
-        if(WorkerTS.reqs.size > 0) {
+        if (WorkerTS.reqs.size > 0) {
             tsButton.classList.add("working");
         } else {
             tsButton.classList.remove("working");
         }
-    }
+    };
     tsButton.disabled = true;
 
     const runButton = Button({

@@ -3,36 +3,35 @@ import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import {
-    linter,
-    lintGutter,
-    Diagnostic
-} from "@codemirror/lint";
+import { linter, lintGutter, Diagnostic } from "@codemirror/lint";
 import rpc from "../../../rpc";
 import { WorkerTS } from "../../../typescript";
-import { tsAutocomplete, tsErrorLinter, tsTypeDefinition } from "./ts-extensions";
+import {
+    tsAutocomplete,
+    tsErrorLinter,
+    tsTypeDefinition
+} from "./ts-extensions";
 import { autocompletion } from "@codemirror/autocomplete";
 
-
 type ImageView = {
-    dom: HTMLElement
-    destroy: () => void
-}
+    dom: HTMLElement;
+    destroy: () => void;
+};
 
 class CodeEditorClass {
     workingDirectory: string;
     parent: HTMLElement;
     activeFiles: {
-        path: string,
+        path: string;
         view?: (EditorView | ImageView) & {
-            save: () => void
-        }
+            save: () => void;
+        };
     }[] = [];
     openedFilePath: string;
     onActiveFileChange: () => void;
 
     remove(path: string) {
-        const index = this.activeFiles.findIndex(file => file.path === path);
+        const index = this.activeFiles.findIndex((file) => file.path === path);
         const removed = this.activeFiles.splice(index, 1);
         removed.at(0)?.view?.save();
         removed.at(0)?.view?.destroy();
@@ -43,27 +42,28 @@ class CodeEditorClass {
         this.openedFilePath = path;
         this.onActiveFileChange?.();
         this.clearParent();
-        this.parent.append(this.activeFiles.find(file => file.path === path).view.dom);
+        this.parent.append(
+            this.activeFiles.find((file) => file.path === path).view.dom
+        );
     }
 
     clearParent() {
-        Array.from(this.parent.children).forEach(child => child.remove());
+        Array.from(this.parent.children).forEach((child) => child.remove());
     }
 
     addFile(path: string) {
-        if (this.activeFiles.find(file => file.path === path)) {
+        if (this.activeFiles.find((file) => file.path === path)) {
             this.open(path);
             return;
         }
 
-        const activeFile: CodeEditorClass["activeFiles"][0] = { path }
+        const activeFile: CodeEditorClass["activeFiles"][0] = { path };
         this.activeFiles.push(activeFile);
         this.openedFilePath = path;
         this.onActiveFileChange?.();
 
         this.clearParent();
-        createView(path)
-            .then(editorView => activeFile.view = editorView)
+        createView(path).then((editorView) => (activeFile.view = editorView));
     }
 
     setParent(workingDirectory: string, parent: HTMLElement) {
@@ -81,9 +81,11 @@ const defaultExtensions = [
     oneDark,
     keymap.of([indentWithTab]),
     indentUnit.of("    ")
-]
+];
 
-function createView(filePath: string): Promise<(ImageView | EditorView) & { save: () => void }> {
+function createView(
+    filePath: string
+): Promise<(ImageView | EditorView) & { save: () => void }> {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(IMAGE_Ext).find((ext) => ext === fileExtension)) {
         return createImageView(filePath);
@@ -93,39 +95,42 @@ function createView(filePath: string): Promise<(ImageView | EditorView) & { save
 }
 
 async function createViewEditor(filePath: string) {
-
     const saveFile = () => {
         const text = editorView.state.doc.toString();
-        const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
+        const fileExtension = filePath
+            .split(".")
+            .pop()
+            .toLowerCase() as UTF8_Ext;
 
-        if(typescriptExtensions.includes(fileExtension)) {
+        if (typescriptExtensions.includes(fileExtension)) {
             return WorkerTS.call().updateFile(filePath, text, true);
         }
 
-        rpc().fs.exists(filePath)
-            .then(exists => {
-                if(!exists?.isFile) return;
+        rpc()
+            .fs.exists(filePath)
+            .then((exists) => {
+                if (!exists?.isFile) return;
 
                 rpc().fs.writeFile(filePath, text, {
                     absolutePath: true
-                })
+                });
             });
-    }
+    };
 
     let updateThrottler: ReturnType<typeof setTimeout>;
     const saveOnUpdate = () => {
-        if(updateThrottler) clearTimeout(updateThrottler);
+        if (updateThrottler) clearTimeout(updateThrottler);
         updateThrottler = setTimeout(() => {
             saveFile();
             updateThrottler = null;
-        }, 2000)
-    }
+        }, 2000);
+    };
 
-    const doc = await rpc().fs.readFile(filePath, {
+    const doc = (await rpc().fs.readFile(filePath, {
         absolutePath: true,
         encoding: "utf8"
-    }) as string;
-    
+    })) as string;
+
     const editorView = new EditorView({
         doc,
         extensions: [
@@ -160,28 +165,24 @@ async function languageExtensions(filePath: string) {
             return [langMD.markdown()];
         case UTF8_Ext.JSON:
             const langJSON = await import("@codemirror/lang-json");
-            return [
-                langJSON.json(),
-                langJSON.jsonParseLinter()
-            ];
+            return [langJSON.json(), langJSON.jsonParseLinter()];
         case UTF8_Ext.CSS:
             const langCSS = await import("@codemirror/lang-css");
             return [langCSS.css()];
         case UTF8_Ext.SASS:
         case UTF8_Ext.SCSS:
-            const langSASS = await import("@codemirror/lang-sass")
-            return [langSASS.sass({
-                indented: fileExtension === UTF8_Ext.SASS
-            })]
+            const langSASS = await import("@codemirror/lang-sass");
+            return [
+                langSASS.sass({
+                    indented: fileExtension === UTF8_Ext.SASS
+                })
+            ];
         case UTF8_Ext.LIQUID:
             const langLiquid = await import("@codemirror/lang-liquid");
-            return [
-                langLiquid.liquid(), 
-                langLiquid.closePercentBrace
-            ];
+            return [langLiquid.liquid(), langLiquid.closePercentBrace];
     }
 
-    return []
+    return [];
 }
 
 async function loadJsTsExtensions(filePath: string) {
@@ -194,10 +195,7 @@ async function loadJsTsExtensions(filePath: string) {
         jsx: fileExtension.endsWith("x")
     });
 
-    extensions.push(
-        jsDefaultExtension,
-        lintGutter()
-    );
+    extensions.push(jsDefaultExtension, lintGutter());
 
     if (javascriptExtensions.includes(fileExtension)) {
         const jsAutocomplete = langJs.javascriptLanguage.data.of({
@@ -207,16 +205,13 @@ async function loadJsTsExtensions(filePath: string) {
     }
     // load typescript
     else {
-        extensions.push(
-            ...await loadTypeScript(filePath)
-        )
+        extensions.push(...(await loadTypeScript(filePath)));
     }
 
     return extensions;
 }
 
-
-async function loadTypeScript(filePath: string){
+async function loadTypeScript(filePath: string) {
     await WorkerTS.start(CodeEditor.workingDirectory);
 
     return [
@@ -225,7 +220,6 @@ async function loadTypeScript(filePath: string){
         hoverTooltip(tsTypeDefinition(filePath))
     ];
 }
-
 
 async function createImageView(filePath: string) {
     const img = document.createElement("img");
@@ -239,9 +233,8 @@ async function createImageView(filePath: string) {
         destroy: () => window.URL.revokeObjectURL(img.src),
         save: () => {},
         dom: img
-    }
+    };
 }
-
 
 enum UTF8_Ext {
     JAVASCRIPT = "js",
@@ -272,20 +265,13 @@ enum IMAGE_Ext {
     BMP = "bmp"
 }
 
-
 const javascriptExtensions = [
     UTF8_Ext.JAVASCRIPT,
     UTF8_Ext.JAVASCRIPT_C,
     UTF8_Ext.JAVASCRIPT_M,
     UTF8_Ext.JAVASCRIPT_X
-]
+];
 
-const typescriptExtensions = [
-    UTF8_Ext.TYPESCRIPT,
-    UTF8_Ext.TYPESCRIPT_X
-]
+const typescriptExtensions = [UTF8_Ext.TYPESCRIPT, UTF8_Ext.TYPESCRIPT_X];
 
-const jsTsExtensions = [
-    ...javascriptExtensions,
-    ...typescriptExtensions
-]
+const jsTsExtensions = [...javascriptExtensions, ...typescriptExtensions];

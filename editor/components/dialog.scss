@@ -1,0 +1,36 @@
+@use "../style/new/values/colors.scss";
+@use "../style/new/values/spacing.scss";
+
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: colors.$overlay;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: spacing.$large spacing.$medium 0;
+
+    .dialog {
+        background-color: colors.$blue-dark;
+        width: 100%;
+        max-width: spacing.$max-width;
+        padding: spacing.$medium;
+        border-radius: spacing.$medium;
+
+        .confirm {
+            p {
+                text-align: center;
+                padding-bottom: spacing.$medium;
+            }
+
+            > div:last-child {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+    }
+}

@@ -4,7 +4,7 @@ import { CodeEditor } from "./code-editor";
 
 type EditorOpts = {
     directory: string;
-}
+};
 
 export function Editor(opts: EditorOpts) {
     const container = document.createElement("div");
@@ -23,11 +23,11 @@ function FileTabs() {
     container.classList.add("file-tabs");
 
     const renderTabs = () => {
-        Array.from(container.children).forEach(child => child.remove());
+        Array.from(container.children).forEach((child) => child.remove());
 
         CodeEditor.activeFiles.forEach((item) => {
             const li = document.createElement("li");
-            if(item.path === CodeEditor.openedFilePath) {
+            if (item.path === CodeEditor.openedFilePath) {
                 li.classList.add("opened");
             } else {
                 li.onclick = () => CodeEditor.open(item.path);
@@ -35,22 +35,22 @@ function FileTabs() {
 
             const name = document.createElement("span");
             name.innerText = item.path.split("/").pop();
-    
+
             const closeButton = Button({
                 style: "icon-small",
                 iconLeft: "Close"
             });
 
-            closeButton.onclick = e => {
-                e.stopPropagation()
+            closeButton.onclick = (e) => {
+                e.stopPropagation();
                 CodeEditor.remove(item.path);
             };
-    
+
             li.append(name, closeButton);
-    
+
             container.append(li);
         });
-    }
+    };
 
     CodeEditor.onActiveFileChange = renderTabs;
     renderTabs();

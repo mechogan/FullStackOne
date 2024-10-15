@@ -75,14 +75,14 @@ $file-tree-panel-width: 235px;
         display: flex;
         flex-direction: column;
 
-        >div:first-child {
+        > div:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding-left: spacing.$x-small;
             padding-right: spacing.$x-small;
 
-            >div {
+            > div {
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
@@ -90,14 +90,14 @@ $file-tree-panel-width: 235px;
             }
         }
 
-        >div:last-child {
+        > div:last-child {
             width: 100%;
             overflow: auto;
             padding-bottom: spacing.$small;
             padding-top: spacing.$x-small;
             padding-left: spacing.$x-small;
 
-            >ul {
+            > ul {
                 padding-left: 0;
                 padding-right: spacing.$x-small;
             }
@@ -127,7 +127,7 @@ $file-tree-panel-width: 235px;
                 position: relative;
                 min-height: 24px;
 
-                >button {
+                > button {
                     color: colors.$light;
                     display: none;
                 }
@@ -137,7 +137,7 @@ $file-tree-panel-width: 235px;
                 display: flex;
                 align-items: center;
 
-                >span:first-child {
+                > span:first-child {
                     padding-left: spacing.$x-small;
                 }
 
@@ -148,7 +148,7 @@ $file-tree-panel-width: 235px;
             }
 
             &.opened {
-                >.name-and-options>.name {
+                > .name-and-options > .name {
                     .icon {
                         transform: rotate(90deg);
                     }
@@ -156,7 +156,7 @@ $file-tree-panel-width: 235px;
             }
 
             &.active {
-                >.name-and-options {
+                > .name-and-options {
                     &::before {
                         content: "";
                         background-color: colors.$blue;
@@ -182,7 +182,7 @@ $file-tree-panel-width: 235px;
         display: flex;
         flex-direction: column;
 
-        >div {
+        > div {
             overflow: auto;
 
             img {
