@@ -19,11 +19,15 @@ export function Projects() {
 
     container.prepend(TopBar());
 
-    const projectList = ProjectsList();
-
+    let projectList = ProjectsList();
     scrollable.append(
         SearchAndAdd({
-            didAddProject: () => projectList.replaceWith(ProjectsList())
+            didAddProject: () => {
+                stackNavigation.back();
+                const updatedProjectList = ProjectsList();
+                projectList.replaceWith(updatedProjectList)
+                projectList = updatedProjectList;
+            }
         }),
         projectList
     );

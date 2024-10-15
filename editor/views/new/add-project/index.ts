@@ -36,7 +36,12 @@ export function AddProject(opts: AddProjectOpts) {
         iconLeft: "Archive"
     });
     importZipButton.onclick = () =>
-        stackNavigation.navigate(ImportZip(opts), BG_COLOR);
+        stackNavigation.navigate(ImportZip({
+            didImportProject: () => {
+                stackNavigation.back();
+                opts.didAddProject();
+            }
+        }), BG_COLOR);
 
     const createEmptyButton = Button({
         text: "Create empty project",

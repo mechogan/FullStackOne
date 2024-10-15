@@ -1,4 +1,3 @@
-import { AddProjectOpts } from ".";
 import api from "../../../api";
 import { Loader } from "../../../components/loader";
 import { InputFile } from "../../../components/primitives/inputs";
@@ -6,7 +5,11 @@ import { TopBar } from "../../../components/top-bar";
 import { ViewScrollable } from "../../../components/view-scrollable";
 import stackNavigation from "../../../stack-navigation";
 
-export function ImportZip(opts: AddProjectOpts) {
+type ImportZipOpts = {
+    didImportProject: () => void;
+}
+
+export function ImportZip(opts: ImportZipOpts) {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -43,11 +46,7 @@ export function ImportZip(opts: AddProjectOpts) {
                 consoleTerminal.text.innerText += `${message}\n`;
                 consoleTerminal.text.scrollIntoView(false);
             })
-            .then(() => {
-                opts.didAddProject();
-                stackNavigation.back();
-                stackNavigation.back();
-            });
+            .then(opts.didImportProject);
     };
 
     scrollable.append(form);
