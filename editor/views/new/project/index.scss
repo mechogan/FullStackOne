@@ -4,6 +4,16 @@
 
 $file-tree-panel-width: 235px;
 
+@keyframes flash {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0.3;
+    }
+}
+
 #project {
     display: flex;
     flex-direction: column;
@@ -21,6 +31,10 @@ $file-tree-panel-width: 235px;
         p {
             font-size: typography.$small;
         }
+
+        button.working {
+            animation: flash 1s infinite alternate;
+        }
     }
 
     .content {
@@ -36,15 +50,18 @@ $file-tree-panel-width: 235px;
             width: $file-tree-panel-width;
             transition: 0.2s all;
         }
+
         .editor {
             width: calc(100% - $file-tree-panel-width);
             border-top-left-radius: spacing.$x-small;
             transition: 0.2s width;
         }
+
         &.closed-panel {
             .file-tree {
                 width: 0;
             }
+
             .editor {
                 width: 100%;
                 border-top-left-radius: 0;
@@ -58,14 +75,14 @@ $file-tree-panel-width: 235px;
         display: flex;
         flex-direction: column;
 
-        > div:first-child {
+        >div:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding-left: spacing.$x-small;
             padding-right: spacing.$x-small;
 
-            > div {
+            >div {
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
@@ -73,14 +90,14 @@ $file-tree-panel-width: 235px;
             }
         }
 
-        > div:last-child {
+        >div:last-child {
             width: 100%;
             overflow: auto;
             padding-bottom: spacing.$small;
             padding-top: spacing.$x-small;
             padding-left: spacing.$x-small;
 
-            > ul {
+            >ul {
                 padding-left: 0;
                 padding-right: spacing.$x-small;
             }
@@ -110,7 +127,7 @@ $file-tree-panel-width: 235px;
                 position: relative;
                 min-height: 24px;
 
-                > button {
+                >button {
                     color: colors.$light;
                     display: none;
                 }
@@ -120,7 +137,7 @@ $file-tree-panel-width: 235px;
                 display: flex;
                 align-items: center;
 
-                > span:first-child {
+                >span:first-child {
                     padding-left: spacing.$x-small;
                 }
 
@@ -131,7 +148,7 @@ $file-tree-panel-width: 235px;
             }
 
             &.opened {
-                > .name-and-options > .name {
+                >.name-and-options>.name {
                     .icon {
                         transform: rotate(90deg);
                     }
@@ -139,7 +156,7 @@ $file-tree-panel-width: 235px;
             }
 
             &.active {
-                > .name-and-options {
+                >.name-and-options {
                     &::before {
                         content: "";
                         background-color: colors.$blue;
@@ -151,6 +168,7 @@ $file-tree-panel-width: 235px;
                         border-radius: 2px;
                         z-index: -1;
                     }
+
                     button {
                         display: flex;
                     }
@@ -161,6 +179,18 @@ $file-tree-panel-width: 235px;
 
     .editor {
         background-color: colors.$dark;
+        display: flex;
+        flex-direction: column;
+
+        >div {
+            overflow: auto;
+
+            img {
+                max-height: 100%;
+                max-width: 100%;
+                object-fit: contain;
+            }
+        }
     }
 
     .file-tabs {
@@ -168,6 +198,7 @@ $file-tree-panel-width: 235px;
         white-space: nowrap;
         width: 100%;
         overflow: auto;
+        min-height: 31px;
 
         li {
             display: inline-flex;
@@ -175,10 +206,21 @@ $file-tree-panel-width: 235px;
             gap: spacing.$small;
             padding: spacing.$x-small spacing.$small;
             border-right: 1px solid colors.$gray;
+            cursor: pointer;
+
+            span {
+                opacity: 0.5;
+            }
 
             button {
                 height: 20px;
                 width: 20px;
+            }
+
+            &.opened {
+                span {
+                    opacity: 1;
+                }
             }
         }
     }
@@ -187,8 +229,9 @@ $file-tree-panel-width: 235px;
 // codemirror overriddes
 .cm-editor,
 .cm-gutters {
-    background-color: inherit !important;
+    background-color: colors.$dark !important;
 }
+
 .cm-focused {
     outline: none !important;
 }

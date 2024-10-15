@@ -3,6 +3,7 @@ import { Popover } from "../../../components/popover";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import rpc from "../../../rpc";
+import { CodeEditor } from "./code-editor";
 
 type FileTreeOpts = {
     directory: string;
@@ -122,6 +123,7 @@ function TreeRecursive(directory: string) {
                                 item.append(children);
                             }
                         } else {
+                            CodeEditor.addFile(`${directory}/${name}`);
                         }
                     };
 

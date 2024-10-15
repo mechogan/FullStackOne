@@ -1,6 +1,7 @@
 import type { Project as ProjectType } from "../../../api/config/types";
 import { Button } from "../../../components/primitives/button";
 import { TopBar } from "../../../components/top-bar";
+import { WorkerTS } from "../../../typescript";
 import { Editor } from "./editor";
 import { FileTree } from "./file-tree";
 
@@ -14,10 +15,21 @@ export function Project(project: ProjectType) {
         iconLeft: "Git"
     });
 
+    WorkerTS.dispose();
     const tsButton = Button({
         style: "icon-large",
         iconLeft: "TypeScript"
     });
+    WorkerTS.working = () => {
+        tsButton.disabled = false;
+
+        if(WorkerTS.reqs.size > 0) {
+            tsButton.classList.add("working");
+        } else {
+            tsButton.classList.remove("working");
+        }
+    }
+    tsButton.disabled = true;
 
     const runButton = Button({
         style: "icon-large",
@@ -50,7 +62,9 @@ export function Project(project: ProjectType) {
                 content.classList.add("closed-panel");
             }
         }),
-        Editor()
+        Editor({
+            directory: project.location
+        })
     );
     container.append(content);
 
