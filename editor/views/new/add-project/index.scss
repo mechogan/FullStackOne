@@ -2,12 +2,14 @@
 @use "../../../style/new/values/colors.scss";
 
 #add-project {
+    padding-bottom: spacing.$small;
+
     .buttons {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: spacing.$large;
-        padding-top: spacing.$large + spacing.$small;
+        padding-top: spacing.$large;
     }
 }
 
@@ -17,20 +19,20 @@
     flex-direction: column;
 
     .top-bar {
-        padding-bottom: spacing.$medium;
+        padding-bottom: spacing.$small;
     }
 
     form {
+        padding-top: spacing.$medium;
+
         display: flex;
         flex-direction: column;
         gap: spacing.$medium;
 
         width: 100%;
-        max-width: 400px;
+        max-width: spacing.$max-width;
 
         margin: 0 auto;
-
-        padding-top: spacing.$small;
 
         button {
             align-self: flex-end;

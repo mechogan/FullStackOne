@@ -3,12 +3,14 @@
 
 #peers {
     .top-bar {
-        padding-bottom: spacing.$medium;
+        padding-bottom: spacing.$small;
     }
 
     .peers-lists {
+        padding-bottom: spacing.$small;
+
         width: 100%;
-        max-width: 400px;
+        max-width: spacing.$max-width;
         margin: 0 auto;
 
         padding-top: spacing.$small;

@@ -4,9 +4,11 @@
 
 #projects-view {
     .top-bar {
-        padding-bottom: spacing.$medium;
+        padding-bottom: spacing.$small;
     }
     .search-and-add {
+        padding-top: spacing.$small;
+
         width: 100%;
         display: flex;
         align-items: flex-end;
@@ -17,7 +19,7 @@
 
         > div:first-child {
             flex: 1;
-            max-width: 400px;
+            max-width: spacing.$max-width;
         }
     }
 

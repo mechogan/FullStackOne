@@ -6,6 +6,6 @@ body {
     width: 100%;
 }
 
-.view {
-    padding: spacing.$medium;
+.view, .view-scrollable {
+    padding: spacing.$small spacing.$medium spacing.$medium;
 }
