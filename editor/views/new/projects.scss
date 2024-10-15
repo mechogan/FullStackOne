@@ -41,6 +41,8 @@
         > .project-tile {
             position: relative;
 
+            cursor: pointer;
+
             background-color: colors.opacity(colors.$light, 15);
             width: 100%;
             aspect-ratio: 39 / 22;

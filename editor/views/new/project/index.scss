@@ -1,0 +1,16 @@
+@use "../../../style/new/values/spacing.scss";
+@use "../../../style/new/values/typography.scss";
+
+#project {
+    .top-bar {
+        width: calc(100% + spacing.$medium);
+
+        h1 {
+            font-size: typography.$medium;
+        }
+
+        p {
+            font-size: typography.$small;
+        }
+    }
+}

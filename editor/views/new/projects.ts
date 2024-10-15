@@ -1,5 +1,5 @@
 import api from "../../api";
-import { Project } from "../../api/config/types";
+import { Project as ProjectType } from "../../api/config/types";
 import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
@@ -9,6 +9,7 @@ import { BG_COLOR } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { AddProject } from "./add-project";
 import { Peers } from "./peers";
+import { Project } from "./project";
 import { Settings } from "./settings";
 
 export function Projects() {
@@ -83,9 +84,12 @@ function ProjectsList() {
     return container;
 }
 
-function ProjectTile(project: Project) {
-    const container = document.createElement("div", {});
+function ProjectTile(project: ProjectType) {
+    const container = document.createElement("div");
     container.classList.add("project-tile");
+
+    container.onclick = () =>
+        stackNavigation.navigate(Project(project), BG_COLOR);
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");
@@ -100,7 +104,9 @@ function ProjectTile(project: Project) {
         iconLeft: "Options"
     });
 
-    optionsButton.onclick = () => {
+    optionsButton.onclick = (e) => {
+        e.stopPropagation();
+
         const content = document.createElement("div");
         content.classList.add("options-popover");
 

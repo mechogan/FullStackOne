@@ -4,6 +4,7 @@ import { Button } from "./primitives/button";
 type TopBarOpts = {
     noBack: boolean;
     title: string;
+    subtitle: string;
     actions: HTMLElement[];
 };
 
@@ -26,10 +27,18 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
         container.classList.add("no-back");
     }
 
+    const titlesContainer = document.createElement("div");
+    left.append(titlesContainer);
+
     if (opts?.title) {
         const title = document.createElement("h1");
         title.innerText = opts.title;
-        left.append(title);
+        titlesContainer.append(title);
+    }
+    if (opts?.subtitle) {
+        const subtitle = document.createElement("p");
+        subtitle.innerText = opts.subtitle;
+        titlesContainer.append(subtitle);
     }
 
     const right = document.createElement("div");
