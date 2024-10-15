@@ -1,9 +1,18 @@
 @use "../../../style/new/values/spacing.scss";
 @use "../../../style/new/values/typography.scss";
+@use "../../../style/new/values/colors.scss";
+
+$file-tree-panel-width: 235px;
 
 #project {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 0;
+
     .top-bar {
-        width: calc(100% + spacing.$medium);
+        width: calc(100% + (spacing.$medium + spacing.$small));
+        padding-bottom: spacing.$x-small;
 
         h1 {
             font-size: typography.$medium;
@@ -13,4 +22,173 @@
             font-size: typography.$small;
         }
     }
+
+    .content {
+        flex: 1;
+        overflow: hidden;
+
+        display: flex;
+
+        margin-left: 0 - spacing.$medium;
+        width: calc(100% + (spacing.$medium + spacing.$medium));
+
+        .file-tree {
+            width: $file-tree-panel-width;
+            transition: 0.2s all;
+        }
+        .editor {
+            width: calc(100% - $file-tree-panel-width);
+            border-top-left-radius: spacing.$x-small;
+            transition: 0.2s width;
+        }
+        &.closed-panel {
+            .file-tree {
+                width: 0;
+            }
+            .editor {
+                width: 100%;
+                border-top-left-radius: 0;
+            }
+        }
+    }
+
+    .file-tree {
+        white-space: nowrap;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: spacing.$x-small;
+            padding-right: spacing.$x-small;
+
+            > div {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: spacing.$small;
+            }
+        }
+
+        > div:last-child {
+            width: 100%;
+            overflow: auto;
+            padding-bottom: spacing.$small;
+            padding-top: spacing.$x-small;
+            padding-left: spacing.$x-small;
+
+            > ul {
+                padding-left: 0;
+                padding-right: spacing.$x-small;
+            }
+        }
+
+        ul {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+            padding-left: spacing.$small;
+            width: 100%;
+            min-width: max-content;
+        }
+
+        li {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+            cursor: pointer;
+            position: relative;
+
+            .name-and-options {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: spacing.$small;
+                position: relative;
+                min-height: 24px;
+
+                > button {
+                    color: colors.$light;
+                    display: none;
+                }
+            }
+
+            .name {
+                display: flex;
+                align-items: center;
+
+                > span:first-child {
+                    padding-left: spacing.$x-small;
+                }
+
+                .icon {
+                    height: 16px;
+                    width: 16px;
+                }
+            }
+
+            &.opened {
+                > .name-and-options > .name {
+                    .icon {
+                        transform: rotate(90deg);
+                    }
+                }
+            }
+
+            &.active {
+                > .name-and-options {
+                    &::before {
+                        content: "";
+                        background-color: colors.$blue;
+                        position: absolute;
+                        top: -2px;
+                        left: 0;
+                        height: calc(100% + spacing.$x-small);
+                        width: 100%;
+                        border-radius: 2px;
+                        z-index: -1;
+                    }
+                    button {
+                        display: flex;
+                    }
+                }
+            }
+        }
+    }
+
+    .editor {
+        background-color: colors.$dark;
+    }
+
+    .file-tabs {
+        border-bottom: 1px solid colors.$gray;
+        white-space: nowrap;
+        width: 100%;
+        overflow: auto;
+
+        li {
+            display: inline-flex;
+            align-items: center;
+            gap: spacing.$small;
+            padding: spacing.$x-small spacing.$small;
+            border-right: 1px solid colors.$gray;
+
+            button {
+                height: 20px;
+                width: 20px;
+            }
+        }
+    }
+}
+
+// codemirror overriddes
+.cm-editor,
+.cm-gutters {
+    background-color: inherit !important;
+}
+.cm-focused {
+    outline: none !important;
 }

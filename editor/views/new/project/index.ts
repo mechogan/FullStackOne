@@ -1,6 +1,8 @@
 import type { Project as ProjectType } from "../../../api/config/types";
 import { Button } from "../../../components/primitives/button";
 import { TopBar } from "../../../components/top-bar";
+import { Editor } from "./editor";
+import { FileTree } from "./file-tree";
 
 export function Project(project: ProjectType) {
     const container = document.createElement("div");
@@ -25,10 +27,32 @@ export function Project(project: ProjectType) {
     const topBar = TopBar({
         title: project.title,
         subtitle: project.id,
-        actions: [gitButton, tsButton, runButton]
+        actions: [gitButton, tsButton, runButton],
+        onBack: () => {
+            if (content.classList.contains("closed-panel")) {
+                content.classList.remove("closed-panel");
+                return false;
+            }
+
+            return true;
+        }
     });
 
-    container.prepend(topBar);
+    container.append(topBar);
+
+    const content = document.createElement("div");
+    content.classList.add("content");
+
+    content.append(
+        FileTree({
+            directory: project.location,
+            onClosePanel: () => {
+                content.classList.add("closed-panel");
+            }
+        }),
+        Editor()
+    );
+    container.append(content);
 
     return container;
 }

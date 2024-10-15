@@ -327,7 +327,7 @@ function createHandler(mainAdapter: AdapterEditor) {
         const pathAndQuery = path.split("?");
 
         // get first element as pathname
-        let pathname = pathAndQuery.shift();
+        let pathname = decodeURIComponent(pathAndQuery.shift());
 
         // the rest can be used as query
         const query = pathAndQuery.join("?");

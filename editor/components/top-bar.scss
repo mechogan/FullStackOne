@@ -5,8 +5,8 @@
     align-items: center;
     justify-content: space-between;
 
-    width: calc(100% + spacing.$small);
-    margin-left: 0 - spacing.$small;
+    width: calc(100% + spacing.$medium);
+    margin-left: 0 - spacing.$medium;
     &.no-back {
         width: 100%;
         margin-left: 0;
@@ -14,8 +14,15 @@
 
     > div:first-child {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: flex-start;
+
+        .titles {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+        }
     }
 
     > div:last-child {

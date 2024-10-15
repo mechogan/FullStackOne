@@ -6,7 +6,10 @@ type TopBarOpts = {
     title: string;
     subtitle: string;
     actions: HTMLElement[];
+    onBack: () => boolean;
 };
+
+let h1Height: number, getH1HeightInterval: ReturnType<typeof setInterval>;
 
 export function TopBar(opts?: Partial<TopBarOpts>) {
     const container = document.createElement("div");
@@ -14,24 +17,31 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
 
     const left = document.createElement("div");
 
+    let backButton: HTMLButtonElement;
     if (!opts?.noBack) {
-        const backButton = Button({
+        backButton = Button({
             style: "icon-large",
             iconLeft: "Arrow"
         });
+        backButton.onclick = () => {
+            if (opts?.onBack && !opts.onBack()) {
+                return;
+            }
 
-        backButton.onclick = () => stackNavigation.back();
-
+            stackNavigation.back();
+        };
         left.append(backButton);
     } else {
         container.classList.add("no-back");
     }
 
     const titlesContainer = document.createElement("div");
+    titlesContainer.classList.add("titles");
     left.append(titlesContainer);
 
+    let title: HTMLHeadingElement;
     if (opts?.title) {
-        const title = document.createElement("h1");
+        title = document.createElement("h1");
         title.innerText = opts.title;
         titlesContainer.append(title);
     }
@@ -48,6 +58,29 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
     }
 
     container.append(left, right);
+
+    const setHeight = () => {
+        if (!h1Height) {
+            const getH1Height = () => {
+                if (h1Height) {
+                    clearInterval(getH1HeightInterval);
+                    getH1HeightInterval = null;
+                    return;
+                }
+
+                h1Height = title.getBoundingClientRect().height;
+                setHeight();
+            };
+            getH1HeightInterval = setInterval(getH1Height, 1000);
+        } else {
+            if (backButton) {
+                backButton.style.height = h1Height + "px";
+            }
+
+            titlesContainer.style.minHeight = h1Height + "px";
+        }
+    };
+    setHeight();
 
     return container;
 }
