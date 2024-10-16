@@ -39,7 +39,23 @@ class CodeEditorClass {
         this.onActiveFileChange?.();
     }
 
-    open(path: string) {
+    replacePath(oldPath: string, newPath: string) {
+        const file = this.activeFiles.find(({ path }) => path === oldPath);
+        if (!file) return;
+
+        file.path = newPath;
+        file.view.destroy();
+        createView(newPath).then((newView) => {
+            file.view = newView;
+            if (this.openedFilePath === oldPath) {
+                this.open(newPath);
+            }
+        });
+
+        this.onActiveFileChange?.();
+    }
+
+    private open(path: string) {
         this.openedFilePath = path;
         this.onActiveFileChange?.();
         this.clearParent();
@@ -48,7 +64,7 @@ class CodeEditorClass {
         );
     }
 
-    clearParent() {
+    private clearParent() {
         Array.from(this.parent.children).forEach((child) => child.remove());
     }
 
@@ -64,7 +80,11 @@ class CodeEditorClass {
         this.onActiveFileChange?.();
 
         this.clearParent();
-        createView(path).then((editorView) => (activeFile.view = editorView));
+
+        createView(path).then((editorView) => {
+            activeFile.view = editorView;
+            this.open(path);
+        });
     }
 
     setParent(workingDirectory: string, parent: HTMLElement) {
@@ -138,8 +158,7 @@ async function createViewEditor(filePath: string) {
             ...defaultExtensions,
             ...(await languageExtensions(filePath)),
             EditorView.updateListener.of(saveOnUpdate)
-        ],
-        parent: CodeEditor.parent
+        ]
     }) as EditorView & { save: () => void };
 
     editorView.save = saveFile;
@@ -229,7 +248,6 @@ async function createImageView(filePath: string) {
     });
     const imageBlob = new Blob([imageData]);
     img.src = window.URL.createObjectURL(imageBlob);
-    CodeEditor.parent.append(img);
     return {
         destroy: () => window.URL.revokeObjectURL(img.src),
         save: () => {},

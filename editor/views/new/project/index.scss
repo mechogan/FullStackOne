@@ -35,6 +35,14 @@ $file-tree-panel-width: 235px;
         button.working {
             animation: flash 1s infinite alternate;
         }
+
+        .top-bar-actions {
+            .loader-container {
+                width: 38px;
+                height: 38px;
+                padding: 4px;
+            }
+        }
     }
 
     .content {
@@ -119,6 +127,17 @@ $file-tree-panel-width: 235px;
             cursor: pointer;
             position: relative;
 
+            .icon {
+                height: 16px;
+                width: 16px;
+            }
+
+            form {
+                display: flex;
+                align-items: center;
+                width: 100%;
+            }
+
             .name-and-options {
                 display: flex;
                 justify-content: space-between;
@@ -139,11 +158,6 @@ $file-tree-panel-width: 235px;
 
                 > span:first-child {
                     padding-left: spacing.$x-small;
-                }
-
-                .icon {
-                    height: 16px;
-                    width: 16px;
                 }
             }
 

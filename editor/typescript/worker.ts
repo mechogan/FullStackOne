@@ -103,6 +103,9 @@ export let methods = {
             ...services
         };
     },
+    invalidateWorkingDirectory() {
+        files = null;
+    },
     updateFile(sourceFile: string, contents: string, now = false) {
         sourceFiles[sourceFile] = {
             contents,
@@ -136,10 +139,10 @@ export let methods = {
                                             absolutePath: true
                                         }
                                     );
-                                    sourceFiles[sourceFile].lastVersionSaved =
+                                    sourceFiles[filename].lastVersionSaved =
                                         version;
                                 } else {
-                                    delete sourceFiles[sourceFile];
+                                    delete sourceFiles[filename];
                                 }
                                 res();
                             })
@@ -226,6 +229,10 @@ function initLanguageServiceHost(
             }
 
             if (!sourceFiles[fileName]) {
+                if (!files.includes(fileName)) {
+                    return null;
+                }
+
                 sourceFiles[fileName] = {
                     version: 0,
                     lastVersionSaved: 0,
@@ -309,6 +316,11 @@ function initLanguageServiceHost(
                         absolutePath: true
                     }) as string[]
                 ).map((filename) => currentDirectory + "/" + filename);
+
+                // cleanup sourceFiles
+                Object.entries(sourceFiles).forEach(([file]) => {
+                    if (!files.includes(file)) delete sourceFiles[file];
+                });
             }
 
             return files.includes(path);

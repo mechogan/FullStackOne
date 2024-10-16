@@ -23,6 +23,8 @@ export class tsWorker {
     reqs = new Map<number, Function>();
 
     private postMessage(methodPath: string[], ...args: any) {
+        if (!this.worker) return;
+
         const id = ++this.reqsCount;
         return new Promise((resolve) => {
             this.reqs.set(id, resolve);

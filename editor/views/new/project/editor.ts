@@ -1,4 +1,3 @@
-import type { Project } from "../../../api/config/types";
 import { Button } from "../../../components/primitives/button";
 import { CodeEditor } from "./code-editor";
 
@@ -25,12 +24,14 @@ function FileTabs() {
     const renderTabs = () => {
         Array.from(container.children).forEach((child) => child.remove());
 
+        let openedTab: HTMLLIElement;
         CodeEditor.activeFiles.forEach((item) => {
             const li = document.createElement("li");
             if (item.path === CodeEditor.openedFilePath) {
                 li.classList.add("opened");
+                openedTab = li;
             } else {
-                li.onclick = () => CodeEditor.open(item.path);
+                li.onclick = () => CodeEditor.addFile(item.path);
             }
 
             const name = document.createElement("span");
@@ -50,6 +51,10 @@ function FileTabs() {
 
             container.append(li);
         });
+
+        if (openedTab) {
+            openedTab.scrollIntoView();
+        }
     };
 
     CodeEditor.onActiveFileChange = renderTabs;

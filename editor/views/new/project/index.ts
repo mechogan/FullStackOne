@@ -1,4 +1,5 @@
 import type { Project as ProjectType } from "../../../api/config/types";
+import { Loader } from "../../../components/loader";
 import { Button } from "../../../components/primitives/button";
 import { TopBar } from "../../../components/top-bar";
 import { WorkerTS } from "../../../typescript";
@@ -30,11 +31,21 @@ export function Project(project: ProjectType) {
         }
     };
     tsButton.disabled = true;
+    tsButton.onclick = () => {
+        WorkerTS.dispose();
+        WorkerTS.start(project.location);
+    };
 
     const runButton = Button({
         style: "icon-large",
         iconLeft: "Play"
     });
+    runButton.onclick = () => {
+        const loaderContainer = document.createElement("div");
+        loaderContainer.classList.add("loader-container");
+        loaderContainer.append(Loader());
+        runButton.replaceWith(loaderContainer);
+    };
 
     const topBar = TopBar({
         title: project.title,

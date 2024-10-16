@@ -77,10 +77,10 @@ export function CloneGit(opts: CloneGitOpts) {
                     absolutePath: true
                 }) as Promise<string[]>,
             getFileContents: (filename) =>
-                rpc().fs.readFile(
-                    tmpDirectory + "/" + filename,
-                    { absolutePath: true, encoding: "utf8" }
-                ) as Promise<string>,
+                rpc().fs.readFile(tmpDirectory + "/" + filename, {
+                    absolutePath: true,
+                    encoding: "utf8"
+                }) as Promise<string>,
             alternateTitle: repoUrlInput.input.value
                 .split("/")
                 .pop()

@@ -52,6 +52,7 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
     }
 
     const right = document.createElement("div");
+    right.classList.add("top-bar-actions");
 
     if (opts?.actions) {
         right.append(...opts.actions);
