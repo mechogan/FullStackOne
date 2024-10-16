@@ -158,6 +158,8 @@ class AdapterEditor: Adapter {
                         case "exists":
                             let exists = self.fsEditor.exists(path: json[0].stringValue)
                             return done(exists == nil ? false : exists)
+                        case "rename":
+                            return done(self.fsEditor.rename(oldPath: json[0].stringValue, newPath: json[1].stringValue))
                         default: break;
                     }
                 }

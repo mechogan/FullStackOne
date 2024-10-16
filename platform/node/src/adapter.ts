@@ -104,6 +104,11 @@ export function createAdapter(
                 } catch (e) {
                     return null;
                 }
+            },
+            rename: (oldPath, newPath) => {
+                oldPath = baseDirectory + "/" + oldPath;
+                newPath = baseDirectory + "/" + newPath;
+                return fs.promises.rename(oldPath, newPath);
             }
         },
         async fetch(

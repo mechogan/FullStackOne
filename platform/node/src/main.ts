@@ -305,6 +305,15 @@ function upgradeFS(
                 }
             }
             return defaultFS.exists(path);
+        },
+        rename: (oldPath, newPath, options) => {
+            if (options?.absolutePath) {
+                return fs.promises.rename(
+                    rootDirectory + "/" + oldPath,
+                    rootDirectory + "/" + newPath
+                );
+            }
+            return defaultFS.rename(oldPath, newPath);
         }
     };
 }

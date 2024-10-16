@@ -1,4 +1,4 @@
-import git from "isomorphic-git";
+import git, { ProgressCallback } from "isomorphic-git";
 import { Buffer as globalBuffer } from "buffer";
 import { GitAuths, Project } from "../config/types";
 import URL from "url-parse";
@@ -482,13 +482,14 @@ export default {
             onAuth: requestGitAuth
         });
     },
-    clone(url: string, dir: string) {
+    clone(url: string, dir: string, onProgress?: ProgressCallback) {
         return git.clone({
             fs,
             http,
             dir,
             url,
             singleBranch: true,
+            onProgress,
             depth: 1,
             onAuth: requestGitAuth
         });

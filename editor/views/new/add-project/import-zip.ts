@@ -7,7 +7,7 @@ import stackNavigation from "../../../stack-navigation";
 
 type ImportZipOpts = {
     didImportProject: () => void;
-}
+};
 
 export function ImportZip(opts: ImportZipOpts) {
     const { container, scrollable } = ViewScrollable();

@@ -90,6 +90,8 @@ class Adapter {
             case "exists":
                 let exists = self.fs.exists(path: json[0].stringValue)
                 return done(exists == nil ? false : exists)
+            case "rename":
+                return done(self.fs.rename(oldPath: json[0].stringValue, newPath: json[1].stringValue))
             default: break
             }
             break
@@ -353,5 +355,24 @@ class AdapterFS {
         return [
             "isFile": !existsAndIsDirectory!
         ]
+    }
+    
+    func rename(oldPath: String, newPath: String) -> Any? {
+        let newFilePath = self.baseDirectory + "/" + newPath
+        
+        let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(newFilePath)
+        if(existsAndIsDirectory != nil) {
+            if(existsAndIsDirectory!) {
+                self.rmdir(path: newPath)
+            } else {
+                self.unlink(path: newPath)
+            }
+        }
+        
+        let pathA = URL(fileURLWithPath: self.baseDirectory + "/" + oldPath)
+        let pathB = URL(fileURLWithPath: newFilePath)
+        
+        try! FileManager.default.moveItem(at: pathA, to: pathB)
+        return true
     }
 }

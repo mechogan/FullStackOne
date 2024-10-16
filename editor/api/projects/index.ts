@@ -105,47 +105,18 @@ export default {
 
         logger?.(`ZIP item count: ${entries.length}`);
 
-        const fullstackedFile = entries.find(
-            (entry) => entry.filename === ".fullstacked"
-        );
-
-        let fullstackedFileJSON: any;
-        if (fullstackedFile) {
-            try {
-                const data = await fullstackedFile.getData(
-                    new zip.Uint8ArrayWriter()
-                );
-                fullstackedFileJSON = JSON.parse(
-                    new TextDecoder().decode(data)
-                );
-                logger?.(`Found valid .fullstacked file`);
-                logger?.(`Contents: `);
-                logger?.(JSON.stringify(fullstackedFileJSON, null, 4));
-            } catch (e) {
-                logger?.(`Failed to decode .fullstacked file`);
-            }
-        } else {
-            logger?.(`No valid .fullstacked file, will deduce project infos`);
-        }
-
-        const projectInfo: Omit<Project, "createdDate"> = {
-            title: fullstackedFileJSON?.title || file.name.split(".").shift(),
-            id:
-                fullstackedFileJSON?.id ||
-                slugify(file.name.split(".").shift()),
-            location:
-                fullstackedFileJSON?.id || slugify(file.name.split(".").shift())
-        };
-
-        if (fullstackedFileJSON?.git?.repo) {
-            projectInfo.gitRepository = {
-                url: fullstackedFileJSON.git.repo
-            };
-        }
-
-        const project = await create(projectInfo);
-        logger?.(`Created project:`);
-        logger?.(JSON.stringify(projectInfo, null, 4));
+        const project = await createProjectFromFullStackedFile({
+            getDirectoryContents: async () =>
+                entries.map((entry) => entry.filename),
+            getFileContents: async (filename) => {
+                const data = await entries
+                    .find((entry) => entry.filename === filename)
+                    .getData(new zip.Uint8ArrayWriter());
+                return new TextDecoder().decode(data);
+            },
+            alternateTitle: file.name.split(".").shift(),
+            logger
+        });
 
         for (let i = 0; i < entries.length; i++) {
             const entry = entries.at(i);
@@ -159,15 +130,13 @@ export default {
                 `Writing file: ${filename} [${fullPath}] (${i + 1}/${entries.length})`
             );
 
-            await rpc().fs.mkdir(projectInfo.location + "/" + directory, {
+            await rpc().fs.mkdir(project.location + "/" + directory, {
                 absolutePath: true
             });
             const data = await entry.getData(new zip.Uint8ArrayWriter());
-            await rpc().fs.writeFile(
-                projectInfo.location + "/" + fullPath,
-                data,
-                { absolutePath: true }
-            );
+            await rpc().fs.writeFile(project.location + "/" + fullPath, data, {
+                absolutePath: true
+            });
         }
         logger?.(`Finish importing ${file.name}`);
         logger?.("Done");
@@ -200,6 +169,59 @@ export default {
         return errors;
     }
 };
+
+type createFromFullStackedFileOpts = {
+    getDirectoryContents: () => Promise<string[]>;
+    getFileContents: (filename: string) => Promise<string>;
+    alternateTitle: string;
+    logger?: (message: string) => void;
+};
+
+const fullstackedFileName = ".fullstacked";
+export async function createProjectFromFullStackedFile(
+    opts: createFromFullStackedFileOpts
+) {
+    const items = await opts.getDirectoryContents();
+
+    const fullstackedFile = items.find((name) => name === fullstackedFileName);
+
+    let fullstackedFileJSON: any;
+    if (fullstackedFile) {
+        try {
+            const data = await opts.getFileContents(fullstackedFileName);
+            fullstackedFileJSON = JSON.parse(data);
+            opts.logger?.(`Found valid .fullstacked file`);
+            opts.logger?.(`Contents: `);
+            opts.logger?.(JSON.stringify(fullstackedFileJSON, null, 4));
+        } catch (e) {
+            opts.logger?.(`Failed to decode .fullstacked file`);
+        }
+    } else {
+        opts.logger?.(`No valid .fullstacked file, will deduce project infos`);
+    }
+
+    const projectInfo: Omit<Project, "createdDate"> = {
+        title: fullstackedFileJSON?.title || opts.alternateTitle,
+        id:
+            fullstackedFileJSON?.id ||
+            slugify(opts.alternateTitle, { lower: true }),
+        location:
+            fullstackedFileJSON?.id ||
+            slugify(opts.alternateTitle, { lower: true })
+    };
+
+    if (fullstackedFileJSON?.git?.repo) {
+        projectInfo.gitRepository = {
+            url: fullstackedFileJSON.git.repo
+        };
+    }
+
+    const project = await create(projectInfo);
+    opts.logger?.(`Created project:`);
+    opts.logger?.(JSON.stringify(projectInfo, null, 4));
+
+    return project;
+}
 
 async function buildJS(project: Project) {
     const rootDirectory = await rpc().directories.rootDirectory();

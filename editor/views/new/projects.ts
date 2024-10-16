@@ -25,7 +25,7 @@ export function Projects() {
             didAddProject: () => {
                 stackNavigation.back();
                 const updatedProjectList = ProjectsList();
-                projectList.replaceWith(updatedProjectList)
+                projectList.replaceWith(updatedProjectList);
                 projectList = updatedProjectList;
             }
         }),
