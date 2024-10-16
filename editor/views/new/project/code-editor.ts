@@ -32,9 +32,10 @@ class CodeEditorClass {
 
     remove(path: string) {
         const index = this.activeFiles.findIndex((file) => file.path === path);
-        const removed = this.activeFiles.splice(index, 1);
-        removed.at(0)?.view?.save();
-        removed.at(0)?.view?.destroy();
+        const [removed] = this.activeFiles.splice(index, 1);
+        removed?.view?.save();
+        removed?.view?.destroy();
+        removed?.view?.dom?.remove();
         this.onActiveFileChange?.();
     }
 

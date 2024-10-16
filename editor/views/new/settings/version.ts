@@ -1,5 +1,6 @@
 import { Badge } from "../../../components/primitives/badge";
 import rpc from "../../../rpc";
+import { WorkerTS } from "../../../typescript";
 import { Editor } from "../../editor";
 import semver from "semver";
 
@@ -103,12 +104,11 @@ function TypescriptVersion() {
 
     const appendTypeScriptVersion = async () => {
         container.innerHTML += `
-            <div>${await Editor.tsWorker.call().version()}</div>`;
+            <div>${await WorkerTS.call().version()}</div>`;
+        WorkerTS.dispose();
     };
 
-    if (!Editor.tsWorker)
-        Editor.restartTSWorker().then(appendTypeScriptVersion);
-    else appendTypeScriptVersion();
+    WorkerTS.start("").then(appendTypeScriptVersion);
 
     return container;
 }
