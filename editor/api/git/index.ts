@@ -223,10 +223,16 @@ export async function saveGitAuth(gitAuth: {
 }
 
 export default {
-    async init(project: Project) {
+    async init(
+        project: Project,
+        opts?: {
+            branch?: "main";
+            onProgress?: ProgressCallback;
+        }
+    ) {
         await git.init({
             fs,
-            defaultBranch: "main",
+            defaultBranch: opts?.branch || "main",
             dir: project.location
         });
         await git.addRemote({
@@ -239,14 +245,16 @@ export default {
             fs,
             http,
             singleBranch: true,
+            onProgress: opts?.onProgress,
             depth: 1,
             dir: project.location,
-            ref: "main"
+            ref: opts?.branch || "main"
         });
         return git.checkout({
             fs,
             dir: project.location,
-            ref: "main"
+            onProgress: opts?.onProgress,
+            ref: opts.branch || "main"
         });
     },
     saveGitAuth,
@@ -482,14 +490,20 @@ export default {
             onAuth: requestGitAuth
         });
     },
-    clone(url: string, dir: string, onProgress?: ProgressCallback) {
+    clone(
+        url: string,
+        dir: string,
+        opts?: {
+            onProgress?: ProgressCallback;
+        }
+    ) {
         return git.clone({
             fs,
             http,
             dir,
             url,
             singleBranch: true,
-            onProgress,
+            onProgress: opts?.onProgress,
             depth: 1,
             onAuth: requestGitAuth
         });

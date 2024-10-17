@@ -8,6 +8,7 @@ import * as sass from "sass";
 import type esbuild from "esbuild";
 import slugify from "slugify";
 import prettyBytes from "pretty-bytes";
+import api from "..";
 
 const list = async () => {
     const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || [];
@@ -90,56 +91,6 @@ export default {
         await rpc().fs.writeFile(out, zipData, { absolutePath: true });
 
         return zipData;
-    },
-
-    async importZIP(file: File, logger?: (message: string) => void) {
-        logger?.(`Importing file: ${file.name}`);
-
-        const zipData = new Uint8Array(await file.arrayBuffer());
-
-        logger?.(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
-
-        const entries = await new zip.ZipReader(
-            new zip.Uint8ArrayReader(zipData)
-        ).getEntries();
-
-        logger?.(`ZIP item count: ${entries.length}`);
-
-        const project = await createProjectFromFullStackedFile({
-            getDirectoryContents: async () =>
-                entries.map((entry) => entry.filename),
-            getFileContents: async (filename) => {
-                const data = await entries
-                    .find((entry) => entry.filename === filename)
-                    .getData(new zip.Uint8ArrayWriter());
-                return new TextDecoder().decode(data);
-            },
-            alternateTitle: file.name.split(".").shift(),
-            logger
-        });
-
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries.at(i);
-
-            const pathComponents = entry.filename.split("/");
-            const filename = pathComponents.pop();
-            const directory = pathComponents.join("/");
-            const fullPath = (directory ? directory + "/" : "") + filename;
-
-            logger?.(
-                `Writing file: ${filename} [${fullPath}] (${i + 1}/${entries.length})`
-            );
-
-            await rpc().fs.mkdir(project.location + "/" + directory, {
-                absolutePath: true
-            });
-            const data = await entry.getData(new zip.Uint8ArrayWriter());
-            await rpc().fs.writeFile(project.location + "/" + fullPath, data, {
-                absolutePath: true
-            });
-        }
-        logger?.(`Finish importing ${file.name}`);
-        logger?.("Done");
     },
 
     async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {

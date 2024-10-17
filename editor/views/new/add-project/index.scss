@@ -24,6 +24,7 @@
 
     form {
         padding-top: spacing.$medium;
+        padding-bottom: spacing.$medium;
 
         display: flex;
         flex-direction: column;
@@ -47,7 +48,7 @@
     justify-content: center;
     text-align: center;
     gap: spacing.$medium;
-    padding: spacing.$medium 0;
+    padding-bottom: spacing.$medium;
     .loader {
         width: 60px;
     }

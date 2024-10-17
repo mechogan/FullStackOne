@@ -167,6 +167,10 @@ function ProjectTile(project: ProjectType) {
         const buttonsGroup = ButtonGroup([
             deleteButton,
             Button({
+                text: "Settings",
+                iconLeft: "Settings"
+            }),
+            Button({
                 text: "Share",
                 iconLeft: "Export"
             })

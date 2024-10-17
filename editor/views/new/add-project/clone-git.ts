@@ -6,6 +6,7 @@ import { TopBar } from "../../../components/top-bar";
 import { ViewScrollable } from "../../../components/view-scrollable";
 import { ConsoleTerminal, CreateLoader } from "./import-zip";
 import { createProjectFromFullStackedFile } from "../../../api/projects";
+import { GitProgressEvent, ProgressCallback } from "isomorphic-git";
 
 type CloneGitOpts = {
     didCloneProject: () => void;
@@ -46,30 +47,15 @@ export function CloneGit(opts: CloneGitOpts) {
 
         scrollable.append(loader, consoleTerminal.container);
 
-        consoleTerminal.text.innerText += `Cloning ${repoUrlInput.input.value}\n`;
+        consoleTerminal.logger(`Cloning ${repoUrlInput.input.value}`);
 
         const tmpDirectory = "tmp";
-        consoleTerminal.text.innerText += `Cloning into ${tmpDirectory} directory\n`;
+        consoleTerminal.logger(`Cloning into ${tmpDirectory} directory`);
 
-        let currentPhase: string, currentHTMLElement: HTMLElement;
-        await api.git.clone(
-            repoUrlInput.input.value,
-            tmpDirectory,
-            (progress) => {
-                if (progress.phase !== currentPhase) {
-                    currentPhase = progress.phase;
-                    currentHTMLElement = document.createElement("div");
-                    consoleTerminal.text.append(currentHTMLElement);
-                }
-
-                if (progress.total) {
-                    currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}/${progress.total} (${((progress.loaded / progress.total) * 100).toFixed(2)}%)`;
-                } else {
-                    currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}`;
-                }
-            }
-        );
-        consoleTerminal.text.innerText += `\n`;
+        await api.git.clone(repoUrlInput.input.value, tmpDirectory, {
+            onProgress: gitLogger(consoleTerminal.text)
+        });
+        consoleTerminal.logger(``);
 
         const project = await createProjectFromFullStackedFile({
             getDirectoryContents: () =>
@@ -86,16 +72,14 @@ export function CloneGit(opts: CloneGitOpts) {
                 .pop()
                 .split(".")
                 .shift(),
-            logger: (message) =>
-                (consoleTerminal.text.innerText += `${message}\n`)
+            logger: consoleTerminal.logger
         });
 
         await rpc().fs.rename(tmpDirectory, project.location, {
             absolutePath: true
         });
-        consoleTerminal.text.innerText += `Moved tmp to ${project.location}\n`;
-
-        consoleTerminal.text.innerText += `Done`;
+        consoleTerminal.logger(`Moved tmp to ${project.location}`);
+        consoleTerminal.logger(`Done`);
 
         opts.didCloneProject();
     };
@@ -103,4 +87,23 @@ export function CloneGit(opts: CloneGitOpts) {
     scrollable.append(form);
 
     return container;
+}
+
+export function gitLogger(el: HTMLElement) {
+    let currentPhase: string, currentHTMLElement: HTMLDivElement;
+    return (progress: GitProgressEvent) => {
+        if (progress.phase !== currentPhase) {
+            currentPhase = progress.phase;
+            currentHTMLElement = document.createElement("div");
+            el.append(currentHTMLElement);
+        }
+
+        if (progress.total) {
+            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}/${progress.total} (${((progress.loaded / progress.total) * 100).toFixed(2)}%)`;
+        } else {
+            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}`;
+        }
+
+        el.scrollIntoView(false);
+    };
 }

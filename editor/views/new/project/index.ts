@@ -1,3 +1,4 @@
+import api from "../../../api";
 import type { Project as ProjectType } from "../../../api/config/types";
 import { Loader } from "../../../components/loader";
 import { Button } from "../../../components/primitives/button";
@@ -5,6 +6,7 @@ import { TopBar } from "../../../components/top-bar";
 import { WorkerTS } from "../../../typescript";
 import { Editor } from "./editor";
 import { FileTree } from "./file-tree";
+import { Git } from "./git";
 
 export function Project(project: ProjectType) {
     const container = document.createElement("div");
@@ -15,6 +17,12 @@ export function Project(project: ProjectType) {
         style: "icon-large",
         iconLeft: "Git"
     });
+    gitButton.disabled = true;
+    api.git
+        .currentBranch(project)
+        .then(() => (gitButton.disabled = false))
+        .catch(() => {});
+    gitButton.onclick = () => Git(project);
 
     WorkerTS.dispose();
     const tsButton = Button({
