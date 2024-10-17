@@ -1,0 +1,76 @@
+@use "../../../../style/new/values/typography.scss";
+@use "../../../../style/new/values/spacing.scss";
+@use "../../../../style/new/values/colors.scss";
+
+.git-dialog {
+    display: flex;
+    flex-direction: column;
+
+    .git-top {
+        display: flex;
+        align-items: center;
+        gap: spacing.$x-small;
+        padding-bottom: spacing.$small;
+
+        > .icon {
+            height: 38px;
+            width: 38px;
+        }
+
+        .git-info {
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
+            > * {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            a,
+            > div:last-child {
+                font-size: typography.$small;
+            }
+        }
+    }
+
+    .git-author {
+        display: flex;
+        background-color: colors.$gray-dark;
+        border: 1px solid colors.$gray;
+        padding: spacing.$small;
+        border-radius: spacing.$x-small;
+        justify-content: space-between;
+        align-items: center;
+        gap: spacing.$small;
+
+        > div:nth-child(2) {
+            flex: 1;
+            font-size: typography.$small;
+        }
+
+        > .icon {
+            width: 24px;
+            height: 28px;
+        }
+    }
+
+    .git-status {
+        padding-top: spacing.$medium;
+    }
+
+    .git-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: spacing.$small;
+
+        > div {
+            display: flex;
+            gap: spacing.$x-small;
+        }
+    }
+}
