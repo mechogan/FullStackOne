@@ -22,11 +22,24 @@ export function Project(project: ProjectType) {
         .currentBranch(project)
         .then(() => (gitButton.disabled = false))
         .catch(() => {});
-    gitButton.onclick = () =>
-        Git({
-            project,
-            didUpdateFiles: () => fileTree.reloadFileTree()
-        });
+        
+    gitButton.onclick = () => {
+        let remove: ReturnType<typeof Git>;
+
+        const reloadGit = () => {
+            remove?.();
+            remove = Git({
+                project,
+                didUpdateProject: async () => {
+                    project = (await api.projects.list()).find(({id}) => project.id === id);
+                    reloadGit();
+                },
+                didUpdateFiles: () => fileTree.reloadFileTree()
+            })
+        }
+
+        reloadGit();
+    }
 
     WorkerTS.dispose();
     const tsButton = Button({

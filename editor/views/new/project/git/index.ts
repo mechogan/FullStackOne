@@ -6,9 +6,11 @@ import { Popover } from "../../../../components/popover";
 import { Button, ButtonGroup } from "../../../../components/primitives/button";
 import { Icon } from "../../../../components/primitives/icon";
 import { InputText } from "../../../../components/primitives/inputs";
+import { CodeEditor } from "../code-editor";
 
 type GitOpts = {
     project: Project;
+    didUpdateProject: () => void;
     didUpdateFiles: () => void;
 };
 
@@ -47,13 +49,21 @@ export function Git(opts: GitOpts) {
         text: "Push"
     });
 
+    commitButton.disabled = true;
+    pushButton.disabled = true;
+
     commitAndPushButtons.append(commitButton, pushButton);
     buttonRow.append(closeButton, commitAndPushButtons);
 
     const reloadStatus = () => {
         const updatedStatus = Status({
             project: opts.project,
-            didRevertChange: () => {
+            buttons: {
+                commit: commitButton,
+                push: pushButton
+            },
+            didRevertChange: async () => {
+                await CodeEditor.reloadActiveFilesContent();
                 reloadStatus();
                 opts.didUpdateFiles();
             }
@@ -68,9 +78,18 @@ export function Git(opts: GitOpts) {
     let status: ReturnType<typeof Status>;
     reloadStatus();
 
-    container.append(top, Author(opts.project), status, buttonRow);
+    container.append(
+        top,
+        Author({
+            project: opts.project,
+            didUpdateAuthor: opts.didUpdateProject
+        }),
+        status,
+        buttonRow);
 
     const { remove } = Dialog(container);
+
+    return remove;
 }
 
 function RepoInfos(project: Project) {
@@ -96,7 +115,12 @@ function RepoInfos(project: Project) {
     return container;
 }
 
-function Author(project: Project) {
+type AuthorOpts = {
+    project: Project,
+    didUpdateAuthor: () => void
+}
+
+function Author(opts: AuthorOpts) {
     const container = document.createElement("div");
     container.classList.add("git-author");
 
@@ -107,9 +131,78 @@ function Author(project: Project) {
 
     const infos = document.createElement("div");
     infos.innerHTML = `
-        <div>${project.gitRepository.name || "No Username"}</div>
-        <div>${project.gitRepository.email || "No Email"}</div>
+        <div>${opts.project.gitRepository.name || "No Name"}</div>
+        <div>${opts.project.gitRepository.email || "No Email"}</div>
     `;
+
+    editButton.onclick = () => {
+        container.classList.add("with-form");
+
+        const form = document.createElement("form");
+        form.classList.add("git-author-form");
+
+        const nameInput = InputText({
+            label: "Name"
+        })
+        nameInput.input.value = opts.project.gitRepository.name || "";
+        form.append(nameInput.container);
+
+        const emailInput = InputText({
+            label: "Email"
+        })
+        emailInput.input.type = "email";
+        emailInput.input.value = opts.project.gitRepository.email || "";
+        form.append(emailInput.container);
+
+        const buttons = document.createElement("div");
+
+        const cancelButton = Button({
+            text: "Cancel",
+            style: "text"
+        })
+        const closeForm = () => {
+            form.replaceWith(infos);
+            container.classList.remove("with-form");
+        }
+        cancelButton.type = "button";
+        cancelButton.onclick = closeForm
+
+        const saveButton = Button({
+            text: "Save"
+        })
+        saveButton.type = "submit";
+
+        let didUpdate = false;
+        const updateAuthor = async () => {
+            if (didUpdate) return;
+            didUpdate = true;
+
+            await api.projects.update({
+                ...opts.project,
+                gitRepository: {
+                    ...opts.project.gitRepository,
+                    name: nameInput.input.value,
+                    email: emailInput.input.value
+                }
+            });
+            opts.didUpdateAuthor();
+        }
+
+        saveButton.onclick = updateAuthor
+
+        buttons.append(cancelButton, saveButton);
+
+        form.append(buttons);
+
+        form.onsubmit = e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            updateAuthor();
+        }
+
+        infos.replaceWith(form);
+    }
 
     container.append(Icon("User"), infos, editButton);
 
@@ -118,6 +211,10 @@ function Author(project: Project) {
 
 type StatusOpts = {
     project: Project;
+    buttons: {
+        commit: HTMLButtonElement,
+        push: HTMLButtonElement
+    }
     didRevertChange: () => void;
 };
 
@@ -127,24 +224,60 @@ function Status(opts: StatusOpts) {
 
     container.innerText = "Calculating diffs...";
 
-    api.git.changes(opts.project).then((changes) => {
-        if (
-            changes.added.length === 0 &&
-            changes.modified.length === 0 &&
-            changes.deleted.length === 0
-        ) {
-            container.innerText = "Nothing to commit";
-        } else {
-            container.innerText = "";
-            container.append(
-                ChangesList({
-                    changes,
-                    project: opts.project,
-                    didRevertChange: opts.didRevertChange
-                })
-            );
-        }
-    });
+    opts.buttons.commit.disabled = true;
+    opts.buttons.push.disabled = true;
+
+    CodeEditor.saveAllActiveFiles()
+        .then(() => {
+            api.git.changes(opts.project)
+                .then((changes) => {
+                    if (
+                        changes.added.length === 0 &&
+                        changes.modified.length === 0 &&
+                        changes.deleted.length === 0
+                    ) {
+                        container.innerText = "Nothing to commit";
+                    } else {
+                        container.innerText = "";
+                        container.append(
+                            ChangesList({
+                                changes,
+                                project: opts.project,
+                                didRevertChange: opts.didRevertChange
+                            })
+                        );
+
+                        if (opts.project.gitRepository.name) {
+                            const form = document.createElement("form");
+
+                            const commitMessageInput = InputText({
+                                label: "Commit Message"
+                            });
+                            form.append(commitMessageInput.container)
+                            container.append(form);
+
+                            commitMessageInput.input.onkeyup = () => {
+                                if (commitMessageInput.input.value) {
+                                    opts.buttons.commit.disabled = false;
+                                    opts.buttons.push.disabled = false;
+                                } else {
+                                    opts.buttons.commit.disabled = true;
+                                    opts.buttons.push.disabled = true;
+                                }
+                            }
+
+                            form.onsubmit = (e) => {
+                                e.preventDefault();
+
+
+                            }
+
+                            setTimeout(() => commitMessageInput.input.focus(), 1);
+                        }
+                    }
+                });
+        });
+
 
     return container;
 }
@@ -178,11 +311,6 @@ function ChangesList(opts: ChangesListOpts) {
     addSection("Added", opts.changes.added);
     addSection("Modified", opts.changes.modified);
     addSection("Deleted", opts.changes.deleted);
-
-    const commitMessageInput = InputText({
-        label: "Commit Message"
-    });
-    container.append(commitMessageInput.container);
 
     return container;
 }

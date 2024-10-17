@@ -13,6 +13,7 @@ export function InputText(opts?: Partial<InputOpts>) {
     }
 
     const input = document.createElement("input");
+    input.autocapitalize = "off";
 
     container.append(input);
 

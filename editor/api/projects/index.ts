@@ -59,7 +59,7 @@ export default {
     async update(project: Project) {
         const projects = await list();
         const indexOf = projects.findIndex(
-            ({ location }) => location === project.location
+            ({ id }) => id === project.id
         );
         projects[indexOf] = project;
         return config.save(CONFIG_TYPE.PROJECTS, projects);

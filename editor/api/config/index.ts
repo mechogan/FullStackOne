@@ -72,6 +72,7 @@ export default {
     async save<T extends CONFIG_TYPE>(type: T, data: DATA_TYPE[T]) {
         const configDir = await rpc().directories.configDirectory();
         const configFile = configDir + "/" + type + ".json";
+        delete configCache[type];
         rpc().fs.writeFile(configFile, JSON.stringify(data, null, 2), {
             absolutePath: true
         });
