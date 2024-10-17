@@ -252,7 +252,7 @@ async function createImageView(filePath: string) {
     img.src = window.URL.createObjectURL(imageBlob);
     return {
         destroy: () => window.URL.revokeObjectURL(img.src),
-        save: () => { },
+        save: () => {},
         dom: img
     };
 }

@@ -1,7 +1,6 @@
 import { Badge } from "../../../components/primitives/badge";
 import rpc from "../../../rpc";
 import { WorkerTS } from "../../../typescript";
-import { Editor } from "../../editor";
 import semver from "semver";
 
 export function Version() {

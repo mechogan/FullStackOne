@@ -7,11 +7,10 @@ import { Button, ButtonGroup } from "../../../../components/primitives/button";
 import { Icon } from "../../../../components/primitives/icon";
 import { InputText } from "../../../../components/primitives/inputs";
 
-
 type GitOpts = {
     project: Project;
     didUpdateFiles: () => void;
-}
+};
 
 export function Git(opts: GitOpts) {
     const container = document.createElement("div");
@@ -59,22 +58,17 @@ export function Git(opts: GitOpts) {
                 opts.didUpdateFiles();
             }
         });
-        if(status) {
+        if (status) {
             status.replaceWith(updatedStatus);
         }
 
         status = updatedStatus;
-    }
+    };
 
     let status: ReturnType<typeof Status>;
     reloadStatus();
 
-    container.append(
-        top, 
-        Author(opts.project), 
-        status,
-        buttonRow
-    );
+    container.append(top, Author(opts.project), status, buttonRow);
 
     const { remove } = Dialog(container);
 }
@@ -123,9 +117,9 @@ function Author(project: Project) {
 }
 
 type StatusOpts = {
-    project: Project,
-    didRevertChange: () => void
-}
+    project: Project;
+    didRevertChange: () => void;
+};
 
 function Status(opts: StatusOpts) {
     const container = document.createElement("div");
@@ -133,38 +127,40 @@ function Status(opts: StatusOpts) {
 
     container.innerText = "Calculating diffs...";
 
-    api.git.changes(opts.project)
-        .then(changes => {
-            if(changes.added.length === 0
-                && changes.modified.length === 0
-                && changes.deleted.length === 0
-            ) {
-                container.innerText = "Nothing to commit";
-            } else {
-                container.innerText = "";
-                container.append(ChangesList({
+    api.git.changes(opts.project).then((changes) => {
+        if (
+            changes.added.length === 0 &&
+            changes.modified.length === 0 &&
+            changes.deleted.length === 0
+        ) {
+            container.innerText = "Nothing to commit";
+        } else {
+            container.innerText = "";
+            container.append(
+                ChangesList({
                     changes,
                     project: opts.project,
                     didRevertChange: opts.didRevertChange
-                }))
-            }
-        })
+                })
+            );
+        }
+    });
 
     return container;
 }
 
 type ChangesListOpts = {
-    project: Project,
-    changes: Awaited<ReturnType<typeof getParsedChanges>>,
-    didRevertChange: () => void
-}
+    project: Project;
+    changes: Awaited<ReturnType<typeof getParsedChanges>>;
+    didRevertChange: () => void;
+};
 
 function ChangesList(opts: ChangesListOpts) {
     const container = document.createElement("div");
     container.classList.add("git-changes");
 
     const addSection = (subtitle: string, filesList: string[]) => {
-        if(filesList.length === 0) return;
+        if (filesList.length === 0) return;
 
         const subtitleEl = document.createElement("div");
         subtitleEl.innerText = subtitle;
@@ -176,8 +172,8 @@ function ChangesList(opts: ChangesListOpts) {
                 project: opts.project,
                 didRevertChange: opts.didRevertChange
             })
-        )
-    }
+        );
+    };
 
     addSection("Added", opts.changes.added);
     addSection("Modified", opts.changes.modified);
@@ -185,30 +181,29 @@ function ChangesList(opts: ChangesListOpts) {
 
     const commitMessageInput = InputText({
         label: "Commit Message"
-    })
+    });
     container.append(commitMessageInput.container);
-    
 
     return container;
 }
 
 type FilesListOpts = {
-    files: string[],
-    project: Project,
-    didRevertChange: () => void
-}
+    files: string[];
+    project: Project;
+    didRevertChange: () => void;
+};
 
 function FilesList(opts: FilesListOpts) {
     const list = document.createElement("ul");
 
-    const items = opts.files.map(file => {
+    const items = opts.files.map((file) => {
         const item = document.createElement("li");
         item.innerHTML = `<span>${file}</span>`;
 
         const optionsButton = Button({
             style: "icon-small",
             iconLeft: "Options"
-        })
+        });
 
         optionsButton.onclick = () => {
             const revertButton = Button({
@@ -218,13 +213,12 @@ function FilesList(opts: FilesListOpts) {
             });
 
             revertButton.onclick = () => {
-                api.git.revertFileChanges(opts.project, [file])
+                api.git
+                    .revertFileChanges(opts.project, [file])
                     .then(opts.didRevertChange);
-            }
+            };
 
-            const buttonGroup = ButtonGroup([
-                revertButton
-            ]);
+            const buttonGroup = ButtonGroup([revertButton]);
 
             Popover({
                 anchor: optionsButton,
@@ -233,13 +227,13 @@ function FilesList(opts: FilesListOpts) {
                     x: "right",
                     y: "center"
                 }
-            })
-        }
+            });
+        };
 
         item.append(optionsButton);
 
         return item;
-    })
+    });
 
     list.append(...items);
 

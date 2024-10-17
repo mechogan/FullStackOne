@@ -50,7 +50,7 @@ export class tsWorker {
         this.working?.();
     }
 
-    start(workingDirectory: string) {
+    async start(workingDirectory: string) {
         if (this.worker) return;
 
         return new Promise<void>((resolve) => {

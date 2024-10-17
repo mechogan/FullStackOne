@@ -64,7 +64,7 @@ function WebAdresses() {
     container.append(top, list);
 
     api.config.load(CONFIG_TYPE.CONNECTIVITY).then(({ webAddresses }) => {
-        const items = webAddresses.map(WebAddressItem);
+        const items = webAddresses?.map(WebAddressItem) ?? [];
         list.append(...items);
     });
 

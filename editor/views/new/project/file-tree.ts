@@ -44,7 +44,7 @@ export function FileTree(opts: FileTreeOpts) {
             directory: opts.directory,
             didDeleteOrRenameItem: reloadFileTree
         });
-        if(treeRoot) {
+        if (treeRoot) {
             treeRoot.replaceWith(updatedTreeRoot);
         }
         treeRoot = updatedTreeRoot;
@@ -53,7 +53,7 @@ export function FileTree(opts: FileTreeOpts) {
     const treeContainer = document.createElement("div");
     let treeRoot: ReturnType<typeof TreeRecursive>;
     reloadFileTree();
-    treeContainer.append(treeRoot)
+    treeContainer.append(treeRoot);
 
     const right = document.createElement("div");
     const newFileButton = Button({
@@ -89,7 +89,7 @@ export function FileTree(opts: FileTreeOpts) {
 
     container.append(topActions, treeContainer);
 
-    return {container, reloadFileTree};
+    return { container, reloadFileTree };
 }
 
 type TreeRecursiveOpts = {

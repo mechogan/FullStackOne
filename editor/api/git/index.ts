@@ -299,7 +299,7 @@ export default {
         });
     },
     changes(project: Project) {
-        return getParsedChanges(project)
+        return getParsedChanges(project);
     },
     async pull(project: Project) {
         let fetch: Awaited<ReturnType<typeof git.fetch>>;

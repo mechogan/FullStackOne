@@ -22,10 +22,11 @@ export function Project(project: ProjectType) {
         .currentBranch(project)
         .then(() => (gitButton.disabled = false))
         .catch(() => {});
-    gitButton.onclick = () => Git({
-        project,
-        didUpdateFiles: () => fileTree.reloadFileTree()
-    });
+    gitButton.onclick = () =>
+        Git({
+            project,
+            didUpdateFiles: () => fileTree.reloadFileTree()
+        });
 
     WorkerTS.dispose();
     const tsButton = Button({
