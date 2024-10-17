@@ -22,7 +22,10 @@ export function Project(project: ProjectType) {
         .currentBranch(project)
         .then(() => (gitButton.disabled = false))
         .catch(() => {});
-    gitButton.onclick = () => Git(project);
+    gitButton.onclick = () => Git({
+        project,
+        didUpdateFiles: () => fileTree.reloadFileTree()
+    });
 
     WorkerTS.dispose();
     const tsButton = Button({
@@ -74,13 +77,15 @@ export function Project(project: ProjectType) {
     const content = document.createElement("div");
     content.classList.add("content");
 
+    const fileTree = FileTree({
+        directory: project.location,
+        onClosePanel: () => {
+            content.classList.add("closed-panel");
+        }
+    });
+
     content.append(
-        FileTree({
-            directory: project.location,
-            onClosePanel: () => {
-                content.classList.add("closed-panel");
-            }
-        }),
+        fileTree.container,
         Editor({
             directory: project.location
         })

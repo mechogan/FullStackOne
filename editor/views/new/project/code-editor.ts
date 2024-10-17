@@ -32,6 +32,8 @@ class CodeEditorClass {
 
     remove(path: string) {
         const index = this.activeFiles.findIndex((file) => file.path === path);
+        if (index === -1) return;
+
         const [removed] = this.activeFiles.splice(index, 1);
         removed?.view?.save();
         removed?.view?.destroy();
@@ -128,7 +130,7 @@ async function createViewEditor(filePath: string) {
         }
 
         rpc()
-            .fs.exists(filePath)
+            .fs.exists(filePath, { absolutePath: true })
             .then((exists) => {
                 if (!exists?.isFile) return;
 
@@ -250,7 +252,7 @@ async function createImageView(filePath: string) {
     img.src = window.URL.createObjectURL(imageBlob);
     return {
         destroy: () => window.URL.revokeObjectURL(img.src),
-        save: () => {},
+        save: () => { },
         dom: img
     };
 }

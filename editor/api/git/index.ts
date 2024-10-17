@@ -154,7 +154,7 @@ function parseChangesMatrix(
     return changes;
 }
 
-async function getParsedChanges(project: Project) {
+export async function getParsedChanges(project: Project) {
     return parseChangesMatrix(
         await git.statusMatrix({
             fs,
@@ -298,24 +298,8 @@ export default {
             dir: project.location
         });
     },
-    async changes(project: Project) {
-        let unreacheable = false;
-        try {
-            await git.fetch({
-                fs,
-                http,
-                dir: project.location,
-                prune: true,
-                onAuth: requestGitAuth
-            });
-        } catch (e) {
-            unreacheable = true;
-        }
-
-        return {
-            unreacheable,
-            changes: await getParsedChanges(project)
-        };
+    changes(project: Project) {
+        return getParsedChanges(project)
     },
     async pull(project: Project) {
         let fetch: Awaited<ReturnType<typeof git.fetch>>;

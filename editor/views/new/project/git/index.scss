@@ -60,6 +60,39 @@
 
     .git-status {
         padding-top: spacing.$medium;
+
+        .git-changes {
+            > div {
+                font-weight: bold;
+            }
+
+            ul {
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$x-small;
+                padding-top: spacing.$x-small;
+                padding-bottom: spacing.$small;
+
+                li {
+                    background-color: colors.$gray-dark;
+                    border: 1px solid colors.$gray;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0 spacing.$x-small;
+                    border-radius: spacing.$x-small;
+
+                    > button {
+                        color: colors.$light;
+                    }
+                }
+            }
+
+            .input-text {
+                padding-top: spacing.$small;
+            }
+            
+        }
     }
 
     .git-buttons {
