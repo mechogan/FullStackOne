@@ -58,9 +58,7 @@ export default {
     create,
     async update(project: Project) {
         const projects = await list();
-        const indexOf = projects.findIndex(
-            ({ id }) => id === project.id
-        );
+        const indexOf = projects.findIndex(({ id }) => id === project.id);
         projects[indexOf] = project;
         return config.save(CONFIG_TYPE.PROJECTS, projects);
     },

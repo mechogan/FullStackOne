@@ -11,7 +11,8 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: spacing.$large spacing.$medium 0;
+    padding: spacing.$large spacing.$medium;
+    overflow: auto;
 
     .dialog {
         background-color: colors.$blue-dark;

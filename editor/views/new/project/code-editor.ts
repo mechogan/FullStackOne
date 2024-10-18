@@ -19,13 +19,13 @@ type ImageView = {
 };
 
 type CodeViewExtension = {
-    path: string,
+    path: string;
     load: () => Promise<void>;
     save: () => Promise<void>;
-    saveThrottler?: ReturnType<typeof setTimeout>
-}
+    saveThrottler?: ReturnType<typeof setTimeout>;
+};
 
-type CodeView = (EditorView | ImageView) & CodeViewExtension
+type CodeView = (EditorView | ImageView) & CodeViewExtension;
 
 class CodeEditorClass {
     workingDirectory: string;
@@ -43,14 +43,13 @@ class CodeEditorClass {
 
         const [removed] = this.activeFiles.splice(index, 1);
         if (removed?.view?.saveThrottler) {
-            clearTimeout(removed?.view?.saveThrottler)
+            clearTimeout(removed?.view?.saveThrottler);
         }
         removed?.view?.save();
         removed?.view?.destroy();
         removed?.view?.dom?.remove();
 
-        if(this.openedFilePath === removed?.path)
-            this.openedFilePath = null;
+        if (this.openedFilePath === removed?.path) this.openedFilePath = null;
 
         this.onActiveFileChange?.();
     }
@@ -58,31 +57,37 @@ class CodeEditorClass {
     async reloadActiveFilesContent() {
         const filesToRemove: string[] = [];
 
-        const reloadPromises = this.activeFiles.map((file) => new Promise<void>(async (resolve) => {
-            if (file.view.saveThrottler) clearTimeout(file.view.saveThrottler);
+        const reloadPromises = this.activeFiles.map(
+            (file) =>
+                new Promise<void>(async (resolve) => {
+                    if (file.view.saveThrottler)
+                        clearTimeout(file.view.saveThrottler);
 
-            const exists = await rpc().fs.exists(file.path, { absolutePath: true });
-            if (!exists) {
-                filesToRemove.push(file.path);
-                return resolve();
-            }
+                    const exists = await rpc().fs.exists(file.path, {
+                        absolutePath: true
+                    });
+                    if (!exists) {
+                        filesToRemove.push(file.path);
+                        return resolve();
+                    }
 
-            await file.view.load();
-            resolve();
-        }));
-
+                    await file.view.load();
+                    resolve();
+                })
+        );
 
         await Promise.all(reloadPromises);
 
-        filesToRemove.forEach(this.remove.bind(this))
+        filesToRemove.forEach(this.remove.bind(this));
 
-        this.onActiveFileChange?.()
+        this.onActiveFileChange?.();
     }
 
     saveAllActiveFiles() {
-        const savePromises = this.activeFiles.map(file => {
-            if (file.view?.saveThrottler) clearTimeout(file.view?.saveThrottler);
-            return file.view?.save()
+        const savePromises = this.activeFiles.map((file) => {
+            if (file.view?.saveThrottler)
+                clearTimeout(file.view?.saveThrottler);
+            return file.view?.save();
         });
         return Promise.all(savePromises);
     }
@@ -94,8 +99,7 @@ class CodeEditorClass {
         file.path = newPath;
         file.view.path = newPath;
 
-        if (this.openedFilePath === oldPath)
-            this.openedFilePath = newPath;
+        if (this.openedFilePath === oldPath) this.openedFilePath = newPath;
 
         this.onActiveFileChange?.();
     }
@@ -149,9 +153,7 @@ const defaultExtensions = [
     indentUnit.of("    ")
 ];
 
-function createView(
-    filePath: string
-): Promise<CodeView> {
+function createView(filePath: string): Promise<CodeView> {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(IMAGE_Ext).find((ext) => ext === fileExtension)) {
         return createImageView(filePath);
@@ -174,7 +176,7 @@ async function createViewEditor(filePath: string) {
             absolutePath: true,
             encoding: "utf8"
         }) as Promise<string>;
-    }
+    };
 
     const editorView = new EditorView({
         doc: await loadContentFromFile(filePath),
@@ -195,7 +197,7 @@ async function createViewEditor(filePath: string) {
                 insert: await loadContentFromFile(editorView.path)
             }
         });
-    }
+    };
 
     const saveFile = async () => {
         const text = editorView.state.doc.toString();
@@ -208,8 +210,9 @@ async function createViewEditor(filePath: string) {
             return WorkerTS.call().updateFile(editorView.path, text, true);
         }
 
-        const exists = await rpc()
-            .fs.exists(editorView.path, { absolutePath: true })
+        const exists = await rpc().fs.exists(editorView.path, {
+            absolutePath: true
+        });
         if (!exists?.isFile) return;
 
         return rpc().fs.writeFile(editorView.path, text, {
@@ -300,27 +303,26 @@ async function loadTypeScript(filePath: string) {
 async function createImageView(filePath: string) {
     const img = document.createElement("img");
 
-
     const loadFromFile = async (path: string) => {
         const imageData = await rpc().fs.readFile(path, {
             absolutePath: true
         });
         const imageBlob = new Blob([imageData]);
         img.src = window.URL.createObjectURL(imageBlob);
-    }
+    };
 
-    const destroy = () => window.URL.revokeObjectURL(img.src)
+    const destroy = () => window.URL.revokeObjectURL(img.src);
 
     const imageView = {
         path: filePath,
         destroy,
-        save: async () => { },
+        save: async () => {},
         load: async () => {
             destroy();
             loadFromFile(imageView.path);
         },
         dom: img
-    }
+    };
 
     loadFromFile(filePath);
 

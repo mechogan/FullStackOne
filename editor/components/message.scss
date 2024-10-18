@@ -1,0 +1,19 @@
+@use "../style/new/values/spacing.scss";
+@use "../style/new/values/typography.scss";
+@use "../style/new/values/colors.scss";
+
+.message {
+    display: flex;
+    gap: spacing.$x-small;
+    font-size: typography.$small;
+
+    &.warning {
+        color: colors.$red;
+    }
+
+    > .icon {
+        color: inherit;
+        height: 16px;
+        width: 16px;
+    }
+}

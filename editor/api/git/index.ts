@@ -1,4 +1,4 @@
-import git, { ProgressCallback } from "isomorphic-git";
+import git, { listServerRefs, ProgressCallback } from "isomorphic-git";
 import { Buffer as globalBuffer } from "buffer";
 import { GitAuths, Project } from "../config/types";
 import URL from "url-parse";
@@ -298,6 +298,20 @@ export default {
             dir: project.location
         });
     },
+    async testRemote(project: Project) {
+        try {
+            await git.fetch({
+                fs,
+                http,
+                dir: project.location,
+                prune: true,
+                onAuth: requestGitAuth
+            });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    },
     changes(project: Project) {
         return getParsedChanges(project);
     },
@@ -562,6 +576,14 @@ export default {
                 ref: branch
             });
         }
+    },
+    listServerRefs: (project: Project) => {
+        return git.listServerRefs({
+            http,
+            url: project.gitRepository.url,
+            forPush: true,
+            onAuth: requestGitAuth
+        })
     },
     github
 };
