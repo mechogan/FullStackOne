@@ -309,7 +309,7 @@ export default {
             });
             return true;
         } catch (e) {
-            return false;
+            return e?.caller === "git.fetch";
         }
     },
     changes(project: Project) {

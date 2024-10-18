@@ -238,6 +238,39 @@ $file-tree-panel-width: 235px;
             }
         }
     }
+
+    .git-widget {
+        display: flex;
+        align-items: center;
+        color: colors.$blue;
+        position: relative;
+
+        > div:first-child {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+
+            > div:last-child {
+                font-size: typography.$small;
+            }
+        }
+
+        .git-status-arrow {
+            position: absolute;
+            color: colors.$green;
+            z-index: 1;
+            top: -1px;
+            right: -1px;
+            transform: rotate(135deg);
+            height: 20px;
+            width: 20px;
+
+            &.red {
+                color: colors.$red;
+                transform: rotate(-45deg);
+            }
+        }
+    }
 }
 
 // codemirror overriddes

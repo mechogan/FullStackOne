@@ -107,7 +107,7 @@ function ProjectTile(project: ProjectType) {
     container.classList.add("project-tile");
 
     container.onclick = () =>
-        stackNavigation.navigate(Project(project), BG_COLOR);
+        stackNavigation.navigate(Project({ project }), BG_COLOR);
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");

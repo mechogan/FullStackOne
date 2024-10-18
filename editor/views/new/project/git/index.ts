@@ -15,6 +15,8 @@ type GitOpts = {
     project: Project;
     didUpdateProject: () => void;
     didUpdateFiles: () => void;
+    didChangeCommitOrBranch: () => void;
+    didPushEvent: (event: "start" | "end") => void;
 };
 
 export function Git(opts: GitOpts) {
@@ -42,6 +44,7 @@ function GitView(opts: GitOpts, objRemove: { remove: () => void }) {
                 WorkerTS.call().invalidateWorkingDirectory();
                 CodeEditor.reloadActiveFilesContent();
                 opts.didUpdateFiles();
+                opts.didChangeCommitOrBranch();
             },
             goBack: () => branches.replaceWith(GitView(opts, objRemove)),
             removeDialog: () => objRemove.remove()
@@ -85,13 +88,20 @@ function GitView(opts: GitOpts, objRemove: { remove: () => void }) {
                 commit: commitButton,
                 push: pushButton
             },
-            didCommitOrPush: () => {
+            didCommit: () => {
                 container.replaceWith(GitView(opts, objRemove));
+                opts.didChangeCommitOrBranch();
             },
             didRevertChange: async () => {
                 await CodeEditor.reloadActiveFilesContent();
                 reloadStatus();
                 opts.didUpdateFiles();
+            },
+            didPushEvent: (event) => {
+                if(event === "start") {
+                    objRemove.remove();
+                } 
+                opts.didPushEvent(event);
             }
         });
         if (status) {
@@ -241,7 +251,8 @@ type StatusOpts = {
         push: HTMLButtonElement;
     };
     didRevertChange: () => void;
-    didCommitOrPush: () => void;
+    didCommit: () => void;
+    didPushEvent: GitOpts["didPushEvent"]
 };
 
 function Status(opts: StatusOpts) {
@@ -346,13 +357,15 @@ function Status(opts: StatusOpts) {
 
             opts.buttons.commit.onclick = async () => {
                 await commit();
-                opts.didCommitOrPush()
+                opts.didCommit()
             }
 
             opts.buttons.push.onclick = async () => {
                 await commit();
-                await api.git.push(opts.project)
-                opts.didCommitOrPush()
+                opts.didCommit();
+                opts.didPushEvent("start");
+                api.git.push(opts.project)
+                    .then(() => opts.didPushEvent("end"))
             }
 
             if (message) {
