@@ -1,5 +1,8 @@
 import api from "../../../api";
-import type { Project, Project as ProjectType } from "../../../api/config/types";
+import type {
+    Project,
+    Project as ProjectType
+} from "../../../api/config/types";
 import { Loader } from "../../../components/loader";
 import { Button } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
@@ -11,9 +14,9 @@ import { FileTree } from "./file-tree";
 import { Git } from "./git";
 
 type ProjectOpts = {
-    project: ProjectType,
-    fileTree?: ReturnType<typeof FileTree>
-}
+    project: ProjectType;
+    fileTree?: ReturnType<typeof FileTree>;
+};
 
 export function Project(opts: ProjectOpts) {
     const container = document.createElement("div");
@@ -54,7 +57,7 @@ export function Project(opts: ProjectOpts) {
     const pullEvents: PullEvents = {
         start: null,
         end: null
-    }
+    };
     const gitWidget = GitWidget(opts, pullEvents);
 
     const topBar = TopBar({
@@ -91,24 +94,26 @@ export function Project(opts: ProjectOpts) {
     );
     container.append(content);
 
-
     pullEvents.start?.();
-    api.git.pull(opts.project)
-        .then(() => {
-            pullEvents.end?.();
-            CodeEditor.reloadActiveFilesContent();
-            opts.fileTree.reloadFileTree();
-        })
+    api.git.pull(opts.project).then(() => {
+        pullEvents.end?.();
+        CodeEditor.reloadActiveFilesContent();
+        opts.fileTree.reloadFileTree();
+    });
 
     return container;
 }
 
 type PullEvents = {
-    start: () => void
-    end: () => void
-}
+    start: () => void;
+    end: () => void;
+};
 
-function GitWidget(opts: ProjectOpts, pullEvents: PullEvents, statusArrow = null) {
+function GitWidget(
+    opts: ProjectOpts,
+    pullEvents: PullEvents,
+    statusArrow = null
+) {
     const container = document.createElement("div");
     container.classList.add("git-widget");
 
@@ -123,9 +128,9 @@ function GitWidget(opts: ProjectOpts, pullEvents: PullEvents, statusArrow = null
             branchAndCommitContainer.innerHTML = `
                 <div><b>${branch}</b></div>
                 <div>${commit.at(0).oid.slice(0, 7)}<div>
-            `
-        })
-    }
+            `;
+        });
+    };
 
     const gitButton = Button({
         style: "icon-large",
@@ -138,7 +143,7 @@ function GitWidget(opts: ProjectOpts, pullEvents: PullEvents, statusArrow = null
             gitButton.disabled = false;
             renderBranchAndCommit();
         })
-        .catch(() => { });
+        .catch(() => {});
 
     gitButton.onclick = () => {
         let remove: ReturnType<typeof Git>;
@@ -155,16 +160,18 @@ function GitWidget(opts: ProjectOpts, pullEvents: PullEvents, statusArrow = null
                 },
                 didUpdateFiles: () => opts.fileTree.reloadFileTree(),
                 didChangeCommitOrBranch: () => {
-                    container.replaceWith(GitWidget(opts, pullEvents, statusArrow))
+                    container.replaceWith(
+                        GitWidget(opts, pullEvents, statusArrow)
+                    );
                 },
                 didPushEvent: (event) => {
-                    if(event === "start") {
+                    if (event === "start") {
                         statusArrow.style.display = "flex";
                         statusArrow.classList.add("red");
                     } else {
                         statusArrow.style.display = "none";
                     }
-                },
+                }
             });
         };
 
@@ -173,23 +180,22 @@ function GitWidget(opts: ProjectOpts, pullEvents: PullEvents, statusArrow = null
 
     container.append(gitButton);
 
-    if(!statusArrow) {
+    if (!statusArrow) {
         statusArrow = Icon("Arrow 2");
         statusArrow.classList.add("git-status-arrow");
         statusArrow.style.display = "none";
     }
-    container.append(statusArrow)
-    
+    container.append(statusArrow);
 
     pullEvents.start = () => {
         statusArrow.style.display = "flex";
         statusArrow.classList.remove("red");
-    }
+    };
     pullEvents.end = () => {
         statusArrow.style.display = "none";
-    }
+    };
 
-    container.append(statusArrow)
+    container.append(statusArrow);
 
     return container;
 }

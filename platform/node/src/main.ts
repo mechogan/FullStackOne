@@ -312,6 +312,8 @@ function upgradeFS(
         },
         exists: existsAndIsFile,
         rename: async (oldPath, newPath, options) => {
+            if (oldPath === newPath) return;
+
             if (options?.absolutePath) {
                 const exists = await existsAndIsFile(newPath, {
                     absolutePath: true

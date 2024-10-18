@@ -583,7 +583,7 @@ export default {
             url: project.gitRepository.url,
             forPush: true,
             onAuth: requestGitAuth
-        })
+        });
     },
     github
 };

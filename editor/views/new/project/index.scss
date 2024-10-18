@@ -96,6 +96,20 @@ $file-tree-panel-width: 235px;
                 justify-content: flex-end;
                 gap: spacing.$small;
             }
+
+            .import-file {
+                form,
+                input {
+                    height: 0;
+                    width: 0;
+                    overflow: hidden;
+                    padding: 0;
+                    margin: 0;
+                    position: absolute;
+                    z-index: -1;
+                    opacity: 0;
+                }
+            }
         }
 
         > div:last-child {
@@ -104,6 +118,7 @@ $file-tree-panel-width: 235px;
             padding-bottom: spacing.$small;
             padding-top: spacing.$x-small;
             padding-left: spacing.$x-small;
+            flex: 1;
 
             > ul {
                 padding-left: 0;

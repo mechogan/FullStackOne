@@ -82,6 +82,36 @@ export function FileTree(opts: FileTreeOpts) {
         style: "icon-small",
         iconLeft: "Upload"
     });
+    uploadButton.classList.add("import-file");
+    const form = document.createElement("form");
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+
+    fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const data = new Uint8Array(await file.arrayBuffer());
+
+        const directory = activeItem
+            ? activeItem.isDirectory
+                ? activeItem.path
+                : activeItem.path.split("/").slice(0, -1).join("/")
+            : opts.directory;
+
+        rpc()
+            .fs.writeFile(`${directory}/${file.name}`, data, {
+                absolutePath: true
+            })
+            .then(() => reloadFileTree());
+
+        form.reset();
+    };
+
+    form.append(fileInput);
+    uploadButton.append(form);
+
+    uploadButton.onclick = () => fileInput.click();
 
     right.append(newFileButton, newDirectoryButton, uploadButton);
 
@@ -196,20 +226,22 @@ function Item(opts: ItemOpts) {
     };
 
     nameAndOptions.onclick = () => {
-        setActive();
-
         if (isDirectory) {
             if (children) {
-                item.classList.remove("opened");
-                children.remove();
-                children = null;
-                openedDirectory.delete(path);
+                if (activeItem?.path === path) {
+                    item.classList.remove("opened");
+                    children.remove();
+                    children = null;
+                    openedDirectory.delete(path);
+                }
             } else {
                 openDirectory();
             }
         } else {
             CodeEditor.addFile(path);
         }
+
+        setActive();
     };
 
     const options = Button({
@@ -267,7 +299,8 @@ function Item(opts: ItemOpts) {
                 }
             });
 
-            setTimeout(() => nameAndOptions.replaceWith(form), 1);
+            nameAndOptions.replaceWith(form);
+            // setTimeout(() => , 1);
         };
 
         const deleteButton = Button({
@@ -293,7 +326,7 @@ function Item(opts: ItemOpts) {
                             .then(opts.didDeleteOrRename);
                     });
             } else {
-                CodeEditor.remove(path);
+                CodeEditor.remove(path, true);
                 rpc()
                     .fs.unlink(path, { absolutePath: true })
                     .then(opts.didDeleteOrRename);
@@ -303,7 +336,7 @@ function Item(opts: ItemOpts) {
         const parentList = item.parentElement;
         const isRootList = parentList.parentElement.tagName === "DIV";
         let shouldDisplayOptionsReversed = false;
-        if (isRootList) {
+        if (isRootList && parentList.children.length > 4) {
             const indexOf = Array.from(parentList.children).indexOf(item);
             shouldDisplayOptionsReversed =
                 parentList.children.length - indexOf <= 2;
@@ -363,7 +396,15 @@ function ItemInputForm(opts: ItemInputFormOpts) {
         opts.didSubmit(opts.directory, name);
     };
 
-    setTimeout(() => inputName.input.focus(), 1);
+    const dotIndex = opts.initialValue.lastIndexOf(".");
+
+    setTimeout(() => {
+        inputName.input.focus();
+        inputName.input.setSelectionRange(
+            0,
+            dotIndex === -1 ? opts.initialValue.length : dotIndex
+        );
+    }, 1);
 
     return form;
 }

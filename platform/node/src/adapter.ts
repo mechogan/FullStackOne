@@ -106,6 +106,8 @@ export function createAdapter(
             },
             exists: existsAndIsFile,
             rename: async (oldPath, newPath) => {
+                if (oldPath === newPath) return;
+
                 const exists = await existsAndIsFile(newPath);
 
                 oldPath = baseDirectory + "/" + oldPath;

@@ -37,7 +37,7 @@ class CodeEditorClass {
     openedFilePath: string;
     onActiveFileChange: () => void;
 
-    remove(path: string) {
+    remove(path: string, forDeletion = false) {
         const index = this.activeFiles.findIndex((file) => file.path === path);
         if (index === -1) return;
 
@@ -45,7 +45,9 @@ class CodeEditorClass {
         if (removed?.view?.saveThrottler) {
             clearTimeout(removed?.view?.saveThrottler);
         }
-        removed?.view?.save();
+        if (!forDeletion) {
+            removed?.view?.save();
+        }
         removed?.view?.destroy();
         removed?.view?.dom?.remove();
 
@@ -244,7 +246,7 @@ async function languageExtensions(filePath: string) {
             return [langMD.markdown()];
         case UTF8_Ext.JSON:
             const langJSON = await import("@codemirror/lang-json");
-            return [langJSON.json(), langJSON.jsonParseLinter()];
+            return [langJSON.json(), linter(langJSON.jsonParseLinter())];
         case UTF8_Ext.CSS:
             const langCSS = await import("@codemirror/lang-css");
             return [langCSS.css()];

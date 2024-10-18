@@ -165,7 +165,8 @@ const updateOverriddenInputs = () => {
     inputsFile.forEach((inputFile) => {
         const file = inputFile.files[0];
         const fileName = inputFile.nextElementSibling
-            .children[0] as HTMLSpanElement;
+            ?.children?.[0] as HTMLSpanElement;
+        if (!fileName) return;
         fileName.innerText = file?.name || "No file chosen";
     });
 };

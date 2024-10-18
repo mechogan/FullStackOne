@@ -98,9 +98,9 @@ function GitView(opts: GitOpts, objRemove: { remove: () => void }) {
                 opts.didUpdateFiles();
             },
             didPushEvent: (event) => {
-                if(event === "start") {
+                if (event === "start") {
                     objRemove.remove();
-                } 
+                }
                 opts.didPushEvent(event);
             }
         });
@@ -252,7 +252,7 @@ type StatusOpts = {
     };
     didRevertChange: () => void;
     didCommit: () => void;
-    didPushEvent: GitOpts["didPushEvent"]
+    didPushEvent: GitOpts["didPushEvent"];
 };
 
 function Status(opts: StatusOpts) {
@@ -269,13 +269,14 @@ function Status(opts: StatusOpts) {
             api.git.changes(opts.project),
             api.git.testRemote(opts.project)
         ]).then(async ([changes, reacheable]) => {
-
-            let toPush: Awaited<ReturnType<typeof findCommitCountToPush>> = null;
+            let toPush: Awaited<ReturnType<typeof findCommitCountToPush>> =
+                null;
             if (reacheable) {
-                toPush = await findCommitCountToPush(opts.project)
+                toPush = await findCommitCountToPush(opts.project);
             }
 
-            const hasChanges = changes.added.length ||
+            const hasChanges =
+                changes.added.length ||
                 changes.modified.length ||
                 changes.deleted.length;
             const hasGitUserName = opts.project.gitRepository.name;
@@ -310,7 +311,9 @@ function Status(opts: StatusOpts) {
                         opts.buttons.push.disabled = !reacheable;
                     } else {
                         opts.buttons.commit.disabled = true;
-                        opts.buttons.push.disabled = !(toPush?.commitCount || toPush?.pushBranch);
+                        opts.buttons.push.disabled = !(
+                            toPush?.commitCount || toPush?.pushBranch
+                        );
                     }
                 };
 
@@ -321,52 +324,53 @@ function Status(opts: StatusOpts) {
                 setTimeout(() => commitMessageInput.input.focus(), 1);
             }
 
-
             let message: ReturnType<typeof Message>;
             if (!hasGitUserName) {
                 message = Message({
                     text: "No git user.name",
                     style: "warning"
-                })
+                });
             } else if (!reacheable) {
                 message = Message({
                     text: "Remote is unreachable",
                     style: "warning"
-                })
+                });
             } else if (toPush?.pushBranch) {
                 message = Message({
                     text: "Push new branch to remote"
                 });
                 opts.buttons.push.disabled = false;
             } else if (toPush?.commitCount) {
-                const count = toPush.commitCount > 10
-                    ? "10+"
-                    : toPush.commitCount.toString()
+                const count =
+                    toPush.commitCount > 10
+                        ? "10+"
+                        : toPush.commitCount.toString();
                 message = Message({
                     text: `Push ${count} commit${toPush.commitCount > 1 ? "s" : ""} to remote`
-                })
+                });
                 opts.buttons.push.disabled = false;
             }
 
             const commit = async () => {
-                if(!commitMessageInput?.input.value)
-                    return;
+                if (!commitMessageInput?.input.value) return;
 
-                return api.git.commit(opts.project, commitMessageInput.input.value)
+                return api.git.commit(
+                    opts.project,
+                    commitMessageInput.input.value
+                );
             };
 
             opts.buttons.commit.onclick = async () => {
                 await commit();
-                opts.didCommit()
-            }
+                opts.didCommit();
+            };
 
             opts.buttons.push.onclick = async () => {
                 await commit();
                 opts.didCommit();
                 opts.didPushEvent("start");
-                api.git.push(opts.project)
-                    .then(() => opts.didPushEvent("end"))
-            }
+                api.git.push(opts.project).then(() => opts.didPushEvent("end"));
+            };
 
             if (message) {
                 container.append(message);
@@ -378,14 +382,10 @@ function Status(opts: StatusOpts) {
 }
 
 async function findCommitCountToPush(project: Project): Promise<{
-    pushBranch: boolean,
-    commitCount: number,
+    pushBranch: boolean;
+    commitCount: number;
 }> {
-    const [
-        currentBranch,
-        logs,
-        remoteRefs
-    ] = await Promise.all([
+    const [currentBranch, logs, remoteRefs] = await Promise.all([
         api.git.currentBranch(project),
         api.git.log(project, 10),
         api.git.listServerRefs(project)
@@ -410,8 +410,7 @@ async function findCommitCountToPush(project: Project): Promise<{
                 commitCount++;
             }
 
-            if (!found)
-                commitCount++;
+            if (!found) commitCount++;
 
             break;
         }
