@@ -200,4 +200,15 @@
             }
         }
     }
+
+    .create-branch-form {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+        padding-top: spacing.$small;
+        > div:last-child {
+            display: flex;
+            justify-content: space-between;
+        }
+    }
 }

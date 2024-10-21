@@ -138,10 +138,9 @@ function GitWidget(
     const container = document.createElement("div");
     container.classList.add("git-widget");
 
-    const branchAndCommitContainer = document.createElement("div");
-    container.append(branchAndCommitContainer);
-
     const renderBranchAndCommit = () => {
+        const branchAndCommitContainer = document.createElement("div");
+
         Promise.all([
             api.git.currentBranch(opts.project),
             api.git.log(opts.project, 1)
@@ -151,7 +150,21 @@ function GitWidget(
                 <div>${commit.at(0).oid.slice(0, 7)}<div>
             `;
         });
+
+        return branchAndCommitContainer;
     };
+
+    let branchAndCommit: ReturnType<typeof renderBranchAndCommit>;
+    const reloadBranchAndCommit = () => {
+        const updatedBranchAndCommit = renderBranchAndCommit();
+        if (branchAndCommit) {
+            branchAndCommit.replaceWith(updatedBranchAndCommit);
+        } else {
+            container.prepend(updatedBranchAndCommit);
+        }
+        branchAndCommit = updatedBranchAndCommit;
+    };
+    reloadBranchAndCommit();
 
     const gitButton = Button({
         style: "icon-large",
@@ -162,7 +175,7 @@ function GitWidget(
         .currentBranch(opts.project)
         .then(() => {
             gitButton.disabled = false;
-            renderBranchAndCommit();
+            reloadBranchAndCommit();
         })
         .catch(() => {});
 
@@ -180,11 +193,7 @@ function GitWidget(
                     reloadGit();
                 },
                 didUpdateFiles: () => opts.fileTree.reloadFileTree(),
-                didChangeCommitOrBranch: () => {
-                    container.replaceWith(
-                        GitWidget(opts, pullEvents, statusArrow)
-                    );
-                },
+                didChangeCommitOrBranch: reloadBranchAndCommit,
                 didPushEvent: (event) => {
                     if (event === "start") {
                         statusArrow.style.display = "flex";

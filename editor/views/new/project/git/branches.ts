@@ -6,6 +6,7 @@ import { Popover } from "../../../../components/popover";
 import { Badge } from "../../../../components/primitives/badge";
 import { Button, ButtonGroup } from "../../../../components/primitives/button";
 import { Icon } from "../../../../components/primitives/icon";
+import { InputText } from "../../../../components/primitives/inputs";
 
 type BranchesOpts = {
     project: Project;
@@ -30,11 +31,26 @@ export function Branches(opts: BranchesOpts) {
     title.innerText = "Branches";
 
     const createButton = Button({
-        text: "Create"
+        style: "icon-large",
+        iconLeft: "Plus"
     });
 
     createButton.onclick = () => {
-        createButton.disabled = true;
+        createButton.style.display = "none";
+
+        const createBranchForm = CreateBranchForm({
+            project: opts.project,
+            remove: () => {
+                createBranchForm.remove();
+                createButton.style.display = null;
+            },
+            didCreateBranch: () => {
+                reloadBranchList();
+                opts.didChangeBranch();
+            }
+        });
+
+        top.insertAdjacentElement("afterend", createBranchForm);
     };
 
     top.append(backButton, title, createButton);
@@ -46,14 +62,23 @@ export function Branches(opts: BranchesOpts) {
 
     closeButton.onclick = opts.removeDialog;
 
-    container.append(
-        top,
-        BranchesList({
+    let branchList: ReturnType<typeof BranchesList>;
+    const reloadBranchList = () => {
+        const updatedBranchList = BranchesList({
             project: opts.project,
-            didChangeBranch: opts.didChangeBranch
-        }),
-        closeButton
-    );
+            didChangeBranch: opts.didChangeBranch,
+            didChangeBranchList: reloadBranchList
+        });
+
+        if (branchList) {
+            branchList.replaceWith(updatedBranchList);
+        }
+
+        branchList = updatedBranchList;
+    };
+    reloadBranchList();
+
+    container.append(top, branchList, closeButton);
 
     return container;
 }
@@ -61,6 +86,7 @@ export function Branches(opts: BranchesOpts) {
 type BranchesListOpts = {
     project: Project;
     didChangeBranch: () => void;
+    didChangeBranchList: () => void;
 };
 
 function BranchesList(opts: BranchesListOpts) {
@@ -120,13 +146,12 @@ function BranchesList(opts: BranchesListOpts) {
                         button.replaceWith(document.createElement("div"));
                     });
 
-                    
                     await api.git.checkout(opts.project, branch);
-                    if(branches.remote.includes(branch)) {
+                    if (branches.remote.includes(branch)) {
                         await api.git.pull(opts.project);
                     }
                     opts.didChangeBranch();
-                    container.replaceWith(BranchesList(opts));
+                    opts.didChangeBranchList();
                 };
 
                 item.append(checkoutButton);
@@ -172,9 +197,9 @@ function BranchesList(opts: BranchesListOpts) {
                 });
 
                 deleteButton.onclick = () => {
-                    api.git.branch.delete(opts.project, branch).then(() => {
-                        container.replaceWith(BranchesList(opts));
-                    });
+                    api.git.branch
+                        .delete(opts.project, branch)
+                        .then(opts.didChangeBranchList);
                 };
 
                 optionsButton.onclick = () => {
@@ -200,8 +225,48 @@ function BranchesList(opts: BranchesListOpts) {
     return container;
 }
 
-function CreateBranchForm() {
+type CreateBranchFormOpts = {
+    project: Project;
+    remove: () => void;
+    didCreateBranch: () => void;
+};
+
+function CreateBranchForm(opts: CreateBranchFormOpts) {
     const form = document.createElement("form");
+    form.classList.add("create-branch-form");
+
+    const branchNameInput = InputText({
+        label: "Branch name"
+    });
+
+    const cancelButton = Button({
+        style: "text",
+        text: "Cancel"
+    });
+    cancelButton.type = "button";
+    cancelButton.onclick = opts.remove;
+
+    const createButton = Button({
+        text: "Create"
+    });
+
+    const buttons = document.createElement("div");
+    buttons.append(cancelButton, createButton);
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        createButton.disabled = true;
+        api.git.branch
+            .create(opts.project, branchNameInput.input.value)
+            .then(() => {
+                opts.remove();
+                opts.didCreateBranch();
+            });
+    };
+
+    form.append(branchNameInput.container, buttons);
+
+    setTimeout(() => branchNameInput.input.focus(), 1);
 
     return form;
 }
