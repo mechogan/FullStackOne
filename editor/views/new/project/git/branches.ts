@@ -98,6 +98,7 @@ function BranchesList(opts: BranchesListOpts) {
             const item = document.createElement("li");
 
             const isCurrent = branch === currentBranch;
+            let isLocal = branches.local.includes(branch);
 
             if (isCurrent) {
                 const icon = Icon("Arrow 2");
@@ -113,16 +114,19 @@ function BranchesList(opts: BranchesListOpts) {
 
                 checkoutButtonsAndOptions.push(checkoutButton);
 
-                checkoutButton.onclick = () => {
+                checkoutButton.onclick = async () => {
                     checkoutButton.replaceWith(Loader());
                     checkoutButtonsAndOptions.forEach((button) => {
                         button.replaceWith(document.createElement("div"));
                     });
 
-                    api.git.checkout(opts.project, branch).then(() => {
-                        opts.didChangeBranch();
-                        container.replaceWith(BranchesList(opts));
-                    });
+                    
+                    await api.git.checkout(opts.project, branch);
+                    if(branches.remote.includes(branch)) {
+                        await api.git.pull(opts.project);
+                    }
+                    opts.didChangeBranch();
+                    container.replaceWith(BranchesList(opts));
                 };
 
                 item.append(checkoutButton);
@@ -131,8 +135,6 @@ function BranchesList(opts: BranchesListOpts) {
             const branchName = document.createElement("div");
             branchName.innerText = branch;
             item.append(branchName);
-
-            let isLocal = branches.local.includes(branch);
 
             if (isLocal) {
                 if (branches.remote.includes(branch)) {
