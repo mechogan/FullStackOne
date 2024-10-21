@@ -280,8 +280,9 @@ let progressView: {
     remove: () => void,
     addPackage: ReturnType<typeof PackagesInstallProgress>["addPackage"]
 };
-const concurrentInstallation = 3
+const concurrentInstallation = 1
 let currentlyInstalling = 0;
+const td = new TextDecoder();
 
 const packagesToInstall: {
     name: string,
@@ -370,8 +371,7 @@ function installLoop(){
     }
     installPackage(packageToInstall.name)
         .then((deps) => {
-            console.log(deps);
-            
+
             currentlyInstalling--;
 
             if(!deps) {
@@ -431,12 +431,23 @@ async function installPackage(name: string) {
         filesToWrite = [];
     };
 
+    const packageJSONFile = `${nodeModulesDirectory}/${name}/package.json`;
+    let deps: string[];
+
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.type === "5") continue;
 
         const pathComponents = file.name.split("/").slice(1); // strip 1
-        const path = pathComponents.join("/");
+        const path = `${nodeModulesDirectory}/${name}/${pathComponents.join("/")}`;
+
+        if(path === packageJSONFile) {
+            const packageJSON = JSON.parse(td.decode(file.buffer));
+            if(packageJSON.dependencies) {
+                deps = Object.keys(packageJSON.dependencies);
+                deps.forEach(install);
+            }
+        }
 
         let currentPayloadSize = filesToWrite.reduce(
             (sum, { data }) => sum + data.byteLength,
@@ -451,7 +462,7 @@ async function installPackage(name: string) {
         }
 
         filesToWrite.push({
-            path: `${nodeModulesDirectory}/${name}/${path}`,
+            path,
             data: new Uint8Array(file.buffer)
         });
 
@@ -470,17 +481,5 @@ async function installPackage(name: string) {
 
     installingPackages.delete(name);
 
-
-    const packgeJSONFile = `${nodeModulesDirectory}/${name}/package.json`;
-    const packageJSONStr = (await rpc().fs.readFile(packgeJSONFile,
-        {
-            encoding: "utf8",
-            absolutePath: true
-        }
-    )) as string;
-    const packageJSON = JSON.parse(packageJSONStr);
-    
-    if(packageJSON.dependencies) {
-        return Object.keys(packageJSON.dependencies)
-    }
+    return deps;
 }
