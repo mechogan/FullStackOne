@@ -8,7 +8,7 @@ let nodeModulesDirectory: string;
 
 const maxPayloadSize = 100000; // 100kb
 const maxFilesPerPaylod = 10;
-const concurrentInstallation = 3;
+const concurrentInstallation = 1;
 let currentlyInstalling = 0;
 
 let packagesDirectory: string;
