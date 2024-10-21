@@ -8,10 +8,11 @@ import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { BG_COLOR } from "../../constants";
 import stackNavigation from "../../stack-navigation";
-import { AddProject, AddProjectOpts } from "./add-project";
+import { AddProject } from "./add-project";
 import { Peers } from "./peers";
 import { Project } from "./project";
 import { Settings } from "./settings";
+import Fuse, { IFuseOptions } from 'fuse.js'
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();
@@ -25,11 +26,14 @@ export function Projects() {
             didAddProject: () => {
                 stackNavigation.back();
                 const updatedProjectList = ProjectsList();
-                projectList.replaceWith(updatedProjectList);
+                projectList.container.replaceWith(updatedProjectList.container);
                 projectList = updatedProjectList;
-            }
+            },
+            didSearch: (projects) => {
+                projectList.filter(projects)
+            },
         }),
-        projectList
+        projectList.container
     );
 
     return container;
@@ -61,13 +65,51 @@ function TopBar() {
     return topBar;
 }
 
-function SearchAndAdd(opts: AddProjectOpts) {
+type SearchAndAddOpts = {
+    didAddProject: () => void;
+    didSearch: (projects: ProjectType[]) => void;
+}
+
+function SearchAndAdd(opts: SearchAndAddOpts) {
     const container = document.createElement("div");
     container.classList.add("search-and-add");
 
-    const inputText = InputText({
+    const searchInput = InputText({
         label: "Search"
     });
+
+    let fuseSearch: Fuse<ProjectType>;
+    const fuseOptions: IFuseOptions<ProjectType> = {
+        keys: [
+            {
+                name: 'title',
+                weight: 0.8
+            },
+            {
+                name: 'id',
+                weight: 0.3
+            }
+        ]
+    }
+
+    const reloadFuse = () => {
+        api.projects.list().then(projects => {
+            fuseSearch = new Fuse([...projects], fuseOptions);
+        });
+    }
+    reloadFuse();
+
+    searchInput.input.onkeyup = () => {
+        if (!fuseSearch) return;
+        const searchStr = searchInput.input.value;
+        if (!searchStr) {
+            opts.didSearch(null)
+        } else {
+            const fuseResults = fuseSearch.search(searchStr);
+            console.log(fuseResults)
+            opts.didSearch(fuseResults.map(({ item }) => item));
+        }
+    }
 
     const addButton = Button({
         style: "icon-large",
@@ -75,10 +117,16 @@ function SearchAndAdd(opts: AddProjectOpts) {
     });
 
     addButton.onclick = () => {
-        stackNavigation.navigate(AddProject(opts), BG_COLOR);
+        stackNavigation.navigate(AddProject({
+            didAddProject: () => {
+                reloadFuse();
+                searchInput.input.value = "";
+                opts.didAddProject();
+            }
+        }), BG_COLOR);
     };
 
-    container.append(inputText.container, addButton);
+    container.append(searchInput.container, addButton);
 
     return container;
 }
@@ -87,6 +135,10 @@ function ProjectsList() {
     const container = document.createElement("div");
     container.classList.add("projects-list");
 
+    const projectsTiles: {
+        project: ProjectType,
+        tile: ReturnType<typeof ProjectTile>
+    }[] = [];
     api.projects.list().then((projects) => {
         projects
             .sort((a, b) => {
@@ -95,11 +147,26 @@ function ProjectsList() {
                 return lastDateB - lastDateA;
             })
             .forEach((project) => {
-                container.append(ProjectTile(project));
+                const tile = ProjectTile(project);
+                projectsTiles.push({
+                    project,
+                    tile
+                });
+                container.append(tile);
             });
     });
 
-    return container;
+    const filter = (projects: ProjectType[]) => {
+        projectsTiles.forEach((projectTile) => {
+            if (projects === null || projects.find(project => projectTile.project.id === project.id)) {
+                projectTile.tile.style.display = "flex";
+            } else {
+                projectTile.tile.style.display = "none";
+            }
+        });
+    }
+
+    return { container, filter };
 }
 
 function ProjectTile(project: ProjectType) {

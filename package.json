@@ -44,6 +44,7 @@
         "esbuild": "^0.24.0",
         "eslint-linter-browserify": "^9.11.1",
         "fast-querystring": "^1.1.2",
+        "fuse.js": "^7.0.0",
         "gzip-js": "^0.3.2",
         "isomorphic-git": "^1.27.1",
         "js-untar": "^2.0.0",

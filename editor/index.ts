@@ -4,8 +4,6 @@ import api from "./api";
 import rpc from "./rpc";
 import stackNavigation from "./stack-navigation";
 import { BG_COLOR } from "./constants";
-import projectsView from "./views/projects";
-import projectView from "./views/project";
 import { Projects } from "./views/new/projects";
 
 document.body.classList.add("hover");
@@ -14,11 +12,11 @@ window.addEventListener("touchstart", () => {
 });
 
 (window as any).onPush["launchURL"] = async (deeplink: string) => {
-    const project = await api.getProjectFromDeepLink(deeplink);
-    projectView.setProject(project);
-    stackNavigation.navigate(await projectView.render(), BG_COLOR);
-    await projectView.runProject();
-    projectsView.renderProjectsList();
+    // const project = await api.getProjectFromDeepLink(deeplink);
+    // projectView.setProject(project);
+    // stackNavigation.navigate(await projectView.render(), BG_COLOR);
+    // await projectView.runProject();
+    // projectsView.renderProjectsList();
 };
 
 // pre-init
@@ -31,8 +29,7 @@ const app = async () => {
     await api.connectivity.init();
 
     document.querySelector("#splash").remove();
-    const projectsView = Projects();
-    stackNavigation.navigate(projectsView, BG_COLOR);
+    stackNavigation.navigate(Projects(), BG_COLOR);
 
     // for test puposes
     const searchParams = new URLSearchParams(window.location.search);
@@ -41,9 +38,9 @@ const app = async () => {
             ({ title }) => title === "Demo"
         );
         if (demoProject) {
-            projectView.setProject(demoProject);
-            stackNavigation.navigate(await projectView.render(), BG_COLOR);
-            await projectView.runProject();
+            // projectView.setProject(demoProject);
+            // stackNavigation.navigate(await projectView.render(), BG_COLOR);
+            // await projectView.runProject();
         }
     }
 };

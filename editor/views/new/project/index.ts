@@ -1,6 +1,6 @@
 import api from "../../../api";
+import rpc from "../../../rpc";
 import type {
-    Project,
     Project as ProjectType
 } from "../../../api/config/types";
 import { Loader } from "../../../components/loader";
@@ -8,13 +8,16 @@ import { Button } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import { TopBar } from "../../../components/top-bar";
 import { WorkerTS } from "../../../typescript";
-import { CodeEditor } from "./code-editor";
+import { CodeEditor, FileError } from "./code-editor";
 import { Editor } from "./editor";
 import { FileTree } from "./file-tree";
 import { Git } from "./git";
+import type esbuild from "esbuild";
+import { packageInstaller } from "../packages/installer";
 
 type ProjectOpts = {
     project: ProjectType;
+    didDeleteAllPackages?: () => void;
     fileTree?: ReturnType<typeof FileTree>;
 };
 
@@ -47,11 +50,15 @@ export function Project(opts: ProjectOpts) {
         style: "icon-large",
         iconLeft: "Play"
     });
-    runButton.onclick = () => {
+    runButton.onclick = async () => {
         const loaderContainer = document.createElement("div");
         loaderContainer.classList.add("loader-container");
         loaderContainer.append(Loader());
         runButton.replaceWith(loaderContainer);
+
+        await run({ project: opts.project });
+
+        loaderContainer.replaceWith(runButton);
     };
 
     const pullEvents: PullEvents = {
@@ -60,10 +67,26 @@ export function Project(opts: ProjectOpts) {
     };
     const gitWidget = GitWidget(opts, pullEvents);
 
+    const isPackagesView = opts.project.id === "packages"
+        && opts.project.createdDate === null;
+    const deleteAllButton = Button({
+        text: "Delete All",
+        color: "red"
+    });
+    deleteAllButton.onclick = async () => {
+        deleteAllButton.disabled = true;
+        await rpc().fs.rmdir(opts.project.location, {
+            absolutePath: true
+        });
+        opts.didDeleteAllPackages();
+    }
+
     const topBar = TopBar({
         title: opts.project.title,
         subtitle: opts.project.id,
-        actions: [gitWidget, tsButton, runButton],
+        actions: isPackagesView
+            ? [deleteAllButton]
+            : [gitWidget, tsButton, runButton],
         onBack: () => {
             if (content.classList.contains("closed-panel")) {
                 content.classList.remove("closed-panel");
@@ -198,4 +221,112 @@ function GitWidget(
     container.append(statusArrow);
 
     return container;
+}
+
+type runOpts = {
+    project: ProjectType
+}
+
+async function run(opts: runOpts) {
+    const errors = await api.projects.build(opts.project)
+        
+    if (errors.length) {
+        const { missingPackages, fileErrors } = processBuildErrors({
+            project: opts.project,
+            errors
+        })
+        if(missingPackages.size) {
+            await Promise.all(Array.from(missingPackages).map(packageInstaller.install));
+            return run(opts);
+        } else {
+            // display errors
+        }
+    } else {
+        rpc().run(opts.project)
+    }
+}
+
+type processBuildErrorsOpts = {
+    project: ProjectType,
+    errors: Partial<esbuild.Message>[]
+}
+
+function processBuildErrors(opts: processBuildErrorsOpts){
+    const processedErrors = opts.errors.map(error => processBuildError({
+        project: opts.project,
+        error
+    }));
+
+    const missingPackages = new Set<string>();
+    const fileErrors = new Map<string, FileError[]>();
+    processedErrors.forEach(error => {
+        switch(error.type) {
+            case "missingPackage":
+                missingPackages.add(error.packageName);
+                break;
+            case "fileError":
+                let errorsForFile = fileErrors.get(error.path);
+                if(!errorsForFile) {
+                    errorsForFile = [];
+                    fileErrors.set(error.path, errorsForFile)
+                }
+                errorsForFile.push(error.fileError);
+        }
+    });
+
+    return { missingPackages, fileErrors }
+}
+
+type processErrorOpts = {
+    project: ProjectType,
+    error: Partial<esbuild.Message>
+}
+
+function processBuildError(opts: processErrorOpts): 
+    { 
+        type: "missingPackage"
+        packageName: string
+    } | 
+    {
+        type: "fileError"
+        path: string,
+        fileError: FileError
+    }
+{
+    const file = opts.error.location?.file;
+
+    if (!file) {
+        console.log(opts.error);
+        return;
+    }
+
+    const message = opts.error.text;
+
+    if (message.startsWith("Could not resolve")) {
+        const packageName: string = message
+            .match(/\".*\"/)
+            ?.at(0)
+            ?.slice(1, -1);
+
+        if (!packageName.startsWith(".")) {
+            return { 
+                type: "missingPackage",
+                packageName
+             }
+        }
+    }
+
+    const filePath = file.split(opts.project.location).pop();
+    const path = opts.project.location + filePath;
+
+    return {
+        type: "fileError",
+        path,
+        fileError: {
+            line: opts.error.location?.line,
+            col: opts.error.location?.column,
+            length: opts.error.location?.length,
+            message
+        }
+    }
 }

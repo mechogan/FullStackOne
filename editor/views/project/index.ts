@@ -13,7 +13,6 @@ import type esbuild from "esbuild";
 import type { Project as TypeProject } from "../../api/config/types";
 import rpc from "../../rpc";
 import api from "../../api";
-import { PackageInstaller } from "../../packages/installer";
 import { tsWorker, tsWorkerDelegate } from "../../typescript";
 import stackNavigation from "../../stack-navigation";
 
@@ -63,7 +62,7 @@ class Project implements tsWorkerDelegate {
             this.renderEditors();
         };
 
-        tsWorker.delegate = this;
+        // tsWorker.delegate = this;
 
         window.addEventListener("keydown", (e) => {
             if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
@@ -196,25 +195,26 @@ class Project implements tsWorkerDelegate {
 
         this.renderEditors();
 
-        if (packagesMissing.size > 0) {
-            PackageInstaller.install(
-                Array.from(packagesMissing).map((name) => ({
-                    name,
-                    deep: true
-                }))
-            ).then(() => {
-                this.runProject();
+        // if (packagesMissing.size > 0) {
+        //     PackageInstaller.install(
+        //         Array.from(packagesMissing).map((name) => ({
+        //             name,
+        //             deep: true
+        //         }))
+        //     )
+        //     .then(() => {
+        //         this.runProject();
 
-                if (Editor.tsWorker) {
-                    setTimeout(async () => {
-                        await Editor.restartTSWorker();
-                        this.editors.forEach((editor) =>
-                            editor.reRunExtensions()
-                        );
-                    }, 500);
-                }
-            });
-        }
+        //         if (Editor.tsWorker) {
+        //             setTimeout(async () => {
+        //                 await Editor.restartTSWorker();
+        //                 this.editors.forEach((editor) =>
+        //                     editor.reRunExtensions()
+        //                 );
+        //             }, 500);
+        //         }
+        //     });
+        // }
     }
 
     async runProject() {

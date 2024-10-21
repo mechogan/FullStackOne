@@ -14,7 +14,6 @@ import {
 import { Extension, Prec } from "@codemirror/state";
 import rpc from "../../rpc";
 import { tsWorker } from "../../typescript";
-import { PackageInstaller } from "../../packages/installer";
 import prettier from "prettier";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypeScript from "prettier/plugins/typescript";

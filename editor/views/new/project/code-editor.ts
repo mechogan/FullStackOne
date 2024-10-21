@@ -27,126 +27,157 @@ type CodeViewExtension = {
 
 type CodeView = (EditorView | ImageView) & CodeViewExtension;
 
-class CodeEditorClass {
+export type FileError = {
+    line: number,
+    col: number,
+    length: number,
+    message: string
+}
+
+type ActiveFile = {
+    path: string;
+    view?: CodeView;
+}
+
+type setParentOpts = {
     workingDirectory: string;
-    parent: HTMLElement;
-    activeFiles: {
-        path: string;
-        view?: CodeView;
-    }[] = [];
-    openedFilePath: string;
-    onActiveFileChange: () => void;
+    element: HTMLElement;
+}
 
-    remove(path: string, forDeletion = false) {
-        const index = this.activeFiles.findIndex((file) => file.path === path);
-        if (index === -1) return;
 
-        const [removed] = this.activeFiles.splice(index, 1);
-        if (removed?.view?.saveThrottler) {
-            clearTimeout(removed?.view?.saveThrottler);
-        }
-        if (!forDeletion) {
-            removed?.view?.save();
-        }
-        removed?.view?.destroy();
-        removed?.view?.dom?.remove();
+let workingDirectory: string;
+let parentElement: HTMLElement;
 
-        if (this.openedFilePath === removed?.path) this.openedFilePath = null;
 
-        this.onActiveFileChange?.();
-    }
+export const CodeEditor = {
+    activeFiles: new Set<ActiveFile>(),
+    openedFilePath: null as string,
+    set parent(opts: setParentOpts) {
+        workingDirectory = opts.workingDirectory;
+        parentElement = opts.element;
+        CodeEditor.activeFiles.forEach(({ view }) => view.destroy());
+        CodeEditor.activeFiles.clear();
+    },
+    onActiveFileChange: null as () => void,
+    addFile,
+    replacePath,
+    remove,
+    reloadActiveFilesContent,
+    saveAllActiveFiles,
+};
 
-    async reloadActiveFilesContent() {
-        const filesToRemove: string[] = [];
-
-        const reloadPromises = this.activeFiles.map(
-            (file) =>
-                new Promise<void>(async (resolve) => {
-                    if (file.view.saveThrottler)
-                        clearTimeout(file.view.saveThrottler);
-
-                    const exists = await rpc().fs.exists(file.path, {
-                        absolutePath: true
-                    });
-                    if (!exists) {
-                        filesToRemove.push(file.path);
-                        return resolve();
-                    }
-
-                    await file.view.load();
-                    resolve();
-                })
-        );
-
-        await Promise.all(reloadPromises);
-
-        filesToRemove.forEach(this.remove.bind(this));
-
-        this.onActiveFileChange?.();
-    }
-
-    saveAllActiveFiles() {
-        const savePromises = this.activeFiles.map((file) => {
-            if (file.view?.saveThrottler)
-                clearTimeout(file.view?.saveThrottler);
-            return file.view?.save();
-        });
-        return Promise.all(savePromises);
-    }
-
-    replacePath(oldPath: string, newPath: string) {
-        const file = this.activeFiles.find(({ path }) => path === oldPath);
-        if (!file) return;
-
-        file.path = newPath;
-        file.view.path = newPath;
-
-        if (this.openedFilePath === oldPath) this.openedFilePath = newPath;
-
-        this.onActiveFileChange?.();
-    }
-
-    private open(path: string) {
-        this.openedFilePath = path;
-        this.onActiveFileChange?.();
-        this.clearParent();
-        this.parent.append(
-            this.activeFiles.find((file) => file.path === path).view.dom
-        );
-    }
-
-    private clearParent() {
-        Array.from(this.parent.children).forEach((child) => child.remove());
-    }
-
-    addFile(path: string) {
-        if (this.activeFiles.find((file) => file.path === path)) {
-            this.open(path);
-            return;
-        }
-
-        const activeFile: CodeEditorClass["activeFiles"][0] = { path };
-        this.activeFiles.push(activeFile);
-        this.openedFilePath = path;
-        this.onActiveFileChange?.();
-
-        this.clearParent();
-
-        createView(path).then((editorView) => {
-            activeFile.view = editorView;
-            this.open(path);
-        });
-    }
-
-    setParent(workingDirectory: string, parent: HTMLElement) {
-        this.workingDirectory = workingDirectory;
-        this.parent = parent;
-        this.activeFiles.forEach(({ view }) => view.destroy());
-        this.activeFiles = [];
+function find<T>(set: Set<T>, predicate: (item: T) => boolean) {
+    for(const item of set) {
+        if(predicate(item))
+            return item;
     }
 }
 
-export const CodeEditor = new CodeEditorClass();
+function addFile(path: string) {
+    if (find(CodeEditor.activeFiles, (file) => file.path === path)) {
+        open(path);
+        return;
+    }
+
+    const activeFile: ActiveFile = { path };
+    CodeEditor.activeFiles.add(activeFile);
+    CodeEditor.openedFilePath = path;
+    CodeEditor.onActiveFileChange?.();
+
+    clearParent();
+
+    createView(path).then((editorView) => {
+        activeFile.view = editorView;
+        open(path);
+    });
+}
+
+function open(path: string) {
+   CodeEditor.openedFilePath = path;
+    CodeEditor.onActiveFileChange?.();
+    clearParent();
+    parentElement.append(
+        find(CodeEditor.activeFiles, (file) => file.path === path).view.dom
+    );
+}
+
+function replacePath(oldPath: string, newPath: string) {
+    const file = find(CodeEditor.activeFiles, ({ path }) => path === oldPath);
+    if (!file) return;
+
+    file.path = newPath;
+    file.view.path = newPath;
+
+    if (CodeEditor.openedFilePath === oldPath) {
+        CodeEditor.openedFilePath = newPath;
+    }
+
+    CodeEditor.onActiveFileChange?.();
+}
+
+async function reloadActiveFilesContent() {
+    const filesToRemove = new Set<string>();
+    const reloadPromises: Promise<any>[] = [];
+
+    const deleteOrRemove = async (file: ActiveFile) => {
+        if (file.view.saveThrottler)
+            clearTimeout(file.view.saveThrottler);
+
+        const exists = await rpc().fs.exists(file.path, {
+            absolutePath: true
+        });
+        if (!exists) {
+            filesToRemove.add(file.path);
+        } else {
+            return file.view.load();
+        }
+    }
+
+    CodeEditor.activeFiles.forEach((file) => reloadPromises.push(deleteOrRemove(file)));
+
+    await Promise.all(reloadPromises);
+
+    filesToRemove.forEach(file => remove(file));
+
+    CodeEditor.onActiveFileChange?.();
+}
+
+function saveAllActiveFiles() {
+    const savePromises = [];
+    CodeEditor.activeFiles.forEach((file) => {
+        if (file.view?.saveThrottler)
+            clearTimeout(file.view?.saveThrottler);
+        savePromises.push(file.view?.save());
+    });
+    return Promise.all(savePromises);
+}
+
+function remove(path: string, forDeletion = false) {
+    const activeFile = find(CodeEditor.activeFiles, (file) => file.path === path);
+    if (!activeFile) return;
+
+    if (activeFile.view?.saveThrottler) {
+        clearTimeout(activeFile.view?.saveThrottler);
+    }
+    if (!forDeletion) {
+        activeFile.view?.save();
+    }
+    activeFile.view?.destroy();
+    activeFile.view?.dom?.remove();
+
+    if (this.openedFilePath === activeFile.path) 
+        this.openedFilePath = null;
+
+    CodeEditor.activeFiles.delete(activeFile);
+
+    CodeEditor.onActiveFileChange?.();
+}
+
+function clearParent() {
+    for(const child of parentElement.children) {
+        child.remove();
+    }
+}
 
 const defaultExtensions = [
     basicSetup,
@@ -293,7 +324,7 @@ async function loadJsTsExtensions(filePath: string) {
 }
 
 async function loadTypeScript(filePath: string) {
-    await WorkerTS.start(CodeEditor.workingDirectory);
+    await WorkerTS.start(workingDirectory);
 
     return [
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),

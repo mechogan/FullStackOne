@@ -10,8 +10,10 @@ export function Editor(opts: EditorOpts) {
     container.classList.add("editor");
 
     const editorContainer = document.createElement("div");
-    CodeEditor.setParent(opts.directory, editorContainer);
-
+    CodeEditor.parent = {
+        workingDirectory: opts.directory,
+        element: editorContainer
+    };
     container.append(FileTabs(), editorContainer);
 
     return container;

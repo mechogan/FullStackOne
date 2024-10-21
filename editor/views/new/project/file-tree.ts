@@ -300,7 +300,6 @@ function Item(opts: ItemOpts) {
             });
 
             nameAndOptions.replaceWith(form);
-            // setTimeout(() => , 1);
         };
 
         const deleteButton = Button({

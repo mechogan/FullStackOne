@@ -6,7 +6,7 @@ import { CloneGit } from "./clone-git";
 import { CreateEmpty } from "./create-empty";
 import { ImportZip } from "./import-zip";
 
-export type AddProjectOpts = {
+type AddProjectOpts = {
     didAddProject: () => void;
 };
 
