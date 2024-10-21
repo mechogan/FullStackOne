@@ -28,26 +28,24 @@ type CodeViewExtension = {
 type CodeView = (EditorView | ImageView) & CodeViewExtension;
 
 export type FileError = {
-    line: number,
-    col: number,
-    length: number,
-    message: string
-}
+    line: number;
+    col: number;
+    length: number;
+    message: string;
+};
 
 type ActiveFile = {
     path: string;
     view?: CodeView;
-}
+};
 
 type setParentOpts = {
     workingDirectory: string;
     element: HTMLElement;
-}
-
+};
 
 let workingDirectory: string;
 let parentElement: HTMLElement;
-
 
 export const CodeEditor = {
     activeFiles: new Set<ActiveFile>(),
@@ -63,13 +61,12 @@ export const CodeEditor = {
     replacePath,
     remove,
     reloadActiveFilesContent,
-    saveAllActiveFiles,
+    saveAllActiveFiles
 };
 
 function find<T>(set: Set<T>, predicate: (item: T) => boolean) {
-    for(const item of set) {
-        if(predicate(item))
-            return item;
+    for (const item of set) {
+        if (predicate(item)) return item;
     }
 }
 
@@ -93,7 +90,7 @@ function addFile(path: string) {
 }
 
 function open(path: string) {
-   CodeEditor.openedFilePath = path;
+    CodeEditor.openedFilePath = path;
     CodeEditor.onActiveFileChange?.();
     clearParent();
     parentElement.append(
@@ -120,8 +117,7 @@ async function reloadActiveFilesContent() {
     const reloadPromises: Promise<any>[] = [];
 
     const deleteOrRemove = async (file: ActiveFile) => {
-        if (file.view.saveThrottler)
-            clearTimeout(file.view.saveThrottler);
+        if (file.view.saveThrottler) clearTimeout(file.view.saveThrottler);
 
         const exists = await rpc().fs.exists(file.path, {
             absolutePath: true
@@ -131,13 +127,15 @@ async function reloadActiveFilesContent() {
         } else {
             return file.view.load();
         }
-    }
+    };
 
-    CodeEditor.activeFiles.forEach((file) => reloadPromises.push(deleteOrRemove(file)));
+    CodeEditor.activeFiles.forEach((file) =>
+        reloadPromises.push(deleteOrRemove(file))
+    );
 
     await Promise.all(reloadPromises);
 
-    filesToRemove.forEach(file => remove(file));
+    filesToRemove.forEach((file) => remove(file));
 
     CodeEditor.onActiveFileChange?.();
 }
@@ -145,15 +143,17 @@ async function reloadActiveFilesContent() {
 function saveAllActiveFiles() {
     const savePromises = [];
     CodeEditor.activeFiles.forEach((file) => {
-        if (file.view?.saveThrottler)
-            clearTimeout(file.view?.saveThrottler);
+        if (file.view?.saveThrottler) clearTimeout(file.view?.saveThrottler);
         savePromises.push(file.view?.save());
     });
     return Promise.all(savePromises);
 }
 
 function remove(path: string, forDeletion = false) {
-    const activeFile = find(CodeEditor.activeFiles, (file) => file.path === path);
+    const activeFile = find(
+        CodeEditor.activeFiles,
+        (file) => file.path === path
+    );
     if (!activeFile) return;
 
     if (activeFile.view?.saveThrottler) {
@@ -165,8 +165,7 @@ function remove(path: string, forDeletion = false) {
     activeFile.view?.destroy();
     activeFile.view?.dom?.remove();
 
-    if (this.openedFilePath === activeFile.path) 
-        this.openedFilePath = null;
+    if (this.openedFilePath === activeFile.path) this.openedFilePath = null;
 
     CodeEditor.activeFiles.delete(activeFile);
 
@@ -174,7 +173,7 @@ function remove(path: string, forDeletion = false) {
 }
 
 function clearParent() {
-    for(const child of parentElement.children) {
+    for (const child of parentElement.children) {
         child.remove();
     }
 }

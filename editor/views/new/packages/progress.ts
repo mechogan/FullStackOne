@@ -16,15 +16,15 @@ export function PackagesInstallProgress() {
 
         const packageName = document.createElement("div");
         packageName.innerText = name;
-        item.append(packageName)
+        item.append(packageName);
 
         const status = document.createElement("div");
         item.append(status);
 
         const progress = document.createElement("div");
         progress.classList.add("progress-bar");
-        item.append(progress)
-        
+        item.append(progress);
+
         installList.append(item);
 
         const setters = {
@@ -33,16 +33,17 @@ export function PackagesInstallProgress() {
                 return setters;
             },
             setProgress: (loaded: number, total: number) => {
-                progress.style.width = (loaded / total * 100).toFixed(2) + "%";
+                progress.style.width =
+                    ((loaded / total) * 100).toFixed(2) + "%";
                 return setters;
             },
             remove: () => item.remove()
-        }
+        };
 
         return setters;
-    }
+    };
 
-    return { 
+    return {
         container,
         addPackage
     };

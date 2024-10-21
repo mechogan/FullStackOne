@@ -35,9 +35,7 @@ export function Branches(opts: BranchesOpts) {
 
     createButton.onclick = () => {
         createButton.disabled = true;
-
-
-    }
+    };
 
     top.append(backButton, title, createButton);
 
@@ -200,11 +198,8 @@ function BranchesList(opts: BranchesListOpts) {
     return container;
 }
 
-
-function CreateBranchForm(){
+function CreateBranchForm() {
     const form = document.createElement("form");
-
-    
 
     return form;
 }

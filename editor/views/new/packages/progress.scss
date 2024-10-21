@@ -2,8 +2,7 @@
 @use "../../../style/new/values/colors.scss";
 @use "../../../style/new/values/typography.scss";
 
-.packages-install-progress{
-
+.packages-install-progress {
     h3 {
         padding-bottom: spacing.$small;
     }
@@ -22,6 +21,7 @@
             position: relative;
             padding: spacing.$small;
             border-radius: spacing.$x-small;
+            overflow: hidden;
 
             > div:nth-child(2) {
                 font-size: typography.$small;
@@ -37,5 +37,4 @@
             }
         }
     }
-
 }

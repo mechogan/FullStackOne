@@ -12,7 +12,7 @@ import { AddProject } from "./add-project";
 import { Peers } from "./peers";
 import { Project } from "./project";
 import { Settings } from "./settings";
-import Fuse, { IFuseOptions } from 'fuse.js'
+import Fuse, { IFuseOptions } from "fuse.js";
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();
@@ -30,8 +30,8 @@ export function Projects() {
                 projectList = updatedProjectList;
             },
             didSearch: (projects) => {
-                projectList.filter(projects)
-            },
+                projectList.filter(projects);
+            }
         }),
         projectList.container
     );
@@ -68,7 +68,7 @@ function TopBar() {
 type SearchAndAddOpts = {
     didAddProject: () => void;
     didSearch: (projects: ProjectType[]) => void;
-}
+};
 
 function SearchAndAdd(opts: SearchAndAddOpts) {
     const container = document.createElement("div");
@@ -82,34 +82,34 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
     const fuseOptions: IFuseOptions<ProjectType> = {
         keys: [
             {
-                name: 'title',
+                name: "title",
                 weight: 0.8
             },
             {
-                name: 'id',
+                name: "id",
                 weight: 0.3
             }
         ]
-    }
+    };
 
     const reloadFuse = () => {
-        api.projects.list().then(projects => {
+        api.projects.list().then((projects) => {
             fuseSearch = new Fuse([...projects], fuseOptions);
         });
-    }
+    };
     reloadFuse();
 
     searchInput.input.onkeyup = () => {
         if (!fuseSearch) return;
         const searchStr = searchInput.input.value;
         if (!searchStr) {
-            opts.didSearch(null)
+            opts.didSearch(null);
         } else {
             const fuseResults = fuseSearch.search(searchStr);
-            console.log(fuseResults)
+            console.log(fuseResults);
             opts.didSearch(fuseResults.map(({ item }) => item));
         }
-    }
+    };
 
     const addButton = Button({
         style: "icon-large",
@@ -117,13 +117,16 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
     });
 
     addButton.onclick = () => {
-        stackNavigation.navigate(AddProject({
-            didAddProject: () => {
-                reloadFuse();
-                searchInput.input.value = "";
-                opts.didAddProject();
-            }
-        }), BG_COLOR);
+        stackNavigation.navigate(
+            AddProject({
+                didAddProject: () => {
+                    reloadFuse();
+                    searchInput.input.value = "";
+                    opts.didAddProject();
+                }
+            }),
+            BG_COLOR
+        );
     };
 
     container.append(searchInput.container, addButton);
@@ -136,8 +139,8 @@ function ProjectsList() {
     container.classList.add("projects-list");
 
     const projectsTiles: {
-        project: ProjectType,
-        tile: ReturnType<typeof ProjectTile>
+        project: ProjectType;
+        tile: ReturnType<typeof ProjectTile>;
     }[] = [];
     api.projects.list().then((projects) => {
         projects
@@ -158,13 +161,18 @@ function ProjectsList() {
 
     const filter = (projects: ProjectType[]) => {
         projectsTiles.forEach((projectTile) => {
-            if (projects === null || projects.find(project => projectTile.project.id === project.id)) {
+            if (
+                projects === null ||
+                projects.find(
+                    (project) => projectTile.project.id === project.id
+                )
+            ) {
                 projectTile.tile.style.display = "flex";
             } else {
                 projectTile.tile.style.display = "none";
             }
         });
-    }
+    };
 
     return { container, filter };
 }

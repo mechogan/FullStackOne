@@ -41,46 +41,46 @@ function Packages() {
 
     let button: ReturnType<typeof Button>, nodeModulesDirectory: string;
     const reloadButton = () => {
-        api.packages.count()
-            .then(async packagesCount => {
-                const text =
-                    packagesCount + " package" + (packagesCount > 1 ? "s" : "");
+        api.packages.count().then(async (packagesCount) => {
+            const text =
+                packagesCount + " package" + (packagesCount > 1 ? "s" : "");
 
-                const updatedButton = Button({
-                    text,
-                    iconRight: "Package"
-                });
+            const updatedButton = Button({
+                text,
+                iconRight: "Package"
+            });
 
-                if(!nodeModulesDirectory)
-                    nodeModulesDirectory = await rpc().directories.nodeModulesDirectory()
+            if (!nodeModulesDirectory)
+                nodeModulesDirectory =
+                    await rpc().directories.nodeModulesDirectory();
 
-                updatedButton.onclick = () => {
-                    stackNavigation.navigate(
-                        Project({
-                            project: {
-                                title: "Packages",
-                                id: "packages",
-                                location: nodeModulesDirectory,
-                                createdDate: null
-                            },
-                            didDeleteAllPackages: () => {
-                                stackNavigation.back();
-                                reloadButton();
-                            }
-                        }),
-                        BG_COLOR
-                    )
-                }
+            updatedButton.onclick = () => {
+                stackNavigation.navigate(
+                    Project({
+                        project: {
+                            title: "Packages",
+                            id: "packages",
+                            location: nodeModulesDirectory,
+                            createdDate: null
+                        },
+                        didDeleteAllPackages: () => {
+                            stackNavigation.back();
+                            reloadButton();
+                        }
+                    }),
+                    BG_COLOR
+                );
+            };
 
-                if(button) {
-                    button.replaceWith(updatedButton)
-                } else {
-                    packages.append(updatedButton);
-                }
+            if (button) {
+                button.replaceWith(updatedButton);
+            } else {
+                packages.append(updatedButton);
+            }
 
-                button = updatedButton;
-            })
-    }
+            button = updatedButton;
+        });
+    };
     reloadButton();
 
     return packages;

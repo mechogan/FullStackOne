@@ -34,12 +34,8 @@ export const WorkerTS = {
     start,
     dispose,
     call: () =>
-        recurseInProxy(postMessage) as unknown as AwaitAll<
-            typeof methods
-        >,
-
-}
-
+        recurseInProxy(postMessage) as unknown as AwaitAll<typeof methods>
+};
 
 function postMessage(methodPath: string[], ...args: any) {
     if (!worker) return;

@@ -1,8 +1,6 @@
 import api from "../../../api";
 import rpc from "../../../rpc";
-import type {
-    Project as ProjectType
-} from "../../../api/config/types";
+import type { Project as ProjectType } from "../../../api/config/types";
 import { Loader } from "../../../components/loader";
 import { Button } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
@@ -67,8 +65,8 @@ export function Project(opts: ProjectOpts) {
     };
     const gitWidget = GitWidget(opts, pullEvents);
 
-    const isPackagesView = opts.project.id === "packages"
-        && opts.project.createdDate === null;
+    const isPackagesView =
+        opts.project.id === "packages" && opts.project.createdDate === null;
     const deleteAllButton = Button({
         text: "Delete All",
         color: "red"
@@ -79,7 +77,7 @@ export function Project(opts: ProjectOpts) {
             absolutePath: true
         });
         opts.didDeleteAllPackages();
-    }
+    };
 
     const topBar = TopBar({
         title: opts.project.title,
@@ -224,75 +222,78 @@ function GitWidget(
 }
 
 type runOpts = {
-    project: ProjectType
-}
+    project: ProjectType;
+};
 
 async function run(opts: runOpts) {
-    const errors = await api.projects.build(opts.project)
-        
+    const errors = await api.projects.build(opts.project);
+
     if (errors.length) {
         const { missingPackages, fileErrors } = processBuildErrors({
             project: opts.project,
             errors
-        })
-        if(missingPackages.size) {
-            await Promise.all(Array.from(missingPackages).map(packageInstaller.install));
+        });
+        if (missingPackages.size) {
+            await Promise.all(
+                Array.from(missingPackages).map(packageInstaller.install)
+            );
             return run(opts);
         } else {
             // display errors
         }
     } else {
-        rpc().run(opts.project)
+        rpc().run(opts.project);
     }
 }
 
 type processBuildErrorsOpts = {
-    project: ProjectType,
-    errors: Partial<esbuild.Message>[]
-}
+    project: ProjectType;
+    errors: Partial<esbuild.Message>[];
+};
 
-function processBuildErrors(opts: processBuildErrorsOpts){
-    const processedErrors = opts.errors.map(error => processBuildError({
-        project: opts.project,
-        error
-    }));
+function processBuildErrors(opts: processBuildErrorsOpts) {
+    const processedErrors = opts.errors.map((error) =>
+        processBuildError({
+            project: opts.project,
+            error
+        })
+    );
 
     const missingPackages = new Set<string>();
     const fileErrors = new Map<string, FileError[]>();
-    processedErrors.forEach(error => {
-        switch(error.type) {
+    processedErrors.forEach((error) => {
+        switch (error.type) {
             case "missingPackage":
                 missingPackages.add(error.packageName);
                 break;
             case "fileError":
                 let errorsForFile = fileErrors.get(error.path);
-                if(!errorsForFile) {
+                if (!errorsForFile) {
                     errorsForFile = [];
-                    fileErrors.set(error.path, errorsForFile)
+                    fileErrors.set(error.path, errorsForFile);
                 }
                 errorsForFile.push(error.fileError);
         }
     });
 
-    return { missingPackages, fileErrors }
+    return { missingPackages, fileErrors };
 }
 
 type processErrorOpts = {
-    project: ProjectType,
-    error: Partial<esbuild.Message>
-}
+    project: ProjectType;
+    error: Partial<esbuild.Message>;
+};
 
-function processBuildError(opts: processErrorOpts): 
-    { 
-        type: "missingPackage"
-        packageName: string
-    } | 
-    {
-        type: "fileError"
-        path: string,
-        fileError: FileError
-    }
-{
+function processBuildError(opts: processErrorOpts):
+    | {
+          type: "missingPackage";
+          packageName: string;
+      }
+    | {
+          type: "fileError";
+          path: string;
+          fileError: FileError;
+      } {
     const file = opts.error.location?.file;
 
     if (!file) {
@@ -309,10 +310,10 @@ function processBuildError(opts: processErrorOpts):
             ?.slice(1, -1);
 
         if (!packageName.startsWith(".")) {
-            return { 
+            return {
                 type: "missingPackage",
                 packageName
-             }
+            };
         }
     }
 
@@ -328,5 +329,5 @@ function processBuildError(opts: processErrorOpts):
             length: opts.error.location?.length,
             message
         }
-    }
+    };
 }
