@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import api from "../../api";
 import stackNavigation from "../../stack-navigation";
 

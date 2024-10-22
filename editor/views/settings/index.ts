@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import { BACK_BUTTON_ID, BG_COLOR, PACKAGES_BUTTON_ID } from "../../constants";
 import api from "../../api";
 import { CONFIG_TYPE } from "../../api/config/types";

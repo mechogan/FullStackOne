@@ -14,7 +14,7 @@ import {
     PEER_PAIR_BUTTON_CLASS,
     PEER_TRUST_BUTTON_ID
 } from "../../constants";
-import "./index.css";
+// import "./index.css";
 import rpc from "../../rpc";
 import stackNavigation from "../../stack-navigation";
 

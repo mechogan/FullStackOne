@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import EsbuildInstall from "./views/esbuild";
 import api from "./api";
 import rpc from "./rpc";

@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 
 import type { Project as TypeProject } from "../../../api/config/types";
 import api from "../../../api";

@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import { EditorView, keymap, hoverTooltip } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";

@@ -71,9 +71,11 @@ function GitView(opts: GitOpts, objRemove: { remove: () => void }) {
         text: "Commit",
         style: "text"
     });
+    commitButton.type = "button";
     const pushButton = Button({
         text: "Push"
     });
+    pushButton.type = "button";
 
     commitButton.disabled = true;
     pushButton.disabled = true;
@@ -295,6 +297,21 @@ function Status(opts: StatusOpts) {
                 container.innerText = "Nothing to commit";
             }
 
+            const commit = async () => {
+                if (!commitMessageInput?.input.value) return;
+
+                await api.git.commit(
+                    opts.project,
+                    commitMessageInput.input.value
+                );
+                opts.didCommit();
+            };
+
+            const push = () => {
+                opts.didPushEvent("start");
+                api.git.push(opts.project).then(() => opts.didPushEvent("end"));
+            }
+
             let commitMessageInput: ReturnType<typeof InputText>;
             if (hasChanges && hasGitUserName) {
                 const form = document.createElement("form");
@@ -317,8 +334,15 @@ function Status(opts: StatusOpts) {
                     }
                 };
 
-                form.onsubmit = (e) => {
+                form.onsubmit = async (e) => {
                     e.preventDefault();
+
+                    if(!commitMessageInput.input.value) return;
+
+                    await commit();
+                    if(reacheable) {
+                        push();
+                    } 
                 };
 
                 setTimeout(() => commitMessageInput.input.focus(), 1);
@@ -351,25 +375,11 @@ function Status(opts: StatusOpts) {
                 opts.buttons.push.disabled = false;
             }
 
-            const commit = async () => {
-                if (!commitMessageInput?.input.value) return;
-
-                return api.git.commit(
-                    opts.project,
-                    commitMessageInput.input.value
-                );
-            };
-
-            opts.buttons.commit.onclick = async () => {
-                await commit();
-                opts.didCommit();
-            };
+            opts.buttons.commit.onclick = commit;
 
             opts.buttons.push.onclick = async () => {
                 await commit();
-                opts.didCommit();
-                opts.didPushEvent("start");
-                api.git.push(opts.project).then(() => opts.didPushEvent("end"));
+                push();
             };
 
             if (message) {

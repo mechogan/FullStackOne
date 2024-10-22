@@ -3,7 +3,7 @@ import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import { linter, lintGutter, Diagnostic } from "@codemirror/lint";
+import { linter, lintGutter, Diagnostic, setDiagnostics } from "@codemirror/lint";
 import rpc from "../../../rpc";
 import { WorkerTS } from "../../../typescript";
 import {
@@ -61,7 +61,9 @@ export const CodeEditor = {
     replacePath,
     remove,
     reloadActiveFilesContent,
-    saveAllActiveFiles
+    saveAllActiveFiles,
+    addBuildFileErrors,
+    clearAllErrors
 };
 
 function find<T>(set: Set<T>, predicate: (item: T) => boolean) {
@@ -70,10 +72,11 @@ function find<T>(set: Set<T>, predicate: (item: T) => boolean) {
     }
 }
 
-function addFile(path: string) {
-    if (find(CodeEditor.activeFiles, (file) => file.path === path)) {
+async function addFile(path: string) {
+    const alreadyActiveFile = find(CodeEditor.activeFiles, (file) => file.path === path);
+    if (alreadyActiveFile) {
         open(path);
-        return;
+        return alreadyActiveFile;
     }
 
     const activeFile: ActiveFile = { path };
@@ -83,10 +86,9 @@ function addFile(path: string) {
 
     clearParent();
 
-    createView(path).then((editorView) => {
-        activeFile.view = editorView;
-        open(path);
-    });
+    activeFile.view = await createView(path);
+    open(path);
+    return activeFile;
 }
 
 function open(path: string) {
@@ -348,7 +350,7 @@ async function createImageView(filePath: string) {
     const imageView = {
         path: filePath,
         destroy,
-        save: async () => {},
+        save: async () => { },
         load: async () => {
             destroy();
             loadFromFile(imageView.path);
@@ -399,4 +401,30 @@ const javascriptExtensions = [
 
 const typescriptExtensions = [UTF8_Ext.TYPESCRIPT, UTF8_Ext.TYPESCRIPT_X];
 
-const jsTsExtensions = [...javascriptExtensions, ...typescriptExtensions];
+
+type addFileErrorsOpts = {
+    path: string,
+    errors: FileError[]
+}
+
+async function addBuildFileErrors(opts: addFileErrorsOpts) {
+    const activeFile = await addFile(opts.path);
+    const editorView = activeFile.view as EditorView;
+    const diagnostics: Diagnostic[] = opts.errors.map(fileError => {
+        const from = editorView.state.doc.line(fileError.line).from + fileError.col;
+        return {
+            from,
+            to: from + fileError.length,
+            severity: "error",
+            message: fileError.message
+        }
+    });
+    editorView.dispatch(setDiagnostics(editorView.state, diagnostics));
+}
+
+function clearAllErrors() {
+    for(const activeFile of CodeEditor.activeFiles) {
+        const maybeEditorView = activeFile.view as EditorView
+        maybeEditorView?.dispatch?.(setDiagnostics(maybeEditorView.state, []));
+    }
+}

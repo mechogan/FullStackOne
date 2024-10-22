@@ -10,7 +10,6 @@ export type Project = {
     title: string;
     id: string;
     createdDate: number;
-    updatedDate?: number;
     location: string;
     gitRepository?: {
         url: string;

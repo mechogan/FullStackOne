@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import { NEW_FILE_ID } from "../../constants";
 import rpc from "../../rpc";
 import type { Dirent } from "../../../src/adapter/fs";

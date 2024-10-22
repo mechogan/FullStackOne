@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import type { Project } from "../../api/config/types";
 import {
     BG_COLOR,

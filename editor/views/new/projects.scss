@@ -86,4 +86,13 @@
             }
         }
     }
+
+    .peers-widget {
+        display: flex;
+        font-weight: bold;
+        justify-content: flex-end;
+        text-align: right;
+        align-items: center;
+        color: colors.$blue;
+    }
 }

@@ -16,13 +16,20 @@ import { packageInstaller } from "../packages/installer";
 type ProjectOpts = {
     project: ProjectType;
     didDeleteAllPackages?: () => void;
-    fileTree?: ReturnType<typeof FileTree>;
+    didUpdateProject: () => void;
 };
 
 export function Project(opts: ProjectOpts) {
     const container = document.createElement("div");
     container.id = "project";
     container.classList.add("view");
+
+    const fileTree = FileTree({
+        directory: opts.project.location,
+        onClosePanel: () => {
+            content.classList.add("closed-panel");
+        }
+    });
 
     WorkerTS.dispose();
     const tsButton = Button({
@@ -63,7 +70,12 @@ export function Project(opts: ProjectOpts) {
         start: null,
         end: null
     };
-    const gitWidget = GitWidget(opts, pullEvents);
+    const gitWidget = GitWidget({
+        project: opts.project,
+        didUpdateProject: opts.didUpdateProject,
+        fileTree,
+        pullEvents
+    });
 
     const isPackagesView =
         opts.project.id === "packages" && opts.project.createdDate === null;
@@ -100,15 +112,8 @@ export function Project(opts: ProjectOpts) {
     const content = document.createElement("div");
     content.classList.add("content");
 
-    opts.fileTree = FileTree({
-        directory: opts.project.location,
-        onClosePanel: () => {
-            content.classList.add("closed-panel");
-        }
-    });
-
     content.append(
-        opts.fileTree.container,
+        fileTree.container,
         Editor({
             directory: opts.project.location
         })
@@ -119,7 +124,7 @@ export function Project(opts: ProjectOpts) {
     api.git.pull(opts.project).then(() => {
         pullEvents.end?.();
         CodeEditor.reloadActiveFilesContent();
-        opts.fileTree.reloadFileTree();
+        fileTree.reloadFileTree();
     });
 
     return container;
@@ -130,11 +135,15 @@ type PullEvents = {
     end: () => void;
 };
 
-function GitWidget(
-    opts: ProjectOpts,
+type GitWidgetOpts = {
+    project: ProjectType,
+    didUpdateProject: ProjectOpts["didUpdateProject"],
+    fileTree: ReturnType<typeof FileTree>
     pullEvents: PullEvents,
-    statusArrow = null
-) {
+    statusArrow?: ReturnType<typeof Icon>
+}
+
+function GitWidget(opts: GitWidgetOpts) {
     const container = document.createElement("div");
     container.classList.add("git-widget");
 
@@ -191,15 +200,16 @@ function GitWidget(
                         ({ id }) => opts.project.id === id
                     );
                     reloadGit();
+                    opts.didUpdateProject();
                 },
                 didUpdateFiles: () => opts.fileTree.reloadFileTree(),
                 didChangeCommitOrBranch: reloadBranchAndCommit,
                 didPushEvent: (event) => {
                     if (event === "start") {
-                        statusArrow.style.display = "flex";
-                        statusArrow.classList.add("red");
+                        opts.statusArrow.style.display = "flex";
+                        opts.statusArrow.classList.add("red");
                     } else {
-                        statusArrow.style.display = "none";
+                        opts.statusArrow.style.display = "none";
                     }
                 }
             });
@@ -210,22 +220,22 @@ function GitWidget(
 
     container.append(gitButton);
 
-    if (!statusArrow) {
-        statusArrow = Icon("Arrow 2");
-        statusArrow.classList.add("git-status-arrow");
-        statusArrow.style.display = "none";
+    if (!opts.statusArrow) {
+        opts.statusArrow = Icon("Arrow 2");
+        opts.statusArrow.classList.add("git-status-arrow");
+        opts.statusArrow.style.display = "none";
     }
-    container.append(statusArrow);
+    container.append(opts.statusArrow);
 
-    pullEvents.start = () => {
-        statusArrow.style.display = "flex";
-        statusArrow.classList.remove("red");
+    opts.pullEvents.start = () => {
+        opts.statusArrow.style.display = "flex";
+        opts.statusArrow.classList.remove("red");
     };
-    pullEvents.end = () => {
-        statusArrow.style.display = "none";
+    opts.pullEvents.end = () => {
+        opts.statusArrow.style.display = "none";
     };
 
-    container.append(statusArrow);
+    container.append(opts.statusArrow);
 
     return container;
 }
@@ -235,6 +245,9 @@ type runOpts = {
 };
 
 async function run(opts: runOpts) {
+    await CodeEditor.saveAllActiveFiles();
+    CodeEditor.clearAllErrors();
+    
     const errors = await api.projects.build(opts.project);
 
     if (errors.length) {
@@ -248,7 +261,9 @@ async function run(opts: runOpts) {
             );
             return run(opts);
         } else {
-            // display errors
+            for(const [path, errors] of fileErrors) {
+                CodeEditor.addBuildFileErrors({ path, errors })
+            }
         }
     } else {
         rpc().run(opts.project);

@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import { Editor } from "../editor";
 import { FileTree } from "../file-tree";
 import { Console } from "../console";

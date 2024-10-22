@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 
 class EsbuildInstall {
     onComplete: () => void;

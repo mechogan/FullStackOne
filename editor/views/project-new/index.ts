@@ -1,4 +1,4 @@
-import "./index.css";
+// import "./index.css";
 import { FileTree } from "../file-tree";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 import projectView from "../project";

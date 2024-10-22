@@ -40,13 +40,6 @@ export function Projects() {
 }
 
 function TopBar() {
-    const peers = Button({
-        style: "icon-large",
-        iconLeft: "Peers"
-    });
-
-    peers.onclick = () => stackNavigation.navigate(Peers(), BG_COLOR);
-
     const settings = Button({
         style: "icon-large",
         iconLeft: "Settings"
@@ -59,10 +52,36 @@ function TopBar() {
     const topBar = TopBarComponent({
         noBack: true,
         title: "Projects",
-        actions: [peers, settings]
+        actions: [PeersWidget(), settings]
     });
 
     return topBar;
+}
+
+function PeersWidget() {
+    const container = document.createElement("div");
+    container.classList.add("peers-widget");
+
+    const peersConnectedCount = document.createElement("div");
+    const renderPeersConnectedCount = () => {
+        const count = api.connectivity.peers.connections().size;
+        peersConnectedCount.innerText = count !== 0
+            ? count.toString()
+            : "";
+    }
+    renderPeersConnectedCount();
+    api.connectivity.peers.onPeersEvent.add(renderPeersConnectedCount);
+
+    const peersButton = Button({
+        style: "icon-large",
+        iconLeft: "Peers"
+    });
+
+    peersButton.onclick = () => stackNavigation.navigate(Peers(), BG_COLOR);
+    
+    container.append(peersConnectedCount, peersButton);
+
+    return container;
 }
 
 type SearchAndAddOpts = {
@@ -144,11 +163,7 @@ function ProjectsList() {
     }[] = [];
     api.projects.list().then((projects) => {
         projects
-            .sort((a, b) => {
-                const lastDateA = a.updatedDate || a.createdDate;
-                const lastDateB = b.updatedDate || b.createdDate;
-                return lastDateB - lastDateA;
-            })
+            .sort((a, b) => b.createdDate - a.createdDate)
             .forEach((project) => {
                 const tile = ProjectTile(project);
                 projectsTiles.push({
@@ -182,7 +197,14 @@ function ProjectTile(project: ProjectType) {
     container.classList.add("project-tile");
 
     container.onclick = () =>
-        stackNavigation.navigate(Project({ project }), BG_COLOR);
+        stackNavigation.navigate(Project({ 
+            project,
+            didUpdateProject: async () => {
+                project = (await api.projects.list()).find(
+                    ({ id }) => project.id === id
+                );
+            }
+        }), BG_COLOR);
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");

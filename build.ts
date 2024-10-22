@@ -41,19 +41,6 @@ esbuild.buildSync({
 if (fs.existsSync("editor/build"))
     fs.rmSync("editor/build", { recursive: true });
 
-// old-styles
-const scssFiles = (await scan("editor", fs.promises.readdir as any)).filter(
-    (filePath) => filePath.endsWith(".scss")
-);
-
-const compileScss = async (scssFile: string) => {
-    const { css } = await sass.compileAsync(scssFile);
-    if (css.length) fs.writeFileSync(scssFile.slice(0, -4) + "css", css);
-};
-const compilePromises = scssFiles.map(compileScss);
-await Promise.all(compilePromises);
-// end old-styles
-
 const toBuild = [
     ["editor/index.ts", "index"],
     ["editor/typescript/worker.ts", "worker-ts"]
@@ -77,12 +64,6 @@ for (const [input, output] of toBuild) {
     fs.rmSync(tmpFile);
     if (errors) buildErrors.push(errors);
 }
-
-// cleanup
-scssFiles.forEach((scssFile) => {
-    const cssFile = scssFile.slice(0, -4) + "css";
-    if (fs.existsSync(cssFile)) fs.rmSync(cssFile);
-});
 
 if (buildErrors.length) throw buildErrors;
 
