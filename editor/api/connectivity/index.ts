@@ -70,7 +70,7 @@ async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
         }
     }
 
-    api.connectivity.peers.onPeersEvent.forEach(cb => cb());
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
@@ -137,7 +137,7 @@ const connectivityAPI = {
         }
     },
     peers: {
-        onPeersEvent: new Set<() => void>,
+        onPeersEvent: new Set<() => void>(),
         async trusted() {
             return (await config.load(CONFIG_TYPE.CONNECTIVITY)).peersTrusted;
         },
@@ -276,7 +276,7 @@ const connectivityAPI = {
                 break;
         }
 
-        api.connectivity.peers.onPeersEvent.forEach(cb => cb())
+        api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
     }
 };
 
@@ -355,7 +355,7 @@ async function onPeerConnection(
         }
     }
 
-    api.connectivity.peers.onPeersEvent.forEach(cb => cb())
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 async function sendPeerConnectionRequest(peerConnection: PeerConnection) {
@@ -428,7 +428,7 @@ async function onPeerConnectionPairingData(
             break;
     }
 
-    api.connectivity.peers.onPeersEvent.forEach(cb => cb())
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 async function respondToPeerConnectionRequest(

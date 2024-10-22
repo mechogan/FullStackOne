@@ -310,7 +310,7 @@ function Status(opts: StatusOpts) {
             const push = () => {
                 opts.didPushEvent("start");
                 api.git.push(opts.project).then(() => opts.didPushEvent("end"));
-            }
+            };
 
             let commitMessageInput: ReturnType<typeof InputText>;
             if (hasChanges && hasGitUserName) {
@@ -337,12 +337,12 @@ function Status(opts: StatusOpts) {
                 form.onsubmit = async (e) => {
                     e.preventDefault();
 
-                    if(!commitMessageInput.input.value) return;
+                    if (!commitMessageInput.input.value) return;
 
                     await commit();
-                    if(reacheable) {
+                    if (reacheable) {
                         push();
-                    } 
+                    }
                 };
 
                 setTimeout(() => commitMessageInput.input.focus(), 1);

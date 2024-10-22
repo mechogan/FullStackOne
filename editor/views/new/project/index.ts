@@ -136,12 +136,12 @@ type PullEvents = {
 };
 
 type GitWidgetOpts = {
-    project: ProjectType,
-    didUpdateProject: ProjectOpts["didUpdateProject"],
-    fileTree: ReturnType<typeof FileTree>
-    pullEvents: PullEvents,
-    statusArrow?: ReturnType<typeof Icon>
-}
+    project: ProjectType;
+    didUpdateProject: ProjectOpts["didUpdateProject"];
+    fileTree: ReturnType<typeof FileTree>;
+    pullEvents: PullEvents;
+    statusArrow?: ReturnType<typeof Icon>;
+};
 
 function GitWidget(opts: GitWidgetOpts) {
     const container = document.createElement("div");
@@ -247,7 +247,7 @@ type runOpts = {
 async function run(opts: runOpts) {
     await CodeEditor.saveAllActiveFiles();
     CodeEditor.clearAllErrors();
-    
+
     const errors = await api.projects.build(opts.project);
 
     if (errors.length) {
@@ -261,8 +261,8 @@ async function run(opts: runOpts) {
             );
             return run(opts);
         } else {
-            for(const [path, errors] of fileErrors) {
-                CodeEditor.addBuildFileErrors({ path, errors })
+            for (const [path, errors] of fileErrors) {
+                CodeEditor.addBuildFileErrors({ path, errors });
             }
         }
     } else {

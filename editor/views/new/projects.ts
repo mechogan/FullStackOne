@@ -65,10 +65,8 @@ function PeersWidget() {
     const peersConnectedCount = document.createElement("div");
     const renderPeersConnectedCount = () => {
         const count = api.connectivity.peers.connections().size;
-        peersConnectedCount.innerText = count !== 0
-            ? count.toString()
-            : "";
-    }
+        peersConnectedCount.innerText = count !== 0 ? count.toString() : "";
+    };
     renderPeersConnectedCount();
     api.connectivity.peers.onPeersEvent.add(renderPeersConnectedCount);
 
@@ -78,7 +76,7 @@ function PeersWidget() {
     });
 
     peersButton.onclick = () => stackNavigation.navigate(Peers(), BG_COLOR);
-    
+
     container.append(peersConnectedCount, peersButton);
 
     return container;
@@ -197,14 +195,17 @@ function ProjectTile(project: ProjectType) {
     container.classList.add("project-tile");
 
     container.onclick = () =>
-        stackNavigation.navigate(Project({ 
-            project,
-            didUpdateProject: async () => {
-                project = (await api.projects.list()).find(
-                    ({ id }) => project.id === id
-                );
-            }
-        }), BG_COLOR);
+        stackNavigation.navigate(
+            Project({
+                project,
+                didUpdateProject: async () => {
+                    project = (await api.projects.list()).find(
+                        ({ id }) => project.id === id
+                    );
+                }
+            }),
+            BG_COLOR
+        );
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");
