@@ -26,6 +26,7 @@ import {
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 import peers from "../../views/peers";
 import { BrowseWeb, constructURL } from "./web";
+import { PairingRequest } from "../../views/new/peers/pairing-request";
 
 let me: Peer,
     autoConnect = false;
@@ -455,10 +456,9 @@ async function respondToPeerConnectionRequest(
     }
 
     // unknown connection request
-    const trust = await peers.peerConnectionRequestPairingDialog(
-        peer.name,
-        peerConnectionRequest.validation
-    );
+    const trust = await PairingRequest({
+        peerConnectionRequest
+    });
     if (!trust) {
         return connectivityAPI.disconnect(peerConnection);
     }
@@ -527,10 +527,9 @@ async function respondToReceivedTokenExchange(
         peerConnection.peer?.keys?.encrypt && peerConnection.peer?.secret?.own;
 
     if (!knownPeer) {
-        const trust = await peers.peerConnectionRequestPairingDialog(
-            tokenExchange.peer.name,
-            tokenExchange.validation
-        );
+        const trust = await PairingRequest({
+            peerConnectionRequest: tokenExchange
+        });
         if (!trust) {
             return connectivityAPI.disconnect(peerConnection);
         }

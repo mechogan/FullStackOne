@@ -57,9 +57,13 @@ export default {
 
                 resolve(JSON.parse(contents));
 
-                configCache[type].timeout = setTimeout(() => {
+                const timeout = setTimeout(() => {
                     delete configCache[type];
                 }, configCacheDelay);
+
+                if (configCache[type]) {
+                    configCache[type].timeout = timeout;
+                }
             });
 
             configCache[type] = {

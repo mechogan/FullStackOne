@@ -71,7 +71,10 @@ export const CodeEditor = {
     clearAllErrors
 };
 
-function find<T>(set: Set<T>, predicate: (item: T) => boolean) {
+export function find<T>(
+    set: Set<T> | MapIterator<T>,
+    predicate: (item: T) => boolean
+) {
     for (const item of set) {
         if (predicate(item)) return item;
     }

@@ -1,3 +1,5 @@
+import stackNavigation from "../stack-navigation";
+
 export function Dialog(content: HTMLElement) {
     const container = document.createElement("div");
     container.classList.add("dialog");
@@ -10,8 +12,12 @@ export function Dialog(content: HTMLElement) {
     overlay.append(container);
 
     document.body.append(overlay);
+    stackNavigation.lock = true;
 
     return {
-        remove: () => overlay.remove()
+        remove: () => {
+            stackNavigation.lock = false;
+            overlay.remove();
+        }
     };
 }
