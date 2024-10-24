@@ -20,10 +20,10 @@ export default {
             }
         );
         return JSON.parse(response.body as string) as {
-            device_code: string,
-            user_code: string,
-            verification_uri: string,
-            interval: number
+            device_code: string;
+            user_code: string;
+            verification_uri: string;
+            interval: number;
         };
     },
     async deviceFlowPoll(device_code: string) {

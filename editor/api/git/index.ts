@@ -182,7 +182,7 @@ const requestGitAuth = async (url: string) => {
                 hostname,
                 didSubmit: resolve,
                 didCancel: reject
-            })
+            });
         });
 
         await saveGitAuth(hostname, auth);
@@ -194,9 +194,7 @@ const requestGitAuth = async (url: string) => {
 };
 
 export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
-    hostname = hostname.includes("://")
-        ? new URL(hostname).hostname
-        : hostname;
+    hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 

@@ -166,9 +166,9 @@ export async function createProjectFromFullStackedFile(
             url: repoURL
         };
 
-        const {hostname} = new URL(repoURL);
+        const { hostname } = new URL(repoURL);
         const gitAuths = await api.config.load(CONFIG_TYPE.GIT);
-        if(gitAuths[hostname]) {
+        if (gitAuths[hostname]) {
             projectInfo.gitRepository.name = gitAuths[hostname].username;
             projectInfo.gitRepository.email = gitAuths[hostname].email;
         }

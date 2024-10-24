@@ -123,7 +123,6 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
             opts.didSearch(null);
         } else {
             const fuseResults = fuseSearch.search(searchStr);
-            console.log(fuseResults);
             opts.didSearch(fuseResults.map(({ item }) => item));
         }
     };

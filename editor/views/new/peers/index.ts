@@ -1,4 +1,7 @@
-import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE } from "../../../../src/connectivity/types";
+import {
+    PEER_ADVERSTISING_METHOD,
+    PEER_CONNECTION_STATE
+} from "../../../../src/connectivity/types";
 import api from "../../../api";
 import rpc from "../../../rpc";
 import { Dialog } from "../../../components/dialog";
@@ -226,15 +229,15 @@ function ManualConnect() {
                 <b>Your Network Info</b>
                 <div>
                     ${netInfo.networkInterfaces
-                    .map((inet) => {
-                        return `
+                        .map((inet) => {
+                            return `
                             <div>
                                 <div><b>${inet.name}</b></div>
                                 ${inet.addresses.map((addr) => `<div>${addr}</div>`).join("")}
                             </div>
                         `;
-                    })
-                    .join("")}
+                        })
+                        .join("")}
                 </div>
                 <div>
                     <div>

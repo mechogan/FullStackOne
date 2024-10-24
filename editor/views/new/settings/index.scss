@@ -37,9 +37,14 @@
                 justify-content: space-between;
                 align-items: flex-start;
                 padding-bottom: spacing.$small;
+
+                + ul {
+                    padding-top: 0;
+                }
             }
 
             ul {
+                padding-top: spacing.$small;
                 display: flex;
                 flex-direction: column;
                 gap: spacing.$small;
@@ -70,6 +75,21 @@
                             color: colors.$light;
                         }
                     }
+                }
+            }
+
+            form {
+                padding: spacing.$small;
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$small;
+                background-color: colors.$gray-dark;
+                border: 1px solid colors.$gray;
+                border-radius: spacing.$x-small;
+
+                > div:last-child {
+                    display: flex;
+                    justify-content: space-between;
                 }
             }
         }

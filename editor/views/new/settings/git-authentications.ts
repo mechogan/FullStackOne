@@ -57,12 +57,9 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
         deleteButton.onclick = () => {
             api.git.deleteAuthForHost(hostname);
             item.remove();
-        }
-        
-        const buttonGroup = ButtonGroup([
-            updateButton,
-            deleteButton,
-        ]);
+        };
+
+        const buttonGroup = ButtonGroup([updateButton, deleteButton]);
 
         Popover({
             anchor: optionsButton,
@@ -71,8 +68,8 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 x: "right",
                 y: "top"
             }
-        })
-    }
+        });
+    };
 
     top.append(optionsButton);
     item.append(top);

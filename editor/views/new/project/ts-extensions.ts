@@ -1,6 +1,8 @@
 import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
+import { packageInstaller } from "../packages/installer";
+import { CodeEditor } from "./code-editor";
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -15,60 +17,58 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
         return tsErrors.flat();
     };
 
-    const tsErrors = await getAllTsError();
+    let tsErrors = await getAllTsError();
 
-    // const needsTypes = tsErrors.filter((e) => {
-    //     if (e.code !== 7016) return false;
+    const needsTypes = tsErrors.filter((e) => {
+        if (e.code !== 7016 && e.code !== 2307) return false;
 
-    //     const text =
-    //         e.file?.text || this.editor.state.doc.toString();
+        const text = e.file?.text || view.state.doc.toString();
 
-    //     const moduleName = text
-    //         .toString()
-    //         .slice(e.start, e.start + e.length)
-    //         .slice(1, -1);
+        const moduleName = text
+            .toString()
+            .slice(e.start, e.start + e.length)
+            .slice(1, -1);
 
-    //     return (
-    //         !moduleName.startsWith(".") &&
-    //         !Editor.ignoredTypes.has(`@types/${moduleName}`)
-    //     );
-    // });
+        return (
+            !moduleName.startsWith(".") &&
+            !CodeEditor.ignoreTypes.has(`@types/${moduleName}`)
+        );
+    });
 
-    // if (needsTypes.length) {
-    //     const ignored = await PackageInstaller.install(
-    //         needsTypes.map((e) => {
-    //             const text =
-    //                 e.file?.text ||
-    //                 this.editor.state.doc.toString();
-    //             const moduleName = text
-    //                 .toString()
-    //                 .slice(e.start, e.start + e.length)
-    //                 .slice(1, -1);
-    //             return {
-    //                 name: `@types/${moduleName}`,
-    //                 deep: true
-    //             };
-    //         })
-    //     );
+    if (needsTypes.length) {
+        const modulesNames = needsTypes.map((e) => {
+            const text = e.file?.text || view.state.doc.toString();
+            const moduleName = text
+                .toString()
+                .slice(e.start, e.start + e.length)
+                .slice(1, -1);
+            return `@types/${moduleName}`;
+        });
 
-    //     ignored?.forEach(({ name }) =>
-    //         Editor.ignoredTypes.add(name)
-    //     );
+        const installPromises = modulesNames.map(packageInstaller.install);
+        const installations = await Promise.allSettled(installPromises);
 
-    //     await Editor.restartTSWorker();
-    //     await this.updateFile();
-    //     tsErrors = await getAllTsError();
-    // }
+        installations.forEach((install, i) => {
+            if (install.status === "rejected") {
+                CodeEditor.ignoreTypes.add(modulesNames[i]);
+            }
+        });
 
-    return tsErrors.map((tsError) => ({
-        from: tsError.start,
-        to: tsError.start + tsError.length,
-        severity: tsError.code === 7016 ? "warning" : "error",
-        message:
-            typeof tsError.messageText === "string"
-                ? tsError.messageText
-                : (tsError?.messageText?.messageText ?? "")
-    }));
+        await WorkerTS.restart();
+        tsErrors = await getAllTsError();
+    }
+
+    return tsErrors
+        .filter((tsError) => !!tsError)
+        .map((tsError) => ({
+            from: tsError.start,
+            to: tsError.start + tsError.length,
+            severity: tsError.code === 7016 ? "warning" : "error",
+            message:
+                typeof tsError.messageText === "string"
+                    ? tsError.messageText
+                    : (tsError?.messageText?.messageText ?? "")
+        }));
 };
 
 export const tsAutocomplete =

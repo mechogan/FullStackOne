@@ -28,10 +28,12 @@ function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
 
 let worker: Worker;
 let reqsCount = 0;
+let directory: string;
 export const WorkerTS = {
     reqs: new Map<number, Function>(),
     working: null as () => void,
     start,
+    restart,
     dispose,
     call: () =>
         recurseInProxy(postMessage) as unknown as AwaitAll<typeof methods>
@@ -48,10 +50,21 @@ function postMessage(methodPath: string[], ...args: any) {
     });
 }
 
+function restart() {
+    if (!directory) {
+        throw Error("Tried to restart WorkerTS before calling start");
+    }
+
+    WorkerTS.dispose();
+    return WorkerTS.start(directory);
+}
+
 function start(workingDirectory: string) {
+    directory = workingDirectory;
+
     return new Promise<void>((resolve) => {
-        if(worker) return resolve();
-        
+        if (worker) return resolve();
+
         worker = new Worker("worker-ts.js", { type: "module" });
         worker.onmessage = async (message) => {
             if (message.data.ready) {

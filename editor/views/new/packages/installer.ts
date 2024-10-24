@@ -22,6 +22,7 @@ const td = new TextDecoder();
 const packagesToInstall: {
     name: string;
     promiseResolve: () => void;
+    promiseReject: () => void;
 }[] = [];
 const installingPackages = new Map<
     string,
@@ -66,10 +67,11 @@ async function install(packageName: string) {
 
         const progress = progressView.addPackage(name);
         progress.setStatus("waiting");
-        const promise = new Promise<void>((promiseResolve) => {
+        const promise = new Promise<void>((promiseResolve, promiseReject) => {
             packagesToInstall.push({
                 name,
-                promiseResolve
+                promiseResolve,
+                promiseReject
             });
         });
 
@@ -110,19 +112,27 @@ function installLoop() {
     currentlyInstalling++;
 
     const packageToInstall = packagesToInstall.shift();
-    const onCompleted = () => {
-        packageToInstall.promiseResolve();
+    const onCompleted = (success: boolean) => {
+        if (success) packageToInstall.promiseResolve();
+        else packageToInstall.promiseReject();
         installLoop();
     };
-    installPackage(packageToInstall.name).then((deps) => {
-        currentlyInstalling--;
+    installPackage(packageToInstall.name)
+        .then((deps) => {
+            currentlyInstalling--;
 
-        if (!deps) {
-            onCompleted();
-        } else {
-            Promise.all(deps.map(install)).then(onCompleted);
-        }
-    });
+            if (!deps) {
+                onCompleted(true);
+            } else {
+                Promise.all(deps.map(install))
+                    .then(() => onCompleted(true))
+                    .catch(() => onCompleted(false));
+            }
+        })
+        .catch(() => {
+            currentlyInstalling--;
+            onCompleted(false);
+        });
 }
 
 function renderProgressDialog() {

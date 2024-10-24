@@ -46,10 +46,7 @@ export function Project(opts: ProjectOpts) {
         }
     };
     tsButton.disabled = true;
-    tsButton.onclick = () => {
-        WorkerTS.dispose();
-        WorkerTS.start(opts.project.location);
-    };
+    tsButton.onclick = WorkerTS.restart;
 
     const runButton = Button({
         style: "icon-large",
@@ -173,7 +170,6 @@ function GitWidget(opts: GitWidgetOpts) {
         }
         branchAndCommit = updatedBranchAndCommit;
     };
-    reloadBranchAndCommit();
 
     const gitButton = Button({
         style: "icon-large",

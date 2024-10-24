@@ -22,10 +22,19 @@ export function Connectivity() {
     const autoConnectSwitch = InputSwitch({
         label: "Connect automatically to nearby trusted peers"
     });
+    autoConnectSwitch.input.onchange = () => {
+        api.connectivity.autoConnect = autoConnectSwitch.input.checked;
+    };
 
     const deviceNameInput = InputText({
         label: "Device Name"
     });
+    deviceNameInput.input.onblur = () => {
+        api.connectivity.me = {
+            id: api.connectivity.me.id,
+            name: deviceNameInput.input.value
+        };
+    };
 
     container.append(
         autoConnectSwitch.container,
@@ -57,42 +66,121 @@ function WebAdresses() {
         iconRight: "Plus"
     });
 
+    addButton.onclick = () => {
+        addButton.disabled = true;
+
+        const remove = () => {
+            addButton.disabled = false;
+            form.remove();
+        }
+
+        const form = document.createElement("form");
+
+        const secureSwitch = InputSwitch({
+            label: "Secure <span>(https:, wss:)</span>"
+        });
+        secureSwitch.input.checked = true;
+
+        const hostnameInput = InputText({
+            label: "Hostname"
+        });
+        const portInput = InputText({
+            label: "Port <span>(Leave blank for 80 or 443)</span>"
+        });
+
+        const buttons = document.createElement("div");
+
+        const cancelButton = Button({
+            text: "Cancel",
+            style: "text"
+        });
+        cancelButton.type = "button";
+        cancelButton.onclick = remove;
+
+        const addAddressButton = Button({
+            text: "Add"
+        });
+
+        buttons.append(cancelButton, addAddressButton);
+
+        form.onsubmit = e => {
+            e.preventDefault();
+            const webAddress: WebAddress = {
+                hostname: hostnameInput.input.value,
+                port: parseInt(portInput.input.value),
+                secure: secureSwitch.input.checked
+            }
+            remove();
+            api.config.load(CONFIG_TYPE.CONNECTIVITY)
+                .then(connectivityConfig => {
+                    if(!connectivityConfig.webAddresses){
+                        connectivityConfig.webAddresses = [];
+                    }
+                    connectivityConfig.webAddresses.unshift(webAddress);
+                    api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
+                        .then(reloadWebAddressesList);
+                })
+        }
+
+        form.append(
+            secureSwitch.container,
+            hostnameInput.container,
+            portInput.container,
+            buttons
+        );
+
+        top.insertAdjacentElement("afterend", form);
+    };
+
     top.append(addButton);
 
-    const list = document.createElement("ul");
-
-    container.append(top, list);
+    container.append(top);
 
     const saveWebAddresses = (webAddresses: WebAddress[]) => {
-        api.config.load(CONFIG_TYPE.CONNECTIVITY)
-            .then(connectivityConfig => {
-                connectivityConfig.webAddresses = webAddresses;
-                api.config.save(
-                    CONFIG_TYPE.CONNECTIVITY,
-                    connectivityConfig
-                );
-            })
-    }
-
-    api.config.load(CONFIG_TYPE.CONNECTIVITY)
-        .then(connectivityConfig => {
-            const items = connectivityConfig.webAddresses?.map((webAddress, i) => WebAddressItem({
-                webAddress,
-                didDelete: () => {
-                    connectivityConfig.webAddresses.splice(i, 1);
-                    saveWebAddresses(connectivityConfig.webAddresses);
-                }
-            })) ?? [];
-            list.append(...items);
+        api.config.load(CONFIG_TYPE.CONNECTIVITY).then((connectivityConfig) => {
+            connectivityConfig.webAddresses = webAddresses;
+            api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
+                .then(reloadWebAddressesList);
         });
+    };
+
+    let list: HTMLUListElement;
+    const reloadWebAddressesList = () => {
+        const updatedList = document.createElement("ul");
+
+        api.config.load(CONFIG_TYPE.CONNECTIVITY).then((connectivityConfig) => {
+            const items =
+                connectivityConfig.webAddresses?.map((webAddress, i) =>
+                    WebAddressItem({
+                        webAddress,
+                        didDelete: () => {
+                            connectivityConfig.webAddresses.splice(i, 1);
+                            saveWebAddresses(connectivityConfig.webAddresses);
+                        }
+                    })
+                ) ?? [];
+            updatedList.append(...items);
+        });
+
+        if(list) {
+            list.replaceWith(updatedList)
+        } else {
+            container.append(updatedList);
+        }
+
+        list = updatedList;
+    }
+    reloadWebAddressesList();
+
+    
 
     return container;
 }
 
 type WebAddressItemOpts = {
-    webAddress: WebAddress,
-    didDelete: () => void
-}
+    webAddress: WebAddress;
+    didDelete: () => void;
+};
 
 function WebAddressItem(opts: WebAddressItemOpts) {
     const item = document.createElement("li");
@@ -126,12 +214,10 @@ function WebAddressItem(opts: WebAddressItemOpts) {
 
     deleteButton.onclick = () => {
         item.remove();
-        opts.didDelete()
-    }
+        opts.didDelete();
+    };
 
-    const content = ButtonGroup([
-        deleteButton
-    ]);
+    const content = ButtonGroup([deleteButton]);
 
     optionsButton.onclick = () =>
         Popover({
@@ -171,7 +257,10 @@ function pingWebAddress(webAddress: WebAddress) {
     return new Promise<boolean>((resolve) => {
         const url = constructURL(webAddress, "http");
         rpc()
-            .fetch(url + "/ping", { encoding: "utf8" })
+            .fetch(url + "/ping", { 
+                timeout: 3000,
+                encoding: "utf8"
+            })
             .then((res) => resolve(res.body === "pong"))
             .catch(() => resolve(false));
     });
@@ -189,15 +278,15 @@ function NetworkInterfaces() {
 
     const form = document.createElement("form");
 
-    const addButton = Button({
+    const clearButton = Button({
         text: "Clear"
     });
 
-    addButton.onclick = () => {
+    clearButton.onclick = () => {
         form.reset();
     };
 
-    top.append(addButton);
+    top.append(clearButton);
 
     container.append(top, form);
 
@@ -214,6 +303,9 @@ function NetworkInterfaces() {
 
                 const inputRadio = InputRadio();
                 inputRadio.input.name = "inet";
+                inputRadio.input.onchange = () => {
+                    console.log(inet.name);
+                }
 
                 item.append(name, inputRadio.container);
                 list.append(item);

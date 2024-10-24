@@ -5,9 +5,9 @@ import { Button } from "../../../../../components/primitives/button";
 import { Icon } from "../../../../../components/primitives/icon";
 
 type GitHubDeviceFlowOpts = {
-    didCancel: () => void,
-    onSuccess: (credentials: GitAuths[""]) => void
-}
+    didCancel: () => void;
+    onSuccess: (credentials: GitAuths[""]) => void;
+};
 
 export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
     const container = document.createElement("div");
@@ -17,34 +17,32 @@ export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
 
     const stepsContainer = document.createElement("div");
 
-
     const codeText = document.createElement("p");
     codeText.innerText = "1. Copy the following code";
 
     const codeContainer = document.createElement("code");
 
-    api.git.github.deviceFlowStart()
-        .then(code => {
-            codeContainer.innerText = code.user_code;
+    api.git.github.deviceFlowStart().then((code) => {
+        codeContainer.innerText = code.user_code;
 
-            verifyTextLink.innerText = code.verification_uri;
-            verifyTextLink.href = code.verification_uri;
-            verifyLink.href = code.verification_uri;
+        verifyTextLink.innerText = code.verification_uri;
+        verifyTextLink.href = code.verification_uri;
+        verifyLink.href = code.verification_uri;
 
-            const copyButton = Button({
-                style: "icon-large",
-                iconLeft: "Copy"
-            });
+        const copyButton = Button({
+            style: "icon-large",
+            iconLeft: "Copy"
+        });
 
-            copyButton.onclick = () => {
-                copyToClipboard(code.user_code);
-                copyButton.replaceWith(Icon("Check"));
-            }
+        copyButton.onclick = () => {
+            copyToClipboard(code.user_code);
+            copyButton.replaceWith(Icon("Check"));
+        };
 
-            codeContainer.append(copyButton);
+        codeContainer.append(copyButton);
 
-            waitAndPoll(code.interval, code.device_code);
-        })
+        waitAndPoll(code.interval, code.device_code);
+    });
 
     stepsContainer.append(codeText, codeContainer);
 
@@ -60,7 +58,7 @@ export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
     const verifyButton = Button({
         text: "Verify",
         iconRight: "External Link"
-    })
+    });
     verifyLink.append(verifyButton);
 
     stepsContainer.append(verifyText, verifyLink);
@@ -70,16 +68,21 @@ export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
 
     let didCancel = false;
     const waitAndPoll = async (seconds: number, device_code: string) => {
-        if(didCancel) return;
-        for(let i = 0; i < seconds; i++) {
-            waitText.innerText = "3. Wait for validation" + Array(i + 1).fill(null).map(() => ".").join("");
+        if (didCancel) return;
+        for (let i = 0; i < seconds; i++) {
+            waitText.innerText =
+                "3. Wait for validation" +
+                Array(i + 1)
+                    .fill(null)
+                    .map(() => ".")
+                    .join("");
             await sleep(1005);
         }
         waitText.innerText = "3. Validating";
         const response = await api.git.github.deviceFlowPoll(device_code);
-        if(response.wait) {
-            waitAndPoll(response.wait, device_code)
-        } else if(response.error){
+        if (response.wait) {
+            waitAndPoll(response.wait, device_code);
+        } else if (response.error) {
             waitText.innerText = "3. " + response.error;
         } else {
             opts.onSuccess({
@@ -89,7 +92,7 @@ export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
             });
             remove();
         }
-    }
+    };
 
     stepsContainer.append(waitText);
 
@@ -100,12 +103,11 @@ export function GitHubDeviceFlow(opts: GitHubDeviceFlowOpts) {
     cancelButton.onclick = () => {
         didCancel = true;
         remove();
-    }
+    };
 
     stepsContainer.append(cancelButton);
 
     container.append(stepsContainer);
-    
 
     const { remove } = Dialog(container);
 }
@@ -120,6 +122,6 @@ function copyToClipboard(str: string) {
     return result;
 }
 
-function sleep(ms: number){
-    return new Promise(res => setTimeout(res, ms));
+function sleep(ms: number) {
+    return new Promise((res) => setTimeout(res, ms));
 }

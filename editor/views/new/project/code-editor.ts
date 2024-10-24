@@ -54,12 +54,14 @@ let parentElement: HTMLElement;
 
 export const CodeEditor = {
     activeFiles: new Set<ActiveFile>(),
+    ignoreTypes: new Set<string>(),
     openedFilePath: null as string,
     set parent(opts: setParentOpts) {
         workingDirectory = opts.workingDirectory;
         parentElement = opts.element;
         CodeEditor.activeFiles.forEach(({ view }) => view.destroy());
         CodeEditor.activeFiles.clear();
+        CodeEditor.ignoreTypes.clear();
     },
     onActiveFileChange: null as () => void,
     addFile,
