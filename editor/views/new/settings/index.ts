@@ -66,7 +66,8 @@ function Packages() {
                         didDeleteAllPackages: () => {
                             stackNavigation.back();
                             reloadButton();
-                        }
+                        },
+                        didUpdateProject: null
                     }),
                     BG_COLOR
                 );

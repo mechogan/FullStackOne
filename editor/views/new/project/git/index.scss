@@ -212,3 +212,65 @@
         }
     }
 }
+
+.git-auth {
+    h3, p {
+        padding-bottom: spacing.$medium;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+
+        > div:last-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+}
+
+.github-auth {
+    h3 {
+        padding-bottom: spacing.$medium;
+    }
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+        align-items: center;
+
+        p {
+            align-self: flex-start;
+        }
+
+        > button {
+            align-self: flex-end;
+        }
+
+        code {
+            display: flex;
+            padding: spacing.$small;
+            gap: spacing.$small;
+            background-color: colors.$gray-dark;
+            border: 1px solid colors.$gray;
+            align-items: center;
+            font-family: inherit;
+            border-radius: spacing.$x-small;
+            font-size: typography.$heading-2;
+
+            > .icon {
+                height: 38px;
+                width: 38px;
+                svg {
+                    height: 30px;
+                    width: 30px;
+                }
+
+                color: colors.$green;
+            }
+        }
+    }
+}

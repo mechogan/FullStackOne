@@ -1,4 +1,4 @@
-import git, { listServerRefs, ProgressCallback } from "isomorphic-git";
+import git, { ProgressCallback } from "isomorphic-git";
 import { Buffer as globalBuffer } from "buffer";
 import { GitAuths, Project } from "../config/types";
 import URL from "url-parse";
@@ -6,7 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
-import gitAuth from "../../views/git-auth";
+import { GitAuth } from "../../views/new/project/git/auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -177,18 +177,15 @@ const requestGitAuth = async (url: string) => {
     }
 
     try {
-        const auth = await new Promise<{
-            host: string;
-            username: string;
-            password: string;
-            email: string;
-        }>((resolve, reject) => {
-            gitAuth.requestAuth(hostname, resolve, reject);
+        const auth = await new Promise<GitAuths[""]>((resolve, reject) => {
+            GitAuth({
+                hostname,
+                didSubmit: resolve,
+                didCancel: reject
+            })
         });
 
-        console.log(auth);
-
-        await saveGitAuth(auth);
+        await saveGitAuth(hostname, auth);
 
         return auth;
     } catch (e) {
@@ -196,15 +193,10 @@ const requestGitAuth = async (url: string) => {
     }
 };
 
-export async function saveGitAuth(gitAuth: {
-    host: string;
-    username: string;
-    email: string;
-    password: string;
-}) {
-    const hostname = gitAuth.host.includes("://")
-        ? new URL(gitAuth.host).hostname
-        : gitAuth.host;
+export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
+    hostname = hostname.includes("://")
+        ? new URL(hostname).hostname
+        : hostname;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
@@ -219,7 +211,8 @@ export async function saveGitAuth(gitAuth: {
     else {
         gitAuths[hostname] = gitAuth;
     }
-    await config.save(CONFIG_TYPE.GIT, gitAuths);
+
+    return config.save(CONFIG_TYPE.GIT, gitAuths);
 }
 
 export default {

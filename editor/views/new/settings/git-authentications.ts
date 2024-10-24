@@ -1,6 +1,7 @@
 import api from "../../../api";
 import { GitAuths } from "../../../api/config/types";
-import { Button } from "../../../components/primitives/button";
+import { Popover } from "../../../components/popover";
+import { Button, ButtonGroup } from "../../../components/primitives/button";
 
 export function GitAuthentications() {
     const container = document.createElement("div");
@@ -41,6 +42,37 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
         style: "icon-small",
         iconLeft: "Options"
     });
+
+    optionsButton.onclick = () => {
+        const updateButton = Button({
+            text: "Update",
+            iconLeft: "Edit"
+        });
+
+        const deleteButton = Button({
+            text: "Delete",
+            color: "red",
+            iconLeft: "Trash"
+        });
+        deleteButton.onclick = () => {
+            api.git.deleteAuthForHost(hostname);
+            item.remove();
+        }
+        
+        const buttonGroup = ButtonGroup([
+            updateButton,
+            deleteButton,
+        ]);
+
+        Popover({
+            anchor: optionsButton,
+            content: buttonGroup,
+            align: {
+                x: "right",
+                y: "top"
+            }
+        })
+    }
 
     top.append(optionsButton);
     item.append(top);

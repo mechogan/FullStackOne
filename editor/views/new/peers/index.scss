@@ -75,3 +75,41 @@
         align-items: center;
     }
 }
+
+.connect-manually {
+    h3 {
+        padding-bottom: spacing.$medium;
+    }
+
+    form {
+        padding-top: spacing.$medium;
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+
+        > div:last-child {
+            display: flex;
+            justify-content: space-between;
+        }
+    }
+
+    h3 + form {
+        padding-top: 0;
+    }
+
+    .net-info {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+        padding: spacing.$small;
+        background-color: colors.$gray-dark;
+        border: 1px solid colors.$gray;
+        border-radius: spacing.$x-small;
+        > div {
+            font-size: typography.$small;
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+        }
+    }
+}

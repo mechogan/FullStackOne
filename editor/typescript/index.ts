@@ -49,9 +49,9 @@ function postMessage(methodPath: string[], ...args: any) {
 }
 
 function start(workingDirectory: string) {
-    if (worker) return;
-
     return new Promise<void>((resolve) => {
+        if(worker) return resolve();
+        
         worker = new Worker("worker-ts.js", { type: "module" });
         worker.onmessage = async (message) => {
             if (message.data.ready) {

@@ -16,7 +16,7 @@ export function PairingRequest(opts: PairingRequestOpts) {
     container.innerHTML = `
         <h3>Pairing Request</h3>
         <p><b>${opts.peerConnectionRequest.peer.name}</b> is trying to pair with you.</p>
-        <p>Make sure you recognize this request and validate with the following code :</p>
+        <p>Make sure you recognize this request and validate with the following code</p>
         <code>${opts.peerConnectionRequest.validation}</code>
     `;
 

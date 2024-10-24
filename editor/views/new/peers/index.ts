@@ -1,5 +1,6 @@
-import { PEER_CONNECTION_STATE } from "../../../../src/connectivity/types";
+import { PEER_ADVERSTISING_METHOD, PEER_CONNECTION_STATE } from "../../../../src/connectivity/types";
 import api from "../../../api";
+import rpc from "../../../rpc";
 import { Dialog } from "../../../components/dialog";
 import { Button } from "../../../components/primitives/button";
 import { InputText } from "../../../components/primitives/inputs";
@@ -212,6 +213,40 @@ function ManualConnect() {
 
     container.append(title);
 
+    rpc()
+        .connectivity.infos()
+        .then((netInfo) => {
+            if (!netInfo?.port || netInfo?.networkInterfaces?.length === 0)
+                return;
+
+            const netInfoContainer = document.createElement("div");
+            netInfoContainer.classList.add("net-info");
+
+            netInfoContainer.innerHTML = `
+                <b>Your Network Info</b>
+                <div>
+                    ${netInfo.networkInterfaces
+                    .map((inet) => {
+                        return `
+                            <div>
+                                <div><b>${inet.name}</b></div>
+                                ${inet.addresses.map((addr) => `<div>${addr}</div>`).join("")}
+                            </div>
+                        `;
+                    })
+                    .join("")}
+                </div>
+                <div>
+                    <div>
+                        <div><b>Port</b></div>
+                        <div>${netInfo.port}</div>
+                    </div>
+                </div>
+            `;
+
+            title.insertAdjacentElement("afterend", netInfoContainer);
+        });
+
     const form = document.createElement("form");
 
     const addressInput = InputText({
@@ -227,6 +262,8 @@ function ManualConnect() {
         text: "Cancel",
         style: "text"
     });
+    cancelButton.type = "button";
+    cancelButton.onclick = () => remove();
 
     const connectButton = Button({
         text: "Connect"
@@ -237,6 +274,23 @@ function ManualConnect() {
 
     form.onsubmit = (e) => {
         e.preventDefault();
+        const address = addressInput.input.value;
+        const port = portInput.input.value;
+
+        api.connectivity.connect(
+            {
+                peer: {
+                    id: null,
+                    name: `Manual Peer Connection [${address.includes(":") ? `[${address}]` : address}:${port}]`
+                },
+                type: PEER_ADVERSTISING_METHOD.BONJOUR,
+                addresses: [address],
+                port: parseInt(port)
+            },
+            false
+        );
+
+        remove();
     };
 
     container.append(form);

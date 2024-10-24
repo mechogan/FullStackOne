@@ -123,6 +123,7 @@ type createFromFullStackedFileOpts = {
     getDirectoryContents: () => Promise<string[]>;
     getFileContents: (filename: string) => Promise<string>;
     alternateTitle: string;
+    alternateRepo?: string;
     logger?: (message: string) => void;
 };
 
@@ -159,10 +160,18 @@ export async function createProjectFromFullStackedFile(
             slugify(opts.alternateTitle, { lower: true })
     };
 
-    if (fullstackedFileJSON?.git?.repo) {
+    const repoURL = fullstackedFileJSON?.git?.repo || opts.alternateRepo;
+    if (repoURL) {
         projectInfo.gitRepository = {
-            url: fullstackedFileJSON.git.repo
+            url: repoURL
         };
+
+        const {hostname} = new URL(repoURL);
+        const gitAuths = await api.config.load(CONFIG_TYPE.GIT);
+        if(gitAuths[hostname]) {
+            projectInfo.gitRepository.name = gitAuths[hostname].username;
+            projectInfo.gitRepository.email = gitAuths[hostname].email;
+        }
     }
 
     const project = await create(projectInfo);

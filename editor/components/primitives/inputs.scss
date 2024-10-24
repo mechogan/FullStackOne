@@ -22,6 +22,10 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=158-3127
     display: flex;
     flex-direction: column;
     gap: spacing.$x-small;
+
+    label > span {
+        font-weight: normal;
+    }
 }
 
 .input-file {

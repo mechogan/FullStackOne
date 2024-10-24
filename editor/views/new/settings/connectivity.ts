@@ -1,7 +1,7 @@
 import type { WebAddress } from "../../../../src/connectivity/types";
 import api from "../../../api";
 import rpc from "../../../rpc";
-import { CONFIG_TYPE } from "../../../api/config/types";
+import { CONFIG_TYPE, Connectivity } from "../../../api/config/types";
 import { constructURL } from "../../../api/connectivity/web";
 import { Popover } from "../../../components/popover";
 import { Badge } from "../../../components/primitives/badge";
@@ -63,26 +63,49 @@ function WebAdresses() {
 
     container.append(top, list);
 
-    api.config.load(CONFIG_TYPE.CONNECTIVITY).then(({ webAddresses }) => {
-        const items = webAddresses?.map(WebAddressItem) ?? [];
-        list.append(...items);
-    });
+    const saveWebAddresses = (webAddresses: WebAddress[]) => {
+        api.config.load(CONFIG_TYPE.CONNECTIVITY)
+            .then(connectivityConfig => {
+                connectivityConfig.webAddresses = webAddresses;
+                api.config.save(
+                    CONFIG_TYPE.CONNECTIVITY,
+                    connectivityConfig
+                );
+            })
+    }
+
+    api.config.load(CONFIG_TYPE.CONNECTIVITY)
+        .then(connectivityConfig => {
+            const items = connectivityConfig.webAddresses?.map((webAddress, i) => WebAddressItem({
+                webAddress,
+                didDelete: () => {
+                    connectivityConfig.webAddresses.splice(i, 1);
+                    saveWebAddresses(connectivityConfig.webAddresses);
+                }
+            })) ?? [];
+            list.append(...items);
+        });
 
     return container;
 }
 
-function WebAddressItem(webAddress: WebAddress) {
+type WebAddressItemOpts = {
+    webAddress: WebAddress,
+    didDelete: () => void
+}
+
+function WebAddressItem(opts: WebAddressItemOpts) {
     const item = document.createElement("li");
 
     const left = document.createElement("div");
 
     const address = document.createElement("div");
-    address.innerText = webAddress.hostname;
-    if (webAddress.port) address.innerText += ":" + webAddress.port;
+    address.innerText = opts.webAddress.hostname;
+    if (opts.webAddress.port) address.innerText += ":" + opts.webAddress.port;
 
     left.append(address);
 
-    if (webAddress.secure) {
+    if (opts.webAddress.secure) {
         left.append(Icon("Lock"));
     }
 
@@ -95,12 +118,19 @@ function WebAddressItem(webAddress: WebAddress) {
         iconLeft: "Options"
     });
 
+    const deleteButton = Button({
+        text: "Delete",
+        iconLeft: "Trash",
+        color: "red"
+    });
+
+    deleteButton.onclick = () => {
+        item.remove();
+        opts.didDelete()
+    }
+
     const content = ButtonGroup([
-        Button({
-            text: "Delete",
-            iconLeft: "Trash",
-            color: "red"
-        })
+        deleteButton
     ]);
 
     optionsButton.onclick = () =>
@@ -117,7 +147,7 @@ function WebAddressItem(webAddress: WebAddress) {
 
     item.append(left, right);
 
-    pingWebAddress(webAddress).then((online) => {
+    pingWebAddress(opts.webAddress).then((online) => {
         if (online) {
             statusBadgeContainer.append(
                 Badge({

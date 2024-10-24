@@ -72,6 +72,7 @@ export function CloneGit(opts: CloneGitOpts) {
                 .pop()
                 .split(".")
                 .shift(),
+            alternateRepo: repoUrlInput.input.value,
             logger: consoleTerminal.logger
         });
 
