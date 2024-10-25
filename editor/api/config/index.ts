@@ -21,21 +21,14 @@ const configCache: Partial<{
 export default {
     async init() {
         const configDir = await rpc().directories.configDirectory();
-        if (await rpc().fs.exists(configDir, { absolutePath: true })) return;
+        if (await rpc().fs.exists(configDir, { absolutePath: true })) {
+            return false;
+        }
+
+        console.log(configDir);
 
         await rpc().fs.mkdir(configDir, { absolutePath: true });
-        const project = await projects.import(
-            {
-                title: "Demo",
-                id: "org.fullstacked.demo",
-                location: "fullstackedorg/editor-sample-demo",
-                gitRepository: {
-                    url: "https://github.com/fullstackedorg/editor-sample-demo.git"
-                }
-            },
-            (await rpc().fs.readFile("Demo.zip")) as Uint8Array
-        );
-        await git.init(project);
+        return true;
     },
     load<T extends keyof DATA_TYPE>(type: T): Promise<DATA_TYPE[T]> {
         if (!configCache[type]) {

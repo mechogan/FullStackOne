@@ -137,7 +137,9 @@ async function TreeRecursive(opts: TreeRecursiveOpts) {
     })) as Dirent[];
 
     const items = contents
-        .filter(({ name }) => !name.startsWith("."))
+        .filter(
+            ({ name }) => !name.startsWith(".build") && !name.startsWith(".git")
+        )
         .sort((a, b) => {
             const isDirectoryA =
                 typeof a.isDirectory === "function"

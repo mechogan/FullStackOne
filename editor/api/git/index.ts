@@ -211,40 +211,6 @@ export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
 }
 
 export default {
-    async init(
-        project: Project,
-        opts?: {
-            branch?: "main";
-            onProgress?: ProgressCallback;
-        }
-    ) {
-        await git.init({
-            fs,
-            defaultBranch: opts?.branch || "main",
-            dir: project.location
-        });
-        await git.addRemote({
-            fs,
-            dir: project.location,
-            remote: "origin",
-            url: project.gitRepository.url
-        });
-        await git.fetch({
-            fs,
-            http,
-            singleBranch: true,
-            onProgress: opts?.onProgress,
-            depth: 1,
-            dir: project.location,
-            ref: opts?.branch || "main"
-        });
-        return git.checkout({
-            fs,
-            dir: project.location,
-            onProgress: opts?.onProgress,
-            ref: opts.branch || "main"
-        });
-    },
     saveGitAuth,
     async getAllAuths() {
         const gitAuths: GitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};

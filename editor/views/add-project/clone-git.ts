@@ -6,10 +6,14 @@ import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { ConsoleTerminal, CreateLoader } from "./import-zip";
 import { createProjectFromFullStackedFile } from "../../api/projects";
-import { GitProgressEvent, ProgressCallback } from "isomorphic-git";
+import { GitProgressEvent } from "isomorphic-git";
+import { Project } from "../../api/config/types";
 
 type CloneGitOpts = {
-    didCloneProject: () => void;
+    didCloneProject: (project: Project) => void;
+
+    // for deeplinks
+    repoUrl?: string;
 };
 
 export function CloneGit(opts: CloneGitOpts) {
@@ -82,10 +86,15 @@ export function CloneGit(opts: CloneGitOpts) {
         consoleTerminal.logger(`Moved tmp to ${project.location}`);
         consoleTerminal.logger(`Done`);
 
-        opts.didCloneProject();
+        opts.didCloneProject(project);
     };
 
     scrollable.append(form);
+
+    if (opts.repoUrl) {
+        repoUrlInput.input.value = opts.repoUrl;
+        setTimeout(() => cloneButton.click(), 1);
+    }
 
     return container;
 }

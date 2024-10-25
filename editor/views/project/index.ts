@@ -17,6 +17,9 @@ type ProjectOpts = {
     project: ProjectType;
     didDeleteAllPackages?: () => void;
     didUpdateProject: () => void;
+
+    // to directly run from deeplink
+    run?: boolean;
 };
 
 export function Project(opts: ProjectOpts) {
@@ -123,6 +126,10 @@ export function Project(opts: ProjectOpts) {
         CodeEditor.reloadActiveFilesContent();
         fileTree.reloadFileTree();
     });
+
+    if (opts.run) {
+        setTimeout(() => runButton.click(), 1);
+    }
 
     return container;
 }

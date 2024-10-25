@@ -3,27 +3,80 @@ import rpc from "./rpc";
 import stackNavigation from "./stack-navigation";
 import { BG_COLOR } from "./constants";
 import { Projects } from "./views/projects";
-import { esbuildInstaller } from "./views/esbuild";
+import { ImportZip } from "./views/add-project/import-zip";
+import { Project } from "./views/project";
+import { CloneGit } from "./views/add-project/clone-git";
+import { Project as ProjectType } from "./api/config/types";
+import { esbuildInstall } from "./views/esbuild";
 
-(window as any).onPush["launchURL"] = async (deeplink: string) => {
-    // const project = await api.getProjectFromDeepLink(deeplink);
-    // projectView.setProject(project);
-    // stackNavigation.navigate(await projectView.render(), BG_COLOR);
-    // await projectView.runProject();
-    // projectsView.renderProjectsList();
+globalThis.onPush["launchURL"] = async (deeplink: string) => {
+    const repo = api.deeplink.getRepo(deeplink);
+    if (!repo) return;
+
+    const launchProject = async (project: ProjectType) => {
+        if (repo.branch) {
+            await api.git.checkout(project, repo.branch);
+        }
+        stackNavigation.navigate(
+            Project({
+                project,
+                run: true,
+                didUpdateProject: projects.reloadProjectsList
+            }),
+            BG_COLOR
+        );
+    };
+
+    const project = await api.deeplink.findExistingProjectWithRepoUrl(repo.url);
+    if (project) {
+        return launchProject(project);
+    }
+
+    stackNavigation.navigate(
+        CloneGit({
+            didCloneProject: (project) => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+                launchProject(project);
+            },
+            repoUrl: repo.url
+        }),
+        BG_COLOR
+    );
 };
 
-// pre-init
-await api.config.init();
+// check for new install
+const installDemo = await api.config.init();
+
+document.querySelector("#splash").remove();
+const projects = Projects();
+stackNavigation.navigate(projects.container, BG_COLOR);
+
+const esbuildIsInstalled = await rpc().esbuild.check();
+if (!esbuildIsInstalled) {
+    await esbuildInstall();
+}
+
+if (installDemo) {
+    const name = "Demo.zip";
+    const data = (await rpc().fs.readFile(name)) as Uint8Array;
+    stackNavigation.navigate(
+        ImportZip({
+            didImportProject: () => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+            },
+            zip: {
+                data,
+                name
+            }
+        }),
+        BG_COLOR
+    );
+}
 
 // init connectivity
 await api.connectivity.init();
-
-document.querySelector("#splash").remove();
-stackNavigation.navigate(Projects(), BG_COLOR);
-
-const esbuildIsInstalled = await rpc().esbuild.check();
-if (!esbuildIsInstalled) esbuildInstaller.install();
 
 // for test puposes
 const searchParams = new URLSearchParams(window.location.search);

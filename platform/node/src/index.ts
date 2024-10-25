@@ -135,8 +135,9 @@ const { handler, close } = main(
 
 open("FullStacked");
 
-const launchURL = process.argv.at(-1).match(/^https?:\/\//)
-    ? "fullstacked://" + process.argv.at(-1).replace(/:\/\//, "//")
+const lastArg = process.argv.at(-1);
+const launchURL = lastArg.match(/^https?:\/\//)
+    ? "fullstacked://" + lastArg.replace(/:\/\//, "//")
     : null;
 
 if (launchURL) {

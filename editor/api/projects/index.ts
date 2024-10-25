@@ -106,22 +106,6 @@ export default {
             rpc().open(project);
         }
     },
-
-    async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
-        const newProject = {
-            ...project,
-            createdDate: Date.now()
-        };
-
-        if (await rpc().fs.exists(project.location, { absolutePath: true })) {
-            await deleteProject(newProject);
-        }
-
-        await create(newProject);
-        await unzip(project.location, zipData);
-
-        return newProject;
-    },
     async build(project: Project) {
         const [css, js] = await Promise.all([
             buildCSS(project),
@@ -184,7 +168,7 @@ export async function createProjectFromFullStackedFile(
 
         const { hostname } = new URL(repoURL);
         const gitAuths = await api.config.load(CONFIG_TYPE.GIT);
-        if (gitAuths[hostname]) {
+        if (gitAuths?.[hostname]) {
             projectInfo.gitRepository.name = gitAuths[hostname].username;
             projectInfo.gitRepository.email = gitAuths[hostname].email;
         }
