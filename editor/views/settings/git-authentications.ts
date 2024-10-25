@@ -51,7 +51,7 @@ export function GitAuthentications() {
     let list: HTMLUListElement;
     const reloadGitAuths = () => {
         const updatedList = document.createElement("ul");
-        
+
         api.git.getAllAuths().then((gitAuths) => {
             updatedList.append(
                 ...Object.entries(gitAuths).map(([hostname, gitAuth]) =>
@@ -112,28 +112,30 @@ function GitAuthItem(opts: GitAuthOpts) {
             passwordContainer.innerHTML = `
                 <div><label>Password</label></div>
                 <div>To change password, delete and re-create</div>
-            `
+            `;
 
             form.passwordInput.container.replaceWith(passwordContainer);
 
             form.cancelButton.onclick = opts.didUpdateOrDelete;
 
-            form.form.onsubmit = e => {
+            form.form.onsubmit = (e) => {
                 e.preventDefault();
 
-                if(form.hostnameInput.input.value !== opts.hostname) {
+                if (form.hostnameInput.input.value !== opts.hostname) {
                     api.git.deleteAuthForHost(opts.hostname);
                 }
 
-                api.git.saveGitAuth(form.hostnameInput.input.value, {
-                    username: form.usernameInput.input.value,
-                    email: form.emailInput.input.value,
-                    password: opts.gitAuth.password
-                }).then(opts.didUpdateOrDelete)
-            }
+                api.git
+                    .saveGitAuth(form.hostnameInput.input.value, {
+                        username: form.usernameInput.input.value,
+                        email: form.emailInput.input.value,
+                        password: opts.gitAuth.password
+                    })
+                    .then(opts.didUpdateOrDelete);
+            };
 
             setTimeout(() => item.replaceWith(form.form), 1);
-        }
+        };
 
         const deleteButton = Button({
             text: "Delete",
@@ -141,7 +143,9 @@ function GitAuthItem(opts: GitAuthOpts) {
             iconLeft: "Trash"
         });
         deleteButton.onclick = () => {
-            api.git.deleteAuthForHost(opts.hostname).then(opts.didUpdateOrDelete);
+            api.git
+                .deleteAuthForHost(opts.hostname)
+                .then(opts.didUpdateOrDelete);
         };
 
         const buttonGroup = ButtonGroup([updateButton, deleteButton]);
@@ -182,7 +186,6 @@ function GitAuthItem(opts: GitAuthOpts) {
     return item;
 }
 
-
 function GitAuthForm(submitLabel: string) {
     const form = document.createElement("form");
 
@@ -218,7 +221,7 @@ function GitAuthForm(submitLabel: string) {
         emailInput.container,
         passwordInput.container,
         buttons
-    )
+    );
 
     return {
         hostnameInput,

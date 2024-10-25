@@ -43,13 +43,12 @@ export function FileTree(opts: FileTreeOpts) {
         TreeRecursive({
             directory: opts.directory,
             didDeleteOrRenameItem: reloadFileTree
-        }).then(updatedTreeRoot => {
+        }).then((updatedTreeRoot) => {
             treeRoot.replaceWith(updatedTreeRoot);
             treeRoot = updatedTreeRoot;
         });
 
-        if(!treeRoot)
-            treeRoot = document.createElement("ul");
+        if (!treeRoot) treeRoot = document.createElement("ul");
     };
 
     const treeContainer = document.createElement("div");
@@ -132,11 +131,10 @@ type TreeRecursiveOpts = {
 async function TreeRecursive(opts: TreeRecursiveOpts) {
     const container = document.createElement("ul");
 
-    const contents = await rpc()
-        .fs.readdir(opts.directory, {
-            absolutePath: true,
-            withFileTypes: true
-        }) as Dirent[];
+    const contents = (await rpc().fs.readdir(opts.directory, {
+        absolutePath: true,
+        withFileTypes: true
+    })) as Dirent[];
 
     const items = contents
         .filter(({ name }) => !name.startsWith("."))
@@ -201,7 +199,7 @@ function Item(opts: ItemOpts) {
         children = await TreeRecursive({
             directory: path,
             didDeleteOrRenameItem: opts.didDeleteOrRename
-        })
+        });
         item.append(children);
         openedDirectory.add(path);
     };

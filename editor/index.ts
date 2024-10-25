@@ -23,8 +23,7 @@ document.querySelector("#splash").remove();
 stackNavigation.navigate(Projects(), BG_COLOR);
 
 const esbuildIsInstalled = await rpc().esbuild.check();
-if(!esbuildIsInstalled)
-    esbuildInstaller.install();
+if (!esbuildIsInstalled) esbuildInstaller.install();
 
 // for test puposes
 const searchParams = new URLSearchParams(window.location.search);

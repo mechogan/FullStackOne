@@ -267,12 +267,9 @@ function ProjectTile(project: ProjectType) {
         });
         shareButton.onclick = () => {
             api.projects.export(project);
-        }
+        };
 
-        const buttonsGroup = ButtonGroup([
-            deleteButton,
-            shareButton
-        ]);
+        const buttonsGroup = ButtonGroup([deleteButton, shareButton]);
 
         content.append(buttonsGroup);
 

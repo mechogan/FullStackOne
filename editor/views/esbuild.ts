@@ -5,13 +5,12 @@ export const esbuildInstaller = {
     installPromise: null as Promise<void>,
     install: () => {
         esbuildInstaller.installPromise = InstallEsbuild();
-        esbuildInstaller.installPromise
-            .then(() => {
-                esbuildInstaller.install = null;
-            });
+        esbuildInstaller.installPromise.then(() => {
+            esbuildInstaller.install = null;
+        });
         rpc().esbuild.install();
     }
-}
+};
 
 function InstallEsbuild() {
     const container = document.createElement("div");
@@ -29,7 +28,7 @@ function InstallEsbuild() {
         step.innerHTML = `
             <div>${title}</div>
             <div<small>${subtitle}</small></div>
-        `
+        `;
 
         const progressBar = document.createElement("div");
         progressBar.classList.add("progress");
@@ -37,12 +36,13 @@ function InstallEsbuild() {
 
         stepsList.append(step);
 
-        return (progress: number) => progressBar.style.width = (progress * 100).toFixed(2) + "%";
-    }
+        return (progress: number) =>
+            (progressBar.style.width = (progress * 100).toFixed(2) + "%");
+    };
 
     const { remove } = Dialog(container);
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
         const steps = [
             addStep("Package", "download"),
             addStep("Package", "unpack"),
@@ -58,5 +58,5 @@ function InstallEsbuild() {
                 resolve();
             }
         };
-    })
+    });
 }

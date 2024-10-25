@@ -68,13 +68,12 @@ export function Branches(opts: BranchesOpts) {
             project: opts.project,
             didChangeBranch: opts.didChangeBranch,
             didChangeBranchList: reloadBranchList
-        }).then(updatedBranchList => {
+        }).then((updatedBranchList) => {
             branchList.replaceWith(updatedBranchList);
             branchList = updatedBranchList;
         });
 
-        if (!branchList)
-            branchList = document.createElement("div");
+        if (!branchList) branchList = document.createElement("div");
     };
     reloadBranchList();
 
@@ -97,7 +96,7 @@ async function BranchesList(opts: BranchesListOpts) {
         api.git.branch.getAll(opts.project),
         api.git.currentBranch(opts.project),
         api.git.changes(opts.project)
-    ])
+    ]);
     let hasUncommittedChanges =
         changes.added.length ||
         changes.modified.length ||

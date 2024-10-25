@@ -165,7 +165,7 @@ function WebAdresses() {
             updatedList.append(...items);
 
             list.replaceWith(updatedList);
-            list = updatedList
+            list = updatedList;
         });
 
         if (!list) {

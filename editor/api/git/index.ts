@@ -200,7 +200,7 @@ export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
 
     // exists
     if (gitAuths?.[hostname]) {
-        gitAuths[hostname] = gitAuth
+        gitAuths[hostname] = gitAuth;
     }
     // new
     else {

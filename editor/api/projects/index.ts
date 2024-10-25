@@ -94,10 +94,7 @@ export default {
 
             const element = document.createElement("a");
             element.setAttribute("href", url);
-            element.setAttribute(
-                "download",
-                project.title + ".zip"
-            );
+            element.setAttribute("download", project.title + ".zip");
             element.style.display = "none";
 
             document.body.appendChild(element);
