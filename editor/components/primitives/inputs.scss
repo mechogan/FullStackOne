@@ -2,8 +2,8 @@
 This file must follow the figma design
 https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=158-3127
 */
-@use "../../style/new/values/colors.scss";
-@use "../../style/new/values/spacing.scss";
+@use "../../style/values/colors.scss";
+@use "../../style/values/spacing.scss";
 
 @mixin hide-input {
     height: 0;

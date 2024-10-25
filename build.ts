@@ -72,22 +72,13 @@ fs.cpSync("editor/assets", "editor/build/assets", {
     recursive: true
 });
 
-// new-ui
-const styleEntrypoint = "editor/new-ui.scss";
+const styleEntrypoint = "editor/index.scss";
 const { css } = await sass.compileAsync(styleEntrypoint);
-await fs.promises.writeFile("editor/build/new-ui.css", css);
+await fs.promises.writeFile("editor/build/index.css", css);
 
-esbuild.buildSync({
-    entryPoints: ["editor/new-ui.ts"],
-    outfile: "editor/build/new-ui.js",
-    bundle: true
-});
-
-await fs.promises.copyFile("editor/new-ui.html", "editor/build/new-ui.html");
 fs.cpSync("editor/icons", "editor/build/icons", {
     recursive: true
 });
-// end new-ui
 
 const sampleDemoDir = "editor-sample-demo";
 if (fs.existsSync(sampleDemoDir)) {

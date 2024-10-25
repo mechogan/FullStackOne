@@ -2,8 +2,8 @@ import api from "./api";
 import rpc from "./rpc";
 import stackNavigation from "./stack-navigation";
 import { BG_COLOR } from "./constants";
-import { Projects } from "./views/new/projects";
-import { esbuildInstaller } from "./views/new/esbuild";
+import { Projects } from "./views/projects";
+import { esbuildInstaller } from "./views/esbuild";
 
 (window as any).onPush["launchURL"] = async (deeplink: string) => {
     // const project = await api.getProjectFromDeepLink(deeplink);

@@ -6,7 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
-import { GitAuth } from "../../views/new/project/git/auth";
+import { GitAuth } from "../../views/project/git/auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;

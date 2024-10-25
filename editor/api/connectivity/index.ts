@@ -25,7 +25,7 @@ import {
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
 import { BrowseWeb, constructURL } from "./web";
-import { PairingRequest } from "../../views/new/peers/pairing-request";
+import { PairingRequest } from "../../views/peers/pairing-request";
 
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 

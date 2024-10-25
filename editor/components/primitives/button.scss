@@ -3,9 +3,9 @@ This file must follow the figma design
 https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=6-67
 */
 @use "sass:color";
-@use "../../style/new/values/typography.scss";
-@use "../../style/new/values/colors.scss";
-@use "../../style/new/values/spacing.scss";
+@use "../../style/values/typography.scss";
+@use "../../style/values/colors.scss";
+@use "../../style/values/spacing.scss";
 
 button {
     font-weight: bold;

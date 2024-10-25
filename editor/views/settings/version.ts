@@ -1,81 +1,69 @@
+import { Badge } from "../../components/primitives/badge";
 import rpc from "../../rpc";
-import { Editor } from "../editor";
+import { WorkerTS } from "../../typescript";
 import semver from "semver";
 
-export default async function () {
+export function Version() {
+    const container = document.createElement("div");
+    container.classList.add("version");
+
+    container.innerHTML = `<h2>Version</h2>`;
+
+    container.append(EditorVersion(), EsbuildVersion(), TypescriptVersion());
+
+    return container;
+}
+
+function EditorVersion() {
     const container = document.createElement("div");
 
-    const title = document.createElement("h2");
-    title.innerText = "Version";
-    container.append(title);
+    container.innerHTML = `
+        <label>Editor</label>
+    `;
 
-    const versionEditor = document.createElement("div");
-    versionEditor.classList.add("setting-row");
+    rpc()
+        .fs.readFile("version.json", { encoding: "utf8" })
+        .then((versionFileContent: string) => {
+            const { version, branch, commit, commitNumber } =
+                JSON.parse(versionFileContent);
 
-    versionEditor.innerHTML = `<label>Editor</label>`;
+            const editorVersionContainer = document.createElement("div");
+            editorVersionContainer.classList.add("editor-version");
 
-    const currentVersion: {
-        version: string;
-        branch: string;
-        commit: string;
-    } = JSON.parse(
-        (await rpc().fs.readFile("version.json", {
-            encoding: "utf8"
-        })) as string
-    );
+            const topRow = document.createElement("div");
+            topRow.innerText = version;
+            editorVersionContainer.append(topRow);
 
-    const versionEditorContainer = document.createElement("div");
-    versionEditorContainer.classList.add("version-editor");
+            container.append(editorVersionContainer);
 
-    const versionWithBadge = document.createElement("div");
-    versionWithBadge.innerHTML = `<div class="version">${currentVersion.version}</div>`;
+            getLatestVersionTag().then((latestVersion) => {
+                const isDev = semver.gt(version, latestVersion);
 
-    versionEditorContainer.append(versionWithBadge);
+                const badge = isDev
+                    ? Badge({
+                          text: "Development",
+                          type: "info"
+                      })
+                    : semver.eq(version, latestVersion)
+                      ? Badge({
+                            text: "Latest",
+                            type: "info-2"
+                        })
+                      : Badge({
+                            text: "Update Available",
+                            type: "warning"
+                        });
 
-    versionEditor.append(versionEditorContainer);
-    container.append(versionEditor);
+                topRow.prepend(badge);
 
-    getLatestVersionTag().then((latestVersion) => {
-        const badge = document.createElement("div");
-        badge.classList.add("badge");
-        versionWithBadge.prepend(badge);
-
-        if (semver.gt(currentVersion.version, latestVersion)) {
-            badge.classList.add("accent");
-            badge.innerText = "Development";
-
-            const branchAndCommit = document.createElement("div");
-            branchAndCommit.innerHTML = `<div class="ref">${currentVersion.commit.slice(0, 8)} (${currentVersion.branch})</div>`;
-            versionEditorContainer.append(branchAndCommit);
-        } else if (semver.eq(currentVersion.version, latestVersion)) {
-            badge.innerText = "Latest";
-        } else if (semver.lt(currentVersion.version, latestVersion)) {
-            badge.classList.add("warning");
-            badge.innerText = "Update Available";
-        }
-    });
-
-    const versionEsbuild = document.createElement("div");
-    versionEsbuild.classList.add("setting-row");
-
-    versionEsbuild.innerHTML = `<label>Esbuild</label>
-        <div>${await rpc().esbuild.version()}</div>`;
-
-    container.append(versionEsbuild);
-
-    const versionTypeScript = document.createElement("div");
-    versionTypeScript.classList.add("setting-row");
-
-    const appendTypeScriptVersion = async () => {
-        versionTypeScript.innerHTML = `<label>TypeScript</label>
-            <div>${await Editor.tsWorker.call().version()}</div>`;
-
-        container.append(versionTypeScript);
-    };
-
-    if (!Editor.tsWorker)
-        Editor.restartTSWorker().then(appendTypeScriptVersion);
-    else appendTypeScriptVersion();
+                if (isDev) {
+                    topRow.append(` (${commitNumber})`);
+                    const bottomRow = document.createElement("div");
+                    bottomRow.innerHTML = `<small>${commit.slice(0, 8)} (${branch})</small>`;
+                    editorVersionContainer.append(bottomRow);
+                }
+            });
+        });
 
     return container;
 }
@@ -88,4 +76,38 @@ async function getLatestVersionTag() {
         }
     );
     return JSON.parse(response.body as string).tag_name;
+}
+
+function EsbuildVersion() {
+    const container = document.createElement("div");
+
+    container.innerHTML = `
+        <label>Esbuild</label>
+    `;
+
+    rpc()
+        .esbuild.version()
+        .then((v) => {
+            container.innerHTML += `<div>${v}</div>`;
+        });
+
+    return container;
+}
+
+function TypescriptVersion() {
+    const container = document.createElement("div");
+
+    container.innerHTML = `
+        <label>TypeScript</label>
+    `;
+
+    const appendTypeScriptVersion = async () => {
+        container.innerHTML += `
+            <div>${await WorkerTS.call().version()}</div>`;
+        WorkerTS.dispose();
+    };
+
+    WorkerTS.start("").then(appendTypeScriptVersion);
+
+    return container;
 }
