@@ -91,7 +91,7 @@ export function CloneGit(opts: CloneGitOpts) {
 
     scrollable.append(form);
 
-    if(opts.repoUrl) {
+    if (opts.repoUrl) {
         repoUrlInput.input.value = opts.repoUrl;
         setTimeout(() => cloneButton.click(), 1);
     }

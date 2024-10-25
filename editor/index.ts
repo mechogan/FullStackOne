@@ -11,32 +11,38 @@ import { esbuildInstall } from "./views/esbuild";
 
 globalThis.onPush["launchURL"] = async (deeplink: string) => {
     const repo = api.deeplink.getRepo(deeplink);
-    if(!repo) return;
+    if (!repo) return;
 
     const launchProject = async (project: ProjectType) => {
-        if(repo.branch) {
+        if (repo.branch) {
             await api.git.checkout(project, repo.branch);
         }
-        stackNavigation.navigate(Project({
-            project,
-            run: true,
-            didUpdateProject: projects.reloadProjectsList
-        }), BG_COLOR)
-    }
+        stackNavigation.navigate(
+            Project({
+                project,
+                run: true,
+                didUpdateProject: projects.reloadProjectsList
+            }),
+            BG_COLOR
+        );
+    };
 
     const project = await api.deeplink.findExistingProjectWithRepoUrl(repo.url);
-    if(project) {
-        return launchProject(project)
+    if (project) {
+        return launchProject(project);
     }
-    
-    stackNavigation.navigate(CloneGit({
-        didCloneProject: (project) => {
-            projects.reloadProjectsList();
-            stackNavigation.back();
-            launchProject(project);
-        },
-        repoUrl: repo.url
-    }), BG_COLOR);
+
+    stackNavigation.navigate(
+        CloneGit({
+            didCloneProject: (project) => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+                launchProject(project);
+            },
+            repoUrl: repo.url
+        }),
+        BG_COLOR
+    );
 };
 
 // check for new install
@@ -51,19 +57,22 @@ if (!esbuildIsInstalled) {
     await esbuildInstall();
 }
 
-if(installDemo) {
+if (installDemo) {
     const name = "Demo.zip";
-    const data = await rpc().fs.readFile(name) as Uint8Array;
-    stackNavigation.navigate(ImportZip({
-        didImportProject: () => {
-            projects.reloadProjectsList();
-            stackNavigation.back()
-        },
-        zip: {
-            data,
-            name
-        }
-    }), BG_COLOR);
+    const data = (await rpc().fs.readFile(name)) as Uint8Array;
+    stackNavigation.navigate(
+        ImportZip({
+            didImportProject: () => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+            },
+            zip: {
+                data,
+                name
+            }
+        }),
+        BG_COLOR
+    );
 }
 
 // init connectivity

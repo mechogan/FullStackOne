@@ -2,7 +2,7 @@ import { Dialog } from "../components/dialog";
 import rpc from "../rpc";
 
 export const esbuildInstall = () => {
-    const installPromise = InstallEsbuild()
+    const installPromise = InstallEsbuild();
     rpc().esbuild.install();
     return installPromise;
 };

@@ -16,15 +16,16 @@ export default {
         const url = urlStr.split("?").shift();
 
         const searchParams = new URLSearchParams(urlObj.search);
-        const branch = searchParams.get("branch")
-       
+        const branch = searchParams.get("branch");
+
         return {
             url,
             branch
-        }
+        };
     },
-    async findExistingProjectWithRepoUrl(url: string){
-        return (await api.config.load(CONFIG_TYPE.PROJECTS))
-            .find(project => project.gitRepository?.url === url);
+    async findExistingProjectWithRepoUrl(url: string) {
+        return (await api.config.load(CONFIG_TYPE.PROJECTS)).find(
+            (project) => project.gitRepository?.url === url
+        );
     }
-}
+};

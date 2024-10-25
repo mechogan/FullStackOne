@@ -24,7 +24,7 @@ export function Projects() {
         SearchAndAdd({
             didAddProject: () => {
                 stackNavigation.back();
-                reloadProjectsList()
+                reloadProjectsList();
             },
             didSearch: (projects) => {
                 projectsList.filter(projects);
@@ -35,15 +35,15 @@ export function Projects() {
     let projectsList: ReturnType<typeof ProjectsList>;
     const reloadProjectsList = () => {
         const updatedProjectList = ProjectsList();
-        if(projectsList){
+        if (projectsList) {
             projectsList.container.replaceWith(updatedProjectList.container);
         } else {
-            scrollable.append(updatedProjectList.container)
+            scrollable.append(updatedProjectList.container);
         }
 
         projectsList = updatedProjectList;
-    }
-    reloadProjectsList()
+    };
+    reloadProjectsList();
 
     return { container, reloadProjectsList };
 }

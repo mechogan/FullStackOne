@@ -22,10 +22,10 @@ export default {
     async init() {
         const configDir = await rpc().directories.configDirectory();
         if (await rpc().fs.exists(configDir, { absolutePath: true })) {
-            return false
-        };
+            return false;
+        }
 
-        console.log(configDir)
+        console.log(configDir);
 
         await rpc().fs.mkdir(configDir, { absolutePath: true });
         return true;

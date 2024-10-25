@@ -19,7 +19,7 @@ type ProjectOpts = {
     didUpdateProject: () => void;
 
     // to directly run from deeplink
-    run?: boolean,
+    run?: boolean;
 };
 
 export function Project(opts: ProjectOpts) {
@@ -127,7 +127,7 @@ export function Project(opts: ProjectOpts) {
         fileTree.reloadFileTree();
     });
 
-    if(opts.run) {
+    if (opts.run) {
         setTimeout(() => runButton.click(), 1);
     }
 

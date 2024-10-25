@@ -14,9 +14,9 @@ type ImportZipOpts = {
 
     // only for demo import on first launch
     zip?: {
-        data: Uint8Array,
-        name: string
-    }
+        data: Uint8Array;
+        name: string;
+    };
 };
 
 export function ImportZip(opts: ImportZipOpts) {
@@ -125,9 +125,11 @@ export function ImportZip(opts: ImportZipOpts) {
 
     scrollable.append(form);
 
-    if(opts.zip) {
-        const file = new File([opts.zip.data], opts.zip.name, 
-            {type:"application/octet-stream", lastModified: Date.now()});
+    if (opts.zip) {
+        const file = new File([opts.zip.data], opts.zip.name, {
+            type: "application/octet-stream",
+            lastModified: Date.now()
+        });
         const container = new DataTransfer();
         container.items.add(file);
         zipFileInput.input.files = container.files;
