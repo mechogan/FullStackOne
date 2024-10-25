@@ -12,19 +12,22 @@ import { FileTree } from "./file-tree";
 import { Git } from "./git";
 import type esbuild from "esbuild";
 import { packageInstaller } from "../packages/installer";
+import { DELETE_ALL_PACKAGES_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
 
 type ProjectOpts = {
     project: ProjectType;
-    didDeleteAllPackages?: () => void;
     didUpdateProject: () => void;
 
     // to directly run from deeplink
     run?: boolean;
+
+    // only for packages view
+    didDeleteAllPackages?: () => void;
 };
 
 export function Project(opts: ProjectOpts) {
     const container = document.createElement("div");
-    container.id = "project";
+    container.id = PROJECT_VIEW_ID;
     container.classList.add("view");
 
     const fileTree = FileTree({
@@ -55,6 +58,7 @@ export function Project(opts: ProjectOpts) {
         style: "icon-large",
         iconLeft: "Play"
     });
+    runButton.id = RUN_PROJECT_ID;
     runButton.onclick = async () => {
         const loaderContainer = document.createElement("div");
         loaderContainer.classList.add("loader-container");
@@ -83,6 +87,7 @@ export function Project(opts: ProjectOpts) {
         text: "Delete All",
         color: "red"
     });
+    deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
     deleteAllButton.onclick = async () => {
         deleteAllButton.disabled = true;
         await rpc().fs.rmdir(opts.project.location, {

@@ -8,11 +8,11 @@ import { Connectivity } from "./connectivity";
 import { GitAuthentications } from "./git-authentications";
 import { Version } from "./version";
 import stackNavigation from "../../stack-navigation";
-import { BG_COLOR } from "../../constants";
+import { BG_COLOR, PACKAGES_BUTTON_ID, SETTINGS_VIEW_ID } from "../../constants";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
-    container.id = "settings";
+    container.id = SETTINGS_VIEW_ID;
     container.classList.add("view");
 
     const topBar = TopBar({
@@ -49,6 +49,7 @@ function Packages() {
                 text,
                 iconRight: "Package"
             });
+            updatedButton.id = PACKAGES_BUTTON_ID
 
             if (!nodeModulesDirectory)
                 nodeModulesDirectory =

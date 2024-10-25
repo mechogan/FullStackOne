@@ -3,6 +3,7 @@ import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { Icon } from "../../components/primitives/icon";
 import { InputText } from "../../components/primitives/inputs";
+import { NEW_FILE_ID } from "../../constants";
 import rpc from "../../rpc";
 import { WorkerTS } from "../../typescript";
 import { CodeEditor } from "./code-editor";
@@ -61,6 +62,7 @@ export function FileTree(opts: FileTreeOpts) {
         style: "icon-small",
         iconLeft: "File Add"
     });
+    newFileButton.id = NEW_FILE_ID;
     newFileButton.onclick = () =>
         AddFile({
             baseDirectory: opts.directory,
@@ -400,10 +402,12 @@ function ItemInputForm(opts: ItemInputFormOpts) {
 
     setTimeout(() => {
         inputName.input.focus();
-        inputName.input.setSelectionRange(
-            0,
-            dotIndex === -1 ? opts.initialValue.length : dotIndex
-        );
+        if(inputName.input.value) {
+            inputName.input.setSelectionRange(
+                0,
+                dotIndex === -1 ? opts.initialValue.length : dotIndex
+            );
+        }
     }, 1);
 
     return form;

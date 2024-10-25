@@ -8,6 +8,7 @@ import { ViewScrollable } from "../../components/view-scrollable";
 import * as zip from "@zip.js/zip.js";
 import { createProjectFromFullStackedFile } from "../../api/projects";
 import { gitLogger } from "./clone-git";
+import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 
 type ImportZipOpts = {
     didImportProject: () => void;
@@ -34,7 +35,7 @@ export function ImportZip(opts: ImportZipOpts) {
     const zipFileInput = InputFile({
         label: "Project ZIP"
     });
-
+    zipFileInput.input.id = IMPORT_PROJECT_FILE_INPUT_ID;
     form.append(zipFileInput.container);
 
     zipFileInput.input.onchange = async () => {

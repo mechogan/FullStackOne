@@ -1,3 +1,4 @@
+import { BACK_BUTTON_CLASS } from "../constants";
 import stackNavigation from "../stack-navigation";
 import { Button } from "./primitives/button";
 
@@ -23,6 +24,7 @@ export function TopBar(opts?: Partial<TopBarOpts>) {
             style: "icon-large",
             iconLeft: "Arrow"
         });
+        backButton.classList.add(BACK_BUTTON_CLASS);
         backButton.onclick = () => {
             if (opts?.onBack && !opts.onBack()) {
                 return;

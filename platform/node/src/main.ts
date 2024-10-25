@@ -129,8 +129,8 @@ export function main(
                     "index",
                     outdir,
                     directories.rootDirectory +
-                        "/" +
-                        directories.nodeModulesDirectory
+                    "/" +
+                    directories.nodeModulesDirectory
                 );
                 return result?.errors?.length ? result.errors : 1;
             }
@@ -282,7 +282,9 @@ function upgradeFS(
         },
         rmdir: (path, options) => {
             if (options?.absolutePath) {
-                return fs.promises.rm(rootDirectory + "/" + path, {
+                const dirPath = rootDirectory + "/" + path;
+                if (!fs.existsSync(dirPath)) return;
+                return fs.promises.rm(dirPath, {
                     recursive: true
                 });
             }

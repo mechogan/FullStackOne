@@ -1,7 +1,7 @@
 import child_process, { ChildProcess } from "child_process";
 import puppeteer from "puppeteer";
 import { sleep, throwError } from "./utils";
-import { PROJECT_TITLE_ID, RUN_PROJECT_ID } from "../editor/constants";
+import { PROJECT_TITLE_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../editor/constants";
 
 let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 
@@ -45,9 +45,9 @@ await sleep(3000);
 await page.evaluate(async () => {
     const getDemoProject = () => {
         const demoProjects = Array.from(
-            document.querySelectorAll("article")
-        ).filter((article) => {
-            const title = article.querySelector("h3")?.innerText;
+            document.querySelectorAll(".project-tile")
+        ).filter((projectTile) => {
+            const title = projectTile.querySelector("h2")?.innerText;
             return (
                 title &&
                 (title.toLocaleLowerCase() === "demo" ||
@@ -59,6 +59,10 @@ await page.evaluate(async () => {
 
     while (getDemoProject()) {
         getDemoProject().querySelector("button").click();
+        await new Promise((res) => setTimeout(res, 100));
+        document.querySelector<HTMLButtonElement>(".button-group > button:first-child").click();
+        await new Promise((res) => setTimeout(res, 100));
+        document.querySelector<HTMLButtonElement>(".dialog button:last-child").click();
         await new Promise((res) => setTimeout(res, 1000));
     }
 });
@@ -68,7 +72,7 @@ editorProcess1.kill();
 
 const DEMO_TITLE = "Demo";
 editorProcess2 = child_process.exec(
-    `node index.js https://github.com/fullstackedorg/editor-sample-demo.git?title=${DEMO_TITLE}`,
+    `node index.js https://github.com/fullstackedorg/editor-sample-demo.git`,
     {
         cwd: process.cwd() + "/platform/node",
         env: {
@@ -86,9 +90,9 @@ await page.reload();
 
 await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 
-await page.waitForSelector(`#${PROJECT_TITLE_ID}`);
+await page.waitForSelector(`#${PROJECT_VIEW_ID} h1`);
 const actualDemoTitle = await (
-    await (await page.$(`#${PROJECT_TITLE_ID}`)).getProperty("textContent")
+    await (await page.$(`#${PROJECT_VIEW_ID} h1`)).getProperty("textContent")
 ).jsonValue();
 
 if (actualDemoTitle !== DEMO_TITLE) {

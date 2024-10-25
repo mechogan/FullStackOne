@@ -75,6 +75,10 @@ export function createAdapter(
                 });
             },
             rmdir: (path) => {
+                const dirPath = baseDirectory + "/" + path;
+                
+                if(!fs.existsSync(dirPath)) return;
+
                 return fs.promises.rm(baseDirectory + "/" + path, {
                     recursive: true
                 });

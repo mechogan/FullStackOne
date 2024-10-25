@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import * as sass from "sass";
 import { build } from "./platform/node/src/build";
-import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
