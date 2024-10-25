@@ -1,16 +1,21 @@
 export const PROJECTS_TITLE = "Projects";
+export const PROJECTS_VIEW_ID = "projects-view";
+export const PROJECT_VIEW_ID = "project";
+export const PEERS_VIEW_ID = "peers"
+export const SETTINGS_VIEW_ID = "settings"
 export const NEW_PROJECT_ID = "new-project";
+export const IMPORT_ZIP_ID = "import-zip";
 export const IMPORT_PROJECT_FILE_INPUT_ID = "import-project";
 export const RUN_PROJECT_ID = "run-project";
 export const NEW_FILE_ID = "new-file";
 export const PACKAGES_BUTTON_ID = "packages-btn";
 export const DELETE_ALL_PACKAGES_ID = "delete-all-packages";
 export const SETTINGS_BUTTON_ID = "settings";
-export const BACK_BUTTON_ID = "back-button";
+export const BACK_BUTTON_CLASS = "back-button";
 export const PROJECT_TITLE_ID = "project-title";
 export const PACKAGE_INSTALLER_ID = "package-installer";
 export const TYPESCRIPT_ICON_ID = "typescript-icon";
-export const PEERS_ICON_ID = "peers-connectivity";
+export const PEERS_BUTTON_ID = "peers-connectivity";
 export const INCOMING_PEER_CONNECTION_REQUEST_DIALOG =
     "peer-connection-request-dialog";
 export const MANUAL_PEER_CONNECT_DIALOG = "manual-peer-connect";

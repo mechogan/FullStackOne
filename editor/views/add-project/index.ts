@@ -1,6 +1,6 @@
 import { Button } from "../../components/primitives/button";
 import { TopBar } from "../../components/top-bar";
-import { BG_COLOR } from "../../constants";
+import { BG_COLOR, IMPORT_ZIP_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { CloneGit } from "./clone-git";
 import { CreateEmpty } from "./create-empty";
@@ -43,6 +43,7 @@ export function AddProject(opts: AddProjectOpts) {
         text: "Import zip",
         iconLeft: "Archive"
     });
+    importZipButton.id = IMPORT_ZIP_ID
     importZipButton.onclick = () =>
         stackNavigation.navigate(
             ImportZip({ didImportProject: onProjectCreation }),

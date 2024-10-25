@@ -48,6 +48,8 @@ onPush["peerNearby"] = async (eventStr) => {
 };
 
 async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
+    console.log("onPeerNearby");
+    
     if (eventType === "new" && _autoConnect) {
         let alreadyConnected = false;
         // already connected

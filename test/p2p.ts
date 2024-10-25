@@ -3,12 +3,13 @@ import crypto from "crypto";
 import puppeteer from "puppeteer";
 import { sleep, throwError, waitForStackNavigation } from "./utils";
 import {
-    PEERS_ICON_ID,
-    PEER_CONNECTIVITY_BACK_BUTTON_ID,
+    BACK_BUTTON_CLASS,
+    PEERS_BUTTON_ID,
+    PEERS_VIEW_ID,
     PEER_DISCONNECT_BUTTON_CLASS,
-    PEER_PAIRING_CODE_CLASS,
     PEER_PAIR_BUTTON_CLASS,
     PEER_TRUST_BUTTON_ID,
+    PROJECTS_VIEW_ID,
     RUN_PROJECT_ID
 } from "../editor/constants";
 import fs from "fs";
@@ -74,22 +75,24 @@ process1.on("error", onError);
 
 const page1 = await browser1.newPage();
 await page1.goto(`http://localhost:${port1}`);
-await waitForStackNavigation(page1, `#${PEERS_ICON_ID}`);
 
 const page2 = await browser2.newPage();
 await page2.goto(`http://localhost:${port2}`);
-await waitForStackNavigation(page2, `#${PEERS_ICON_ID}`);
+await sleep(5000);
+
+await waitForStackNavigation(page1, `#${PEERS_BUTTON_ID}`);
+await waitForStackNavigation(page2, `#${PEERS_BUTTON_ID}`);
 
 const pairButton = await page2.waitForSelector(`.${PEER_PAIR_BUTTON_CLASS}`);
 await pairButton.click();
 
-await page2.waitForSelector(`.${PEER_PAIRING_CODE_CLASS}`);
+await page2.waitForSelector(`.code`);
 const getPairingCode2 = () =>
-    document.querySelector(`.peer-pairing-code`)?.textContent;
+    document.querySelector(`.code`)?.textContent;
 const pairingCode2 = await page2.evaluate(getPairingCode2);
 
-await page1.waitForSelector(`.code span`);
-const getPairingCode1 = () => document.querySelector(`.code span`)?.textContent;
+await page1.waitForSelector(`.dialog code`);
+const getPairingCode1 = () => document.querySelector(`.dialog code`)?.textContent;
 const pairingCode1 = await page1.evaluate(getPairingCode1);
 
 if (pairingCode1 !== pairingCode2) {
@@ -105,11 +108,11 @@ await trustButton2.click();
 
 await page2.waitForSelector(`.${PEER_DISCONNECT_BUTTON_CLASS}`);
 
-await waitForStackNavigation(page1, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
-await waitForStackNavigation(page2, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
+await waitForStackNavigation(page1, `#${PEERS_VIEW_ID} .${BACK_BUTTON_CLASS}`);
+await waitForStackNavigation(page2, `#${PEERS_VIEW_ID} .${BACK_BUTTON_CLASS}`);
 
-await waitForStackNavigation(page1, `article`);
-await waitForStackNavigation(page2, `article`);
+await waitForStackNavigation(page1, `#${PROJECTS_VIEW_ID} .project-tile:first-child`);
+await waitForStackNavigation(page2, `#${PROJECTS_VIEW_ID} .project-tile:first-child`);
 
 const runProjectButton1 = await page1.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton1.click();

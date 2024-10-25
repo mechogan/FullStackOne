@@ -6,7 +6,7 @@ import { Button, ButtonGroup } from "../components/primitives/button";
 import { InputText } from "../components/primitives/inputs";
 import { TopBar as TopBarComponent } from "../components/top-bar";
 import { ViewScrollable } from "../components/view-scrollable";
-import { BG_COLOR } from "../constants";
+import { BG_COLOR, NEW_PROJECT_ID, PEERS_BUTTON_ID, PROJECTS_TITLE, PROJECTS_VIEW_ID, SETTINGS_BUTTON_ID } from "../constants";
 import stackNavigation from "../stack-navigation";
 import { AddProject } from "./add-project";
 import { Peers } from "./peers";
@@ -53,6 +53,7 @@ function TopBar() {
         style: "icon-large",
         iconLeft: "Settings"
     });
+    settings.id = SETTINGS_BUTTON_ID;
 
     settings.onclick = () => {
         stackNavigation.navigate(Settings(), BG_COLOR);
@@ -60,7 +61,7 @@ function TopBar() {
 
     const topBar = TopBarComponent({
         noBack: true,
-        title: "Projects",
+        title: PROJECTS_TITLE,
         actions: [PeersWidget(), settings]
     });
 
@@ -83,7 +84,7 @@ function PeersWidget() {
         style: "icon-large",
         iconLeft: "Peers"
     });
-
+    peersButton.id = PEERS_BUTTON_ID;
     peersButton.onclick = () => stackNavigation.navigate(Peers(), BG_COLOR);
 
     container.append(peersConnectedCount, peersButton);
@@ -140,6 +141,7 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
         style: "icon-large",
         iconLeft: "Plus"
     });
+    addButton.id = NEW_PROJECT_ID;
 
     addButton.onclick = () => {
         stackNavigation.navigate(
@@ -200,6 +202,7 @@ function ProjectsList() {
 
 function ProjectTile(project: ProjectType) {
     const container = document.createElement("div");
+    container.id = PROJECTS_VIEW_ID;
     container.classList.add("project-tile");
 
     container.onclick = () =>

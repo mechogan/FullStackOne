@@ -25,8 +25,6 @@ export default {
             return false;
         }
 
-        console.log(configDir);
-
         await rpc().fs.mkdir(configDir, { absolutePath: true });
         return true;
     },

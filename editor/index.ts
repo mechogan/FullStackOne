@@ -65,6 +65,9 @@ if (installDemo) {
             didImportProject: () => {
                 projects.reloadProjectsList();
                 stackNavigation.back();
+
+                // webcontainer test
+                testDemo();
             },
             zip: {
                 data,
@@ -78,16 +81,20 @@ if (installDemo) {
 // init connectivity
 await api.connectivity.init();
 
-// for test puposes
-const searchParams = new URLSearchParams(window.location.search);
-if (searchParams.has("demo")) {
-    const demoProject = (await api.projects.list()).find(
-        ({ title }) => title === "Demo"
-    );
-    if (demoProject) {
-        // projectView.setProject(demoProject);
-        // stackNavigation.navigate(await projectView.render(), BG_COLOR);
-        // await projectView.runProject();
+// for webcontainer test purposes
+async function testDemo() {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has("demo")) {
+        const demoProject = (await api.projects.list()).find(
+            ({ title }) => title === "Demo"
+        );
+        if (demoProject) {
+            stackNavigation.navigate(Project({
+                project: demoProject,
+                didUpdateProject: null,
+                run: true
+            }), BG_COLOR);
+        }
     }
 }
 

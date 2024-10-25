@@ -4,6 +4,7 @@ import {
 } from "../../../src/connectivity/types";
 import { Dialog } from "../../components/dialog";
 import { Button } from "../../components/primitives/button";
+import { PEER_TRUST_BUTTON_ID } from "../../constants";
 
 type PairingRequestOpts = {
     peerConnectionRequest: PeerConnectionRequest | PeerConnectionTokenExchange;
@@ -29,6 +30,7 @@ export function PairingRequest(opts: PairingRequestOpts) {
     const trustButton = Button({
         text: "Trust"
     });
+    trustButton.id = PEER_TRUST_BUTTON_ID;
 
     buttonRow.append(denyButton, trustButton);
 
