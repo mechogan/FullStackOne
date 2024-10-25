@@ -20,23 +20,32 @@ export function Projects() {
 
     container.prepend(TopBar());
 
-    let projectList = ProjectsList();
     scrollable.append(
         SearchAndAdd({
             didAddProject: () => {
                 stackNavigation.back();
-                const updatedProjectList = ProjectsList();
-                projectList.container.replaceWith(updatedProjectList.container);
-                projectList = updatedProjectList;
+                reloadProjectsList()
             },
             didSearch: (projects) => {
-                projectList.filter(projects);
+                projectsList.filter(projects);
             }
-        }),
-        projectList.container
+        })
     );
 
-    return container;
+    let projectsList: ReturnType<typeof ProjectsList>;
+    const reloadProjectsList = () => {
+        const updatedProjectList = ProjectsList();
+        if(projectsList){
+            projectsList.container.replaceWith(updatedProjectList.container);
+        } else {
+            scrollable.append(updatedProjectList.container)
+        }
+
+        projectsList = updatedProjectList;
+    }
+    reloadProjectsList()
+
+    return { container, reloadProjectsList };
 }
 
 function TopBar() {
