@@ -1,4 +1,4 @@
-import git from "isomorphic-git";
+import git, { ProgressCallback } from "isomorphic-git";
 import { Buffer as globalBuffer } from "buffer";
 import { GitAuths, Project } from "../config/types";
 import URL from "url-parse";
@@ -6,7 +6,7 @@ import config from "../config";
 import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
-import gitAuth from "../../views/git-auth";
+import { GitAuth } from "../../views/project/git/auth";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -154,7 +154,7 @@ function parseChangesMatrix(
     return changes;
 }
 
-async function getParsedChanges(project: Project) {
+export async function getParsedChanges(project: Project) {
     return parseChangesMatrix(
         await git.statusMatrix({
             fs,
@@ -177,18 +177,15 @@ const requestGitAuth = async (url: string) => {
     }
 
     try {
-        const auth = await new Promise<{
-            host: string;
-            username: string;
-            password: string;
-            email: string;
-        }>((resolve, reject) => {
-            gitAuth.requestAuth(hostname, resolve, reject);
+        const auth = await new Promise<GitAuths[""]>((resolve, reject) => {
+            GitAuth({
+                hostname,
+                didSubmit: resolve,
+                didCancel: reject
+            });
         });
 
-        console.log(auth);
-
-        await saveGitAuth(auth);
+        await saveGitAuth(hostname, auth);
 
         return auth;
     } catch (e) {
@@ -196,37 +193,34 @@ const requestGitAuth = async (url: string) => {
     }
 };
 
-export async function saveGitAuth(gitAuth: {
-    host: string;
-    username: string;
-    email: string;
-    password: string;
-}) {
-    const hostname = gitAuth.host.includes("://")
-        ? new URL(gitAuth.host).hostname
-        : gitAuth.host;
+export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
+    hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
 
     // exists
     if (gitAuths?.[hostname]) {
-        gitAuths[hostname] = {
-            ...gitAuth,
-            password: gitAuths[hostname].password
-        };
+        gitAuths[hostname] = gitAuth
     }
     // new
     else {
         gitAuths[hostname] = gitAuth;
     }
-    await config.save(CONFIG_TYPE.GIT, gitAuths);
+
+    return config.save(CONFIG_TYPE.GIT, gitAuths);
 }
 
 export default {
-    async init(project: Project) {
+    async init(
+        project: Project,
+        opts?: {
+            branch?: "main";
+            onProgress?: ProgressCallback;
+        }
+    ) {
         await git.init({
             fs,
-            defaultBranch: "main",
+            defaultBranch: opts?.branch || "main",
             dir: project.location
         });
         await git.addRemote({
@@ -239,14 +233,16 @@ export default {
             fs,
             http,
             singleBranch: true,
+            onProgress: opts?.onProgress,
             depth: 1,
             dir: project.location,
-            ref: "main"
+            ref: opts?.branch || "main"
         });
         return git.checkout({
             fs,
             dir: project.location,
-            ref: "main"
+            onProgress: opts?.onProgress,
+            ref: opts.branch || "main"
         });
     },
     saveGitAuth,
@@ -290,8 +286,7 @@ export default {
             dir: project.location
         });
     },
-    async changes(project: Project) {
-        let unreacheable = false;
+    async testRemote(project: Project) {
         try {
             await git.fetch({
                 fs,
@@ -300,14 +295,13 @@ export default {
                 prune: true,
                 onAuth: requestGitAuth
             });
+            return true;
         } catch (e) {
-            unreacheable = true;
+            return e?.caller !== "git.fetch";
         }
-
-        return {
-            unreacheable,
-            changes: await getParsedChanges(project)
-        };
+    },
+    changes(project: Project) {
+        return getParsedChanges(project);
     },
     async pull(project: Project) {
         let fetch: Awaited<ReturnType<typeof git.fetch>>;
@@ -482,13 +476,20 @@ export default {
             onAuth: requestGitAuth
         });
     },
-    clone(url: string, dir: string) {
+    clone(
+        url: string,
+        dir: string,
+        opts?: {
+            onProgress?: ProgressCallback;
+        }
+    ) {
         return git.clone({
             fs,
             http,
             dir,
             url,
             singleBranch: true,
+            onProgress: opts?.onProgress,
             depth: 1,
             onAuth: requestGitAuth
         });
@@ -563,6 +564,13 @@ export default {
                 ref: branch
             });
         }
+    },
+    listServerRefs: (project: Project) => {
+        return git.listServerRefs({
+            http,
+            url: project.gitRepository.url,
+            prefix: "refs/heads/"
+        });
     },
     github
 };

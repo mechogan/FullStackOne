@@ -7,6 +7,8 @@ import zipDirectory from "./zip";
 import * as sass from "sass";
 import type esbuild from "esbuild";
 import slugify from "slugify";
+import prettyBytes from "pretty-bytes";
+import api from "..";
 
 const list = async () => {
     const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || [];
@@ -36,7 +38,9 @@ const create = async (project: Omit<Project, "createdDate">) => {
     };
     projects.push(newProject);
     await config.save(CONFIG_TYPE.PROJECTS, projects);
-    await rpc().fs.mkdir(project.location, { absolutePath: true });
+    await rpc().fs.mkdir(project.location || project.id, {
+        absolutePath: true
+    });
     return newProject;
 };
 const deleteProject = async (project: Project) => {
@@ -54,9 +58,7 @@ export default {
     create,
     async update(project: Project) {
         const projects = await list();
-        const indexOf = projects.findIndex(
-            ({ location }) => location === project.location
-        );
+        const indexOf = projects.findIndex(({ id }) => id === project.id);
         projects[indexOf] = project;
         return config.save(CONFIG_TYPE.PROJECTS, projects);
     },
@@ -86,8 +88,28 @@ export default {
 
         await rpc().fs.writeFile(out, zipData, { absolutePath: true });
 
-        return zipData;
+        if ((await rpc().platform()) === "node") {
+            const blob = new Blob([zipData]);
+            const url = window.URL.createObjectURL(blob);
+
+            const element = document.createElement("a");
+            element.setAttribute("href", url);
+            element.setAttribute(
+                "download",
+                project.title + ".zip"
+            );
+            element.style.display = "none";
+
+            document.body.appendChild(element);
+
+            element.click();
+            document.body.removeChild(element);
+            window.URL.revokeObjectURL(url);
+        } else {
+            rpc().open(project);
+        }
     },
+
     async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {
         const newProject = {
             ...project,
@@ -115,6 +137,68 @@ export default {
         return errors;
     }
 };
+
+type createFromFullStackedFileOpts = {
+    getDirectoryContents: () => Promise<string[]>;
+    getFileContents: (filename: string) => Promise<string>;
+    alternateTitle: string;
+    alternateRepo?: string;
+    logger?: (message: string) => void;
+};
+
+const fullstackedFileName = ".fullstacked";
+export async function createProjectFromFullStackedFile(
+    opts: createFromFullStackedFileOpts
+) {
+    const items = await opts.getDirectoryContents();
+
+    const fullstackedFile = items.find((name) => name === fullstackedFileName);
+
+    let fullstackedFileJSON: any;
+    if (fullstackedFile) {
+        try {
+            const data = await opts.getFileContents(fullstackedFileName);
+            fullstackedFileJSON = JSON.parse(data);
+            opts.logger?.(`Found valid .fullstacked file`);
+            opts.logger?.(`Contents: `);
+            opts.logger?.(JSON.stringify(fullstackedFileJSON, null, 4));
+        } catch (e) {
+            opts.logger?.(`Failed to decode .fullstacked file`);
+        }
+    } else {
+        opts.logger?.(`No valid .fullstacked file, will deduce project infos`);
+    }
+
+    const projectInfo: Omit<Project, "createdDate"> = {
+        title: fullstackedFileJSON?.title || opts.alternateTitle,
+        id:
+            fullstackedFileJSON?.id ||
+            slugify(opts.alternateTitle, { lower: true }),
+        location:
+            fullstackedFileJSON?.id ||
+            slugify(opts.alternateTitle, { lower: true })
+    };
+
+    const repoURL = fullstackedFileJSON?.git?.repo || opts.alternateRepo;
+    if (repoURL) {
+        projectInfo.gitRepository = {
+            url: repoURL
+        };
+
+        const { hostname } = new URL(repoURL);
+        const gitAuths = await api.config.load(CONFIG_TYPE.GIT);
+        if (gitAuths[hostname]) {
+            projectInfo.gitRepository.name = gitAuths[hostname].username;
+            projectInfo.gitRepository.email = gitAuths[hostname].email;
+        }
+    }
+
+    const project = await create(projectInfo);
+    opts.logger?.(`Created project:`);
+    opts.logger?.(JSON.stringify(projectInfo, null, 4));
+
+    return project;
+}
 
 async function buildJS(project: Project) {
     const rootDirectory = await rpc().directories.rootDirectory();

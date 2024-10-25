@@ -306,13 +306,12 @@ class AdapterEditor(
                 var utf8 = false
                 val json = if (!body.isNullOrEmpty()) JSONArray(body) else JSONArray("[]")
 
-                // writeFile
+                // writeFile, rename
                 if (json.length() > 2) {
                     try {
                         val opt = JSONObject(json.getString(2))
                         absolutePath = opt.getBoolean("absolutePath")
-                    } catch (_: Exception) {
-                    }
+                    } catch (_: Exception) { }
                 }
                 // readFile, writeFileMulti
                 else if (json.length() > 1) {

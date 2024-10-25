@@ -24,11 +24,9 @@ import {
     WebAddress
 } from "../../../src/connectivity/types";
 import { decrypt, encrypt, generateHash } from "./cryptoUtils";
-import peers from "../../views/peers";
 import { BrowseWeb, constructURL } from "./web";
+import { PairingRequest } from "../../views/peers/pairing-request";
 
-let me: Peer,
-    autoConnect = false;
 let advertiseTimeout: ReturnType<typeof setTimeout>;
 
 const peersConnections = new Map<string, PeerConnection>();
@@ -50,7 +48,7 @@ onPush["peerNearby"] = async (eventStr) => {
 };
 
 async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
-    if (eventType === "new" && autoConnect) {
+    if (eventType === "new" && _autoConnect) {
         let alreadyConnected = false;
         // already connected
         for (const peerConection of peersConnections.values()) {
@@ -70,7 +68,7 @@ async function onPeerNearby(eventType: "new" | "lost", peerNearby: PeerNearby) {
         }
     }
 
-    onPush["peerConnectivityEvent"](null);
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
@@ -108,7 +106,36 @@ const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
     return false;
 };
 
+let _autoConnect: boolean, _me: Peer;
 const connectivityAPI = {
+    set me(value: Peer) {
+        _me = value;
+
+        config.load(CONFIG_TYPE.CONNECTIVITY).then((connectivityConfig) => {
+            connectivityConfig.me = value;
+            config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
+        });
+    },
+    get me() {
+        return _me;
+    },
+
+    set autoConnect(value: boolean) {
+        _autoConnect = value;
+
+        if (value) {
+            connectivityAPI.advertise.start();
+            connectivityAPI.browse.start();
+        } else {
+            connectivityAPI.advertise.stop();
+            connectivityAPI.browse.stop();
+        }
+
+        config.load(CONFIG_TYPE.CONNECTIVITY).then((connectivityConfig) => {
+            connectivityConfig.autoConnect = value;
+            config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
+        });
+    },
     async init() {
         let connectivityConfig = await config.load(CONFIG_TYPE.CONNECTIVITY);
         if (!connectivityConfig || typeof connectivityConfig.me === "string") {
@@ -119,16 +146,16 @@ const connectivityAPI = {
                 },
                 autoConnect: false,
                 defaultNetworkInterface: null,
-                webAddreses: [],
+                webAddresses: [],
                 peersTrusted: []
             };
             await config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
         }
 
-        me = connectivityConfig.me;
-        autoConnect = connectivityConfig.autoConnect;
+        _me = connectivityConfig.me;
+        _autoConnect = connectivityConfig.autoConnect;
 
-        if (autoConnect) {
+        if (_autoConnect) {
             connectivityAPI.advertise.start();
             connectivityAPI.browse.start();
         } else {
@@ -137,12 +164,11 @@ const connectivityAPI = {
         }
     },
     peers: {
+        onPeersEvent: new Set<() => void>(),
         async trusted() {
             return (await config.load(CONFIG_TYPE.CONNECTIVITY)).peersTrusted;
         },
-        async connections() {
-            return Array.from(peersConnections.values());
-        },
+        connections: () => peersConnections,
         async nearby() {
             const seenPeerID = new Set<string>();
             const peersNearby = [
@@ -151,7 +177,7 @@ const connectivityAPI = {
             ]
                 .flat()
                 .filter(({ peer: { id } }) => {
-                    if (id === me.id || seenPeerID.has(id)) return false;
+                    if (id === _me.id || seenPeerID.has(id)) return false;
                     seenPeerID.add(id);
                     return true;
                 });
@@ -210,11 +236,11 @@ const connectivityAPI = {
                 CONFIG_TYPE.CONNECTIVITY
             );
             rpc().connectivity.advertise.start(
-                me,
+                _me,
                 connectivityConfig.defaultNetworkInterface
             );
 
-            if (!autoConnect) {
+            if (!_autoConnect) {
                 advertiseTimeout = setTimeout(() => {
                     rpc()
                         .connectivity.advertise.stop()
@@ -242,7 +268,7 @@ const connectivityAPI = {
                 break;
             case PEER_ADVERSTISING_METHOD.IOS_MULTIPEER:
                 id = peerNearby.id;
-                rpc().connectivity.open(peerNearby.id, me);
+                rpc().connectivity.open(peerNearby.id, _me);
                 break;
         }
 
@@ -277,8 +303,7 @@ const connectivityAPI = {
                 break;
         }
 
-        onPush["peerConnectivityEvent"](null);
-        onPush["peerConnectionsCount"](null);
+        api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
     }
 };
 
@@ -357,8 +382,7 @@ async function onPeerConnection(
         }
     }
 
-    onPush["peerConnectivityEvent"](null);
-    onPush["peerConnectionsCount"](null);
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 async function sendPeerConnectionRequest(peerConnection: PeerConnection) {
@@ -367,7 +391,7 @@ async function sendPeerConnectionRequest(peerConnection: PeerConnection) {
     const validation = randomIntFromInterval(1000, 9999);
     const peerConnectionRequest: PeerConnectionRequest = {
         type: PEER_CONNECTION_PAIRING_DATA_TYPE.REQUEST,
-        peer: me,
+        peer: _me,
         validation
     };
 
@@ -431,8 +455,7 @@ async function onPeerConnectionPairingData(
             break;
     }
 
-    onPush["peerConnectivityEvent"](null);
-    onPush["peerConnectionsCount"](null);
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 async function respondToPeerConnectionRequest(
@@ -459,10 +482,9 @@ async function respondToPeerConnectionRequest(
     }
 
     // unknown connection request
-    const trust = await peers.peerConnectionRequestPairingDialog(
-        peer.name,
-        peerConnectionRequest.validation
-    );
+    const trust = await PairingRequest({
+        peerConnectionRequest
+    });
     if (!trust) {
         return connectivityAPI.disconnect(peerConnection);
     }
@@ -490,7 +512,7 @@ async function sendPeerConnectionTokenExchange(
 
     const peerConnectionTokenExchange: PeerConnectionTokenExchange = {
         type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_EXCHANGE,
-        peer: me,
+        peer: _me,
         secret: await encrypt(
             peerConnection.peer.secret.own,
             peerConnection.peer.keys.encrypt
@@ -531,10 +553,9 @@ async function respondToReceivedTokenExchange(
         peerConnection.peer?.keys?.encrypt && peerConnection.peer?.secret?.own;
 
     if (!knownPeer) {
-        const trust = await peers.peerConnectionRequestPairingDialog(
-            tokenExchange.peer.name,
-            tokenExchange.validation
-        );
+        const trust = await PairingRequest({
+            peerConnectionRequest: tokenExchange
+        });
         if (!trust) {
             return connectivityAPI.disconnect(peerConnection);
         }
@@ -572,7 +593,7 @@ async function sendPeerConnectionTokenChallenge(
 
     const peerConnectionTokenChallenge: PeerConnectionTokenChallenge = {
         type: PEER_CONNECTION_PAIRING_DATA_TYPE.TOKEN_CHALLENGE,
-        peer: me,
+        peer: _me,
         validation: peerConection.validation,
         secret: await encrypt(
             peerConection.peer.secret.own,

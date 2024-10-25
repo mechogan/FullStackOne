@@ -1,450 +1,353 @@
-import "./index.css";
-import { Editor } from "../editor";
-import { FileTree } from "../file-tree";
-import { Console } from "../console";
-import {
-    DELETE_ALL_PACKAGES_ID,
-    PROJECT_TITLE_ID,
-    RUN_PROJECT_ID,
-    TYPESCRIPT_ICON_ID
-} from "../../constants";
-import GitWidget from "./git-widget";
-import type esbuild from "esbuild";
-import type { Project as TypeProject } from "../../api/config/types";
-import rpc from "../../rpc";
 import api from "../../api";
-import { PackageInstaller } from "../../packages/installer";
-import { tsWorker, tsWorkerDelegate } from "../../typescript";
-import stackNavigation from "../../stack-navigation";
+import rpc from "../../rpc";
+import type { Project as ProjectType } from "../../api/config/types";
+import { Loader } from "../../components/loader";
+import { Button } from "../../components/primitives/button";
+import { Icon } from "../../components/primitives/icon";
+import { TopBar } from "../../components/top-bar";
+import { WorkerTS } from "../../typescript";
+import { CodeEditor, FileError } from "./code-editor";
+import { Editor } from "./editor";
+import { FileTree } from "./file-tree";
+import { Git } from "./git";
+import type esbuild from "esbuild";
+import { packageInstaller } from "../packages/installer";
 
-class Project implements tsWorkerDelegate {
-    packagesView: boolean = false;
+type ProjectOpts = {
+    project: ProjectType;
+    didDeleteAllPackages?: () => void;
+    didUpdateProject: () => void;
+};
 
-    private container: HTMLDivElement;
-    private project: TypeProject;
+export function Project(opts: ProjectOpts) {
+    const container = document.createElement("div");
+    container.id = "project";
+    container.classList.add("view");
 
-    fileTree: {
-        instance: FileTree;
-        element: Awaited<ReturnType<FileTree["render"]>> | null;
-    } = {
-        instance: new FileTree(),
-        element: null
+    const fileTree = FileTree({
+        directory: opts.project.location,
+        onClosePanel: () => {
+            content.classList.add("closed-panel");
+        }
+    });
+
+    WorkerTS.dispose();
+    const tsButton = Button({
+        style: "icon-large",
+        iconLeft: "TypeScript"
+    });
+    WorkerTS.working = () => {
+        tsButton.disabled = false;
+
+        if (WorkerTS.reqs.size > 0) {
+            tsButton.classList.add("working");
+        } else {
+            tsButton.classList.remove("working");
+        }
     };
-    console = new Console();
+    tsButton.disabled = true;
+    tsButton.onclick = WorkerTS.restart;
 
-    private gitWidget = new GitWidget(
-        this.reloadContent.bind(this),
-        this.openFiles.bind(this)
-    );
+    const runButton = Button({
+        style: "icon-large",
+        iconLeft: "Play"
+    });
+    runButton.onclick = async () => {
+        const loaderContainer = document.createElement("div");
+        loaderContainer.classList.add("loader-container");
+        loaderContainer.append(Loader());
+        runButton.replaceWith(loaderContainer);
 
-    private tabsContainer = document.createElement("ul");
-    private editorsContainer = document.createElement("div");
+        await run({ project: opts.project });
 
-    private currentFile: string;
-    private editors: Editor[] = [];
+        loaderContainer.replaceWith(runButton);
+    };
 
-    private runButton: HTMLButtonElement;
+    const pullEvents: PullEvents = {
+        start: null,
+        end: null
+    };
+    const gitWidget = GitWidget({
+        project: opts.project,
+        didUpdateProject: opts.didUpdateProject,
+        fileTree,
+        pullEvents
+    });
 
-    constructor() {
-        this.fileTree.instance.onItemSelect = (item) => {
-            if (!item || item.isDirectory) return;
+    const isPackagesView =
+        opts.project.id === "packages" && opts.project.createdDate === null;
+    const deleteAllButton = Button({
+        text: "Delete All",
+        color: "red"
+    });
+    deleteAllButton.onclick = async () => {
+        deleteAllButton.disabled = true;
+        await rpc().fs.rmdir(opts.project.location, {
+            absolutePath: true
+        });
+        opts.didDeleteAllPackages();
+    };
 
-            const joinedPath = item.path.join("/");
-            if (
-                !this.editors.find(
-                    ({ filePath }) => filePath.join("/") === joinedPath
-                )
-            ) {
-                this.editors.push(new Editor(item.path));
+    const topBar = TopBar({
+        title: opts.project.title,
+        subtitle: opts.project.id,
+        actions: isPackagesView
+            ? [deleteAllButton]
+            : [gitWidget, tsButton, runButton],
+        onBack: () => {
+            if (content.classList.contains("closed-panel")) {
+                content.classList.remove("closed-panel");
+                return false;
             }
 
-            this.currentFile = joinedPath;
+            return true;
+        }
+    });
 
-            this.renderEditors();
+    container.append(topBar);
+
+    const content = document.createElement("div");
+    content.classList.add("content");
+
+    content.append(
+        fileTree.container,
+        Editor({
+            directory: opts.project.location
+        })
+    );
+    container.append(content);
+
+    pullEvents.start?.();
+    api.git.pull(opts.project).then(() => {
+        pullEvents.end?.();
+        CodeEditor.reloadActiveFilesContent();
+        fileTree.reloadFileTree();
+    });
+
+    return container;
+}
+
+type PullEvents = {
+    start: () => void;
+    end: () => void;
+};
+
+type GitWidgetOpts = {
+    project: ProjectType;
+    didUpdateProject: ProjectOpts["didUpdateProject"];
+    fileTree: ReturnType<typeof FileTree>;
+    pullEvents: PullEvents;
+    statusArrow?: ReturnType<typeof Icon>;
+};
+
+function GitWidget(opts: GitWidgetOpts) {
+    const container = document.createElement("div");
+    container.classList.add("git-widget");
+
+    const renderBranchAndCommit = () => {
+        const branchAndCommitContainer = document.createElement("div");
+
+        Promise.all([
+            api.git.currentBranch(opts.project),
+            api.git.log(opts.project, 1)
+        ]).then(([branch, commit]) => {
+            branchAndCommitContainer.innerHTML = `
+                <div><b>${branch}</b></div>
+                <div>${commit.at(0).oid.slice(0, 7)}<div>
+            `;
+        });
+
+        return branchAndCommitContainer;
+    };
+
+    let branchAndCommit: ReturnType<typeof renderBranchAndCommit>;
+    const reloadBranchAndCommit = () => {
+        const updatedBranchAndCommit = renderBranchAndCommit();
+        if (branchAndCommit) {
+            branchAndCommit.replaceWith(updatedBranchAndCommit);
+        } else {
+            container.prepend(updatedBranchAndCommit);
+        }
+        branchAndCommit = updatedBranchAndCommit;
+    };
+
+    const gitButton = Button({
+        style: "icon-large",
+        iconLeft: "Git"
+    });
+    gitButton.disabled = true;
+    api.git
+        .currentBranch(opts.project)
+        .then(() => {
+            gitButton.disabled = false;
+            reloadBranchAndCommit();
+        })
+        .catch(() => {});
+
+    gitButton.onclick = () => {
+        let remove: ReturnType<typeof Git>;
+
+        const reloadGit = () => {
+            remove?.();
+            remove = Git({
+                project: opts.project,
+                didUpdateProject: async () => {
+                    opts.project = (await api.projects.list()).find(
+                        ({ id }) => opts.project.id === id
+                    );
+                    reloadGit();
+                    opts.didUpdateProject();
+                },
+                didUpdateFiles: () => opts.fileTree.reloadFileTree(),
+                didChangeCommitOrBranch: reloadBranchAndCommit,
+                didPushEvent: (event) => {
+                    if (event === "start") {
+                        opts.statusArrow.style.display = "flex";
+                        opts.statusArrow.classList.add("red");
+                    } else {
+                        opts.statusArrow.style.display = "none";
+                    }
+                }
+            });
         };
 
-        tsWorker.delegate = this;
-
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                this.editors.forEach((editor) => editor.format());
-            }
-        });
-    }
-
-    tsIcon = document.createElement("button");
-    activeReqs = new Set<number>();
-    checkForTsLoading = () => {
-        if (this.activeReqs.size) {
-            this.tsIcon.classList.add("loading");
-        } else {
-            this.tsIcon.classList.remove("loading");
-        }
+        reloadGit();
     };
-    onReq(id: number): void {
-        this.tsIcon.disabled = false;
-        this.activeReqs.add(id);
-        this.checkForTsLoading();
+
+    container.append(gitButton);
+
+    if (!opts.statusArrow) {
+        opts.statusArrow = Icon("Arrow 2");
+        opts.statusArrow.classList.add("git-status-arrow");
+        opts.statusArrow.style.display = "none";
     }
-    onReqEnd(id: number): void {
-        this.activeReqs.delete(id);
-        this.checkForTsLoading();
-    }
+    container.append(opts.statusArrow);
 
-    openFiles(filepaths: string[]) {
-        const editors = filepaths.map(
-            (file) =>
-                new Editor((this.project.location + "/" + file).split("/"))
-        );
-        this.editors = editors;
-        this.currentFile = this.project.location + "/" + filepaths;
-        this.renderEditors();
-    }
+    opts.pullEvents.start = () => {
+        opts.statusArrow.style.display = "flex";
+        opts.statusArrow.classList.remove("red");
+    };
+    opts.pullEvents.end = () => {
+        opts.statusArrow.style.display = "none";
+    };
 
-    async reloadContent() {
-        const fileTree = this.fileTree.element;
-        this.fileTree.element = await this.fileTree.instance.render();
-        fileTree.replaceWith(this.fileTree.element);
+    container.append(opts.statusArrow);
 
-        const editors = [];
-        const removeOrUpdate = (editor: Editor) =>
-            new Promise<void>(async (resolve) => {
-                const exists = await rpc().fs.exists(editor.filePath.join("/"));
-                if (exists) {
-                    editors.push(editor);
-                    await editor.loadFileContents();
-                }
-                resolve();
-            });
-        const removeOrUpdatePromises = this.editors.map(removeOrUpdate);
-        await Promise.all(removeOrUpdatePromises);
-        this.editors = editors;
-        return this.renderEditors();
-    }
+    return container;
+}
 
-    setProject(project: TypeProject) {
-        if (project === this.project) return;
+type runOpts = {
+    project: ProjectType;
+};
 
-        Editor.currentDirectory = project.location;
-        Editor.ignoredTypes = new Set();
+async function run(opts: runOpts) {
+    await CodeEditor.saveAllActiveFiles();
+    CodeEditor.clearAllErrors();
 
-        this.project = project;
-        this.gitWidget.project = project;
+    const errors = await api.projects.build(opts.project);
 
-        this.packagesView = false;
-
-        this.fileTree.instance.setBaseDirectory(project.location);
-
-        this.editors = [];
-        this.renderEditors();
-    }
-
-    openConsole() {
-        this.console.fitAddon.fit();
-        this.container.classList.add("console-opened");
-        setTimeout(() => {
-            this.console.fitAddon.fit();
-        }, 350);
-    }
-
-    private processBuildErrors(errors: Partial<esbuild.Message>[]) {
-        const packagesMissing = new Set<string>();
-        errors.forEach((error) => {
-            const file = error.location?.file;
-
-            if (!file) {
-                this.openConsole();
-                this.console.log(JSON.stringify(error, null, 4));
-                return;
-            }
-
-            const filename = file.split(this.project.location).pop();
-            let filePath = this.project.location + filename;
-
-            const message = error.text;
-
-            if (message.startsWith("Could not resolve")) {
-                const moduleName: string = message
-                    .match(/\".*\"/)
-                    ?.at(0)
-                    ?.slice(1, -1);
-
-                if (!moduleName.startsWith(".")) {
-                    packagesMissing.add(moduleName);
-                    return;
-                }
-            }
-
-            let editor = this.editors.find(
-                (activeEditor) => activeEditor.filePath.join("/") === filePath
-            );
-            if (!editor) {
-                editor = new Editor(filePath.split("/"));
-                this.editors.push(editor);
-            }
-
-            editor.addBuildError({
-                line: error.location?.line,
-                col: error.location?.column,
-                length: error.location?.length,
-                message
-            });
-
-            this.currentFile = filename;
+    if (errors.length) {
+        const { missingPackages, fileErrors } = processBuildErrors({
+            project: opts.project,
+            errors
         });
-
-        this.renderEditors();
-
-        if (packagesMissing.size > 0) {
-            PackageInstaller.install(
-                Array.from(packagesMissing).map((name) => ({
-                    name,
-                    deep: true
-                }))
-            ).then(() => {
-                this.runProject();
-
-                if (Editor.tsWorker) {
-                    setTimeout(async () => {
-                        await Editor.restartTSWorker();
-                        this.editors.forEach((editor) =>
-                            editor.reRunExtensions()
-                        );
-                    }, 500);
-                }
-            });
-        }
-    }
-
-    async runProject() {
-        if (this.runButton.getAttribute("loading")) return;
-
-        this.runButton.setAttribute("loading", "1");
-        const icon = this.runButton.innerHTML;
-        this.runButton.innerHTML = `<div class="loader"></div>`;
-        await Promise.all(
-            this.editors.map((editor) => {
-                editor.clearBuildErrors();
-                return editor.updateFile(true);
-            })
-        );
-        this.renderEditors();
-        this.console.term.clear();
-        setTimeout(async () => {
-            const buildErrors = await api.projects.build(this.project);
-            if (buildErrors.length) this.processBuildErrors(buildErrors);
-            else rpc().run(this.project);
-            this.runButton.innerHTML = icon;
-            this.runButton.removeAttribute("loading");
-        }, 200);
-    }
-
-    private async renderTopRightActions() {
-        const container = document.createElement("div");
-
-        if (this.packagesView) {
-            const deleteAllPackagesButton = document.createElement("button");
-            deleteAllPackagesButton.id = DELETE_ALL_PACKAGES_ID;
-            deleteAllPackagesButton.classList.add("danger", "text");
-            deleteAllPackagesButton.innerText = "Delete All";
-            deleteAllPackagesButton.addEventListener("click", async () => {
-                await rpc().fs.rmdir(this.project.location, {
-                    absolutePath: true
-                });
-                stackNavigation.back();
-            });
-            container.append(deleteAllPackagesButton);
+        if (missingPackages.size) {
+            await Promise.all(
+                Array.from(missingPackages).map(packageInstaller.install)
+            );
+            return run(opts);
         } else {
-            this.tsIcon = document.createElement("button");
-            this.tsIcon.id = TYPESCRIPT_ICON_ID;
-            this.tsIcon.disabled = true;
-            this.tsIcon.classList.add("text");
-            this.tsIcon.innerHTML = await (
-                await fetch("/assets/icons/typescript.svg")
-            ).text();
-            container.append(this.tsIcon);
-
-            const shareButton = document.createElement("button");
-            shareButton.classList.add("text");
-            shareButton.innerHTML = await (
-                await fetch("/assets/icons/share.svg")
-            ).text();
-            shareButton.addEventListener("click", async () => {
-                const zipData = await api.projects.export(this.project);
-                const refreshedFileTree = await this.fileTree.instance.render();
-                this.fileTree.element?.replaceWith(refreshedFileTree);
-                this.fileTree.element = refreshedFileTree;
-                if ((await rpc().platform()) === "node") {
-                    const blob = new Blob([zipData]);
-                    const url = window.URL.createObjectURL(blob);
-
-                    const element = document.createElement("a");
-                    element.setAttribute("href", url);
-                    element.setAttribute(
-                        "download",
-                        this.project.title + ".zip"
-                    );
-                    element.style.display = "none";
-
-                    document.body.appendChild(element);
-
-                    element.click();
-                    document.body.removeChild(element);
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    rpc().open(this.project);
-                }
-            });
-            container.append(shareButton);
-
-            this.runButton = document.createElement("button");
-            this.runButton.id = RUN_PROJECT_ID;
-            this.runButton.classList.add("text");
-            this.runButton.innerHTML = await (
-                await fetch("/assets/icons/run.svg")
-            ).text();
-            this.runButton.addEventListener(
-                "click",
-                this.runProject.bind(this)
-            );
-            container.append(this.runButton);
+            for (const [path, errors] of fileErrors) {
+                CodeEditor.addBuildFileErrors({ path, errors });
+            }
         }
-
-        return container;
-    }
-
-    private async renderToolbar() {
-        const container = document.createElement("div");
-        container.classList.add("top-bar");
-
-        const leftSide = document.createElement("div");
-
-        const backButton = document.createElement("button");
-        backButton.innerHTML = await (
-            await fetch("/assets/icons/chevron.svg")
-        ).text();
-        backButton.classList.add("text");
-        backButton.addEventListener("click", () => stackNavigation.back());
-        leftSide.append(backButton);
-
-        const fileTreeToggle = document.createElement("button");
-        fileTreeToggle.innerHTML = await (
-            await fetch("/assets/icons/side-panel.svg")
-        ).text();
-        fileTreeToggle.classList.add("text");
-        fileTreeToggle.addEventListener("click", () => {
-            this.container.classList.toggle("side-panel-closed");
-            setTimeout(() => {
-                this.console.fitAddon.fit();
-            }, 350);
-        });
-        leftSide.append(fileTreeToggle);
-
-        const projectTitle = document.createElement("h3");
-        projectTitle.id = PROJECT_TITLE_ID;
-        projectTitle.innerText = this.project.title;
-        leftSide.append(projectTitle);
-
-        leftSide.append(await this.gitWidget.renderButton(true));
-
-        container.append(leftSide);
-
-        const rightSide = await this.renderTopRightActions();
-        container.append(rightSide);
-
-        return container;
-    }
-
-    renderEditors() {
-        Array.from(this.editorsContainer.children).forEach((child) =>
-            child.remove()
-        );
-
-        const tabsContainer = document.createElement("ul");
-        tabsContainer.classList.add("tabs-container");
-
-        this.editors.forEach(async (editor, index) => {
-            const tab = document.createElement("li");
-            if (editor.hasBuildErrors()) {
-                tab.classList.add("has-errors");
-            }
-            tab.innerText = editor.filePath.at(-1) || "file";
-            tab.addEventListener("click", () => {
-                this.currentFile = editor.filePath.join("/");
-                this.renderEditors();
-            });
-
-            const removeBtn = document.createElement("button");
-            removeBtn.classList.add("text", "small");
-            removeBtn.innerHTML = await (
-                await fetch("/assets/icons/close.svg")
-            ).text();
-            removeBtn.addEventListener("click", async (e) => {
-                e.stopPropagation();
-                await editor.updateFile();
-                this.editors.splice(index, 1);
-                this.renderEditors();
-            });
-            tab.append(removeBtn);
-
-            tabsContainer.append(tab);
-
-            if (editor.filePath.join("/") === this.currentFile) {
-                tab.classList.add("active");
-                this.editorsContainer.append(await editor.render());
-            }
-        });
-
-        this.tabsContainer.replaceWith(tabsContainer);
-        this.tabsContainer = tabsContainer;
-    }
-
-    async renderConsole() {
-        const consoleContainer = document.createElement("div");
-        consoleContainer.classList.add("console");
-        consoleContainer.append(this.console.render());
-
-        const toggleConsoleButton = document.createElement("button");
-        toggleConsoleButton.classList.add("text");
-        toggleConsoleButton.innerHTML = await (
-            await fetch("assets/icons/caret-down.svg")
-        ).text();
-        toggleConsoleButton.addEventListener("click", () => {
-            this.container.classList.toggle("console-opened");
-            setTimeout(() => {
-                this.console.fitAddon.fit();
-            }, 350);
-        });
-        consoleContainer.append(toggleConsoleButton);
-        return consoleContainer;
-    }
-
-    async render() {
-        this.container = document.createElement("div");
-        this.gitWidget.parentContainer = this.container;
-        this.container.classList.add("project");
-
-        this.container.append(await this.renderToolbar());
-
-        const fileTreeContainer = document.createElement("div");
-        fileTreeContainer.classList.add("left-sidebar");
-        this.fileTree.instance.allowDeletion = true;
-        this.fileTree.instance.noNewItems = this.packagesView;
-        this.fileTree.element = await this.fileTree.instance.render();
-        fileTreeContainer.append(this.fileTree.element);
-        this.container.append(fileTreeContainer);
-
-        this.tabsContainer.classList.add("tabs-container");
-        this.container.append(this.tabsContainer);
-
-        this.editorsContainer.classList.add("editor-container");
-        this.container.append(this.editorsContainer);
-
-        this.container.append(await this.renderConsole());
-
-        return this.container;
+    } else {
+        rpc().run(opts.project);
     }
 }
 
-export default new Project();
+type processBuildErrorsOpts = {
+    project: ProjectType;
+    errors: Partial<esbuild.Message>[];
+};
+
+function processBuildErrors(opts: processBuildErrorsOpts) {
+    const processedErrors = opts.errors.map((error) =>
+        processBuildError({
+            project: opts.project,
+            error
+        })
+    );
+
+    const missingPackages = new Set<string>();
+    const fileErrors = new Map<string, FileError[]>();
+    processedErrors.forEach((error) => {
+        switch (error.type) {
+            case "missingPackage":
+                missingPackages.add(error.packageName);
+                break;
+            case "fileError":
+                let errorsForFile = fileErrors.get(error.path);
+                if (!errorsForFile) {
+                    errorsForFile = [];
+                    fileErrors.set(error.path, errorsForFile);
+                }
+                errorsForFile.push(error.fileError);
+        }
+    });
+
+    return { missingPackages, fileErrors };
+}
+
+type processErrorOpts = {
+    project: ProjectType;
+    error: Partial<esbuild.Message>;
+};
+
+function processBuildError(opts: processErrorOpts):
+    | {
+          type: "missingPackage";
+          packageName: string;
+      }
+    | {
+          type: "fileError";
+          path: string;
+          fileError: FileError;
+      } {
+    const file = opts.error.location?.file;
+
+    if (!file) {
+        console.log(opts.error);
+        return;
+    }
+
+    const message = opts.error.text;
+
+    if (message.startsWith("Could not resolve")) {
+        const packageName: string = message
+            .match(/\".*\"/)
+            ?.at(0)
+            ?.slice(1, -1);
+
+        if (!packageName.startsWith(".")) {
+            return {
+                type: "missingPackage",
+                packageName
+            };
+        }
+    }
+
+    const filePath = file.split(opts.project.location).pop();
+    const path = opts.project.location + filePath;
+
+    return {
+        type: "fileError",
+        path,
+        fileError: {
+            line: opts.error.location?.line,
+            col: opts.error.location?.column,
+            length: opts.error.location?.length,
+            message
+        }
+    };
+}

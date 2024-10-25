@@ -1,95 +1,5 @@
 import type { methods } from "./worker";
 
-function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
-    return new Proxy(target, {
-        apply: (target, _, argArray) => {
-            return target(methodPath, ...argArray);
-        },
-        get: (_, p) => {
-            methodPath.push(p as string);
-            return recurseInProxy(target, methodPath);
-        }
-    }) as AwaitAll<T>;
-}
-
-export abstract class tsWorkerDelegate {
-    abstract onReq(id: number): void;
-    abstract onReqEnd(id: number): void;
-}
-
-export class tsWorker {
-    static delegate?: tsWorkerDelegate;
-    private worker: Worker;
-    workingDirectory: string;
-    private reqsCount = 0;
-    private reqs = new Map<number, Function>();
-    private isReady = false;
-    private readyAwaiter: Function[] = [];
-
-    private postMessage(methodPath: string[], ...args: any) {
-        const id = ++this.reqsCount;
-        if (tsWorker.delegate) tsWorker.delegate.onReq(id);
-        return new Promise((resolve) => {
-            this.reqs.set(id, resolve);
-            this.worker.postMessage({ id, methodPath, args });
-        });
-    }
-
-    dispose() {
-        this.worker.terminate();
-        for (const [id, promiseResolve] of this.reqs.entries()) {
-            tsWorker.delegate.onReqEnd(id);
-            promiseResolve(undefined);
-        }
-        this.reqs.clear();
-        this.reqsCount = 0;
-    }
-
-    constructor(workingDirectory: string) {
-        this.workingDirectory = workingDirectory;
-
-        this.worker = new Worker("worker-ts.js", { type: "module" });
-        this.worker.onmessage = (message) => {
-            if (message.data.ready) {
-                rpc()
-                    .platform()
-                    .then((platform) => {
-                        this.worker.postMessage({ platform });
-                        this.isReady = true;
-                        this.readyAwaiter.forEach((resolve) => resolve());
-                    });
-                return;
-            }
-
-            if (message.data.body) {
-                const { id, body } = message.data;
-                (globalThis as any).Android?.passRequestBody(id, body);
-                this.worker.postMessage({ request_id: id });
-                return;
-            }
-
-            const { id, data } = message.data;
-            const promiseResolve = this.reqs.get(id);
-            promiseResolve(data);
-            this.reqs.delete(id);
-            if (tsWorker.delegate) tsWorker.delegate.onReqEnd(id);
-        };
-    }
-
-    async ready(): Promise<void> {
-        if (this.isReady) return;
-
-        return new Promise((resolve) => {
-            this.readyAwaiter.push(resolve);
-        });
-    }
-
-    call = () =>
-        recurseInProxy(this.postMessage.bind(this)) as unknown as AwaitAll<
-            typeof methods
-        >;
-}
-
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
@@ -103,3 +13,92 @@ type AwaitAll<T> = {
           ? AwaitAll<T[K]>
           : () => Promise<T[K]>;
 };
+
+function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
+    return new Proxy(target, {
+        apply: (target, _, argArray) => {
+            return target(methodPath, ...argArray);
+        },
+        get: (_, p) => {
+            methodPath.push(p as string);
+            return recurseInProxy(target, methodPath);
+        }
+    }) as AwaitAll<T>;
+}
+
+let worker: Worker;
+let reqsCount = 0;
+let directory: string;
+export const WorkerTS = {
+    reqs: new Map<number, Function>(),
+    working: null as () => void,
+    start,
+    restart,
+    dispose,
+    call: () =>
+        recurseInProxy(postMessage) as unknown as AwaitAll<typeof methods>
+};
+
+function postMessage(methodPath: string[], ...args: any) {
+    if (!worker) return;
+
+    const id = ++reqsCount;
+    return new Promise((resolve) => {
+        WorkerTS.reqs.set(id, resolve);
+        worker.postMessage({ id, methodPath, args });
+        WorkerTS.working?.();
+    });
+}
+
+function restart() {
+    if (!directory) {
+        throw Error("Tried to restart WorkerTS before calling start");
+    }
+
+    WorkerTS.dispose();
+    return WorkerTS.start(directory);
+}
+
+function start(workingDirectory: string) {
+    directory = workingDirectory;
+
+    return new Promise<void>((resolve) => {
+        if (worker) return resolve();
+
+        worker = new Worker("worker-ts.js", { type: "module" });
+        worker.onmessage = async (message) => {
+            if (message.data.ready) {
+                const platform = await rpc().platform();
+                worker.postMessage({ platform });
+                await WorkerTS.call().start(workingDirectory);
+                resolve();
+            } else if (message.data.body) {
+                const { id, body } = message.data;
+                (globalThis as any).Android?.passRequestBody(id, body);
+                worker.postMessage({ request_id: id });
+            } else {
+                const { id, data } = message.data;
+                const promiseResolve = WorkerTS.reqs.get(id);
+                promiseResolve(data);
+                WorkerTS.reqs.delete(id);
+            }
+
+            WorkerTS.working?.();
+        };
+    });
+}
+
+function dispose() {
+    worker?.terminate();
+    worker = null;
+
+    for (const promiseResolve of WorkerTS.reqs.values()) {
+        try {
+            promiseResolve(undefined);
+        } catch (e) {}
+    }
+    WorkerTS.reqs.clear();
+    reqsCount = 0;
+
+    WorkerTS.working?.();
+}

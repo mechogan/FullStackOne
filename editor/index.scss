@@ -1,107 +1,40 @@
-@import "style/colors";
-@import "style/typography";
-@import "style/inputs";
-@import "style/headings";
-@import "style/dialog";
-@import "style/badge";
+/* 
+All styles follows the official figma design file
+https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
+*/
+@use "./style/values/spacing.scss";
+
+// globals
+@import "./style/globals/colors.scss";
+@import "./style/globals/spacing.scss";
+@import "./style/globals/typography.scss";
+@import "./style/globals/input.scss";
+@import "./style/globals/list.scss";
+
+// components
+@import "./components/primitives/badge.scss";
+@import "./components/primitives/button.scss";
+@import "./components/primitives/icon.scss";
+@import "./components/primitives/inputs.scss";
+@import "./components/top-bar.scss";
+@import "./components/view-scrollable.scss";
+@import "./components/popover.scss";
+@import "./components/loader.scss";
+@import "./components/dialog.scss";
+@import "./components/message.scss";
+
+// views
+@import "./views/projects.scss";
+@import "./views/esbuild.scss";
+@import "./views/add-project/index.scss";
+@import "./views/settings/index.scss";
+@import "./views/peers/index.scss";
+@import "./views/project/index.scss";
+@import "./views/project/git/index.scss";
+@import "./views/packages/progress.scss";
 
 * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     box-sizing: border-box;
-}
-
-html,
-body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: $blue-dark;
-    font-family:
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Oxygen,
-        Ubuntu,
-        Cantarell,
-        "Open Sans",
-        "Helvetica Neue",
-        sans-serif;
-    color: white;
-    font-size: $font-size-m;
-    font-weight: $font-weight-normal;
-}
-
-.view {
-    position: fixed;
-    height: 100%;
-    width: 100%;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-}
-
-.view > div {
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    overflow: auto;
-}
-
-ul {
-    list-style: none;
-}
-
-a {
-    color: inherit;
-    text-decoration: underline;
-}
-
-.loader {
-    width: 24px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 3px solid colorOpacity(white, 0.5);
-    border-right-color: $blue;
-    animation: l2 1s infinite linear;
-}
-@keyframes l2 {
-    to {
-        transform: rotate(1turn);
-    }
-}
-
-.cm-search label,
-.cm-button {
-    display: inline-block;
-}
-
-.code {
-    align-items: center;
-    > span {
-        font-size: $font-size-xl;
-        background-color: colorOpacity(white, 0.1);
-        padding: spacing();
-        border-radius: $border-radius;
-        border: $border-width solid colorOpacity(white, 0.3);
-    }
-    button.copied {
-        color: $green;
-    }
-}
-
-#splash {
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    img {
-        height: 100px;
-        width: 100px;
-    }
 }

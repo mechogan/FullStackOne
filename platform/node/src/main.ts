@@ -192,6 +192,23 @@ function upgradeFS(
         return fs.promises.writeFile(filePath, data, options);
     };
 
+    const existsAndIsFile = async (
+        path: string,
+        options?: { absolutePath?: boolean }
+    ) => {
+        if (options?.absolutePath) {
+            try {
+                const stats = await fs.promises.stat(
+                    rootDirectory + "/" + path
+                );
+                return { isFile: stats.isFile() };
+            } catch (e) {
+                return null;
+            }
+        }
+        return defaultFS.exists(path);
+    };
+
     return {
         ...defaultFS,
         readFile: (
@@ -293,18 +310,28 @@ function upgradeFS(
             }
             return defaultFS.lstat(path);
         },
-        exists: async (path: string, options?: { absolutePath?: boolean }) => {
+        exists: existsAndIsFile,
+        rename: async (oldPath, newPath, options) => {
+            if (oldPath === newPath) return;
+
             if (options?.absolutePath) {
-                try {
-                    const stats = await fs.promises.stat(
-                        rootDirectory + "/" + path
-                    );
-                    return { isFile: stats.isFile() };
-                } catch (e) {
-                    return null;
+                const exists = await existsAndIsFile(newPath, {
+                    absolutePath: true
+                });
+
+                oldPath = rootDirectory + "/" + oldPath;
+                newPath = rootDirectory + "/" + newPath;
+
+                if (typeof exists?.isFile === "boolean") {
+                    await fs.promises.rm(newPath, {
+                        recursive: true,
+                        force: true
+                    });
                 }
+
+                return fs.promises.rename(oldPath, newPath);
             }
-            return defaultFS.exists(path);
+            return defaultFS.rename(oldPath, newPath);
         }
     };
 }
@@ -327,7 +354,7 @@ function createHandler(mainAdapter: AdapterEditor) {
         const pathAndQuery = path.split("?");
 
         // get first element as pathname
-        let pathname = pathAndQuery.shift();
+        let pathname = decodeURIComponent(pathAndQuery.shift());
 
         // the rest can be used as query
         const query = pathAndQuery.join("?");

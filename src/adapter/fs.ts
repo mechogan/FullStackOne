@@ -89,4 +89,10 @@ export type fs = {
         path: string,
         options?: { absolutePath?: boolean }
     ): Promise<null | { isFile: boolean }>;
+
+    rename(
+        oldPath: string,
+        newPath: string,
+        options?: { absolutePath?: boolean }
+    ): Promise<void>;
 };

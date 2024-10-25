@@ -1,0 +1,277 @@
+@use "../../../style/values/typography.scss";
+@use "../../../style/values/spacing.scss";
+@use "../../../style/values/colors.scss";
+
+.git-dialog {
+    display: flex;
+    flex-direction: column;
+
+    .git-top {
+        display: flex;
+        align-items: center;
+        gap: spacing.$x-small;
+        padding-bottom: spacing.$small;
+
+        > .icon {
+            height: 38px;
+            width: 38px;
+        }
+
+        .git-info {
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
+            > * {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            a,
+            > div:last-child {
+                font-size: typography.$small;
+            }
+        }
+    }
+
+    .git-author {
+        display: flex;
+        background-color: colors.$gray-dark;
+        border: 1px solid colors.$gray;
+        padding: spacing.$small;
+        border-radius: spacing.$x-small;
+        justify-content: space-between;
+        align-items: center;
+        gap: spacing.$small;
+
+        &.with-form {
+            align-items: flex-start;
+            > button {
+                display: none;
+            }
+        }
+
+        > div:nth-child(2) {
+            flex: 1;
+            font-size: typography.$small;
+        }
+
+        > .icon {
+            width: 24px;
+            height: 28px;
+        }
+
+        .git-author-form {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$small;
+
+            > div:last-child {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+    }
+
+    .git-status {
+        padding-top: spacing.$medium;
+
+        .git-changes {
+            > div {
+                font-weight: bold;
+            }
+
+            ul {
+                display: flex;
+                flex-direction: column;
+                gap: spacing.$x-small;
+                padding-top: spacing.$x-small;
+                padding-bottom: spacing.$small;
+
+                li {
+                    background-color: colors.$gray-dark;
+                    border: 1px solid colors.$gray;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0 spacing.$x-small;
+                    border-radius: spacing.$x-small;
+
+                    > button {
+                        color: colors.$light;
+                    }
+                }
+            }
+        }
+
+        .input-text {
+            padding-top: spacing.$small;
+            padding-bottom: spacing.$small;
+        }
+
+        .message {
+            justify-content: flex-end;
+        }
+    }
+
+    .git-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: spacing.$small;
+
+        > div {
+            display: flex;
+            gap: spacing.$x-small;
+        }
+    }
+}
+
+.git-branches {
+    > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        gap: spacing.$x-small;
+        align-items: center;
+        h3 {
+            flex: 1;
+        }
+    }
+
+    .git-branch-list {
+        .message {
+            padding-top: spacing.$small;
+        }
+
+        .message + ul {
+            padding-top: spacing.$small;
+        }
+
+        ul {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$small;
+
+            padding: spacing.$medium 0;
+
+            li {
+                background-color: colors.$gray-dark;
+                border: 1px solid colors.$gray;
+
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: spacing.$x-small;
+                border-radius: spacing.$x-small;
+
+                padding: spacing.$small;
+
+                > div:first-child {
+                    height: 24px;
+                    width: 24px;
+
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    > svg {
+                        height: 20px;
+                        width: 20px;
+                    }
+                }
+
+                > div:nth-child(2) {
+                    flex: 1;
+                }
+
+                > div:nth-child(4) {
+                    height: 24px;
+                    width: 24px;
+                }
+
+                > button:last-child {
+                    color: colors.$light;
+                }
+            }
+        }
+    }
+
+    .create-branch-form {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+        padding-top: spacing.$small;
+        > div:last-child {
+            display: flex;
+            justify-content: space-between;
+        }
+    }
+}
+
+.git-auth {
+    h3,
+    p {
+        padding-bottom: spacing.$medium;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
+
+        > div:last-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+}
+
+.github-auth {
+    h3 {
+        padding-bottom: spacing.$medium;
+    }
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+        align-items: center;
+
+        p {
+            align-self: flex-start;
+        }
+
+        > button {
+            align-self: flex-end;
+        }
+
+        code {
+            display: flex;
+            padding: spacing.$small;
+            gap: spacing.$small;
+            background-color: colors.$gray-dark;
+            border: 1px solid colors.$gray;
+            align-items: center;
+            font-family: inherit;
+            border-radius: spacing.$x-small;
+            font-size: typography.$heading-2;
+
+            > .icon {
+                height: 38px;
+                width: 38px;
+                svg {
+                    height: 30px;
+                    width: 30px;
+                }
+
+                color: colors.$green;
+            }
+        }
+    }
+}
