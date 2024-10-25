@@ -62,8 +62,8 @@ function WebAdresses() {
     `;
 
     const addButton = Button({
-        text: "Add",
-        iconRight: "Plus"
+        style: "icon-large",
+        iconLeft: "Plus"
     });
 
     addButton.onclick = () => {
@@ -72,7 +72,7 @@ function WebAdresses() {
         const remove = () => {
             addButton.disabled = false;
             form.remove();
-        }
+        };
 
         const form = document.createElement("form");
 
@@ -103,24 +103,26 @@ function WebAdresses() {
 
         buttons.append(cancelButton, addAddressButton);
 
-        form.onsubmit = e => {
+        form.onsubmit = (e) => {
             e.preventDefault();
             const webAddress: WebAddress = {
                 hostname: hostnameInput.input.value,
                 port: parseInt(portInput.input.value),
                 secure: secureSwitch.input.checked
-            }
+            };
             remove();
-            api.config.load(CONFIG_TYPE.CONNECTIVITY)
-                .then(connectivityConfig => {
-                    if(!connectivityConfig.webAddresses){
+            api.config
+                .load(CONFIG_TYPE.CONNECTIVITY)
+                .then((connectivityConfig) => {
+                    if (!connectivityConfig.webAddresses) {
                         connectivityConfig.webAddresses = [];
                     }
                     connectivityConfig.webAddresses.unshift(webAddress);
-                    api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
+                    api.config
+                        .save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
                         .then(reloadWebAddressesList);
-                })
-        }
+                });
+        };
 
         form.append(
             secureSwitch.container,
@@ -139,7 +141,8 @@ function WebAdresses() {
     const saveWebAddresses = (webAddresses: WebAddress[]) => {
         api.config.load(CONFIG_TYPE.CONNECTIVITY).then((connectivityConfig) => {
             connectivityConfig.webAddresses = webAddresses;
-            api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
+            api.config
+                .save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig)
                 .then(reloadWebAddressesList);
         });
     };
@@ -160,19 +163,17 @@ function WebAdresses() {
                     })
                 ) ?? [];
             updatedList.append(...items);
+
+            list.replaceWith(updatedList);
+            list = updatedList
         });
 
-        if(list) {
-            list.replaceWith(updatedList)
-        } else {
+        if (!list) {
             container.append(updatedList);
+            list = updatedList;
         }
-
-        list = updatedList;
-    }
+    };
     reloadWebAddressesList();
-
-    
 
     return container;
 }
@@ -213,7 +214,6 @@ function WebAddressItem(opts: WebAddressItemOpts) {
     });
 
     deleteButton.onclick = () => {
-        item.remove();
         opts.didDelete();
     };
 
@@ -257,7 +257,7 @@ function pingWebAddress(webAddress: WebAddress) {
     return new Promise<boolean>((resolve) => {
         const url = constructURL(webAddress, "http");
         rpc()
-            .fetch(url + "/ping", { 
+            .fetch(url + "/ping", {
                 timeout: 3000,
                 encoding: "utf8"
             })
@@ -266,53 +266,74 @@ function pingWebAddress(webAddress: WebAddress) {
     });
 }
 
+function INetItem(name: string) {
+    const item = document.createElement("li");
+
+    const nameContainer = document.createElement("div");
+    nameContainer.innerText = name;
+
+    const inputRadio = InputRadio();
+    inputRadio.input.name = "inet";
+
+    item.append(name, inputRadio.container);
+
+    return {
+        item,
+        inputRadio
+    };
+}
+
 function NetworkInterfaces() {
     const container = document.createElement("div");
     container.classList.add("network-interfaces");
 
-    const top = document.createElement("div");
-
-    top.innerHTML = `
+    container.innerHTML = `
         <label>Default Network Interface</label>
     `;
 
     const form = document.createElement("form");
 
-    const clearButton = Button({
-        text: "Clear"
-    });
+    container.append(form);
 
-    clearButton.onclick = () => {
-        form.reset();
+    const updateDefaultNetworkInterface = async (inetName: string) => {
+        const connectivityConfig = await api.config.load(
+            CONFIG_TYPE.CONNECTIVITY
+        );
+        connectivityConfig.defaultNetworkInterface = inetName;
+        api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
     };
 
-    top.append(clearButton);
+    Promise.all([
+        api.config.load(CONFIG_TYPE.CONNECTIVITY),
+        rpc().connectivity.infos()
+    ]).then(([connectivityConfig, { networkInterfaces }]) => {
+        if (!networkInterfaces || networkInterfaces.length === 0) return;
 
-    container.append(top, form);
+        const list = document.createElement("ul");
 
-    rpc()
-        .connectivity.infos()
-        .then(({ networkInterfaces }) => {
-            const list = document.createElement("ul");
+        const autoItem = INetItem("auto");
+        list.append(autoItem.item);
 
-            networkInterfaces.forEach((inet) => {
-                const item = document.createElement("li");
+        autoItem.inputRadio.input.checked =
+            !connectivityConfig.defaultNetworkInterface;
+        autoItem.inputRadio.input.onchange = () => {
+            if (autoItem.inputRadio.input.checked)
+                updateDefaultNetworkInterface(null);
+        };
 
-                const name = document.createElement("div");
-                name.innerText = inet.name;
-
-                const inputRadio = InputRadio();
-                inputRadio.input.name = "inet";
-                inputRadio.input.onchange = () => {
-                    console.log(inet.name);
-                }
-
-                item.append(name, inputRadio.container);
-                list.append(item);
-            });
-
-            form.append(list);
+        networkInterfaces.forEach((inet) => {
+            const item = INetItem(inet.name);
+            item.inputRadio.input.checked =
+                connectivityConfig.defaultNetworkInterface === inet.name;
+            item.inputRadio.input.onchange = () => {
+                if (item.inputRadio.input.checked)
+                    updateDefaultNetworkInterface(inet.name);
+            };
+            list.append(item.item);
         });
+
+        form.append(list);
+    });
 
     return container;
 }

@@ -95,10 +95,8 @@
         }
 
         .network-interfaces {
-            > div:first-child {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
+            > label {
+                display: block;
                 padding-bottom: spacing.$small;
             }
 
@@ -158,6 +156,25 @@
                     flex-direction: column;
                     gap: 3px;
                 }
+            }
+        }
+
+        form {
+            background-color: colors.$gray-dark;
+            border: 1px solid colors.$gray;
+            padding: spacing.$small;
+            border-radius: spacing.$x-small;
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$small;
+            > div:last-child {
+                display: flex;
+                justify-content: space-between;
+            }
+
+
+            + ul {
+                padding-top: spacing.$small;
             }
         }
     }
