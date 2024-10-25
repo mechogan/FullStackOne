@@ -1,0 +1,70 @@
+@use "../../style/values/spacing.scss";
+@use "../../style/values/colors.scss";
+
+#add-project {
+    padding-bottom: spacing.$small;
+
+    .buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: spacing.$large;
+        padding-top: spacing.$large;
+    }
+}
+
+.create-form {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .top-bar {
+        padding-bottom: spacing.$small;
+    }
+
+    form {
+        padding-top: spacing.$medium;
+        padding-bottom: spacing.$medium;
+
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$medium;
+
+        width: 100%;
+        max-width: spacing.$max-width;
+
+        margin: 0 auto;
+
+        button {
+            align-self: flex-end;
+        }
+    }
+}
+
+.create-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: spacing.$medium;
+    padding-bottom: spacing.$medium;
+    .loader {
+        width: 60px;
+    }
+}
+
+.create-terminal {
+    background-color: colors.$dark;
+    border: 1px solid colors.$gray;
+    color: colors.$light;
+    overflow: auto;
+    height: 100%;
+    border-radius: spacing.$x-small;
+    min-height: 250px;
+    flex: 1;
+    > pre {
+        padding: spacing.$medium;
+        min-height: 100%;
+    }
+}

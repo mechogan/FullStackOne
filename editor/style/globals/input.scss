@@ -1,0 +1,17 @@
+@use "../values/colors.scss";
+@use "../values/spacing.scss";
+@use "../values/typography.scss";
+
+input {
+    background-color: colors.$light;
+    color: colors.$dark;
+    border: 0;
+    border-radius: spacing.$x-small;
+    font-size: typography.$medium;
+    padding: 6px;
+    outline-offset: 0px;
+
+    &:focus {
+        outline: 2px solid colors.$blue;
+    }
+}
