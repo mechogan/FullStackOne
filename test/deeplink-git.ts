@@ -1,7 +1,7 @@
 import child_process, { ChildProcess } from "child_process";
 import puppeteer from "puppeteer";
 import { sleep, throwError } from "./utils";
-import { PROJECT_TITLE_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../editor/constants";
+import { PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../editor/constants";
 
 let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 
@@ -35,7 +35,7 @@ await sleep(7000);
 const browser = await puppeteer.launch({
     headless: false
 });
-const page = await browser.newPage();
+let page = await browser.newPage();
 await page.goto("http://localhost:9000");
 
 // wait for title
@@ -68,7 +68,12 @@ await page.evaluate(async () => {
 });
 await sleep(3000);
 
+await page.close()
+page = await browser.newPage()
+
 editorProcess1.kill();
+
+await sleep(2000);
 
 const DEMO_TITLE = "Demo";
 editorProcess2 = child_process.exec(
@@ -86,7 +91,7 @@ editorProcess2.stderr.pipe(process.stderr);
 editorProcess2.on("error", onError);
 await sleep(3000);
 
-await page.reload();
+await page.goto("http://localhost:9000");
 
 await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 
