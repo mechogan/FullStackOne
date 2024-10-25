@@ -8,11 +8,11 @@ export default async function (
     readdirFn: Adapter["fs"]["readdir"],
     ignore?: (file: string) => boolean
 ) {
-    const demoFiles = (await scan(directory, readdirFn)) as string[];
+    const files = (await scan(directory, readdirFn)) as string[];
 
     const uint8ArrayWriter = new zip.Uint8ArrayWriter();
     const zipWriter = new zip.ZipWriter(uint8ArrayWriter);
-    for (const file of demoFiles) {
+    for (const file of files) {
         const filename = file.slice(directory.length + 1);
         if (ignore && ignore(filename)) continue;
         await zipWriter.add(

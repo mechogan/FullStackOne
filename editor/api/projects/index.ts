@@ -88,7 +88,26 @@ export default {
 
         await rpc().fs.writeFile(out, zipData, { absolutePath: true });
 
-        return zipData;
+        if ((await rpc().platform()) === "node") {
+            const blob = new Blob([zipData]);
+            const url = window.URL.createObjectURL(blob);
+
+            const element = document.createElement("a");
+            element.setAttribute("href", url);
+            element.setAttribute(
+                "download",
+                project.title + ".zip"
+            );
+            element.style.display = "none";
+
+            document.body.appendChild(element);
+
+            element.click();
+            document.body.removeChild(element);
+            window.URL.revokeObjectURL(url);
+        } else {
+            rpc().open(project);
+        }
     },
 
     async import(project: Omit<Project, "createdDate">, zipData: Uint8Array) {

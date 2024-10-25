@@ -196,16 +196,14 @@ function Item(opts: ItemOpts) {
             : opts.dirent.isDirectory;
 
     let children: HTMLUListElement;
-    const openDirectory = () => {
+    const openDirectory = async () => {
         item.classList.add("opened");
-        TreeRecursive({
+        children = await TreeRecursive({
             directory: path,
             didDeleteOrRenameItem: opts.didDeleteOrRename
-        }).then((children) => {
-            item.append(children);
-            openedDirectory.add(path);
-        });
-        
+        })
+        item.append(children);
+        openedDirectory.add(path);
     };
 
     if (isDirectory) {
