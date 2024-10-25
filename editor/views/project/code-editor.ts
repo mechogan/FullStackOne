@@ -17,6 +17,43 @@ import {
     tsTypeDefinition
 } from "./ts-extensions";
 import { autocompletion } from "@codemirror/autocomplete";
+import prettier from "prettier";
+import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginTypeScript from "prettier/plugins/typescript";
+
+window.addEventListener("keydown", async (e) => {
+    if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+
+        if(!CodeEditor.openedFilePath) return;
+        const ext = CodeEditor.openedFilePath.split(".").pop() as UTF8_Ext;
+        if(!jsTsExtensions.includes(ext)) return;
+
+        const openedFile = find(CodeEditor.activeFiles, ({path}) => CodeEditor.openedFilePath === path);
+        const editorView = openedFile.view as EditorView;
+
+        const formatted = await prettier.format(
+            editorView.state.doc.toString(),
+            {
+                parser: "typescript",
+                plugins: [prettierPluginTypeScript, prettierPluginEstree],
+                tabWidth: 4,
+                trailingComma: "none"
+            }
+        );
+
+        const selection = editorView.state.selection;
+
+        editorView.dispatch({
+            changes: {
+                from: 0,
+                to: editorView.state.doc.length,
+                insert: formatted
+            },
+            selection
+        });
+    }
+});
 
 type ImageView = {
     dom: HTMLElement;
@@ -413,6 +450,11 @@ const javascriptExtensions = [
 ];
 
 const typescriptExtensions = [UTF8_Ext.TYPESCRIPT, UTF8_Ext.TYPESCRIPT_X];
+
+const jsTsExtensions = [
+    ...javascriptExtensions,
+    ...typescriptExtensions
+]
 
 type addFileErrorsOpts = {
     path: string;
