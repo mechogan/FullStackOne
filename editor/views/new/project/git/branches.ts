@@ -62,19 +62,19 @@ export function Branches(opts: BranchesOpts) {
 
     closeButton.onclick = opts.removeDialog;
 
-    let branchList: ReturnType<typeof BranchesList>;
+    let branchList: Awaited<ReturnType<typeof BranchesList>>;
     const reloadBranchList = () => {
-        const updatedBranchList = BranchesList({
+        BranchesList({
             project: opts.project,
             didChangeBranch: opts.didChangeBranch,
             didChangeBranchList: reloadBranchList
+        }).then(updatedBranchList => {
+            branchList.replaceWith(updatedBranchList);
+            branchList = updatedBranchList;
         });
 
-        if (branchList) {
-            branchList.replaceWith(updatedBranchList);
-        }
-
-        branchList = updatedBranchList;
+        if (!branchList)
+            branchList = document.createElement("div");
     };
     reloadBranchList();
 
@@ -89,138 +89,138 @@ type BranchesListOpts = {
     didChangeBranchList: () => void;
 };
 
-function BranchesList(opts: BranchesListOpts) {
+async function BranchesList(opts: BranchesListOpts) {
     const container = document.createElement("div");
     container.classList.add("git-branch-list");
 
-    Promise.all([
+    const [branches, currentBranch, changes] = await Promise.all([
         api.git.branch.getAll(opts.project),
         api.git.currentBranch(opts.project),
         api.git.changes(opts.project)
-    ]).then(([branches, currentBranch, changes]) => {
-        let hasUncommittedChanges =
-            changes.added.length ||
-            changes.modified.length ||
-            changes.deleted.length;
-        if (hasUncommittedChanges) {
-            container.append(
-                Message({
-                    style: "warning",
-                    text: "You have uncommitted changes. Commit before changing branch."
+    ])
+    let hasUncommittedChanges =
+        changes.added.length ||
+        changes.modified.length ||
+        changes.deleted.length;
+    if (hasUncommittedChanges) {
+        container.append(
+            Message({
+                style: "warning",
+                text: "You have uncommitted changes. Commit before changing branch."
+            })
+        );
+    }
+
+    const branchesList = document.createElement("ul");
+    container.append(branchesList);
+
+    const allBranches = Array.from(
+        new Set(branches.local.concat(branches.remote))
+    ).filter((name) => name !== "HEAD");
+
+    const checkoutButtonsAndOptions = [];
+
+    const items = allBranches.sort().map((branch) => {
+        const item = document.createElement("li");
+
+        const isCurrent = branch === currentBranch;
+        let isLocal = branches.local.includes(branch);
+
+        if (isCurrent) {
+            const icon = Icon("Arrow 2");
+            checkoutButtonsAndOptions.push(icon);
+            item.append(icon);
+        } else if (hasUncommittedChanges) {
+            item.append(document.createElement("div"));
+        } else {
+            const checkoutButton = Button({
+                style: "icon-small",
+                iconLeft: "Arrow Corner"
+            });
+
+            checkoutButtonsAndOptions.push(checkoutButton);
+
+            checkoutButton.onclick = async () => {
+                checkoutButton.replaceWith(Loader());
+                checkoutButtonsAndOptions.forEach((button) => {
+                    button.replaceWith(document.createElement("div"));
+                });
+
+                await api.git.checkout(opts.project, branch);
+                if (branches.remote.includes(branch)) {
+                    await api.git.pull(opts.project);
+                }
+                opts.didChangeBranch();
+                opts.didChangeBranchList();
+            };
+
+            item.append(checkoutButton);
+        }
+
+        const branchName = document.createElement("div");
+        branchName.innerText = branch;
+        item.append(branchName);
+
+        if (isLocal) {
+            if (branches.remote.includes(branch)) {
+                item.append(document.createElement("div"));
+            } else {
+                item.append(
+                    Badge({
+                        text: "local-only",
+                        type: "info"
+                    })
+                );
+            }
+        } else {
+            item.append(
+                Badge({
+                    text: "remote-only"
                 })
             );
         }
 
-        const branchesList = document.createElement("ul");
-        container.append(branchesList);
+        if (isLocal && !isCurrent) {
+            const optionsButton = Button({
+                style: "icon-small",
+                iconLeft: "Options"
+            });
 
-        const allBranches = Array.from(
-            new Set(branches.local.concat(branches.remote))
-        ).filter((name) => name !== "HEAD");
+            checkoutButtonsAndOptions.push(optionsButton);
 
-        const checkoutButtonsAndOptions = [];
+            item.append(optionsButton);
 
-        const items = allBranches.sort().map((branch) => {
-            const item = document.createElement("li");
+            const deleteButton = Button({
+                text: "Delete",
+                iconLeft: "Trash",
+                color: "red"
+            });
 
-            const isCurrent = branch === currentBranch;
-            let isLocal = branches.local.includes(branch);
+            deleteButton.onclick = () => {
+                api.git.branch
+                    .delete(opts.project, branch)
+                    .then(opts.didChangeBranchList);
+                setTimeout(() => item.remove(), 1);
+            };
 
-            if (isCurrent) {
-                const icon = Icon("Arrow 2");
-                checkoutButtonsAndOptions.push(icon);
-                item.append(icon);
-            } else if (hasUncommittedChanges) {
-                item.append(document.createElement("div"));
-            } else {
-                const checkoutButton = Button({
-                    style: "icon-small",
-                    iconLeft: "Arrow Corner"
-                });
-
-                checkoutButtonsAndOptions.push(checkoutButton);
-
-                checkoutButton.onclick = async () => {
-                    checkoutButton.replaceWith(Loader());
-                    checkoutButtonsAndOptions.forEach((button) => {
-                        button.replaceWith(document.createElement("div"));
-                    });
-
-                    await api.git.checkout(opts.project, branch);
-                    if (branches.remote.includes(branch)) {
-                        await api.git.pull(opts.project);
+            optionsButton.onclick = () => {
+                Popover({
+                    anchor: optionsButton,
+                    content: ButtonGroup([deleteButton]),
+                    align: {
+                        x: "right",
+                        y: "center"
                     }
-                    opts.didChangeBranch();
-                    opts.didChangeBranchList();
-                };
-
-                item.append(checkoutButton);
-            }
-
-            const branchName = document.createElement("div");
-            branchName.innerText = branch;
-            item.append(branchName);
-
-            if (isLocal) {
-                if (branches.remote.includes(branch)) {
-                    item.append(document.createElement("div"));
-                } else {
-                    item.append(
-                        Badge({
-                            text: "local-only",
-                            type: "info"
-                        })
-                    );
-                }
-            } else {
-                item.append(
-                    Badge({
-                        text: "remote-only"
-                    })
-                );
-            }
-
-            if (isLocal && !isCurrent) {
-                const optionsButton = Button({
-                    style: "icon-small",
-                    iconLeft: "Options"
                 });
+            };
+        } else {
+            item.append(document.createElement("div"));
+        }
 
-                checkoutButtonsAndOptions.push(optionsButton);
-
-                item.append(optionsButton);
-
-                const deleteButton = Button({
-                    text: "Delete",
-                    iconLeft: "Trash",
-                    color: "red"
-                });
-
-                deleteButton.onclick = () => {
-                    api.git.branch
-                        .delete(opts.project, branch)
-                        .then(opts.didChangeBranchList);
-                };
-
-                optionsButton.onclick = () => {
-                    Popover({
-                        anchor: optionsButton,
-                        content: ButtonGroup([deleteButton]),
-                        align: {
-                            x: "right",
-                            y: "center"
-                        }
-                    });
-                };
-            } else {
-                item.append(document.createElement("div"));
-            }
-
-            return item;
-        });
-
-        branchesList.append(...items);
+        return item;
     });
+
+    branchesList.append(...items);
 
     return container;
 }

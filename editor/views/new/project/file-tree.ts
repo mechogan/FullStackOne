@@ -40,18 +40,20 @@ export function FileTree(opts: FileTreeOpts) {
     const reloadFileTree = () => {
         WorkerTS.call().invalidateWorkingDirectory();
 
-        const updatedTreeRoot = TreeRecursive({
+        TreeRecursive({
             directory: opts.directory,
             didDeleteOrRenameItem: reloadFileTree
-        });
-        if (treeRoot) {
+        }).then(updatedTreeRoot => {
             treeRoot.replaceWith(updatedTreeRoot);
-        }
-        treeRoot = updatedTreeRoot;
+            treeRoot = updatedTreeRoot;
+        });
+
+        if(!treeRoot)
+            treeRoot = document.createElement("ul");
     };
 
     const treeContainer = document.createElement("div");
-    let treeRoot: ReturnType<typeof TreeRecursive>;
+    let treeRoot: Awaited<ReturnType<typeof TreeRecursive>>;
     reloadFileTree();
     treeContainer.append(treeRoot);
 
@@ -127,45 +129,44 @@ type TreeRecursiveOpts = {
     didDeleteOrRenameItem: () => void;
 };
 
-function TreeRecursive(opts: TreeRecursiveOpts) {
+async function TreeRecursive(opts: TreeRecursiveOpts) {
     const container = document.createElement("ul");
 
-    rpc()
+    const contents = await rpc()
         .fs.readdir(opts.directory, {
             absolutePath: true,
             withFileTypes: true
+        }) as Dirent[];
+
+    const items = contents
+        .filter(({ name }) => !name.startsWith("."))
+        .sort((a, b) => {
+            const isDirectoryA =
+                typeof a.isDirectory === "function"
+                    ? a.isDirectory()
+                    : a.isDirectory;
+            const isDirectoryB =
+                typeof b.isDirectory === "function"
+                    ? b.isDirectory()
+                    : b.isDirectory;
+
+            if (isDirectoryA && !isDirectoryB) {
+                return -1;
+            } else if (!isDirectoryA && isDirectoryB) {
+                return 1;
+            }
+
+            return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
         })
-        .then((contents: Dirent[]) => {
-            const items = contents
-                .filter(({ name }) => !name.startsWith("."))
-                .sort((a, b) => {
-                    const isDirectoryA =
-                        typeof a.isDirectory === "function"
-                            ? a.isDirectory()
-                            : a.isDirectory;
-                    const isDirectoryB =
-                        typeof b.isDirectory === "function"
-                            ? b.isDirectory()
-                            : b.isDirectory;
+        .map((dirent) =>
+            Item({
+                directory: opts.directory,
+                dirent,
+                didDeleteOrRename: opts.didDeleteOrRenameItem
+            })
+        );
 
-                    if (isDirectoryA && !isDirectoryB) {
-                        return -1;
-                    } else if (!isDirectoryA && isDirectoryB) {
-                        return 1;
-                    }
-
-                    return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
-                })
-                .map((dirent) =>
-                    Item({
-                        directory: opts.directory,
-                        dirent,
-                        didDeleteOrRename: opts.didDeleteOrRenameItem
-                    })
-                );
-
-            container.append(...items);
-        });
+    container.append(...items);
 
     return container;
 }
@@ -197,12 +198,14 @@ function Item(opts: ItemOpts) {
     let children: HTMLUListElement;
     const openDirectory = () => {
         item.classList.add("opened");
-        children = TreeRecursive({
+        TreeRecursive({
             directory: path,
             didDeleteOrRenameItem: opts.didDeleteOrRename
+        }).then((children) => {
+            item.append(children);
+            openedDirectory.add(path);
         });
-        item.append(children);
-        openedDirectory.add(path);
+        
     };
 
     if (isDirectory) {

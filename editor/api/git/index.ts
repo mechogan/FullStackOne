@@ -569,8 +569,7 @@ export default {
         return git.listServerRefs({
             http,
             url: project.gitRepository.url,
-            forPush: true,
-            onAuth: requestGitAuth
+            prefix: "refs/heads/"
         });
     },
     github
