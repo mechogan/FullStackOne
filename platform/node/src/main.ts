@@ -71,7 +71,8 @@ export function main(
     // MIGRATION 2024-10-26 : Convert title based location to id
 
     const oldConfigPath = os.homedir() + "/.config/fullstacked"
-    if(fs.existsSync(oldConfigPath)) {
+    const newConfigPath = directories.rootDirectory + "/" + directories.configDirectory;
+    if(fs.existsSync(oldConfigPath) && !fs.existsSync(newConfigPath)) {
         fs.renameSync(oldConfigPath, directories.rootDirectory + "/" + directories.configDirectory);
     }
 
