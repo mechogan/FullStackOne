@@ -10,6 +10,12 @@ export type SetupDirectories = {
 };
 
 export type AdapterEditor = Adapter & {
+    // MIGRATION 2024-10-26 : Convert title based location to id
+
+    migrate(project: Project): void;
+
+    // END
+    
     directories: SetupDirectories;
 
     esbuild: {
@@ -30,6 +36,7 @@ export type AdapterEditor = Adapter & {
     run(project: Project): void;
 
     open(project: Project): void;
+    
 
     connectivity: {
         infos: () => {

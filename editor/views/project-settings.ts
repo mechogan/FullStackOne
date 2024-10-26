@@ -5,6 +5,7 @@ import { Button } from "../components/primitives/button";
 import { InputText } from "../components/primitives/inputs";
 import { TopBar } from "../components/top-bar";
 import { ViewScrollable } from "../components/view-scrollable";
+import slugify from "slugify";
 
 type ProjectSettingsOpts = {
     project: Project,
@@ -29,6 +30,9 @@ export function ProjectSettings(opts: ProjectSettingsOpts) {
         label: "Identifier"
     });
     identifierInput.input.value = opts.project.id;
+    identifierInput.input.onblur = () => {
+        identifierInput.input.value = slugify(identifierInput.input.value, { lower: true });
+    }
 
     const updateButton = Button({
         text: "Update"
@@ -44,6 +48,7 @@ export function ProjectSettings(opts: ProjectSettingsOpts) {
         e.preventDefault();
 
         updateButton.disabled = true;
+        identifierInput.input.value = slugify(identifierInput.input.value, { lower: true });
 
         const updatedTitle = titleInput.input.value;
         const updatedIdentifier = identifierInput.input.value;

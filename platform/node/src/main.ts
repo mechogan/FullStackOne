@@ -16,6 +16,7 @@ import {
 } from "./connectivity/utils";
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
+import os from "os"
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -64,6 +65,18 @@ export function main(
     if (!fs.existsSync(tmpDirectory))
         fs.mkdirSync(tmpDirectory, { recursive: true });
 
+    if(!fs.existsSync(directories.rootDirectory))
+        fs.mkdirSync(directories.rootDirectory, { recursive: true });
+
+    // MIGRATION 2024-10-26 : Convert title based location to id
+
+    const oldConfigPath = os.homedir() + "/.config/fullstacked"
+    if(fs.existsSync(oldConfigPath)) {
+        fs.renameSync(oldConfigPath, directories.rootDirectory + "/" + directories.configDirectory);
+    }
+
+    // END
+
     const createInstance: (project: Project) => Instance = (project) => {
         const broadcast: Adapter["broadcast"] = (data) =>
             push(
@@ -100,6 +113,20 @@ export function main(
     const adapter = createAdapter(editorDirectory, platform, mainBroadcast);
     const mainAdapter: AdapterEditor = {
         ...adapter,
+
+        migrate: async (project) => {
+            const oldDirectory = os.homedir() + "/" + project.location;
+            const newDirectory = directories.rootDirectory + "/" + project.id;
+            
+            const oldDirectoryExists = fs.existsSync(oldDirectory);
+            const newDirectoryExists = fs.existsSync(newDirectory);
+
+            if(oldDirectoryExists && !newDirectoryExists) {
+                await fs.promises.rename(oldDirectory, newDirectory);
+            }
+        },
+
+
         directories,
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
         connectivity,

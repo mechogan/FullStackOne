@@ -281,6 +281,12 @@ class AdapterEditor(
 
     override fun callAdapterMethod(methodPath: ArrayList<String>, body: String?): Any? {
         when (methodPath.first()) {
+            "migrate" -> {
+                val projectJSON = JSONArray(body).getJSONObject(0)
+                val oldPath = projectJSON.getString("location")
+                val newPath = projectJSON.getString("id")
+                return this.fs.rename(oldPath, newPath)
+            }
             "directories" -> return this.directoriesSwitch(methodPath.elementAt(1))
             "esbuild" -> return this.esbuildSwitch(methodPath.subList(1, methodPath.size), body)
             "connectivity" -> return this.connectivitySwitch(methodPath.subList(1, methodPath.size), body)

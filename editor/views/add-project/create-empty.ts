@@ -42,13 +42,15 @@ export function CreateEmpty(opts: CreateEmptyOpts) {
     form.onsubmit = (e) => {
         e.preventDefault();
 
+        const id = slugify(inputIdentifier.input.value, {
+            lower: true
+        })
+
         api.projects
             .create({
                 title: inputTitle.input.value,
-                id: inputIdentifier.input.value,
-                location: slugify(inputIdentifier.input.value, {
-                    lower: true
-                })
+                id,
+                location: id
             })
             .then(opts.didCreateProject);
     };
