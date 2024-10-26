@@ -281,6 +281,12 @@ class AdapterEditor(
 
     override fun callAdapterMethod(methodPath: ArrayList<String>, body: String?): Any? {
         when (methodPath.first()) {
+            "migrate" -> {
+                val projectJSON = JSONArray(body).getJSONObject(0)
+                val oldPath = projectJSON.getString("location")
+                val newPath = projectJSON.getString("id")
+                return this.fs.rename(oldPath, newPath)
+            }
             "directories" -> return this.directoriesSwitch(methodPath.elementAt(1))
             "esbuild" -> return this.esbuildSwitch(methodPath.subList(1, methodPath.size), body)
             "connectivity" -> return this.connectivitySwitch(methodPath.subList(1, methodPath.size), body)
@@ -306,13 +312,12 @@ class AdapterEditor(
                 var utf8 = false
                 val json = if (!body.isNullOrEmpty()) JSONArray(body) else JSONArray("[]")
 
-                // writeFile
+                // writeFile, rename
                 if (json.length() > 2) {
                     try {
                         val opt = JSONObject(json.getString(2))
                         absolutePath = opt.getBoolean("absolutePath")
-                    } catch (_: Exception) {
-                    }
+                    } catch (_: Exception) { }
                 }
                 // readFile, writeFileMulti
                 else if (json.length() > 1) {

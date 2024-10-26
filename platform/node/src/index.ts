@@ -24,8 +24,8 @@ const runningInstances = new Map<string, RunningInstance>();
 const isWebContainer = !!process.versions?.webcontainer;
 
 const currentDir = path.dirname(url.fileURLToPath(import.meta.url));
-const rootDirectory = os.homedir();
-const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
+const rootDirectory = process.env.ROOT_DIR || os.homedir() + "/FullStacked";
+const configDirectory = process.env.CONFIG_DIR || ".config";
 
 const directories: SetupDirectories = {
     rootDirectory,
@@ -135,8 +135,9 @@ const { handler, close } = main(
 
 open("FullStacked");
 
-const launchURL = process.argv.at(-1).match(/^https?:\/\//)
-    ? "fullstacked://" + process.argv.at(-1).replace(/:\/\//, "//")
+const lastArg = process.argv.at(-1);
+const launchURL = lastArg.match(/^https?:\/\//)
+    ? "fullstacked://" + lastArg.replace(/:\/\//, "//")
     : null;
 
 if (launchURL) {

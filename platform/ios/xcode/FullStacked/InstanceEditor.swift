@@ -104,6 +104,10 @@ class AdapterEditor: Adapter {
         }
         
         switch(methodPath.first) {
+        case "migrate":
+            let oldPath = json[0]["location"].stringValue
+            let newPath = json[0]["id"].stringValue
+            return done(self.fsEditor.rename(oldPath: oldPath, newPath: newPath))
             case "directories":
                 switch(methodPath[1]) {
                     case "rootDirectory": return done(self.rootDirectory)
@@ -158,6 +162,8 @@ class AdapterEditor: Adapter {
                         case "exists":
                             let exists = self.fsEditor.exists(path: json[0].stringValue)
                             return done(exists == nil ? false : exists)
+                        case "rename":
+                            return done(self.fsEditor.rename(oldPath: json[0].stringValue, newPath: json[1].stringValue))
                         default: break;
                     }
                 }

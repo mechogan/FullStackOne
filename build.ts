@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import * as sass from "sass";
 import { build } from "./platform/node/src/build";
-import { scan } from "./editor/api/projects/scan";
 import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
@@ -41,17 +40,6 @@ esbuild.buildSync({
 if (fs.existsSync("editor/build"))
     fs.rmSync("editor/build", { recursive: true });
 
-const scssFiles = (await scan("editor", fs.promises.readdir as any)).filter(
-    (filePath) => filePath.endsWith(".scss")
-);
-
-const compileScss = async (scssFile: string) => {
-    const { css } = await sass.compileAsync(scssFile);
-    if (css.length) fs.writeFileSync(scssFile.slice(0, -4) + "css", css);
-};
-const compilePromises = scssFiles.map(compileScss);
-await Promise.all(compilePromises);
-
 const toBuild = [
     ["editor/index.ts", "index"],
     ["editor/typescript/worker.ts", "worker-ts"]
@@ -76,16 +64,18 @@ for (const [input, output] of toBuild) {
     if (errors) buildErrors.push(errors);
 }
 
-// cleanup
-scssFiles.forEach((scssFile) => {
-    const cssFile = scssFile.slice(0, -4) + "css";
-    if (fs.existsSync(cssFile)) fs.rmSync(cssFile);
-});
-
 if (buildErrors.length) throw buildErrors;
 
 fs.cpSync("editor/index.html", "editor/build/index.html");
 fs.cpSync("editor/assets", "editor/build/assets", {
+    recursive: true
+});
+
+const styleEntrypoint = "editor/index.scss";
+const { css } = await sass.compileAsync(styleEntrypoint);
+await fs.promises.writeFile("editor/build/index.css", css);
+
+fs.cpSync("editor/icons", "editor/build/icons", {
     recursive: true
 });
 
@@ -119,11 +109,16 @@ const branch = child_process
     .toString()
     .trim();
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
+const commitNumber = child_process
+    .execSync("git rev-list --count --all")
+    .toString()
+    .trim();
 fs.writeFileSync(
     "editor/build/version.json",
     JSON.stringify({
         version,
         branch,
-        commit
+        commit,
+        commitNumber
     })
 );

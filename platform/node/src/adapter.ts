@@ -21,6 +21,15 @@ export function createAdapter(
         return fs.promises.writeFile(baseDirectory + "/" + file, data, options);
     };
 
+    const existsAndIsFile = async (path: string) => {
+        try {
+            const stats = await fs.promises.stat(baseDirectory + "/" + path);
+            return { isFile: stats.isFile() };
+        } catch (e) {
+            return null;
+        }
+    };
+
     return {
         platform,
         fs: {
@@ -66,6 +75,10 @@ export function createAdapter(
                 });
             },
             rmdir: (path) => {
+                const dirPath = baseDirectory + "/" + path;
+
+                if (!fs.existsSync(dirPath)) return;
+
                 return fs.promises.rm(baseDirectory + "/" + path, {
                     recursive: true
                 });
@@ -95,15 +108,24 @@ export function createAdapter(
             chmod: (path, uid, gid) => {
                 throw new Error("Function not implemented.");
             },
-            exists: async (path) => {
-                try {
-                    const stats = await fs.promises.stat(
-                        baseDirectory + "/" + path
-                    );
-                    return { isFile: stats.isFile() };
-                } catch (e) {
-                    return null;
+            exists: existsAndIsFile,
+            rename: async (oldPath, newPath) => {
+                if (oldPath === newPath) return;
+
+                const exists = await existsAndIsFile(newPath);
+
+                oldPath = baseDirectory + "/" + oldPath;
+                newPath = baseDirectory + "/" + newPath;
+
+                if (typeof exists?.isFile === "boolean") {
+                    console.log("deleting");
+                    await fs.promises.rm(newPath, {
+                        recursive: true,
+                        force: true
+                    });
                 }
+
+                return fs.promises.rename(oldPath, newPath);
             }
         },
         async fetch(

@@ -22,8 +22,8 @@ const runningInstances = new Map<string, BrowserWindow>();
 
 const editorDirectory = path.resolve(__dirname, "..", "editor");
 
-const rootDirectory = os.homedir();
-const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
+const rootDirectory = os.homedir() + "/FullStacked";
+const configDirectory = process.env.CONFIG_DIR || ".config";
 
 const directories: SetupDirectories = {
     rootDirectory,
@@ -49,8 +49,8 @@ const open: OpenFunction = (id, project) => {
         const hostname = slugify(project.title, { lower: true });
 
         window = new BrowserWindow({
-            width: 800,
-            height: 600,
+            width: 1024,
+            height: 650,
             title: project.title,
             icon: "icons/icon.png"
         });

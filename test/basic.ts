@@ -1,15 +1,18 @@
 import child_process from "child_process";
 import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
-    BACK_BUTTON_ID,
+    BACK_BUTTON_CLASS,
     DELETE_ALL_PACKAGES_ID,
     IMPORT_PROJECT_FILE_INPUT_ID,
+    IMPORT_ZIP_ID,
     NEW_FILE_ID,
     NEW_PROJECT_ID,
     PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
+    PROJECTS_VIEW_ID,
     RUN_PROJECT_ID,
-    SETTINGS_BUTTON_ID
+    SETTINGS_BUTTON_ID,
+    SETTINGS_VIEW_ID
 } from "../editor/constants";
 import { sleep, throwError, waitForStackNavigation } from "./utils";
 
@@ -24,7 +27,10 @@ child_process.execSync("npm run build", {
 
 // test functionalities with node
 process.env.NO_OPEN = "1";
-await import(process.cwd() + "/platform/node/index.js");
+await import(
+    process.cwd().replace(/\\/g, "/").split(":").pop() +
+        "/platform/node/index.js"
+);
 
 // Launch the browser
 const browser = await puppeteer.launch({
@@ -55,10 +61,14 @@ while (await deletePackagesButton.isVisible()) {
     await sleep(200);
 }
 
-await waitForStackNavigation(page, `#${BACK_BUTTON_ID}`);
+await waitForStackNavigation(
+    page,
+    `#${SETTINGS_VIEW_ID} .${BACK_BUTTON_CLASS}`
+);
 
 // import demo project
 await waitForStackNavigation(page, `#${NEW_PROJECT_ID}`);
+await waitForStackNavigation(page, `#${IMPORT_ZIP_ID}`);
 
 await sleep(500);
 
@@ -67,13 +77,22 @@ const importProjectFileInput = (await page.waitForSelector(
 )) as ElementHandle<HTMLInputElement>;
 await importProjectFileInput.uploadFile("editor/build/Demo.zip");
 
-await sleep(500);
+await sleep(2000);
+
+await waitForStackNavigation(
+    page,
+    `#${PROJECTS_VIEW_ID} .project-tile:first-child`
+);
+
+await sleep(3000);
 
 // add file
 const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);
 await newFileButton.click();
+await page.waitForSelector("input");
 const testFileName = "test.txt";
 for (let i = 0; i < testFileName.length; i++) {
+    await sleep(100);
     await page.keyboard.press(testFileName[i] as KeyInput);
 }
 await page.keyboard.press("Enter");
@@ -81,7 +100,7 @@ let tries = 3;
 while (tries) {
     tries--;
     const getFileTreeItemsTitle = () =>
-        Array.from(document.querySelectorAll("ul.file-tree li span") ?? []).map(
+        Array.from(document.querySelectorAll(".name-and-options") ?? []).map(
             (e) => e.textContent.trim()
         );
     const fileTreeItems = await page.evaluate(getFileTreeItemsTitle);
@@ -102,7 +121,7 @@ const runProjectButton = await page.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton.click();
 
 const getDialogHeadingText = () =>
-    document.querySelector(".dialog h1")?.textContent;
+    document.querySelector(".dialog h3")?.textContent;
 
 // wait for dependencies to load
 let caughtDependencies = false;

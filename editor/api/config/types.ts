@@ -31,6 +31,6 @@ export type Connectivity = {
     me: Peer;
     autoConnect: boolean;
     defaultNetworkInterface: string;
-    webAddreses: WebAddress[];
+    webAddresses: WebAddress[];
     peersTrusted: PeerTrusted[];
 };

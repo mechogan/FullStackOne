@@ -3,18 +3,19 @@ import crypto from "crypto";
 import puppeteer from "puppeteer";
 import { sleep, throwError, waitForStackNavigation } from "./utils";
 import {
-    PEERS_ICON_ID,
-    PEER_CONNECTIVITY_BACK_BUTTON_ID,
+    BACK_BUTTON_CLASS,
+    PEERS_BUTTON_ID,
+    PEERS_VIEW_ID,
     PEER_DISCONNECT_BUTTON_CLASS,
-    PEER_PAIRING_CODE_CLASS,
     PEER_PAIR_BUTTON_CLASS,
     PEER_TRUST_BUTTON_ID,
+    PROJECTS_VIEW_ID,
     RUN_PROJECT_ID
 } from "../editor/constants";
 import fs from "fs";
 import os from "os";
 
-const configDir1 = crypto.randomUUID();
+const rootDir1 = os.homedir() + "/" + crypto.randomUUID();
 const port1 = 9100;
 const process1 = child_process.exec("node index.js", {
     cwd: process.cwd() + "/platform/node",
@@ -22,7 +23,7 @@ const process1 = child_process.exec("node index.js", {
         ...process.env,
         NO_OPEN: "1",
         PORT: port1.toString(),
-        CONFIG_DIR: configDir1
+        ROOT_DIR: rootDir1
     }
 });
 process1.stdout.pipe(process.stdout);
@@ -31,7 +32,7 @@ const browser1 = await puppeteer.launch({
     headless: false
 });
 
-const configDir2 = crypto.randomUUID();
+const rootDir2 = os.homedir() + "/" + crypto.randomUUID();
 const port2 = 9500;
 const process2 = child_process.exec("node index.js", {
     cwd: process.cwd() + "/platform/node",
@@ -39,8 +40,8 @@ const process2 = child_process.exec("node index.js", {
         ...process.env,
         NO_OPEN: "1",
         PORT: port2.toString(),
-        CONFIG_DIR: configDir2,
-        WSS_PORT: "14001"
+        WSS_PORT: "14001",
+        ROOT_DIR: rootDir2
     }
 });
 process2.stdout.pipe(process.stdout);
@@ -53,8 +54,8 @@ const cleanup = async () => {
     process1.kill();
     process2.kill();
 
-    fs.rmSync(os.homedir() + "/" + configDir1, { recursive: true });
-    fs.rmSync(os.homedir() + "/" + configDir2, { recursive: true });
+    fs.rmSync(rootDir1, { recursive: true });
+    fs.rmSync(rootDir2, { recursive: true });
 
     await browser1.close();
     await browser2.close();
@@ -74,22 +75,24 @@ process1.on("error", onError);
 
 const page1 = await browser1.newPage();
 await page1.goto(`http://localhost:${port1}`);
-await waitForStackNavigation(page1, `#${PEERS_ICON_ID}`);
 
 const page2 = await browser2.newPage();
 await page2.goto(`http://localhost:${port2}`);
-await waitForStackNavigation(page2, `#${PEERS_ICON_ID}`);
+await sleep(5000);
+
+await waitForStackNavigation(page1, `#${PEERS_BUTTON_ID}`);
+await waitForStackNavigation(page2, `#${PEERS_BUTTON_ID}`);
 
 const pairButton = await page2.waitForSelector(`.${PEER_PAIR_BUTTON_CLASS}`);
 await pairButton.click();
 
-await page2.waitForSelector(`.${PEER_PAIRING_CODE_CLASS}`);
-const getPairingCode2 = () =>
-    document.querySelector(`.peer-pairing-code`)?.textContent;
+await page2.waitForSelector(`.code`);
+const getPairingCode2 = () => document.querySelector(`.code`)?.textContent;
 const pairingCode2 = await page2.evaluate(getPairingCode2);
 
-await page1.waitForSelector(`.code span`);
-const getPairingCode1 = () => document.querySelector(`.code span`)?.textContent;
+await page1.waitForSelector(`.dialog code`);
+const getPairingCode1 = () =>
+    document.querySelector(`.dialog code`)?.textContent;
 const pairingCode1 = await page1.evaluate(getPairingCode1);
 
 if (pairingCode1 !== pairingCode2) {
@@ -105,11 +108,17 @@ await trustButton2.click();
 
 await page2.waitForSelector(`.${PEER_DISCONNECT_BUTTON_CLASS}`);
 
-await waitForStackNavigation(page1, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
-await waitForStackNavigation(page2, `#${PEER_CONNECTIVITY_BACK_BUTTON_ID}`);
+await waitForStackNavigation(page1, `#${PEERS_VIEW_ID} .${BACK_BUTTON_CLASS}`);
+await waitForStackNavigation(page2, `#${PEERS_VIEW_ID} .${BACK_BUTTON_CLASS}`);
 
-await waitForStackNavigation(page1, `article`);
-await waitForStackNavigation(page2, `article`);
+await waitForStackNavigation(
+    page1,
+    `#${PROJECTS_VIEW_ID} .project-tile:first-child`
+);
+await waitForStackNavigation(
+    page2,
+    `#${PROJECTS_VIEW_ID} .project-tile:first-child`
+);
 
 const runProjectButton1 = await page1.waitForSelector(`#${RUN_PROJECT_ID}`);
 await runProjectButton1.click();

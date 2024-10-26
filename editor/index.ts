@@ -1,62 +1,104 @@
-import "./index.css";
-import EsbuildInstall from "./views/esbuild";
 import api from "./api";
 import rpc from "./rpc";
 import stackNavigation from "./stack-navigation";
 import { BG_COLOR } from "./constants";
-import projectsView from "./views/projects";
-import projectView from "./views/project";
+import { Projects } from "./views/projects";
+import { ImportZip } from "./views/add-project/import-zip";
+import { Project } from "./views/project";
+import { CloneGit } from "./views/add-project/clone-git";
+import { Project as ProjectType } from "./api/config/types";
+import { esbuildInstall } from "./views/esbuild";
 
-document.body.classList.add("hover");
-window.addEventListener("touchstart", () => {
-    document.body.classList.remove("hover");
-});
+globalThis.onPush["launchURL"] = async (deeplink: string) => {
+    const repo = api.deeplink.getRepo(deeplink);
+    if (!repo) return;
 
-(window as any).onPush["launchURL"] = async (deeplink: string) => {
-    const project = await api.getProjectFromDeepLink(deeplink);
-    projectView.setProject(project);
-    stackNavigation.navigate(await projectView.render(), BG_COLOR);
-    await projectView.runProject();
-    projectsView.renderProjectsList();
+    const launchProject = async (project: ProjectType) => {
+        if (repo.branch) {
+            await api.git.checkout(project, repo.branch);
+        }
+        stackNavigation.navigate(
+            Project({
+                project,
+                run: true,
+                didUpdateProject: projects.reloadProjectsList
+            }),
+            BG_COLOR
+        );
+    };
+
+    const project = await api.deeplink.findExistingProjectWithRepoUrl(repo.url);
+    if (project) {
+        return launchProject(project);
+    }
+
+    stackNavigation.navigate(
+        CloneGit({
+            didCloneProject: (project) => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+                launchProject(project);
+            },
+            repoUrl: repo.url
+        }),
+        BG_COLOR
+    );
 };
 
-// pre-init
-await api.config.init();
-const esbuildInstall = await rpc().esbuild.check();
+// check for new install
+const installDemo = await api.config.init();
 
-// start app
-const app = async () => {
-    // init connectivity
-    await api.connectivity.init();
+document.querySelector("#splash").remove();
+const projects = Projects();
+stackNavigation.navigate(projects.container, BG_COLOR);
 
-    const projectsRendered = await projectsView.render();
-    document.querySelector("#splash").remove();
-    stackNavigation.navigate(projectsRendered, BG_COLOR);
+const esbuildIsInstalled = await rpc().esbuild.check();
+if (!esbuildIsInstalled) {
+    await esbuildInstall();
+}
 
-    // for test puposes
+if (installDemo) {
+    const name = "Demo.zip";
+    const data = (await rpc().fs.readFile(name)) as Uint8Array;
+    stackNavigation.navigate(
+        ImportZip({
+            didImportProject: () => {
+                projects.reloadProjectsList();
+                stackNavigation.back();
+
+                // webcontainer test
+                testDemo();
+            },
+            zip: {
+                data,
+                name
+            }
+        }),
+        BG_COLOR
+    );
+}
+
+// init connectivity
+await api.connectivity.init();
+
+// for webcontainer test purposes
+async function testDemo() {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has("demo")) {
         const demoProject = (await api.projects.list()).find(
             ({ title }) => title === "Demo"
         );
         if (demoProject) {
-            projectView.setProject(demoProject);
-            stackNavigation.navigate(await projectView.render(), BG_COLOR);
-            await projectView.runProject();
+            stackNavigation.navigate(
+                Project({
+                    project: demoProject,
+                    didUpdateProject: null,
+                    run: true
+                }),
+                BG_COLOR
+            );
         }
     }
-};
-
-// esbuild check before start app
-if (!esbuildInstall) {
-    EsbuildInstall.onComplete = () => {
-        stackNavigation.reset();
-        app();
-    };
-    stackNavigation.navigate(EsbuildInstall.render(), BG_COLOR);
-    rpc().esbuild.install();
-} else {
-    await app();
 }
 
 const windows = new Map<string, Window>();

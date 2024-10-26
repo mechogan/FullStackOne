@@ -1,157 +1,8 @@
-@import "../../style/spacing";
-@import "../../style/border";
-@import "../../style/colors";
-@import "../../style/typography";
-@import "../../style/breakpoints";
+@use "../../style/values/spacing.scss";
+@use "../../style/values/typography.scss";
+@use "../../style/values/colors.scss";
 
-$top-bar-height: 45px;
-$left-sidebar-width: 270px;
-$tabs-height: 29px;
-$console-height: 300px;
-$transition: 0.3s all;
-
-.navigating .tabs-container {
-    overflow-x: hidden !important;
-}
-
-.project {
-    height: 100vh;
-
-    > .top-bar {
-        position: fixed;
-        height: $top-bar-height;
-        top: 0;
-        left: 0;
-
-        background-color: $blue-dark;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100vw;
-
-        z-index: 1;
-
-        > div {
-            display: flex;
-            align-items: center;
-            &:first-child {
-                justify-content: flex-start;
-                max-width: calc(100% - 192px);
-                h3 {
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-            }
-            &:last-child {
-                justify-content: flex-end;
-            }
-        }
-    }
-    > .left-sidebar {
-        position: fixed;
-        top: $top-bar-height;
-        left: 0;
-        width: $left-sidebar-width;
-        height: calc(100% - $top-bar-height);
-        z-index: 1;
-        background-color: $blue-dark;
-
-        transition: $transition;
-    }
-    > .tabs-container {
-        position: fixed;
-        left: $left-sidebar-width;
-        top: $top-bar-height;
-        height: $tabs-height;
-        width: calc(100% - $left-sidebar-width);
-        z-index: 1;
-        background-color: $black;
-
-        border-top-left-radius: 10px;
-        border-bottom: 1px solid colorOpacity(white, 0.2);
-
-        padding: 0;
-        margin: 0;
-        white-space: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
-        li {
-            display: inline-flex;
-            align-items: center;
-            padding-left: spacing(1);
-            border-bottom: 0;
-            cursor: pointer;
-            color: colorOpacity(white, 0.6);
-            border-right: 1px solid colorOpacity(white, 0.15);
-            height: 100%;
-            &.has-errors {
-                border-bottom: 2px solid colorOpacity($red, 0.7);
-            }
-            &.active {
-                color: white;
-                &.has-errors {
-                    border-bottom: 4px solid $red;
-                }
-            }
-        }
-
-        transition: $transition;
-    }
-    > .editor-container {
-        position: relative;
-        top: $top-bar-height + $tabs-height;
-        left: $left-sidebar-width;
-        min-height: calc(100% - ($top-bar-height + $tabs-height));
-        width: calc(100% - $left-sidebar-width);
-        background-color: $black;
-
-        transition: $transition;
-    }
-
-    .console {
-        position: fixed;
-        bottom: 0;
-        left: $left-sidebar-width;
-        width: calc(100% - $left-sidebar-width);
-        height: 0;
-
-        button {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            transform: rotate(180deg);
-        }
-
-        transition: $transition;
-    }
-
-    &.side-panel-closed {
-        > .left-sidebar {
-            width: 0px;
-        }
-
-        > .editor-container,
-        > .tabs-container,
-        > .console {
-            left: 0;
-            width: 100%;
-        }
-    }
-
-    &.console-opened {
-        > .console {
-            height: $console-height;
-
-            button {
-                transform: rotate(0);
-            }
-        }
-        > .editor-container {
-            padding-bottom: $console-height;
-        }
-    }
-}
+$file-tree-panel-width: 235px;
 
 @keyframes flash {
     from {
@@ -162,8 +13,287 @@ $transition: 0.3s all;
         opacity: 0.3;
     }
 }
-#typescript-icon {
-    &.loading {
-        animation: flash 1s infinite alternate;
+
+#project {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 0;
+
+    .top-bar {
+        width: calc(100% + (spacing.$medium + spacing.$small));
+        padding-bottom: spacing.$x-small;
+
+        h1 {
+            font-size: typography.$medium;
+        }
+
+        p {
+            font-size: typography.$small;
+        }
+
+        button.working {
+            animation: flash 1s infinite alternate;
+        }
+
+        .top-bar-actions {
+            .loader-container {
+                width: 38px;
+                height: 38px;
+                padding: 4px;
+            }
+        }
     }
+
+    .content {
+        flex: 1;
+        overflow: hidden;
+
+        display: flex;
+
+        margin-left: 0 - spacing.$medium;
+        width: calc(100% + (spacing.$medium + spacing.$medium));
+
+        .file-tree {
+            width: $file-tree-panel-width;
+            transition: 0.2s all;
+        }
+
+        .editor {
+            width: calc(100% - $file-tree-panel-width);
+            border-top-left-radius: spacing.$x-small;
+            transition: 0.2s width;
+        }
+
+        &.closed-panel {
+            .file-tree {
+                width: 0;
+            }
+
+            .editor {
+                width: 100%;
+                border-top-left-radius: 0;
+            }
+        }
+    }
+
+    .file-tree {
+        white-space: nowrap;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: spacing.$x-small;
+            padding-right: spacing.$x-small;
+
+            > div {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: spacing.$small;
+            }
+
+            .import-file {
+                form,
+                input {
+                    height: 0;
+                    width: 0;
+                    overflow: hidden;
+                    padding: 0;
+                    margin: 0;
+                    position: absolute;
+                    z-index: -1;
+                    opacity: 0;
+                }
+            }
+        }
+
+        > div:last-child {
+            width: 100%;
+            overflow: auto;
+            padding-bottom: spacing.$small;
+            padding-top: spacing.$x-small;
+            padding-left: spacing.$x-small;
+            flex: 1;
+
+            > ul {
+                padding-left: 0;
+                padding-right: spacing.$x-small;
+            }
+        }
+
+        ul {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+            padding-left: spacing.$small;
+            width: 100%;
+            min-width: max-content;
+        }
+
+        li {
+            display: flex;
+            flex-direction: column;
+            gap: spacing.$x-small;
+            cursor: pointer;
+            position: relative;
+
+            .icon {
+                height: 16px;
+                width: 16px;
+            }
+
+            form {
+                display: flex;
+                align-items: center;
+                width: 100%;
+            }
+
+            .name-and-options {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: spacing.$small;
+                position: relative;
+                min-height: 24px;
+
+                > button {
+                    color: colors.$light;
+                    display: none;
+                }
+            }
+
+            .name {
+                display: flex;
+                align-items: center;
+
+                > span:first-child {
+                    padding-left: spacing.$x-small;
+                }
+            }
+
+            &.opened {
+                > .name-and-options > .name {
+                    .icon {
+                        transform: rotate(90deg);
+                    }
+                }
+            }
+
+            &.active {
+                > .name-and-options {
+                    &::before {
+                        content: "";
+                        background-color: colors.$blue;
+                        position: absolute;
+                        top: -2px;
+                        left: 0;
+                        height: calc(100% + spacing.$x-small);
+                        width: 100%;
+                        border-radius: 2px;
+                        z-index: -1;
+                    }
+
+                    button {
+                        display: flex;
+                    }
+                }
+            }
+        }
+    }
+
+    .editor {
+        background-color: colors.$dark;
+        display: flex;
+        flex-direction: column;
+
+        > div {
+            overflow: auto;
+
+            img {
+                max-height: 100%;
+                max-width: 100%;
+                object-fit: contain;
+            }
+        }
+    }
+
+    .file-tabs {
+        border-bottom: 1px solid colors.$gray;
+        white-space: nowrap;
+        width: 100%;
+        overflow: auto;
+        min-height: 31px;
+
+        li {
+            display: inline-flex;
+            align-items: center;
+            gap: spacing.$small;
+            padding: spacing.$x-small spacing.$small;
+            border-right: 1px solid colors.$gray;
+            cursor: pointer;
+
+            span {
+                opacity: 0.5;
+            }
+
+            button {
+                height: 20px;
+                width: 20px;
+            }
+
+            &.opened {
+                span {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+
+    .git-widget {
+        display: flex;
+        align-items: center;
+        color: colors.$blue;
+        position: relative;
+
+        > div:first-child {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+
+            > div:last-child {
+                font-size: typography.$small;
+            }
+        }
+
+        .git-status-arrow {
+            position: absolute;
+            color: colors.$green;
+            z-index: 1;
+            top: -1px;
+            right: -1px;
+            transform: rotate(135deg);
+            height: 20px;
+            width: 20px;
+
+            &.red {
+                color: colors.$red;
+                transform: rotate(-45deg);
+            }
+        }
+    }
+}
+
+// codemirror overriddes
+.cm-editor,
+.cm-gutters {
+    background-color: colors.$dark !important;
+}
+
+.cm-focused {
+    outline: none !important;
 }

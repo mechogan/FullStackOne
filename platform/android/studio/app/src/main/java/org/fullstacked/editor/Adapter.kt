@@ -163,6 +163,7 @@ open class Adapter(
             "stat" -> return this.fs.stat(json.getString(0))
             "lstat" -> return this.fs.stat(json.getString(0))
             "exists" -> return this.fs.exists(json.getString(0))
+            "rename" -> return this.fs.rename(json.getString(0), json.getString(1))
         }
 
         return null
@@ -452,4 +453,12 @@ class AdapterFS(private val baseDirectory: String) {
         )
     }
 
+    fun rename(oldPath: String, newPath: String) : Any {
+        val oldFile = File(this.baseDirectory + "/" + oldPath)
+        val newFile = File(this.baseDirectory + "/" + newPath)
+
+        oldFile.renameTo(newFile)
+
+        return true
+    }
 }

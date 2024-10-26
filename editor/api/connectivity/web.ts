@@ -38,7 +38,7 @@ export class BrowseWeb implements Browser {
 
     private async browse() {
         const addresses = (await api.config.load(CONFIG_TYPE.CONNECTIVITY))
-            .webAddreses;
+            .webAddresses;
 
         if (!addresses) return;
 

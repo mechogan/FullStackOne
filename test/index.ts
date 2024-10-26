@@ -29,7 +29,7 @@ child_process.execSync(`node ${build("p2p.ts")}`, {
     stdio: "inherit"
 });
 
-// webcontainer
+// // webcontainer
 child_process.execSync(`node ${build("webcontainer/test.ts")}`, {
     stdio: "inherit"
 });
