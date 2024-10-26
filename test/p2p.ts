@@ -23,7 +23,8 @@ const process1 = child_process.exec("node index.js", {
         ...process.env,
         NO_OPEN: "1",
         PORT: port1.toString(),
-        CONFIG_DIR: configDir1
+        CONFIG_DIR: configDir1,
+        ROOT_DIR: os.homedir()
     }
 });
 process1.stdout.pipe(process.stdout);
@@ -41,7 +42,8 @@ const process2 = child_process.exec("node index.js", {
         NO_OPEN: "1",
         PORT: port2.toString(),
         CONFIG_DIR: configDir2,
-        WSS_PORT: "14001"
+        WSS_PORT: "14001",
+        ROOT_DIR: os.homedir()
     }
 });
 process2.stdout.pipe(process.stdout);
