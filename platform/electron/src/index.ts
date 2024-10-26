@@ -22,8 +22,8 @@ const runningInstances = new Map<string, BrowserWindow>();
 
 const editorDirectory = path.resolve(__dirname, "..", "editor");
 
-const rootDirectory = os.homedir();
-const configDirectory = process.env.CONFIG_DIR || ".config/fullstacked";
+const rootDirectory = os.homedir() + "/FullStacked";
+const configDirectory = process.env.CONFIG_DIR || ".config";
 
 const directories: SetupDirectories = {
     rootDirectory,

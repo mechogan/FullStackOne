@@ -1,8 +1,8 @@
 export const PROJECTS_TITLE = "Projects";
 export const PROJECTS_VIEW_ID = "projects-view";
 export const PROJECT_VIEW_ID = "project";
-export const PEERS_VIEW_ID = "peers"
-export const SETTINGS_VIEW_ID = "settings"
+export const PEERS_VIEW_ID = "peers";
+export const SETTINGS_VIEW_ID = "settings";
 export const NEW_PROJECT_ID = "new-project";
 export const IMPORT_ZIP_ID = "import-zip";
 export const IMPORT_PROJECT_FILE_INPUT_ID = "import-project";

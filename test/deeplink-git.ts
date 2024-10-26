@@ -60,16 +60,22 @@ await page.evaluate(async () => {
     while (getDemoProject()) {
         getDemoProject().querySelector("button").click();
         await new Promise((res) => setTimeout(res, 100));
-        document.querySelector<HTMLButtonElement>(".button-group > button:first-child").click();
+        document
+            .querySelector<HTMLButtonElement>(
+                ".button-group > button:first-child"
+            )
+            .click();
         await new Promise((res) => setTimeout(res, 100));
-        document.querySelector<HTMLButtonElement>(".dialog button:last-child").click();
+        document
+            .querySelector<HTMLButtonElement>(".dialog button:last-child")
+            .click();
         await new Promise((res) => setTimeout(res, 1000));
     }
 });
 await sleep(3000);
 
-await page.close()
-page = await browser.newPage()
+await page.close();
+page = await browser.newPage();
 
 editorProcess1.kill();
 

@@ -89,11 +89,14 @@ async function testDemo() {
             ({ title }) => title === "Demo"
         );
         if (demoProject) {
-            stackNavigation.navigate(Project({
-                project: demoProject,
-                didUpdateProject: null,
-                run: true
-            }), BG_COLOR);
+            stackNavigation.navigate(
+                Project({
+                    project: demoProject,
+                    didUpdateProject: null,
+                    run: true
+                }),
+                BG_COLOR
+            );
         }
     }
 }

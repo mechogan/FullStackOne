@@ -43,7 +43,7 @@ export function AddProject(opts: AddProjectOpts) {
         text: "Import zip",
         iconLeft: "Archive"
     });
-    importZipButton.id = IMPORT_ZIP_ID
+    importZipButton.id = IMPORT_ZIP_ID;
     importZipButton.onclick = () =>
         stackNavigation.navigate(
             ImportZip({ didImportProject: onProjectCreation }),

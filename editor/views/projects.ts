@@ -6,7 +6,14 @@ import { Button, ButtonGroup } from "../components/primitives/button";
 import { InputText } from "../components/primitives/inputs";
 import { TopBar as TopBarComponent } from "../components/top-bar";
 import { ViewScrollable } from "../components/view-scrollable";
-import { BG_COLOR, NEW_PROJECT_ID, PEERS_BUTTON_ID, PROJECTS_TITLE, PROJECTS_VIEW_ID, SETTINGS_BUTTON_ID } from "../constants";
+import {
+    BG_COLOR,
+    NEW_PROJECT_ID,
+    PEERS_BUTTON_ID,
+    PROJECTS_TITLE,
+    PROJECTS_VIEW_ID,
+    SETTINGS_BUTTON_ID
+} from "../constants";
 import stackNavigation from "../stack-navigation";
 import { AddProject } from "./add-project";
 import { Peers } from "./peers";
@@ -22,8 +29,8 @@ export function Projects() {
     container.prepend(TopBar());
 
     let elements: {
-        projectsList: ReturnType<typeof ProjectsList>,
-        searchAndAdd: ReturnType<typeof SearchAndAdd>
+        projectsList: ReturnType<typeof ProjectsList>;
+        searchAndAdd: ReturnType<typeof SearchAndAdd>;
     };
     const reloadProjectsList = () => {
         const updatedProjectList = ProjectsList({
@@ -37,9 +44,11 @@ export function Projects() {
             didSearch: (projects) => {
                 updatedProjectList.filter(projects);
             }
-        })
+        });
         if (elements) {
-            elements.projectsList.container.replaceWith(updatedProjectList.container);
+            elements.projectsList.container.replaceWith(
+                updatedProjectList.container
+            );
             elements.searchAndAdd.replaceWith(updatedSearchAndAdd);
         } else {
             scrollable.append(
@@ -47,7 +56,6 @@ export function Projects() {
                 updatedProjectList.container
             );
         }
-        
 
         elements = {
             projectsList: updatedProjectList,
@@ -173,8 +181,8 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
 }
 
 type ProjectsListOpts = {
-    didUpdateProject: () => void
-}
+    didUpdateProject: () => void;
+};
 
 function ProjectsList(opts: ProjectsListOpts) {
     const container = document.createElement("div");
@@ -219,9 +227,9 @@ function ProjectsList(opts: ProjectsListOpts) {
 }
 
 type ProjectTileOpts = {
-    project: ProjectType,
-    didUpdateProject: () => void
-}
+    project: ProjectType;
+    didUpdateProject: () => void;
+};
 
 function ProjectTile(opts: ProjectTileOpts) {
     const container = document.createElement("div");
@@ -305,18 +313,21 @@ function ProjectTile(opts: ProjectTileOpts) {
             iconLeft: "Settings"
         });
         projectSettingsButton.onclick = () => {
-            stackNavigation.navigate(ProjectSettings({
-                project: opts.project,
-                didUpdateProject: () => {
-                    stackNavigation.back();
-                    opts.didUpdateProject();
-                }
-            }), BG_COLOR);
-        }
+            stackNavigation.navigate(
+                ProjectSettings({
+                    project: opts.project,
+                    didUpdateProject: () => {
+                        stackNavigation.back();
+                        opts.didUpdateProject();
+                    }
+                }),
+                BG_COLOR
+            );
+        };
 
         const buttonsGroup = ButtonGroup([
-            deleteButton, 
-            shareButton, 
+            deleteButton,
+            shareButton,
             projectSettingsButton
         ]);
 

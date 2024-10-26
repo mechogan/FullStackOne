@@ -25,11 +25,14 @@ window.addEventListener("keydown", async (e) => {
     if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
 
-        if(!CodeEditor.openedFilePath) return;
+        if (!CodeEditor.openedFilePath) return;
         const ext = CodeEditor.openedFilePath.split(".").pop() as UTF8_Ext;
-        if(!jsTsExtensions.includes(ext)) return;
+        if (!jsTsExtensions.includes(ext)) return;
 
-        const openedFile = find(CodeEditor.activeFiles, ({path}) => CodeEditor.openedFilePath === path);
+        const openedFile = find(
+            CodeEditor.activeFiles,
+            ({ path }) => CodeEditor.openedFilePath === path
+        );
         const editorView = openedFile.view as EditorView;
 
         const formatted = await prettier.format(
@@ -451,10 +454,7 @@ const javascriptExtensions = [
 
 const typescriptExtensions = [UTF8_Ext.TYPESCRIPT, UTF8_Ext.TYPESCRIPT_X];
 
-const jsTsExtensions = [
-    ...javascriptExtensions,
-    ...typescriptExtensions
-]
+const jsTsExtensions = [...javascriptExtensions, ...typescriptExtensions];
 
 type addFileErrorsOpts = {
     path: string;

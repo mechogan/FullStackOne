@@ -7,7 +7,6 @@ import zipDirectory from "./zip";
 import * as sass from "sass";
 import type esbuild from "esbuild";
 import slugify from "slugify";
-import prettyBytes from "pretty-bytes";
 import api from "..";
 
 const list = async () => {
@@ -26,6 +25,21 @@ const list = async () => {
                 : slugify(project.title.replace(/\//g, "."), { lower: true });
     }
     if (save) await config.save(CONFIG_TYPE.PROJECTS, projects);
+    // END
+
+    // MIGRATION 2024-10-26 : Convert title based location to id
+
+    const promises = [];
+    for (const project of projects) {
+        if (project.location !== project.id) {
+            promises.push(rpc().migrate(project));
+            project.location = project.id;
+        }
+    }
+    await Promise.all(projects);
+    if (promises.length) {
+        await config.save(CONFIG_TYPE.PROJECTS, projects);
+    }
     // END
 
     return projects;

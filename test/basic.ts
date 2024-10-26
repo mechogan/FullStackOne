@@ -27,7 +27,10 @@ child_process.execSync("npm run build", {
 
 // test functionalities with node
 process.env.NO_OPEN = "1";
-await import(process.cwd().replace(/\\/g, "/").split(":").pop() + "/platform/node/index.js");
+await import(
+    process.cwd().replace(/\\/g, "/").split(":").pop() +
+        "/platform/node/index.js"
+);
 
 // Launch the browser
 const browser = await puppeteer.launch({
@@ -58,7 +61,10 @@ while (await deletePackagesButton.isVisible()) {
     await sleep(200);
 }
 
-await waitForStackNavigation(page, `#${SETTINGS_VIEW_ID} .${BACK_BUTTON_CLASS}`);
+await waitForStackNavigation(
+    page,
+    `#${SETTINGS_VIEW_ID} .${BACK_BUTTON_CLASS}`
+);
 
 // import demo project
 await waitForStackNavigation(page, `#${NEW_PROJECT_ID}`);
@@ -73,14 +79,17 @@ await importProjectFileInput.uploadFile("editor/build/Demo.zip");
 
 await sleep(2000);
 
-await waitForStackNavigation(page, `#${PROJECTS_VIEW_ID} .project-tile:first-child`);
+await waitForStackNavigation(
+    page,
+    `#${PROJECTS_VIEW_ID} .project-tile:first-child`
+);
 
 await sleep(3000);
 
 // add file
 const newFileButton = await page.waitForSelector(`#${NEW_FILE_ID}`);
 await newFileButton.click();
-await page.waitForSelector("input")
+await page.waitForSelector("input");
 const testFileName = "test.txt";
 for (let i = 0; i < testFileName.length; i++) {
     await sleep(100);
