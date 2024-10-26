@@ -11,6 +11,7 @@ import stackNavigation from "../stack-navigation";
 import { AddProject } from "./add-project";
 import { Peers } from "./peers";
 import { Project } from "./project";
+import { ProjectSettings } from "./project-settings";
 import { Settings } from "./settings";
 import Fuse, { IFuseOptions } from "fuse.js";
 
@@ -20,28 +21,38 @@ export function Projects() {
 
     container.prepend(TopBar());
 
-    scrollable.append(
-        SearchAndAdd({
+    let elements: {
+        projectsList: ReturnType<typeof ProjectsList>,
+        searchAndAdd: ReturnType<typeof SearchAndAdd>
+    };
+    const reloadProjectsList = () => {
+        const updatedProjectList = ProjectsList({
+            didUpdateProject: reloadProjectsList
+        });
+        const updatedSearchAndAdd = SearchAndAdd({
             didAddProject: () => {
                 stackNavigation.back();
                 reloadProjectsList();
             },
             didSearch: (projects) => {
-                projectsList.filter(projects);
+                updatedProjectList.filter(projects);
             }
         })
-    );
-
-    let projectsList: ReturnType<typeof ProjectsList>;
-    const reloadProjectsList = () => {
-        const updatedProjectList = ProjectsList();
-        if (projectsList) {
-            projectsList.container.replaceWith(updatedProjectList.container);
+        if (elements) {
+            elements.projectsList.container.replaceWith(updatedProjectList.container);
+            elements.searchAndAdd.replaceWith(updatedSearchAndAdd);
         } else {
-            scrollable.append(updatedProjectList.container);
+            scrollable.append(
+                updatedSearchAndAdd,
+                updatedProjectList.container
+            );
         }
+        
 
-        projectsList = updatedProjectList;
+        elements = {
+            projectsList: updatedProjectList,
+            searchAndAdd: updatedSearchAndAdd
+        };
     };
     reloadProjectsList();
 
@@ -161,7 +172,11 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
     return container;
 }
 
-function ProjectsList() {
+type ProjectsListOpts = {
+    didUpdateProject: () => void
+}
+
+function ProjectsList(opts: ProjectsListOpts) {
     const container = document.createElement("div");
     container.classList.add("projects-list");
 
@@ -173,7 +188,10 @@ function ProjectsList() {
         projects
             .sort((a, b) => b.createdDate - a.createdDate)
             .forEach((project) => {
-                const tile = ProjectTile(project);
+                const tile = ProjectTile({
+                    project,
+                    didUpdateProject: opts.didUpdateProject
+                });
                 projectsTiles.push({
                     project,
                     tile
@@ -200,7 +218,12 @@ function ProjectsList() {
     return { container, filter };
 }
 
-function ProjectTile(project: ProjectType) {
+type ProjectTileOpts = {
+    project: ProjectType,
+    didUpdateProject: () => void
+}
+
+function ProjectTile(opts: ProjectTileOpts) {
     const container = document.createElement("div");
     container.id = PROJECTS_VIEW_ID;
     container.classList.add("project-tile");
@@ -208,12 +231,8 @@ function ProjectTile(project: ProjectType) {
     container.onclick = () =>
         stackNavigation.navigate(
             Project({
-                project,
-                didUpdateProject: async () => {
-                    project = (await api.projects.list()).find(
-                        ({ id }) => project.id === id
-                    );
-                }
+                project: opts.project,
+                didUpdateProject: opts.didUpdateProject
             }),
             BG_COLOR
         );
@@ -221,8 +240,8 @@ function ProjectTile(project: ProjectType) {
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");
     titleAndId.innerHTML = `
-        <h2>${project.title}</h2>
-        <div><small>${project.id}</small></div>
+        <h2>${opts.project.title}</h2>
+        <div><small>${opts.project.id}</small></div>
     `;
     container.append(titleAndId);
 
@@ -246,7 +265,7 @@ function ProjectTile(project: ProjectType) {
             const confirm = document.createElement("div");
             confirm.classList.add("confirm");
 
-            confirm.innerHTML = `<p>Are you sure you want to delete <b>${project.title}</b>?</p>`;
+            confirm.innerHTML = `<p>Are you sure you want to delete <b>${opts.project.title}</b>?</p>`;
 
             const buttonRow = document.createElement("div");
 
@@ -267,7 +286,7 @@ function ProjectTile(project: ProjectType) {
 
             keepButton.onclick = remove;
             deleteButton.onclick = () => {
-                api.projects.delete(project);
+                api.projects.delete(opts.project);
                 remove();
                 container.remove();
             };
@@ -278,10 +297,28 @@ function ProjectTile(project: ProjectType) {
             iconLeft: "Export"
         });
         shareButton.onclick = () => {
-            api.projects.export(project);
+            api.projects.export(opts.project);
         };
 
-        const buttonsGroup = ButtonGroup([deleteButton, shareButton]);
+        const projectSettingsButton = Button({
+            text: "Settings",
+            iconLeft: "Settings"
+        });
+        projectSettingsButton.onclick = () => {
+            stackNavigation.navigate(ProjectSettings({
+                project: opts.project,
+                didUpdateProject: () => {
+                    stackNavigation.back();
+                    opts.didUpdateProject();
+                }
+            }), BG_COLOR);
+        }
+
+        const buttonsGroup = ButtonGroup([
+            deleteButton, 
+            shareButton, 
+            projectSettingsButton
+        ]);
 
         content.append(buttonsGroup);
 
