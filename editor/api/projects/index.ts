@@ -31,13 +31,13 @@ const list = async () => {
 
     const promises = [];
     for (const project of projects) {
-        if(project.location !== project.id) {
+        if (project.location !== project.id) {
             promises.push(rpc().migrate(project));
             project.location = project.id;
         }
     }
     await Promise.all(projects);
-    if(promises.length) {
+    if (promises.length) {
         await config.save(CONFIG_TYPE.PROJECTS, projects);
     }
     // END

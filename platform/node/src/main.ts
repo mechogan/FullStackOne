@@ -16,7 +16,7 @@ import {
 } from "./connectivity/utils";
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
-import os from "os"
+import os from "os";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -65,15 +65,19 @@ export function main(
     if (!fs.existsSync(tmpDirectory))
         fs.mkdirSync(tmpDirectory, { recursive: true });
 
-    if(!fs.existsSync(directories.rootDirectory))
+    if (!fs.existsSync(directories.rootDirectory))
         fs.mkdirSync(directories.rootDirectory, { recursive: true });
 
     // MIGRATION 2024-10-26 : Convert title based location to id
 
-    const oldConfigPath = os.homedir() + "/.config/fullstacked"
-    const newConfigPath = directories.rootDirectory + "/" + directories.configDirectory;
-    if(fs.existsSync(oldConfigPath) && !fs.existsSync(newConfigPath)) {
-        fs.renameSync(oldConfigPath, directories.rootDirectory + "/" + directories.configDirectory);
+    const oldConfigPath = os.homedir() + "/.config/fullstacked";
+    const newConfigPath =
+        directories.rootDirectory + "/" + directories.configDirectory;
+    if (fs.existsSync(oldConfigPath) && !fs.existsSync(newConfigPath)) {
+        fs.renameSync(
+            oldConfigPath,
+            directories.rootDirectory + "/" + directories.configDirectory
+        );
     }
 
     // END
@@ -118,15 +122,14 @@ export function main(
         migrate: async (project) => {
             const oldDirectory = os.homedir() + "/" + project.location;
             const newDirectory = directories.rootDirectory + "/" + project.id;
-            
+
             const oldDirectoryExists = fs.existsSync(oldDirectory);
             const newDirectoryExists = fs.existsSync(newDirectory);
 
-            if(oldDirectoryExists && !newDirectoryExists) {
+            if (oldDirectoryExists && !newDirectoryExists) {
                 await fs.promises.rename(oldDirectory, newDirectory);
             }
         },
-
 
         directories,
         fs: upgradeFS(directories.rootDirectory, adapter.fs),
@@ -157,8 +160,8 @@ export function main(
                     "index",
                     outdir,
                     directories.rootDirectory +
-                    "/" +
-                    directories.nodeModulesDirectory
+                        "/" +
+                        directories.nodeModulesDirectory
                 );
                 return result?.errors?.length ? result.errors : 1;
             }

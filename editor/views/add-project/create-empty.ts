@@ -44,7 +44,7 @@ export function CreateEmpty(opts: CreateEmptyOpts) {
 
         const id = slugify(inputIdentifier.input.value, {
             lower: true
-        })
+        });
 
         api.projects
             .create({

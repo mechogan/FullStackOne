@@ -12,7 +12,11 @@ import { FileTree } from "./file-tree";
 import { Git } from "./git";
 import type esbuild from "esbuild";
 import { packageInstaller } from "../packages/installer";
-import { DELETE_ALL_PACKAGES_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
+import {
+    DELETE_ALL_PACKAGES_ID,
+    PROJECT_VIEW_ID,
+    RUN_PROJECT_ID
+} from "../../constants";
 
 type ProjectOpts = {
     project: ProjectType;

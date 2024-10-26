@@ -8,7 +8,11 @@ import { Connectivity } from "./connectivity";
 import { GitAuthentications } from "./git-authentications";
 import { Version } from "./version";
 import stackNavigation from "../../stack-navigation";
-import { BG_COLOR, PACKAGES_BUTTON_ID, SETTINGS_VIEW_ID } from "../../constants";
+import {
+    BG_COLOR,
+    PACKAGES_BUTTON_ID,
+    SETTINGS_VIEW_ID
+} from "../../constants";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -49,7 +53,7 @@ function Packages() {
                 text,
                 iconRight: "Package"
             });
-            updatedButton.id = PACKAGES_BUTTON_ID
+            updatedButton.id = PACKAGES_BUTTON_ID;
 
             if (!nodeModulesDirectory)
                 nodeModulesDirectory =

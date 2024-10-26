@@ -10,7 +10,11 @@ import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { find } from "../project/code-editor";
-import { PEER_DISCONNECT_BUTTON_CLASS, PEER_PAIR_BUTTON_CLASS, PEERS_VIEW_ID } from "../../constants";
+import {
+    PEER_DISCONNECT_BUTTON_CLASS,
+    PEER_PAIR_BUTTON_CLASS,
+    PEERS_VIEW_ID
+} from "../../constants";
 
 let reloadLists: () => void;
 const singletonReloadList = () => reloadLists();
@@ -108,7 +112,7 @@ function Connected(opts: PeersListOpts) {
             text: "Disconnect",
             color: "red"
         });
-        disconnectButton.classList.add(PEER_DISCONNECT_BUTTON_CLASS)
+        disconnectButton.classList.add(PEER_DISCONNECT_BUTTON_CLASS);
         disconnectButton.onclick = () => {
             disconnectButton.disabled = true;
             api.connectivity.disconnect(peerConnection);
@@ -155,7 +159,7 @@ function Nearby(opts: PeersListOpts) {
             const pairButton = Button({
                 text: "Pair"
             });
-            pairButton.classList.add(PEER_PAIR_BUTTON_CLASS)
+            pairButton.classList.add(PEER_PAIR_BUTTON_CLASS);
             item.append(pairButton);
             pairButton.onclick = () => {
                 pairButton.disabled = true;
