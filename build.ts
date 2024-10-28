@@ -80,6 +80,12 @@ const { css } = await sass.compileAsync(styleEntrypoint, {
 });
 await fs.promises.writeFile("editor/build/index.css", css);
 
+const scrollbarsStyle = "editor/style/globals/scrollbars.scss";
+const scrollbarsCSS = await sass.compileAsync(scrollbarsStyle, {
+    style: production ? "compressed" : "expanded"
+});
+await fs.promises.writeFile("editor/build/scrollbars.css", scrollbarsCSS.css);
+
 fs.cpSync("editor/icons", "editor/build/icons", {
     recursive: true
 });

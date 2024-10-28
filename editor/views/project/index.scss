@@ -231,8 +231,9 @@ $file-tree-panel-width: 235px;
         border-bottom: 1px solid colors.$gray;
         white-space: nowrap;
         width: 100%;
-        overflow: auto;
         min-height: 31px;
+        overflow-x: auto;
+        overflow-y: hidden;
 
         li {
             display: inline-flex;
