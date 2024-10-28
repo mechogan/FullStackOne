@@ -14,14 +14,18 @@ class FullScreenWKWebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandl
     var didLoad: (() -> Void)?
     var logFn: ((_ log: String) -> Void)?
     
-    override init(frame: CGRect, configuration: WKWebViewConfiguration) {
+    init(adapter: Adapter, overrideLogging: Bool = true) {
+        let wkWebViewConfig = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
-        configuration.userContentController = userContentController
+        wkWebViewConfig.userContentController = userContentController
+        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: adapter), forURLScheme: "fs")
         
-        super.init(frame: frame, configuration: configuration)
+        super.init(frame: CGRect(), configuration: wkWebViewConfig)
         
-        userContentController.add(self, name: "logging")
-        userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        if(overrideLogging) {
+            userContentController.add(self, name: "logging")
+            userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         
         self.navigationDelegate = self
         
@@ -111,16 +115,12 @@ class Instance  {
     
     init(project: Project){
         self.adapter = Adapter(projectId: project.id, baseDirectory: project.location)
-        let wkWebViewConfig = WKWebViewConfiguration()
-        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs")
-        self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
+        self.webview = FullScreenWKWebView(adapter: self.adapter)
     }
     
     init(adapter: Adapter) {
         self.adapter = adapter
-        let wkWebViewConfig = WKWebViewConfiguration()
-        wkWebViewConfig.setURLSchemeHandler(RequestListener(adapter: self.adapter), forURLScheme: "fs")
-        self.webview = FullScreenWKWebView(frame: CGRect(), configuration: wkWebViewConfig)
+        self.webview = FullScreenWKWebView(adapter: self.adapter, overrideLogging: false)
     }
     
     deinit {

@@ -255,6 +255,8 @@ const connectivityAPI = {
         }
     },
     async connect(peerNearby: PeerNearby, verifyAlive = true) {
+        console.log(peerNearby);
+
         for (const peerConnection of peersConnections.values()) {
             // already connected or in the process of connecting
             if (peerConnection.peer?.id === peerNearby.peer?.id) return;
@@ -291,6 +293,8 @@ const connectivityAPI = {
         if (indexOf <= -1) return;
         connectivityConfig.peersTrusted.splice(indexOf, 1);
         await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
+
+        api.connectivity.peers.onPeersEvent.forEach(cb => cb());
     },
     async disconnect(peerConnection: PeerConnection) {
         peersConnections.delete(peerConnection.id);
@@ -324,6 +328,8 @@ async function savePeerTrusted(peerTrusted: PeerTrusted) {
     }
 
     await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
+
+    api.connectivity.peers.onPeersEvent.forEach(cb => cb());
 }
 
 onPush["peerConnection"] = (eventStr: string) => {

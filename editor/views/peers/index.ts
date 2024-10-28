@@ -41,33 +41,20 @@ export function Peers() {
     const lists = document.createElement("div");
     lists.classList.add("peers-lists");
 
-    let connected: ReturnType<typeof Connected>,
-        nearby: ReturnType<typeof Nearby>,
-        trusted: ReturnType<typeof Trusted>;
+    const peersConnects = Connected();
+    const peersNearby = Nearby()
+    const peersTrusted = Trusted();
+
     reloadLists = () => {
-        const listConnected = Connected({ reloadLists });
-        const listNearby = Nearby({ reloadLists });
-        const listTrusted = Trusted({ reloadLists });
-
-        if (connected) {
-            connected.replaceWith(listConnected);
-        }
-        if (nearby) {
-            nearby.replaceWith(listNearby);
-        }
-        if (trusted) {
-            trusted.replaceWith(listTrusted);
-        }
-
-        connected = listConnected;
-        nearby = listNearby;
-        trusted = listTrusted;
+        peersConnects.reloadList();
+        peersNearby.reloadList();
+        peersTrusted.reloadList();
     };
     reloadLists();
 
     api.connectivity.peers.onPeersEvent.add(singletonReloadList);
 
-    lists.append(connected, nearby, trusted);
+    lists.append(peersConnects.container, peersNearby.container, peersTrusted.container);
     scrollable.append(lists);
 
     api.connectivity.advertise.start();
@@ -76,24 +63,11 @@ export function Peers() {
     return container;
 }
 
-type PeersListOpts = {
-    reloadLists: () => void;
-};
 
-function Connected(opts: PeersListOpts) {
-    const container = document.createElement("div");
-
-    const title = document.createElement("h3");
-    title.innerText = "Connected";
-
-    const count = document.createElement("span");
-    title.append(" (", count, ")");
-    count.innerText = api.connectivity.peers.connections().size.toString();
-
-    container.append(title);
-
+function reloadPeersConnected(count: HTMLSpanElement) {
     const list = document.createElement("ul");
-    container.append(list);
+
+    count.innerText = api.connectivity.peers.connections().size.toString()
 
     for (const peerConnection of api.connectivity.peers
         .connections()
@@ -124,10 +98,68 @@ function Connected(opts: PeersListOpts) {
         list.append(item);
     }
 
-    return container;
+    return list;
 }
 
-function Nearby(opts: PeersListOpts) {
+function Connected() {
+    const container = document.createElement("div");
+
+    const title = document.createElement("h3");
+    title.innerText = "Connected";
+
+    const count = document.createElement("span");
+    title.append(" (", count, ")");
+    count.innerText = api.connectivity.peers.connections().size.toString();
+
+    container.append(title);
+
+    let list: ReturnType<typeof reloadPeersConnected> = document.createElement("ul");
+    container.append(list);
+    const reloadList = () => {
+        const updatedList = reloadPeersConnected(count);
+        list.replaceWith(updatedList);
+        list = updatedList;
+    }
+    reloadList()
+
+    return { container, reloadList };
+}
+
+
+async function reloadPeersNearby(count: HTMLSpanElement) {
+    const list = document.createElement("ul");
+
+    let peersNearby = await api.connectivity.peers.nearby()
+    const peersConnections = api.connectivity.peers.connections().values();
+    peersNearby = peersNearby.filter(
+        ({ peer }) =>
+            !find(peersConnections, ({ peer: { id } }) => id === peer.id)
+    );
+
+    count.innerText = peersNearby.length.toString();
+
+    peersNearby.forEach((peerNearby) => {
+        const item = document.createElement("li");
+
+        item.innerText = peerNearby.peer.name;
+
+        const pairButton = Button({
+            text: "Pair"
+        });
+        pairButton.classList.add(PEER_PAIR_BUTTON_CLASS);
+        item.append(pairButton);
+        pairButton.onclick = () => {
+            pairButton.disabled = true;
+            api.connectivity.connect(peerNearby);
+        };
+
+        list.append(item);
+    });
+
+    return list
+}
+
+function Nearby() {
     const container = document.createElement("div");
 
     const title = document.createElement("h3");
@@ -139,41 +171,50 @@ function Nearby(opts: PeersListOpts) {
 
     container.append(title);
 
-    const list = document.createElement("ul");
+    let list: Awaited<ReturnType<typeof reloadPeersNearby>> = document.createElement("ul");
     container.append(list);
+    const reloadList = async () => {
+        const updatedList = await reloadPeersNearby(count);
+        list.replaceWith(updatedList)
+        list = updatedList;
+    }
+    reloadList();
 
-    api.connectivity.peers.nearby().then((peersNearby) => {
-        const peersConnections = api.connectivity.peers.connections().values();
-        peersNearby = peersNearby.filter(
-            ({ peer }) =>
-                !find(peersConnections, ({ peer: { id } }) => id === peer.id)
-        );
-
-        count.innerText = peersNearby.length.toString();
-
-        peersNearby.forEach((peerNearby) => {
-            const item = document.createElement("li");
-
-            item.innerText = peerNearby.peer.name;
-
-            const pairButton = Button({
-                text: "Pair"
-            });
-            pairButton.classList.add(PEER_PAIR_BUTTON_CLASS);
-            item.append(pairButton);
-            pairButton.onclick = () => {
-                pairButton.disabled = true;
-                api.connectivity.connect(peerNearby);
-            };
-
-            list.append(item);
-        });
-    });
-
-    return container;
+    return { container, reloadList };
 }
 
-function Trusted(opts: PeersListOpts) {
+
+async function reloadPeersTrusted(count: HTMLSpanElement) {
+    const list = document.createElement("ul");
+
+    const peersTrusted = await api.connectivity.peers.trusted()
+    count.innerText = peersTrusted.length.toString();
+
+    peersTrusted.forEach((peerTrusted) => {
+        const item = document.createElement("li");
+
+        item.innerText = peerTrusted.name;
+
+        const forgetButton = Button({
+            text: "Forget",
+            color: "red"
+        });
+
+        forgetButton.onclick = () => {
+            forgetButton.disabled = true;
+            item.remove();
+            api.connectivity.forget(peerTrusted);
+        };
+
+        item.append(forgetButton);
+
+        list.append(item);
+    });
+
+    return list
+}
+
+function Trusted() {
     const container = document.createElement("div");
 
     const title = document.createElement("h3");
@@ -185,34 +226,17 @@ function Trusted(opts: PeersListOpts) {
 
     container.append(title);
 
-    const list = document.createElement("ul");
+    let list: Awaited<ReturnType<typeof reloadPeersTrusted>> = document.createElement("ul");
     container.append(list);
 
-    api.connectivity.peers.trusted().then((peersTrusted) => {
-        count.innerText = peersTrusted.length.toString();
+    const reloadList = async () => {
+        const updatedList = await reloadPeersTrusted(count)
+        list.replaceWith(updatedList)
+        list = updatedList
+    }
+    reloadList();
 
-        peersTrusted.forEach((peerTrusted) => {
-            const item = document.createElement("li");
-
-            item.innerText = peerTrusted.name;
-
-            const forgetButton = Button({
-                text: "Forget",
-                color: "red"
-            });
-
-            forgetButton.onclick = () => {
-                forgetButton.disabled = true;
-                api.connectivity.forget(peerTrusted).then(opts.reloadLists);
-            };
-
-            item.append(forgetButton);
-
-            list.append(item);
-        });
-    });
-
-    return container;
+    return { container, reloadList };
 }
 
 function ManualConnect() {
@@ -237,15 +261,15 @@ function ManualConnect() {
                 <b>Your Network Info</b>
                 <div>
                     ${netInfo.networkInterfaces
-                        .map((inet) => {
-                            return `
+                    .map((inet) => {
+                        return `
                             <div>
                                 <div><b>${inet.name}</b></div>
                                 ${inet.addresses.map((addr) => `<div>${addr}</div>`).join("")}
                             </div>
                         `;
-                        })
-                        .join("")}
+                    })
+                    .join("")}
                 </div>
                 <div>
                     <div>

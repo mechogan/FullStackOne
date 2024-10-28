@@ -90,7 +90,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
             let connection = Connection(id: id, trusted: false, mcPeer: peerNearby.mcPeer, mcSession: mcSession)
             self.connections.append(connection)
             
-            print("invite");
+            print("iOS Multipeer: invite");
             let json = [
                 "id": meId,
                 "name": meName
@@ -147,7 +147,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer mcPeer: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        
+        print("iOS Multipeer: received invite")
         // we might not have discovered the other peer yet
         if(self.peersNearby.first(where: {$0.mcPeer == mcPeer}) == nil) {
             let json = try! JSON(data: context!);
@@ -164,6 +164,7 @@ class Multipeer: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate,
     
     func session(_ session: MCSession, peer mcPeer: MCPeerID, didChange state: MCSessionState) {
         if(state == MCSessionState.connected) {
+            print("iOS Multipeer: did connect")
             if let connection = self.connections.first(where: { $0.mcPeer == mcPeer }) {
                 self.onPeerConnection?(connection.id, 3, "open")
             } else if let peerNearby = self.peersNearby.first(where: { $0.mcPeer == mcPeer }),
