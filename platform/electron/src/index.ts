@@ -46,7 +46,7 @@ const open: OpenFunction = (id, project) => {
     let window = runningInstances.get(id);
 
     if (!window) {
-        const hostname = slugify(project.title, { lower: true }) + ".localhost";
+        const hostname = slugify(project.id, { lower: true }) + ".localhost";
 
         window = new BrowserWindow({
             width: 1024,
@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
 
     await open("FullStacked", {
         title: "FullStacked",
-        id: null,
+        id: "fullstacked",
         location: null,
         createdDate: null
     });
