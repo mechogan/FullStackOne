@@ -1,6 +1,10 @@
 const fs = require("fs");
 const dotenv = require("dotenv");
-const appleKeys = dotenv.parse(fs.readFileSync("../ios/APPLE_KEYS.env"));
+
+let appleKeys;
+if(fs.existsSync("../ios/APPLE_KEYS.env")){
+    appleKeys = dotenv.parse(fs.readFileSync("../ios/APPLE_KEYS.env"));
+}
 
 module.exports = {
     packagerConfig: {
@@ -8,15 +12,15 @@ module.exports = {
         asar: false,
         ignore: [],
         osxSign: {
-            identity: appleKeys.APPLE_ID
+            identity: appleKeys?.APPLE_ID
         },
         osxNotarize: {
             tool: "notarytool",
             appleApiKey:
-                appleKeys.APPLE_API_KEY_DIRECTORY +
-                `/AuthKey_${appleKeys.APPLE_API_KEY_ID}.p8`,
-            appleApiKeyId: appleKeys.APPLE_API_KEY_ID,
-            appleApiIssuer: appleKeys.APPLE_API_ISSUER
+                appleKeys?.APPLE_API_KEY_DIRECTORY +
+                `/AuthKey_${appleKeys?.APPLE_API_KEY_ID}.p8`,
+            appleApiKeyId: appleKeys?.APPLE_API_KEY_ID,
+            appleApiIssuer: appleKeys?.APPLE_API_ISSUER
         },
         protocols: [
             {

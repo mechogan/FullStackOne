@@ -81,7 +81,7 @@ const openDirectory: OpenDirectoryFunction = (directory: string) => {
     let directoryAbs = rootDirectory + "/" + directory;
     if (os.platform() === "win32")
         directoryAbs = directoryAbs.split("/").join("\\");
-    shell.openPath(directory);
+    shell.openPath(directoryAbs);
 };
 
 const { handler, close } = main(
