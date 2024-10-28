@@ -358,6 +358,10 @@ class AdapterFS {
     }
     
     func rename(oldPath: String, newPath: String) -> Any? {
+        if(oldPath == newPath) {
+            return true
+        }
+        
         let newFilePath = self.baseDirectory + "/" + newPath
         
         let existsAndIsDirectory = AdapterFS.itemExistsAndIsDirectory(newFilePath)

@@ -7,7 +7,8 @@ export function build(
     outdir: string,
     nodePath: string,
     sourcemap: esbuild.BuildOptions["sourcemap"] = "inline",
-    splitting = true
+    splitting = true,
+    minify: esbuild.BuildOptions["minify"] = false
 ) {
     try {
         buildSync({
@@ -24,7 +25,8 @@ export function build(
             sourcemap,
             write: true,
             nodePaths: nodePath ? [nodePath] : undefined,
-            logLevel: "silent"
+            logLevel: "silent",
+            minify
         });
     } catch (e) {
         return { errors: e.errors as esbuild.ResolveResult["errors"] };

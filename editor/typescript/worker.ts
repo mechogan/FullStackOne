@@ -313,6 +313,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
         },
         fileExists: function (path: string) {
             // console.log("fileExists", path);
+
             if (path.startsWith("node_modules")) {
                 const pathComponents = path.split("/");
                 const moduleName = pathComponents.at(1).startsWith("@")

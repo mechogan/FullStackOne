@@ -197,32 +197,12 @@ export async function saveGitAuth(hostname: string, gitAuth: GitAuths[""]) {
     hostname = hostname.includes("://") ? new URL(hostname).hostname : hostname;
 
     const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
-
-    // exists
-    if (gitAuths?.[hostname]) {
-        gitAuths[hostname] = gitAuth;
-    }
-    // new
-    else {
-        gitAuths[hostname] = gitAuth;
-    }
-
+    gitAuths[hostname] = gitAuth;
     return config.save(CONFIG_TYPE.GIT, gitAuths);
 }
 
 export default {
     saveGitAuth,
-    async getAllAuths() {
-        const gitAuths: GitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
-
-        // remove passwords
-        Object.entries(gitAuths).forEach(([host, auth]) => {
-            const { password, ...rest } = auth as any;
-            gitAuths[host] = rest;
-        });
-
-        return gitAuths;
-    },
     async getUsernameAndEmailForHost(url: string) {
         const { hostname } = new URL(url);
         const gitAuths = (await config.load(CONFIG_TYPE.GIT)) || {};
@@ -535,7 +515,8 @@ export default {
         return git.listServerRefs({
             http,
             url: project.gitRepository.url,
-            prefix: "refs/heads/"
+            prefix: "refs/heads/",
+            onAuth: requestGitAuth
         });
     },
     github

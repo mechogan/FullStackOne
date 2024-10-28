@@ -20,6 +20,7 @@ import { autocompletion } from "@codemirror/autocomplete";
 import prettier from "prettier";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
+import prettyBytes from "pretty-bytes";
 
 window.addEventListener("keydown", async (e) => {
     if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
@@ -58,11 +59,6 @@ window.addEventListener("keydown", async (e) => {
     }
 });
 
-type ImageView = {
-    dom: HTMLElement;
-    destroy: () => void;
-};
-
 type CodeViewExtension = {
     path: string;
     load: () => Promise<void>;
@@ -70,7 +66,12 @@ type CodeViewExtension = {
     saveThrottler?: ReturnType<typeof setTimeout>;
 };
 
-type CodeView = (EditorView | ImageView) & CodeViewExtension;
+type GenericView = {
+    dom: HTMLElement;
+    destroy: () => void;
+} & CodeViewExtension;
+
+type CodeView = (EditorView & CodeViewExtension) | GenericView;
 
 export type FileError = {
     line: number;
@@ -242,7 +243,9 @@ const defaultExtensions = [
 
 function createView(filePath: string): Promise<CodeView> {
     const fileExtension = filePath.split(".").pop().toLowerCase();
-    if (Object.values(IMAGE_Ext).find((ext) => ext === fileExtension)) {
+    if (Object.values(BINARY_Ext).find((ext) => ext === fileExtension)) {
+        return createBinaryView(filePath);
+    } else if (Object.values(IMAGE_Ext).find((ext) => ext === fileExtension)) {
         return createImageView(filePath);
     }
 
@@ -416,6 +419,27 @@ async function createImageView(filePath: string) {
     return imageView;
 }
 
+async function createBinaryView(filePath: string) {
+    const container = document.createElement("div");
+    container.classList.add("binary-view");
+
+    const binaryView = {
+        path: filePath,
+        destroy: () => {},
+        save: async () => {},
+        load: async () => {
+            const stats = await rpc().fs.stat(filePath, { absolutePath: true });
+            console.log(stats);
+            container.innerText = prettyBytes(stats.size);
+        },
+        dom: container
+    };
+
+    binaryView.load();
+
+    return binaryView;
+}
+
 enum UTF8_Ext {
     JAVASCRIPT = "js",
     JAVASCRIPT_X = "jsx",
@@ -443,6 +467,10 @@ enum IMAGE_Ext {
     GIF = "gif",
     WEBP = "webp",
     BMP = "bmp"
+}
+
+enum BINARY_Ext {
+    ZIP = "zip"
 }
 
 const javascriptExtensions = [

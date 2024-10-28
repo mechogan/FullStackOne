@@ -363,15 +363,21 @@ class AdapterFS(private val baseDirectory: String) {
 
         if(recursive) {
             val directories = arrayListOf<String>()
+            var didEnter = false
             dir.walk()
-                .onEnter { currentDir -> directories.add(currentDir.name) }
+                .onEnter { currentDir -> didEnter = true; directories.add(currentDir.name) }
                 .onLeave { _ ->
-                    directories.removeLast()
+                    directories.removeAt(directories.lastIndex)
                 }
                 .forEach {
                     if(it.absolutePath != dir.absolutePath) {
                         val directoryName = directories.subList(1, directories.size).joinToString("/")
-                        if(directoryName.isNotEmpty()) {
+                        if(didEnter && it.isDirectory) {
+                            files.add(mapOf(
+                                "name" to directoryName,
+                                "isDirectory" to it.isDirectory
+                            ))
+                        }else if(directoryName.isNotEmpty()) {
                             files.add(mapOf(
                                 "name" to  directoryName + "/" + it.name,
                                 "isDirectory" to it.isDirectory
@@ -382,6 +388,7 @@ class AdapterFS(private val baseDirectory: String) {
                                 "isDirectory" to it.isDirectory
                             ))
                         }
+                        didEnter = false;
                     }
                 }
         } else {

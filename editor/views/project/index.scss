@@ -219,6 +219,11 @@ $file-tree-panel-width: 235px;
                 max-width: 100%;
                 object-fit: contain;
             }
+
+            .binary-view {
+                padding: spacing.$medium;
+                text-align: center;
+            }
         }
     }
 

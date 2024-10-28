@@ -2,7 +2,7 @@
     "name": "FullStacked",
     "author": "FullStacked Org.",
     "description": "Build and run full-stack JS web apps anywhere.",
-    "version": "0.8.3",
+    "version": "0.9.0",
     "main": ".cache/index.js",
     "license": "GPL-3.0",
     "scripts": {
