@@ -105,7 +105,7 @@ export function Project(opts: ProjectOpts) {
         subtitle: opts.project.id,
         actions: isPackagesView
             ? [deleteAllButton]
-            : [gitWidget, tsButton, runButton],
+            : [gitWidget.container, tsButton, runButton],
         onBack: () => {
             if (content.classList.contains("closed-panel")) {
                 content.classList.remove("closed-panel");
@@ -134,6 +134,7 @@ export function Project(opts: ProjectOpts) {
         pullEvents.end?.();
         CodeEditor.reloadActiveFilesContent();
         fileTree.reloadFileTree();
+        gitWidget.reloadBranchAndCommit();
     });
 
     if (opts.run) {
@@ -249,7 +250,7 @@ function GitWidget(opts: GitWidgetOpts) {
 
     container.append(opts.statusArrow);
 
-    return container;
+    return { container, reloadBranchAndCommit };
 }
 
 type runOpts = {
