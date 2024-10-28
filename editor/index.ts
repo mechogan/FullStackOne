@@ -9,15 +9,13 @@ import { CloneGit } from "./views/add-project/clone-git";
 import { Project as ProjectType } from "./api/config/types";
 import { esbuildInstall } from "./views/esbuild";
 
-
 // fix windows scrollbars
-if(navigator.userAgent.includes("Windows")) {
+if (navigator.userAgent.includes("Windows")) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "/scrollbars.css";
     document.head.append(link);
 }
-
 
 globalThis.onPush["launchURL"] = async (deeplink: string) => {
     const repo = api.deeplink.getRepo(deeplink);

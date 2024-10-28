@@ -161,25 +161,25 @@ function GitWidget(opts: GitWidgetOpts) {
     const container = document.createElement("div");
     container.classList.add("git-widget");
 
-    const renderBranchAndCommit = () => {
+    const renderBranchAndCommit = async () => {
         const branchAndCommitContainer = document.createElement("div");
 
-        Promise.all([
+        const [branch, commit] = await Promise.all([
             api.git.currentBranch(opts.project),
             api.git.log(opts.project, 1)
-        ]).then(([branch, commit]) => {
-            branchAndCommitContainer.innerHTML = `
+        ]);
+
+        branchAndCommitContainer.innerHTML = `
                 <div><b>${branch}</b></div>
                 <div>${commit.at(0).oid.slice(0, 7)}<div>
             `;
-        });
 
         return branchAndCommitContainer;
     };
 
-    let branchAndCommit: ReturnType<typeof renderBranchAndCommit>;
-    const reloadBranchAndCommit = () => {
-        const updatedBranchAndCommit = renderBranchAndCommit();
+    let branchAndCommit: Awaited<ReturnType<typeof renderBranchAndCommit>>;
+    const reloadBranchAndCommit = async () => {
+        const updatedBranchAndCommit = await renderBranchAndCommit();
         if (branchAndCommit) {
             branchAndCommit.replaceWith(updatedBranchAndCommit);
         } else {

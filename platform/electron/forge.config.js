@@ -2,7 +2,7 @@ const fs = require("fs");
 const dotenv = require("dotenv");
 
 let appleKeys;
-if(fs.existsSync("../ios/APPLE_KEYS.env")){
+if (fs.existsSync("../ios/APPLE_KEYS.env")) {
     appleKeys = dotenv.parse(fs.readFileSync("../ios/APPLE_KEYS.env"));
 }
 
