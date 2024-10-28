@@ -46,7 +46,7 @@ const open: OpenFunction = (id, project) => {
     let window = runningInstances.get(id);
 
     if (!window) {
-        const hostname = slugify(project.title, { lower: true });
+        const hostname = slugify(project.title, { lower: true }) + ".localhost";
 
         window = new BrowserWindow({
             width: 1024,
