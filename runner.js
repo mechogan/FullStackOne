@@ -77,15 +77,17 @@ const latestReleaseVersion = await getLatestReleaseVersion();
 
 const electronDirectory = "platform/electron";
 
-const BUILD_AND_TEST = () => {
+const TEST_AND_BUILD = () => {
     child_process.execSync("docker info", { stdio: "inherit" });
     child_process.execSync("npm ci", { stdio: "inherit" });
     child_process.execSync("npm ci", {
         cwd: electronDirectory,
         stdio: "inherit"
     });
-    child_process.execSync("npm run build", { stdio: "inherit" });
     child_process.execSync("npm test", { stdio: "inherit" });
+    child_process.execSync("npm run build -- --production", {
+        stdio: "inherit"
+    });
 };
 
 /////////// node /////////////
@@ -509,7 +511,7 @@ async function run() {
     let tries = 5;
     while (tries) {
         try {
-            BUILD_AND_TEST();
+            TEST_AND_BUILD();
             break;
         } catch (e) {
             notifyError("Failed build and test", false);

@@ -6,6 +6,8 @@ import esbuild from "esbuild";
 import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
 
+const production = process.argv.includes("--production");
+
 // TypeScript fix for JSC (Safari/WebKit) memory leak
 // Refer to this for more info: https://github.com/microsoft/TypeScript/issues/58137
 // Remove if ever fixed
@@ -57,8 +59,9 @@ for (const [input, output] of toBuild) {
         output,
         "editor/build",
         undefined,
-        "external",
-        false
+        production ? false : "external",
+        false,
+        production
     );
     fs.rmSync(tmpFile);
     if (errors) buildErrors.push(errors);
@@ -72,7 +75,9 @@ fs.cpSync("editor/assets", "editor/build/assets", {
 });
 
 const styleEntrypoint = "editor/index.scss";
-const { css } = await sass.compileAsync(styleEntrypoint);
+const { css } = await sass.compileAsync(styleEntrypoint, {
+    style: production ? "compressed" : "expanded"
+});
 await fs.promises.writeFile("editor/build/index.css", css);
 
 fs.cpSync("editor/icons", "editor/build/icons", {

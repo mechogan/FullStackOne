@@ -402,6 +402,7 @@ function ItemInputForm(opts: ItemInputFormOpts) {
 
     setTimeout(() => {
         inputName.input.focus();
+
         if (inputName.input.value) {
             inputName.input.setSelectionRange(
                 0,

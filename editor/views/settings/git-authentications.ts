@@ -1,5 +1,5 @@
 import api from "../../api";
-import { GitAuths } from "../../api/config/types";
+import { CONFIG_TYPE, GitAuths } from "../../api/config/types";
 import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
@@ -52,7 +52,7 @@ export function GitAuthentications() {
     const reloadGitAuths = () => {
         const updatedList = document.createElement("ul");
 
-        api.git.getAllAuths().then((gitAuths) => {
+        api.config.load(CONFIG_TYPE.GIT).then((gitAuths) => {
             updatedList.append(
                 ...Object.entries(gitAuths).map(([hostname, gitAuth]) =>
                     GitAuthItem({

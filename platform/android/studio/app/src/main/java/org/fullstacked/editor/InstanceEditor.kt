@@ -1,5 +1,6 @@
 package org.fullstacked.editor
 
+import android.app.DownloadManager
 import android.content.Intent
 import android.os.Environment
 import android.provider.DocumentsContract
@@ -302,8 +303,7 @@ class AdapterEditor(
                 val out = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/" + title + ".zip")
                 file.copyTo(out, true)
 
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setType(DocumentsContract.Document.MIME_TYPE_DIR)
+                val intent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
                 InstanceEditor.singleton.context.startActivity(intent)
                 return true
             }
