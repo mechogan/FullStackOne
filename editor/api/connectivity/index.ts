@@ -294,7 +294,7 @@ const connectivityAPI = {
         connectivityConfig.peersTrusted.splice(indexOf, 1);
         await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
 
-        api.connectivity.peers.onPeersEvent.forEach(cb => cb());
+        api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
     },
     async disconnect(peerConnection: PeerConnection) {
         peersConnections.delete(peerConnection.id);
@@ -329,7 +329,7 @@ async function savePeerTrusted(peerTrusted: PeerTrusted) {
 
     await api.config.save(CONFIG_TYPE.CONNECTIVITY, connectivityConfig);
 
-    api.connectivity.peers.onPeersEvent.forEach(cb => cb());
+    api.connectivity.peers.onPeersEvent.forEach((cb) => cb());
 }
 
 onPush["peerConnection"] = (eventStr: string) => {

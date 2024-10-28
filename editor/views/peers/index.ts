@@ -42,7 +42,7 @@ export function Peers() {
     lists.classList.add("peers-lists");
 
     const peersConnects = Connected();
-    const peersNearby = Nearby()
+    const peersNearby = Nearby();
     const peersTrusted = Trusted();
 
     reloadLists = () => {
@@ -54,7 +54,11 @@ export function Peers() {
 
     api.connectivity.peers.onPeersEvent.add(singletonReloadList);
 
-    lists.append(peersConnects.container, peersNearby.container, peersTrusted.container);
+    lists.append(
+        peersConnects.container,
+        peersNearby.container,
+        peersTrusted.container
+    );
     scrollable.append(lists);
 
     api.connectivity.advertise.start();
@@ -63,11 +67,10 @@ export function Peers() {
     return container;
 }
 
-
 function reloadPeersConnected(count: HTMLSpanElement) {
     const list = document.createElement("ul");
 
-    count.innerText = api.connectivity.peers.connections().size.toString()
+    count.innerText = api.connectivity.peers.connections().size.toString();
 
     for (const peerConnection of api.connectivity.peers
         .connections()
@@ -113,23 +116,23 @@ function Connected() {
 
     container.append(title);
 
-    let list: ReturnType<typeof reloadPeersConnected> = document.createElement("ul");
+    let list: ReturnType<typeof reloadPeersConnected> =
+        document.createElement("ul");
     container.append(list);
     const reloadList = () => {
         const updatedList = reloadPeersConnected(count);
         list.replaceWith(updatedList);
         list = updatedList;
-    }
-    reloadList()
+    };
+    reloadList();
 
     return { container, reloadList };
 }
 
-
 async function reloadPeersNearby(count: HTMLSpanElement) {
     const list = document.createElement("ul");
 
-    let peersNearby = await api.connectivity.peers.nearby()
+    let peersNearby = await api.connectivity.peers.nearby();
     const peersConnections = api.connectivity.peers.connections().values();
     peersNearby = peersNearby.filter(
         ({ peer }) =>
@@ -156,7 +159,7 @@ async function reloadPeersNearby(count: HTMLSpanElement) {
         list.append(item);
     });
 
-    return list
+    return list;
 }
 
 function Nearby() {
@@ -171,23 +174,23 @@ function Nearby() {
 
     container.append(title);
 
-    let list: Awaited<ReturnType<typeof reloadPeersNearby>> = document.createElement("ul");
+    let list: Awaited<ReturnType<typeof reloadPeersNearby>> =
+        document.createElement("ul");
     container.append(list);
     const reloadList = async () => {
         const updatedList = await reloadPeersNearby(count);
-        list.replaceWith(updatedList)
+        list.replaceWith(updatedList);
         list = updatedList;
-    }
+    };
     reloadList();
 
     return { container, reloadList };
 }
 
-
 async function reloadPeersTrusted(count: HTMLSpanElement) {
     const list = document.createElement("ul");
 
-    const peersTrusted = await api.connectivity.peers.trusted()
+    const peersTrusted = await api.connectivity.peers.trusted();
     count.innerText = peersTrusted.length.toString();
 
     peersTrusted.forEach((peerTrusted) => {
@@ -211,7 +214,7 @@ async function reloadPeersTrusted(count: HTMLSpanElement) {
         list.append(item);
     });
 
-    return list
+    return list;
 }
 
 function Trusted() {
@@ -226,14 +229,15 @@ function Trusted() {
 
     container.append(title);
 
-    let list: Awaited<ReturnType<typeof reloadPeersTrusted>> = document.createElement("ul");
+    let list: Awaited<ReturnType<typeof reloadPeersTrusted>> =
+        document.createElement("ul");
     container.append(list);
 
     const reloadList = async () => {
-        const updatedList = await reloadPeersTrusted(count)
-        list.replaceWith(updatedList)
-        list = updatedList
-    }
+        const updatedList = await reloadPeersTrusted(count);
+        list.replaceWith(updatedList);
+        list = updatedList;
+    };
     reloadList();
 
     return { container, reloadList };
@@ -261,15 +265,15 @@ function ManualConnect() {
                 <b>Your Network Info</b>
                 <div>
                     ${netInfo.networkInterfaces
-                    .map((inet) => {
-                        return `
+                        .map((inet) => {
+                            return `
                             <div>
                                 <div><b>${inet.name}</b></div>
                                 ${inet.addresses.map((addr) => `<div>${addr}</div>`).join("")}
                             </div>
                         `;
-                    })
-                    .join("")}
+                        })
+                        .join("")}
                 </div>
                 <div>
                     <div>
