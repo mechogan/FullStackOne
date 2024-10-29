@@ -27,10 +27,7 @@ const td = new TextDecoder();
 const maxPayloadSize = 100000; // 100kb
 const maxFilesPerPaylod = 10;
 
-let installing = false;
-
 self.onmessage = (message: MessageEvent) => {
-    console.log("Worker", message.data)
     install(message.data)
         .then(() => sendMessage({ 
             name: message.data,
@@ -49,11 +46,6 @@ const sendMessage = (message: PackageInstallerWorkerMessage) => {
 }
 
 async function install(name: string){
-    if(installing) {
-        console.error("Trying to install a package on a worker already in an installation process.");
-        return;
-    };
-
     sendMessage({
         name,
         type: "progress",

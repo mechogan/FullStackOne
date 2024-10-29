@@ -77,7 +77,6 @@ async function install(packageName: string) {
             progress
         }
 
-        console.log("ADDING", name);
         packagesToInstall.set(name, packageToInstall);
         packagesToInstallOrder.push(name);
     }
@@ -112,11 +111,7 @@ function createWorker() {
                 activeWorker.ready = true;
                 resolve()
             } else {
-                const installingPackage = packagesToInstall.get(msg.name)
-                if(!installingPackage) {
-                    console.log(msg.name, packagesToInstall)
-                }
-                installingPackage.onmessage(msg);
+                packagesToInstall.get(msg.name).onmessage(msg);
             }
         }
     })
@@ -125,7 +120,6 @@ function createWorker() {
 
 function installLoop() {
     if (packagesToInstall.size === 0) {
-        console.log(workers);
         if (Array.from(workers).every(activeWorker => !activeWorker.installing)) {
             progressView?.remove();
             for (const { worker } of workers) {
@@ -155,14 +149,15 @@ function installLoop() {
         return;
     }
 
-    worker.installing = packagesToInstallOrder.shift();
-    const installingPackage = packagesToInstall.get(worker.installing);
+    const packageName = packagesToInstallOrder.shift();
+    worker.installing = packageName;
+    const installingPackage = packagesToInstall.get(packageName);
 
     let installed = false, dependenciesInstalled = true;
 
     const onCompleted = (success: boolean) => {
         if(installed) {
-            packagesToInstall.delete(worker.installing);
+            packagesToInstall.delete(packageName);
             worker.installing = null;
 
             if(dependenciesInstalled) {
@@ -173,10 +168,6 @@ function installLoop() {
         
         installLoop();
     };
-
-    if(!installingPackage) {
-        console.log(worker.installing);
-    }
 
     installingPackage.onmessage = (message) => {
         if (message.type === "progress") {
@@ -202,7 +193,7 @@ function installLoop() {
         }
     }
 
-    worker.worker.postMessage(worker.installing);
+    worker.worker.postMessage(packageName);
 }
 
 function renderProgressDialog() {
