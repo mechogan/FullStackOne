@@ -1,15 +1,18 @@
 import rpc from "../../rpc";
-import gzip from "gzip-js";
-import untar from "js-untar";
 import { Dialog } from "../../components/dialog";
 import { PackagesInstallProgress } from "./progress";
+import type { PackageInstallerWorkerMessage } from "./worker";
 
 let nodeModulesDirectory: string;
 
-const maxPayloadSize = 100000; // 100kb
-const maxFilesPerPaylod = 10;
-const concurrentInstallation = 1;
-let currentlyInstalling = 0;
+const concurrentInstallation = 10;
+
+type ActiveWorker = {
+    worker: Worker,
+    ready: boolean,
+    installing: string
+}
+const workers = new Set<ActiveWorker>();
 
 let packagesDirectory: string;
 let progressView: {
@@ -17,22 +20,16 @@ let progressView: {
     addPackage: ReturnType<typeof PackagesInstallProgress>["addPackage"];
 };
 
-const td = new TextDecoder();
-
-const packagesToInstall: {
-    name: string;
-    promiseResolve: () => void;
-    promiseReject: () => void;
-}[] = [];
-const installingPackages = new Map<
-    string,
-    {
-        promise: Promise<void>;
-        progress: ReturnType<
+const packagesToInstallOrder: string[] = [];
+const packagesToInstall = new Map<string, {
+        promise?: Promise<void>;
+        progress?: ReturnType<
             ReturnType<typeof PackagesInstallProgress>["addPackage"]
         >;
-    }
->();
+        promiseResolve?: () => void;
+        promiseReject?: () => void;
+        onmessage?: (message: PackageInstallerWorkerMessage) => void;
+    }>();
 
 export const packageInstaller = {
     install
@@ -58,9 +55,9 @@ async function install(packageName: string) {
     if (alreadyInstalled) return;
 
     const name = parsePackageName(packageName);
-    let installPromise = installingPackages.get(name);
+    let packageToInstall = packagesToInstall.get(name);
 
-    if (!installPromise) {
+    if (!packageToInstall) {
         if (!progressView) {
             renderProgressDialog();
         }
@@ -68,24 +65,26 @@ async function install(packageName: string) {
         const progress = progressView.addPackage(name);
         progress.setStatus("waiting");
         const promise = new Promise<void>((promiseResolve, promiseReject) => {
-            packagesToInstall.push({
-                name,
+            packageToInstall = {
+                ...(packageToInstall || {}),
                 promiseResolve,
                 promiseReject
-            });
+            }
         });
+        packageToInstall = {
+            ...(packageToInstall || {}),
+            promise,
+            progress
+        }
 
-        installPromise = {
-            progress,
-            promise
-        };
-
-        installingPackages.set(name, installPromise);
+        console.log("ADDING", name);
+        packagesToInstall.set(name, packageToInstall);
+        packagesToInstallOrder.push(name);
     }
 
     installLoop();
 
-    return installPromise.promise;
+    return packageToInstall.promise;
 }
 
 async function checkIfAlreadyInstalled(packageName: string) {
@@ -99,40 +98,111 @@ async function checkIfAlreadyInstalled(packageName: string) {
     });
 }
 
-function installLoop() {
-    if (currentlyInstalling === concurrentInstallation) return;
+function createWorker() {
+    const activeWorker: ActiveWorker = {
+        worker: new Worker("worker-package-install.js", { type: "module" }),
+        ready: false,
+        installing: null
+    };
+    workers.add(activeWorker)
+    return new Promise<void>(resolve => {
+        activeWorker.worker.onmessage = (message) => {
+            const msg: PackageInstallerWorkerMessage = message.data;
+            if (msg.type === "ready") {
+                activeWorker.ready = true;
+                resolve()
+            } else {
+                const installingPackage = packagesToInstall.get(msg.name)
+                if(!installingPackage) {
+                    console.log(msg.name, packagesToInstall)
+                }
+                installingPackage.onmessage(msg);
+            }
+        }
+    })
 
-    if (packagesToInstall.length === 0) {
-        if (currentlyInstalling === 0) {
+}
+
+function installLoop() {
+    if (packagesToInstall.size === 0) {
+        console.log(workers);
+        if (Array.from(workers).every(activeWorker => !activeWorker.installing)) {
             progressView?.remove();
+            for (const { worker } of workers) {
+                worker.terminate();
+            }
+            workers.clear();
         }
         return;
     }
 
-    currentlyInstalling++;
+    if(packagesToInstallOrder.length === 0) {
+        return;
+    }
 
-    const packageToInstall = packagesToInstall.shift();
+    let worker: ActiveWorker;
+    for (const activeWorker of workers) {
+        if (!activeWorker.installing && activeWorker.ready) {
+            worker = activeWorker;
+            break;
+        }
+    }
+
+    if (!worker) {
+        if (workers.size < concurrentInstallation) {
+            createWorker().then(installLoop);
+        }
+        return;
+    }
+
+    worker.installing = packagesToInstallOrder.shift();
+    const installingPackage = packagesToInstall.get(worker.installing);
+
+    let installed = false, dependenciesInstalled = true;
+
     const onCompleted = (success: boolean) => {
-        if (success) packageToInstall.promiseResolve();
-        else packageToInstall.promiseReject();
+        if(installed) {
+            packagesToInstall.delete(worker.installing);
+            worker.installing = null;
+
+            if(dependenciesInstalled) {
+                if (success) installingPackage.promiseResolve();
+                else installingPackage.promiseReject();
+            }
+        }
+        
         installLoop();
     };
-    installPackage(packageToInstall.name)
-        .then((deps) => {
-            currentlyInstalling--;
 
-            if (!deps) {
-                onCompleted(true);
-            } else {
-                Promise.all(deps.map(install))
-                    .then(() => onCompleted(true))
-                    .catch(() => onCompleted(false));
+    if(!installingPackage) {
+        console.log(worker.installing);
+    }
+
+    installingPackage.onmessage = (message) => {
+        if (message.type === "progress") {
+            installingPackage.progress.setStatus(message.status)
+            if (message.loaded !== undefined && message.total !== undefined) {
+                installingPackage.progress.setProgress(message.loaded, message.total);
             }
-        })
-        .catch(() => {
-            currentlyInstalling--;
-            onCompleted(false);
-        });
+        } else if (message.type === "dependencies" && message.packages.length) {
+            dependenciesInstalled = false;
+            Promise
+                .all(message.packages.map(install))
+                .then(() => {
+                    dependenciesInstalled = true
+                    onCompleted(true)
+                })
+                .catch(() => {
+                    dependenciesInstalled = true
+                    onCompleted(false)
+                });
+        } else if (message.type === "done") {
+            installed = true;
+            onCompleted(message.success);
+        }
+    }
+
+    worker.worker.postMessage(worker.installing);
 }
 
 function renderProgressDialog() {
@@ -145,91 +215,4 @@ function renderProgressDialog() {
         },
         addPackage
     };
-}
-
-async function installPackage(name: string) {
-    const installingPackage = installingPackages.get(name);
-
-    installingPackage.progress.setStatus("downloading");
-    const packageInfoStr = (
-        await rpc().fetch(`https://registry.npmjs.org/${name}/latest`, {
-            encoding: "utf8"
-        })
-    ).body as string;
-    const packageInfoJSON = JSON.parse(packageInfoStr);
-    const tarbalUrl = packageInfoJSON.dist.tarball;
-    const tarballData = (await rpc().fetch(tarbalUrl)).body as Uint8Array;
-
-    installingPackage.progress.setStatus("unpacking");
-    const tarData = new Uint8Array(gzip.unzip(tarballData));
-    await rpc().fs.mkdir(`${nodeModulesDirectory}/${name}`, {
-        absolutePath: true
-    });
-    const files: {
-        name: string;
-        buffer: ArrayBufferLike;
-        type: string; // https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
-    }[] = await untar(tarData.buffer);
-
-    let filesToWrite: { path: string; data: Uint8Array }[] = [];
-    const writeFiles = async () => {
-        await rpc().fs.writeFileMulti(filesToWrite, {
-            absolutePath: true,
-            recursive: true
-        });
-        filesToWrite = [];
-    };
-
-    const packageJSONFile = `${nodeModulesDirectory}/${name}/package.json`;
-    let deps: string[];
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type === "5") continue;
-
-        const pathComponents = file.name.split("/").slice(1); // strip 1
-        const path = `${nodeModulesDirectory}/${name}/${pathComponents.join("/")}`;
-
-        if (path === packageJSONFile) {
-            const packageJSON = JSON.parse(td.decode(file.buffer));
-            if (packageJSON.dependencies) {
-                deps = Object.keys(packageJSON.dependencies);
-                deps.forEach(install);
-            }
-        }
-
-        let currentPayloadSize = filesToWrite.reduce(
-            (sum, { data }) => sum + data.byteLength,
-            0
-        );
-
-        if (
-            currentPayloadSize >= maxPayloadSize ||
-            filesToWrite.length >= maxFilesPerPaylod
-        ) {
-            await writeFiles();
-        }
-
-        filesToWrite.push({
-            path,
-            data: new Uint8Array(file.buffer)
-        });
-
-        installingPackage.progress.setStatus(
-            `(${i}/${files.length}) unpacking`
-        );
-        installingPackage.progress.setProgress(i, files.length);
-    }
-
-    // maybe leftovers
-    if (filesToWrite.length) {
-        await writeFiles();
-    }
-
-    installingPackage.progress.setProgress(1, 1);
-    installingPackage.progress.setStatus("installed");
-
-    installingPackages.delete(name);
-
-    return deps;
 }
