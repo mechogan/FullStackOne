@@ -45,8 +45,6 @@ function syncRequest(pathComponents: string[], ...args) {
 }
 
 async function fetchCall(pathComponents: string[], ...args) {
-    const start = Date.now();
-
     const url = new URL(self.location.origin);
     url.pathname = pathComponents.join("/");
 
