@@ -61,7 +61,7 @@ async function install(name: string) {
     });
 
     const packageInfoStr = (
-        await rpc().fetch(`https://registry.npmjs.org/${name}/latest`, {
+        await rpc().fetch(`https://registry.npmjs.org/${name}/latest`, null, {
             encoding: "utf8"
         })
     ).body as string;

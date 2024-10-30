@@ -1,9 +1,9 @@
 export type fetch = (
     url: string,
+    body?: string | Uint8Array,
     options?: {
         headers?: Record<string, string>;
         method?: "GET" | "POST" | "PUT" | "DELETE";
-        body?: string | Uint8Array;
         encoding?: string;
         timeout?: number;
     }

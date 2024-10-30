@@ -130,10 +130,10 @@ export function createAdapter(
         },
         async fetch(
             url: string,
+            body?: string | Uint8Array,
             options?: {
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELETE";
-                body?: string | Uint8Array;
                 encoding?: string;
                 timeout?: number;
             }
@@ -152,7 +152,7 @@ export function createAdapter(
             const response = await fetch(url, {
                 method: options?.method || "GET",
                 headers: options?.headers || {},
-                body: options?.body ? Buffer.from(options?.body) : undefined,
+                body: body ? Buffer.from(body) : undefined,
                 signal
             });
 
@@ -160,7 +160,7 @@ export function createAdapter(
 
             const headers = convertHeadersToObj(response.headers);
 
-            const body =
+            const responseBody =
                 options?.encoding === "utf8"
                     ? await response.text()
                     : new Uint8Array(await response.arrayBuffer());
@@ -169,7 +169,7 @@ export function createAdapter(
                 headers,
                 statusCode: response.status,
                 statusMessage: response.statusText,
-                body
+                body: responseBody
             };
         },
 

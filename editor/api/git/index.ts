@@ -113,13 +113,10 @@ const http = {
     async request({ url, method, headers, body, onProgress }) {
         body = body ? await awaitBody(body) : undefined;
 
-        const response = await rpc().fetch(url, {
+        const response = await rpc().fetch(url, body, {
             method,
-            headers,
-            body
+            headers
         });
-
-        console.log(url, response);
 
         return {
             ...response,

@@ -6,16 +6,16 @@ export default {
     async deviceFlowStart() {
         const response = await rpc().fetch(
             "https://github.com/login/device/code",
+            JSON.stringify({
+                client_id,
+                scope: "repo,user:email"
+            }),
             {
                 method: "POST",
                 headers: {
                     "content-type": "application/json",
                     accept: "application/json"
                 },
-                body: JSON.stringify({
-                    client_id,
-                    scope: "repo,user:email"
-                }),
                 encoding: "utf8"
             }
         );
@@ -29,17 +29,17 @@ export default {
     async deviceFlowPoll(device_code: string) {
         const response = await rpc().fetch(
             "https://github.com/login/oauth/access_token",
+            JSON.stringify({
+                client_id,
+                device_code,
+                grant_type: "urn:ietf:params:oauth:grant-type:device_code"
+            }),
             {
                 method: "POST",
                 headers: {
                     "content-type": "application/json",
                     accept: "application/json"
                 },
-                body: JSON.stringify({
-                    client_id,
-                    device_code,
-                    grant_type: "urn:ietf:params:oauth:grant-type:device_code"
-                }),
                 encoding: "utf8"
             }
         );
@@ -53,7 +53,7 @@ export default {
 
         const { access_token } = json;
 
-        const userResponse = await rpc().fetch("https://api.github.com/user", {
+        const userResponse = await rpc().fetch("https://api.github.com/user", null, {
             headers: {
                 authorization: `Bearer ${access_token}`,
                 accept: "application/json"
@@ -67,6 +67,7 @@ export default {
 
         const emailsResponse = await rpc().fetch(
             "https://api.github.com/user/emails",
+            null,
             {
                 headers: {
                     authorization: `Bearer ${access_token}`,
