@@ -43,12 +43,12 @@ export function createAdapter(
                 );
             },
             writeFile,
-            writeFileMulti(files, options) {
-                return Promise.all(
-                    files.map(({ path, data }) =>
-                        writeFile(path, data, options)
-                    )
-                );
+            writeFileMulti(options, ...files) {
+                const promises = [];
+                for(let i = 0; i < files.length; i += 2) {
+                    promises.push(writeFile(files[i] as string, files[i + 1], options))
+                }
+                return Promise.all(promises);
             },
             unlink: (path) => {
                 return fs.promises.unlink(baseDirectory + "/" + path);

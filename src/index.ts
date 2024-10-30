@@ -3,7 +3,7 @@ import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
 import { bindPassRequestBody } from "./android";
-import { deserializeArgs, serializeArgs } from "./serialization";
+import { convertArrayToObject, deserializeArgs, serializeArgs } from "./serialization";
 
 if ((globalThis as any).Android) {
     bindPassRequestBody((id, body) =>
@@ -54,8 +54,13 @@ async function fetchCall(pathComponents: string[], ...args) {
         body: serializeArgs(args)
     });
 
-    const responseData = await response.arrayBuffer();
-    const data = deserializeArgs(new Uint8Array(responseData))?.at(0);
+    const responseData = new Uint8Array(await response.arrayBuffer());
+    const convertedObject = responseData[0];
+    const rawData = deserializeArgs(responseData.slice(1));
+
+    const data = convertedObject
+        ? convertArrayToObject(rawData)
+        : rawData.at(0);
 
     if (response.status >= 299) {
         throw data;

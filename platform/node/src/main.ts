@@ -2,6 +2,7 @@ import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
 import fs from "fs";
 import mime from "mime";
+import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
@@ -16,7 +17,7 @@ import {
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
 import os from "os";
-import { deserializeArgs, serializeArgs } from "../../../src/serialization";
+import { convertObjectToArray, deserializeArgs, serializeArgs } from "../../../src/serialization";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -260,15 +261,15 @@ function upgradeFS(
             }
             return defaultFS.writeFile(file, data, options);
         },
-        writeFileMulti: (files, options) => {
+        writeFileMulti: (options, ...files) => {
             if (options?.absolutePath) {
-                return Promise.all(
-                    files.map(({ path, data }) =>
-                        writeFile(path, data, options)
-                    )
-                );
+                const promises = [];
+                for(let i = 0; i < files.length; i += 2) {
+                    promises.push(writeFile(files[i] as string, files[i + 1], options))
+                }
+                return Promise.all(promises);
             }
-            return defaultFS.writeFileMulti(files, options);
+            return defaultFS.writeFileMulti(options, ...files);
         },
         unlink: (path, options) => {
             if (options?.absolutePath) {
@@ -441,7 +442,10 @@ function createHandler(mainAdapter: AdapterEditor) {
             if (method) {
                 response.status = 200;
 
-                const args = body && body.length ? deserializeArgs(body) : [];
+                const args =
+                    body && body.length
+                        ? deserializeArgs(body)
+                        : [];
 
                 let responseBody = method;
 
@@ -466,7 +470,16 @@ function createHandler(mainAdapter: AdapterEditor) {
 
                 let type = "application/octet-stream";
                 if (responseBody) {
-                    response.data = serializeArgs([responseBody]);
+                    const convertObject = typeof responseBody === "object" 
+                        && !ArrayBuffer.isView(responseBody)
+                        && !Array.isArray(responseBody);
+
+                    const responseBodyArr = convertObject
+                        ? convertObjectToArray(responseBody)
+                        : [responseBody]
+
+                    const serializedData = serializeArgs(responseBodyArr);
+                    response.data = new Uint8Array([convertObject ? 1 : 0, ...serializedData]);
                 } else {
                     delete response.data;
                 }

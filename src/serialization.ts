@@ -67,9 +67,9 @@ export function serializeArgs(args: any[]) {
         if (typeof arg === "undefined" || arg === null) {
             type = DataType.UNDEFINED;
             data = new Uint8Array(0);
-        } else if (arg.constructor === Uint8Array) {
+        } else if (ArrayBuffer.isView(arg)) {
             type = DataType.UINT8ARRAY;
-            data = arg;
+            data = new Uint8Array(arg.buffer);
         } else if (typeof arg === "boolean") {
             type = DataType.BOOLEAN;
             data = new Uint8Array([arg ? 1 : 0]);
@@ -126,7 +126,7 @@ export function deserializeArgs(data: Uint8Array) {
                 args.push(undefined);
                 break;
             case DataType.BOOLEAN:
-                args.push(arg ? true : false);
+                args.push(arg.at(0) ? true : false);
                 break;
             case DataType.STRING:
                 args.push(td.decode(arg));
@@ -144,4 +144,16 @@ export function deserializeArgs(data: Uint8Array) {
     }
 
     return args;
+}
+
+export function convertObjectToArray(obj: object) {
+    return Object.entries(obj).flat();
+}
+
+export function convertArrayToObject(arr: any[]) {
+    let obj = {};
+    for(let i = 0; i < arr.length; i += 2) {
+        obj[arr[i]] = arr[i + 1];
+    }
+    return obj;
 }

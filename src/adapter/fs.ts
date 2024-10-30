@@ -43,15 +43,12 @@ export type fs = {
     ): Promise<void>;
 
     writeFileMulti(
-        files: {
-            path: string;
-            data: string | Uint8Array;
-        }[],
         options: {
             encoding?: "utf8";
             absolutePath?: boolean;
             recursive?: boolean;
-        }
+        },
+        ...files: (string | Uint8Array)[]
     ): Promise<void[]>;
 
     unlink(path: string, options?: { absolutePath?: boolean }): Promise<void>;

@@ -5,25 +5,25 @@ import untar from "js-untar";
 
 export type PackageInstallerWorkerMessage =
     | {
-          type: "ready";
-      }
+        type: "ready";
+    }
     | {
-          name: string;
-          type: "progress";
-          status: string;
-          loaded?: number;
-          total?: number;
-      }
+        name: string;
+        type: "progress";
+        status: string;
+        loaded?: number;
+        total?: number;
+    }
     | {
-          name: string;
-          type: "dependencies";
-          packages: string[];
-      }
+        name: string;
+        type: "dependencies";
+        packages: string[];
+    }
     | {
-          name: string;
-          type: "done";
-          success: boolean;
-      };
+        name: string;
+        type: "done";
+        success: boolean;
+    };
 
 const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
 const td = new TextDecoder();
@@ -84,12 +84,12 @@ async function install(name: string) {
         type: string; // https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
     }[] = await untar(tarData.buffer);
 
-    let filesToWrite: { path: string; data: Uint8Array }[] = [];
+    let filesToWrite: [string, Uint8Array][] = [];
     const writeFiles = async () => {
-        await rpc().fs.writeFileMulti(filesToWrite, {
+        await rpc().fs.writeFileMulti({
             absolutePath: true,
             recursive: true
-        });
+        }, ...filesToWrite.flat());
         filesToWrite = [];
     };
 
@@ -114,7 +114,7 @@ async function install(name: string) {
         }
 
         let currentPayloadSize = filesToWrite.reduce(
-            (sum, { data }) => sum + data.byteLength,
+            (sum, [_, data]) => sum + data.byteLength,
             0
         );
 
@@ -125,10 +125,7 @@ async function install(name: string) {
             await writeFiles();
         }
 
-        filesToWrite.push({
-            path,
-            data: new Uint8Array(file.buffer)
-        });
+        filesToWrite.push([path, new Uint8Array(file.buffer)]);
 
         sendMessage({
             name,
