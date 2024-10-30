@@ -45,7 +45,11 @@ function syncRequest(pathComponents: string[], ...args) {
     return data;
 }
 
+globalThis.benchmarks = {}
+
 async function fetchCall(pathComponents: string[], ...args) {
+    const start = Date.now();
+
     const url = new URL(self.location.origin);
     url.pathname = pathComponents.join("/");
 
@@ -61,6 +65,21 @@ async function fetchCall(pathComponents: string[], ...args) {
     const data = convertedObject
         ? convertArrayToObject(rawData)
         : rawData.at(0);
+
+    if(!globalThis.benchmarks[url.pathname]) {
+        globalThis.benchmarks[url.pathname] = {
+            avg: 0,
+            min: 0,
+            max: 0,
+            results: []
+        }
+    }
+
+    const result = Date.now() - start;
+    globalThis.benchmarks[url.pathname].results.push(result)
+    globalThis.benchmarks[url.pathname].min = Math.min(...globalThis.benchmarks[url.pathname].results)
+    globalThis.benchmarks[url.pathname].max = Math.max(...globalThis.benchmarks[url.pathname].results)
+    globalThis.benchmarks[url.pathname].avg = globalThis.benchmarks[url.pathname].results.reduce((t, i) => t + i, 0) / globalThis.benchmarks[url.pathname].results.length
 
     if (response.status >= 299) {
         throw data;
