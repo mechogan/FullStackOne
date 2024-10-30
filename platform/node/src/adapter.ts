@@ -1,3 +1,4 @@
+import { fromByteArray } from "base64-js";
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
@@ -45,7 +46,7 @@ export function createAdapter(
             writeFile,
             writeFileMulti(options, ...files) {
                 const promises = [];
-                for(let i = 0; i < files.length; i += 2) {
+                for (let i = 0; i < files.length; i += 2) {
                     promises.push(writeFile(files[i] as string, files[i + 1], options))
                 }
                 return Promise.all(promises);
@@ -129,14 +130,9 @@ export function createAdapter(
             }
         },
         async fetch(
-            url: string,
-            body?: string | Uint8Array,
-            options?: {
-                headers?: Record<string, string>;
-                method?: "GET" | "POST" | "PUT" | "DELETE";
-                encoding?: string;
-                timeout?: number;
-            }
+            url,
+            body,
+            options
         ) {
             let signal: AbortSignal = undefined,
                 timeoutId: ReturnType<typeof setTimeout>;
@@ -160,10 +156,9 @@ export function createAdapter(
 
             const headers = convertHeadersToObj(response.headers);
 
-            const responseBody =
-                options?.encoding === "utf8"
-                    ? await response.text()
-                    : new Uint8Array(await response.arrayBuffer());
+            const responseBody = options?.encoding === "base64"
+                ? fromByteArray(new Uint8Array(await response.arrayBuffer()))
+                : await response.text();
 
             return {
                 headers,
@@ -171,6 +166,35 @@ export function createAdapter(
                 statusMessage: response.statusText,
                 body: responseBody
             };
+        },
+        fetchRaw: async (url: string,
+            body?: string | Uint8Array,
+            options?: {
+                headers?: Record<string, string>;
+                method?: "GET" | "POST" | "PUT" | "DELETE";
+                timeout?: number;
+            }) => {
+                let signal: AbortSignal = undefined,
+                timeoutId: ReturnType<typeof setTimeout>;
+            if (options?.timeout) {
+                const controller = new AbortController();
+                timeoutId = setTimeout(
+                    () => controller.abort(),
+                    options.timeout
+                );
+                signal = controller.signal;
+            }
+
+            const response = await fetch(url, {
+                method: options?.method || "GET",
+                headers: options?.headers || {},
+                body: body ? Buffer.from(body) : undefined,
+                signal
+            });
+
+            if (timeoutId) clearTimeout(timeoutId);
+
+            return new Uint8Array(await response.arrayBuffer());
         },
 
         broadcast

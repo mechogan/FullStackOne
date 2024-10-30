@@ -1,5 +1,4 @@
 import { SourceMapConsumer } from "source-map-js";
-import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
 import { bindPassRequestBody } from "./android";
@@ -34,7 +33,7 @@ function syncRequest(pathComponents: string[], ...args) {
     else {
         data = request.responseText;
         if (contentType?.startsWith("application/json")) {
-            data = JSON.parse(data, decodeUint8Array);
+            data = JSON.parse(data);
         }
     }
 
@@ -44,8 +43,6 @@ function syncRequest(pathComponents: string[], ...args) {
 
     return data;
 }
-
-globalThis.benchmarks = {}
 
 async function fetchCall(pathComponents: string[], ...args) {
     const start = Date.now();
@@ -57,30 +54,21 @@ async function fetchCall(pathComponents: string[], ...args) {
         method: "POST",
         body: serializeArgs(args)
     });
+    
+    const contentType = response.headers.get("content-type");
 
-    const responseData = new Uint8Array(await response.arrayBuffer());
-    const convertedObject = responseData[0];
-    const rawData = deserializeArgs(responseData.slice(1));
-
-    const data = convertedObject
-        ? convertArrayToObject(rawData)
-        : rawData.at(0);
-
-    if(!globalThis.benchmarks[url.pathname]) {
-        globalThis.benchmarks[url.pathname] = {
-            avg: 0,
-            min: 0,
-            max: 0,
-            results: []
-        }
+    let data = null;
+    if(contentType?.startsWith("text/plain")) {
+        data = await response.text();
+    } else if(contentType?.startsWith("application/json")) {
+        data = await response.json();
+    } else if(contentType?.startsWith("application/octet-stream")) {
+        data = new Uint8Array(await response.arrayBuffer());
+    } else {
+        console.error("Unknown content-type in IPC return call. Using arrayBuffer");
+        data = await response.arrayBuffer();
     }
-
-    const result = Date.now() - start;
-    globalThis.benchmarks[url.pathname].results.push(result)
-    globalThis.benchmarks[url.pathname].min = Math.min(...globalThis.benchmarks[url.pathname].results)
-    globalThis.benchmarks[url.pathname].max = Math.max(...globalThis.benchmarks[url.pathname].results)
-    globalThis.benchmarks[url.pathname].avg = globalThis.benchmarks[url.pathname].results.reduce((t, i) => t + i, 0) / globalThis.benchmarks[url.pathname].results.length
-
+    
     if (response.status >= 299) {
         throw data;
     }

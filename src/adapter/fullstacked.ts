@@ -1,15 +1,18 @@
-import { fetch } from "./fetch";
+import { fetch, fetchRaw } from "./fetch";
 import { Dirent, fs } from "./fs";
 
 export type Adapter = {
     fs: fs;
     fetch: fetch;
+    fetchRaw: fetchRaw;
     platform: string;
     broadcast(data: string): void;
 };
 
 declare global {
     var rpc: () => {
+        fetch: Adapter["fetch"],
+        fetchRaw: Adapter["fetchRaw"],
         broadcast(data: string): void;
         platform: () => Promise<Adapter["platform"]>;
         fs: Omit<Adapter["fs"], "readFile" | "readdir"> & {
@@ -34,36 +37,6 @@ declare global {
                 }
             ): Promise<Dirent[]>;
         };
-
-        fetch(
-            url: string,
-            options?: {
-                headers?: Record<string, string>;
-                method?: "GET" | "POST" | "PUT" | "DELTE";
-                body?: string | Uint8Array;
-                timeout?: number;
-            }
-        ): Promise<{
-            headers: Record<string, string>;
-            statusCode: number;
-            statusMessage: string;
-            body: Uint8Array;
-        }>;
-        fetch(
-            url: string,
-            options?: {
-                encoding: "utf8";
-                headers?: Record<string, string>;
-                method?: "GET" | "POST" | "PUT" | "DELTE";
-                body?: string | Uint8Array;
-                timeout?: number;
-            }
-        ): Promise<{
-            headers: Record<string, string>;
-            statusCode: number;
-            statusMessage: string;
-            body: string;
-        }>;
     };
 
     var onPush: {

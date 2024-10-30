@@ -2,7 +2,6 @@ import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
 import fs from "fs";
 import mime from "mime";
-import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
@@ -392,10 +391,14 @@ function createHandler(mainAdapter: AdapterEditor) {
 
         // the rest can be used as query
         const query = pathAndQuery.join("?");
+        let bodyFromQuery = false;
         if (query.length) {
             const searchParams = fastQueryString.parse(query);
             const maybeBody: string = searchParams["body"];
-            if (maybeBody) body = te.encode(decodeURIComponent(maybeBody));
+            if (maybeBody) {
+                bodyFromQuery = true;
+                body = te.encode(decodeURIComponent(maybeBody));
+            }
         }
 
         // remove trailing slash
@@ -442,9 +445,10 @@ function createHandler(mainAdapter: AdapterEditor) {
             if (method) {
                 response.status = 200;
 
-                const args =
-                    body && body.length
-                        ? deserializeArgs(body)
+                const args = body && body.length
+                        ? bodyFromQuery
+                            ? JSON.parse(td.decode(body))
+                            : deserializeArgs(body)
                         : [];
 
                 let responseBody = method;
@@ -468,23 +472,20 @@ function createHandler(mainAdapter: AdapterEditor) {
                     }
                 }
 
-                let type = "application/octet-stream";
+                response.mimeType = "text/plain";
                 if (responseBody) {
-                    const convertObject = typeof responseBody === "object" 
-                        && !ArrayBuffer.isView(responseBody)
-                        && !Array.isArray(responseBody);
-
-                    const responseBodyArr = convertObject
-                        ? convertObjectToArray(responseBody)
-                        : [responseBody]
-
-                    const serializedData = serializeArgs(responseBodyArr);
-                    response.data = new Uint8Array([convertObject ? 1 : 0, ...serializedData]);
+                    if(typeof responseBody === "string") {
+                        response.data = te.encode(responseBody);
+                    } else if (ArrayBuffer.isView(responseBody)) {
+                        response.mimeType = "application/octet-stream";
+                        response.data = new Uint8Array(responseBody.buffer);
+                    } else {
+                        response.mimeType = "application/json";
+                        response.data = te.encode(JSON.stringify(responseBody));
+                    }
                 } else {
                     delete response.data;
                 }
-
-                response.mimeType = type;
             }
         }
 

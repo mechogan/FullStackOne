@@ -7,6 +7,7 @@ import { CONFIG_TYPE } from "../config/types";
 import github from "./github";
 import rpc from "../../rpc";
 import { GitAuth } from "../../views/project/git/auth";
+import { toByteArray } from "base64-js";
 
 // for isomorphic-git
 window.Buffer = globalBuffer;
@@ -115,14 +116,17 @@ const http = {
 
         const response = await rpc().fetch(url, body, {
             method,
-            headers
+            headers,
+            encoding: "base64"
         });
+
+        const data = toByteArray(response.body);
 
         return {
             ...response,
             url,
             method,
-            body: [response.body]
+            body: [data]
         };
     }
 };
