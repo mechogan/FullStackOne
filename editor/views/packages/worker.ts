@@ -3,23 +3,27 @@ import rpc from "../../rpc";
 import gzip from "gzip-js";
 import untar from "js-untar";
 
-export type PackageInstallerWorkerMessage = {
-    type: "ready"
-} | {
-    name: string,
-    type: "progress",
-    status: string,
-    loaded?: number,
-    total?: number
-} | {
-    name: string,
-    type: "dependencies",
-    packages: string[]
-} | {
-    name: string,
-    type: "done",
-    success: boolean
-}
+export type PackageInstallerWorkerMessage =
+    | {
+          type: "ready";
+      }
+    | {
+          name: string;
+          type: "progress";
+          status: string;
+          loaded?: number;
+          total?: number;
+      }
+    | {
+          name: string;
+          type: "dependencies";
+          packages: string[];
+      }
+    | {
+          name: string;
+          type: "done";
+          success: boolean;
+      };
 
 const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
 const td = new TextDecoder();
@@ -29,23 +33,27 @@ const maxFilesPerPaylod = 10;
 
 self.onmessage = (message: MessageEvent) => {
     install(message.data)
-        .then(() => sendMessage({ 
-            name: message.data,
-            type: "done",
-            success: true
-         }))
-         .catch(() => sendMessage({ 
-            name: message.data,
-            type: "done",
-            success: false
-         }));
-}
+        .then(() =>
+            sendMessage({
+                name: message.data,
+                type: "done",
+                success: true
+            })
+        )
+        .catch(() =>
+            sendMessage({
+                name: message.data,
+                type: "done",
+                success: false
+            })
+        );
+};
 
 const sendMessage = (message: PackageInstallerWorkerMessage) => {
     self.postMessage(message);
-}
+};
 
-async function install(name: string){
+async function install(name: string) {
     sendMessage({
         name,
         type: "progress",
@@ -101,7 +109,7 @@ async function install(name: string){
                     name,
                     type: "dependencies",
                     packages: Object.keys(packageJSON.dependencies)
-                })
+                });
             }
         }
 
@@ -147,4 +155,4 @@ async function install(name: string){
 
 sendMessage({
     type: "ready"
-})
+});

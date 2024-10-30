@@ -3,6 +3,7 @@ import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
 import { bindPassRequestBody } from "./android";
+import { deserializeArgs, serializeArgs } from "./serialization";
 
 if ((globalThis as any).Android) {
     bindPassRequestBody((id, body) =>
@@ -50,21 +51,11 @@ async function fetchCall(pathComponents: string[], ...args) {
 
     const response = await fetch(url.toString(), {
         method: "POST",
-        body: JSON.stringify(args)
+        body: serializeArgs(args)
     });
 
-    const contentType = response.headers.get("content-type");
-
-    let data: any;
-
-    if (contentType?.startsWith("application/octet-stream"))
-        data = new Uint8Array(await response.arrayBuffer());
-    else {
-        data = await response.text();
-        if (contentType?.startsWith("application/json")) {
-            data = JSON.parse(data, decodeUint8Array);
-        }
-    }
+    const responseData = await response.arrayBuffer();
+    const data = deserializeArgs(new Uint8Array(responseData))?.at(0);
 
     if (response.status >= 299) {
         throw data;

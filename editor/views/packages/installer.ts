@@ -8,10 +8,10 @@ let nodeModulesDirectory: string;
 const concurrentInstallation = 10;
 
 type ActiveWorker = {
-    worker: Worker,
-    ready: boolean,
-    installing: string
-}
+    worker: Worker;
+    ready: boolean;
+    installing: string;
+};
 const workers = new Set<ActiveWorker>();
 
 let packagesDirectory: string;
@@ -21,7 +21,9 @@ let progressView: {
 };
 
 const packagesToInstallOrder: string[] = [];
-const packagesToInstall = new Map<string, {
+const packagesToInstall = new Map<
+    string,
+    {
         promise?: Promise<void>;
         progress?: ReturnType<
             ReturnType<typeof PackagesInstallProgress>["addPackage"]
@@ -29,7 +31,8 @@ const packagesToInstall = new Map<string, {
         promiseResolve?: () => void;
         promiseReject?: () => void;
         onmessage?: (message: PackageInstallerWorkerMessage) => void;
-    }>();
+    }
+>();
 
 export const packageInstaller = {
     install
@@ -69,13 +72,13 @@ async function install(packageName: string) {
                 ...(packageToInstall || {}),
                 promiseResolve,
                 promiseReject
-            }
+            };
         });
         packageToInstall = {
             ...(packageToInstall || {}),
             promise,
             progress
-        }
+        };
 
         packagesToInstall.set(name, packageToInstall);
         packagesToInstallOrder.push(name);
@@ -103,24 +106,27 @@ function createWorker() {
         ready: false,
         installing: null
     };
-    workers.add(activeWorker)
-    return new Promise<void>(resolve => {
+    workers.add(activeWorker);
+    return new Promise<void>((resolve) => {
         activeWorker.worker.onmessage = (message) => {
             const msg: PackageInstallerWorkerMessage = message.data;
             if (msg.type === "ready") {
                 activeWorker.ready = true;
-                resolve()
+                resolve();
             } else {
                 packagesToInstall.get(msg.name).onmessage(msg);
             }
-        }
-    })
-
+        };
+    });
 }
 
 function installLoop() {
     if (packagesToInstall.size === 0) {
-        if (Array.from(workers).every(activeWorker => !activeWorker.installing)) {
+        if (
+            Array.from(workers).every(
+                (activeWorker) => !activeWorker.installing
+            )
+        ) {
             progressView?.remove();
             for (const { worker } of workers) {
                 worker.terminate();
@@ -130,7 +136,7 @@ function installLoop() {
         return;
     }
 
-    if(packagesToInstallOrder.length === 0) {
+    if (packagesToInstallOrder.length === 0) {
         return;
     }
 
@@ -153,45 +159,48 @@ function installLoop() {
     worker.installing = packageName;
     const installingPackage = packagesToInstall.get(packageName);
 
-    let installed = false, dependenciesInstalled = true;
+    let installed = false,
+        dependenciesInstalled = true;
 
     const onCompleted = (success: boolean) => {
-        if(installed) {
+        if (installed) {
             packagesToInstall.delete(packageName);
             worker.installing = null;
 
-            if(dependenciesInstalled) {
+            if (dependenciesInstalled) {
                 if (success) installingPackage.promiseResolve();
                 else installingPackage.promiseReject();
             }
         }
-        
+
         installLoop();
     };
 
     installingPackage.onmessage = (message) => {
         if (message.type === "progress") {
-            installingPackage.progress.setStatus(message.status)
+            installingPackage.progress.setStatus(message.status);
             if (message.loaded !== undefined && message.total !== undefined) {
-                installingPackage.progress.setProgress(message.loaded, message.total);
+                installingPackage.progress.setProgress(
+                    message.loaded,
+                    message.total
+                );
             }
         } else if (message.type === "dependencies" && message.packages.length) {
             dependenciesInstalled = false;
-            Promise
-                .all(message.packages.map(install))
+            Promise.all(message.packages.map(install))
                 .then(() => {
-                    dependenciesInstalled = true
-                    onCompleted(true)
+                    dependenciesInstalled = true;
+                    onCompleted(true);
                 })
                 .catch(() => {
-                    dependenciesInstalled = true
-                    onCompleted(false)
+                    dependenciesInstalled = true;
+                    onCompleted(false);
                 });
         } else if (message.type === "done") {
             installed = true;
             onCompleted(message.success);
         }
-    }
+    };
 
     worker.worker.postMessage(packageName);
 }

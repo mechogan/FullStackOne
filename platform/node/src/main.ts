@@ -2,7 +2,6 @@ import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
 import fs from "fs";
 import mime from "mime";
-import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
@@ -17,6 +16,7 @@ import {
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
 import os from "os";
+import { deserializeArgs, serializeArgs } from "../../../src/serialization";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -430,7 +430,7 @@ function createHandler(mainAdapter: AdapterEditor) {
                 data
             };
         }
-        // rpc methods
+        // ipc methods
         else {
             const methodPath = pathname.split("/");
             let method = methodPath.reduce(
@@ -441,10 +441,7 @@ function createHandler(mainAdapter: AdapterEditor) {
             if (method) {
                 response.status = 200;
 
-                const args =
-                    body && body.length
-                        ? JSON.parse(td.decode(body), decodeUint8Array)
-                        : [];
+                const args = body && body.length ? deserializeArgs(body) : [];
 
                 let responseBody = method;
 
@@ -467,19 +464,9 @@ function createHandler(mainAdapter: AdapterEditor) {
                     }
                 }
 
-                let type = "text/plain";
+                let type = "application/octet-stream";
                 if (responseBody) {
-                    if (ArrayBuffer.isView(responseBody)) {
-                        type = "application/octet-stream";
-                        responseBody = new Uint8Array(responseBody.buffer);
-                    } else {
-                        if (typeof responseBody !== "string") {
-                            type = "application/json";
-                            responseBody = JSON.stringify(responseBody);
-                        }
-                        responseBody = te.encode(responseBody);
-                    }
-                    response.data = responseBody;
+                    response.data = serializeArgs([responseBody]);
                 } else {
                     delete response.data;
                 }
