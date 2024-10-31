@@ -40,16 +40,16 @@ function deserializeNumber(bytes: Uint8Array) {
 
 function numberTo4Bytes(n: number) {
     const uint8Array = new Uint8Array(4);
-    uint8Array[0] = n & 0x000000ff;
-    uint8Array[1] = (n & 0x0000ff00) >> 8;
-    uint8Array[2] = (n & 0x00ff0000) >> 16;
-    uint8Array[3] = (n & 0xff000000) >> 24;
+    uint8Array[0] = (n & 0xff000000) >> 24;
+    uint8Array[1] = (n & 0x00ff0000) >> 16;
+    uint8Array[2] = (n & 0x0000ff00) >> 8;
+    uint8Array[3] = (n & 0x000000ff) >> 0;
     return uint8Array;
 }
 
 function bytesToNumber(bytes: Uint8Array) {
     return (
-        (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0
+        (bytes[0] << 24 | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3] << 0)) >>> 0
     );
 }
 

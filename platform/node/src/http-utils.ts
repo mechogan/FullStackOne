@@ -3,6 +3,7 @@ import http from "http";
 
 export function respond(response: Response, res: http.ServerResponse) {
     const headers = {
+        "cache-control": "no-cache",
         "content-type": response.mimeType
     };
     if (response.data) {

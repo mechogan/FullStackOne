@@ -158,7 +158,8 @@ class RequestListener: NSObject, WKURLSchemeHandler {
                 httpVersion: "HTTP/1.1",
                 headerFields: [
                     "Content-Type": response.mimeType,
-                    "Content-Length": String(response.data.count)
+                    "Content-Length": String(response.data.count),
+                    "Cache-Control": "no-cache"
                 ]
             )!
             
@@ -167,7 +168,7 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             urlSchemeTask.didFinish()
         }
         
-        var pathname = request.url!.pathComponents.joined(separator: "/")
+        var pathname = request.url!.pathComponents.filter({$0 != "/"}).joined(separator: "/")
         
         // remove trailing slash
         if(pathname.hasSuffix("/")) {
@@ -178,7 +179,7 @@ class RequestListener: NSObject, WKURLSchemeHandler {
         if(pathname.hasPrefix("/")) {
             pathname = String(pathname.dropFirst())
         }
-            
+        
         // check for [path]/index.html
         let maybeIndexHTML = pathname + "/index.html";
         let indexHTMLExists = self.adapter.fs.exists(path: maybeIndexHTML)
@@ -207,31 +208,32 @@ class RequestListener: NSObject, WKURLSchemeHandler {
             return send()
         }
         
-        var body = request.httpBody
+        var args: [Any?]? = nil;
         
         if(request.httpMethod == "GET") {
             let uri = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
             let bodyStr = uri?.queryItems?.first(where: {$0.name == "body"})?.value
             if(bodyStr != nil){
-                body = bodyStr?.removingPercentEncoding?.data(using: .utf8)
+                args = JSON(parseJSON: (bodyStr?.removingPercentEncoding)!).arrayValue.map{e in
+                    switch(e.type){
+                    case .string:
+                        return e.stringValue
+                    case .number:
+                        return e.numberValue
+                    default:
+                        return e
+                    }
+                }
             }
         }
         
+        if(args == nil) {
+            args = deserializeArgs(data: request.httpBody!)
+        }
         
-        self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), body: body ?? Data(), done: { maybeResponseData in
-            if(maybeResponseData is Void){
-                response = Response(
-                    data: Data(),
-                    status: 200,
-                    mimeType: "text/plain"
-                )
-            } else if (maybeResponseData is Bool) {
-                response = Response(
-                    data: ((maybeResponseData as! Bool) ? "1" : "0").data(using: .utf8)!,
-                    status: 200,
-                    mimeType: "application/json"
-                )
-            } else if(maybeResponseData is String) {
+        self.adapter.callAdapterMethod(methodPath: pathname.split(separator: "/"), args: args ?? [], done: { maybeResponseData in
+            
+            if(maybeResponseData is String) {
                 response = Response(
                     data: (maybeResponseData as! String).data(using: .utf8)!,
                     status: 200,
@@ -243,21 +245,35 @@ class RequestListener: NSObject, WKURLSchemeHandler {
                     status: 200,
                     mimeType: "application/octet-stream"
                 )
+            } else if(maybeResponseData is Void){
+                response = Response(
+                    data: Data(),
+                    status: 200,
+                    mimeType: "text/plain"
+                )
             } else if(maybeResponseData is AdapterError) {
                 response = Response(
                     data: try! JSONSerialization.data(withJSONObject: (maybeResponseData as! AdapterError).toJSON),
                     status: 299,
                     mimeType: "application/json"
                 )
-            } else if(maybeResponseData is JSON) {
+            } else if(
+                maybeResponseData is JSON ||
+                maybeResponseData is Bool ||
+                maybeResponseData is Int ||
+                maybeResponseData != nil
+            ) {
+                
+                let responseData = maybeResponseData is JSON
+                ? try! (maybeResponseData as! JSON).rawData()
+                : maybeResponseData is Bool
+                ? ((maybeResponseData as! Bool) ? "true" : "false").data(using: .utf8)!
+                : maybeResponseData is Int
+                ? String(maybeResponseData as! Int).data(using: .utf8)!
+                : try! JSONSerialization.data(withJSONObject: maybeResponseData!)
+                
                 response = Response(
-                    data: try! (maybeResponseData as! JSON).rawData(),
-                    status: 200,
-                    mimeType: "application/json"
-                )
-            } else if(maybeResponseData != nil) {
-                response = Response(
-                    data: try! JSONSerialization.data(withJSONObject: maybeResponseData!),
+                    data: responseData,
                     status: 200,
                     mimeType: "application/json"
                 )
@@ -267,9 +283,80 @@ class RequestListener: NSObject, WKURLSchemeHandler {
         })
     }
     
-    func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
-
+    private func bytesToNumber(bytes: [UInt8]) -> UInt {
+        var value : UInt = 0
+        for byte in bytes {
+            value = value << 8
+            value = value | UInt(byte)
+        }
+        return value
     }
+    
+    private func deserializeNumber(bytes: [UInt8]) -> Int {
+        let negative = bytes[0] == 1;
+        
+        var n: UInt = 0, i = 1;
+        while (i <= bytes.count) {
+            n += UInt(bytes[i]) << ((i - 1) * 8)
+            i += 1
+        }
+        
+        let value = Int(n);
+        
+        return negative ? 0 - value : value;
+    }
+    
+    private func deserializeArgs(data: Data) -> [Any?] {
+        var args: [Any?] = [];
+        
+        var cursor = 0;
+        while(cursor < data.count) {
+            let type = DataType(rawValue: data[cursor])
+            cursor += 1
+            let length = Int(self.bytesToNumber(bytes: [UInt8](data[cursor...(cursor + 3)])))
+            cursor += 4;
+            let arg = length > 0 ? data[cursor...(cursor + length - 1)] : Data()
+            cursor += length
+            
+            switch (type) {
+            case .UNDEFINED:
+                args.append(nil)
+                break
+            case .BOOLEAN:
+                args.append(arg[0] == 1 ? true : false)
+                break
+            case .STRING:
+                args.append(String(data: arg, encoding: .utf8))
+                break
+            case .NUMBER:
+                args.append(self.deserializeNumber(bytes: [UInt8](arg)));
+                break
+            case .JSON:
+                try! args.append(JSON(data: arg))
+                break
+            case .UINT8ARRAY:
+                args.append(arg)
+                break
+            case .none:
+                print("Unknown type to deserialize")
+            }
+        }
+        
+        return args;
+    }
+    
+    func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
+        
+    }
+}
+
+enum DataType: UInt8 {
+    case UNDEFINED = 0
+    case BOOLEAN = 1
+    case STRING = 2
+    case NUMBER = 3
+    case JSON = 4
+    case UINT8ARRAY = 5
 }
 
 // source: https://stackoverflow.com/a/61489361

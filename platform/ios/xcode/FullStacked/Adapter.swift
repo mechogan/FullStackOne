@@ -28,103 +28,104 @@ class Adapter {
         self.fs = AdapterFS(baseDirectory: baseDirectory)
     }
     
-    func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping  (_ maybeData: Any?) -> Void)  {
+    func callAdapterMethod(methodPath: [String.SubSequence], args: [Any?], done: @escaping  (_ maybeData: Any?) -> Void)  {
         if(methodPath.count == 0) {
             return done(nil)
-        }
-        
-        let json = body.count == 0 ? JSON("[]") : try! JSON(data: body)
-        
-        let writeFile = { (path: String, data: Data, recursive: Bool) in
-            if(recursive) {
-                let directory = path.split(separator: "/").dropLast()
-                self.fs.mkdir(path: directory.joined(separator: "/"))
-            }
-            
-            return self.fs.writeFile(file: path, data: data)
         }
         
         switch(methodPath.first) {
         case "platform": return done(self.platform)
         case "fs":
             switch(methodPath[1]) {
-            case "readFile": return done(self.fs.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8"))
+            case "readFile":
+                let utf8 = args.count >= 1 && (args[1] as! JSON)["encoding"].stringValue == "utf8"
+                return done(self.fs.readFile(path: args[0] as! String, utf8: utf8))
             case "writeFile":
-                var data: Data;
-                
-                if(json[1]["type"].stringValue == "Uint8Array") {
-                    let uint8array = json[1]["data"].arrayValue.map({ number in
-                        return number.uInt8!
-                    })
-                    data = Data(uint8array)
-                } else {
-                    data = json[1].stringValue.data(using: .utf8)!
-                }
-                
-            return done(writeFile(json[0].stringValue, data, json[2]["recursive"].boolValue))
+                return done(self.fs.writeFile(file: args[0] as! String, strOrData: args[1]!))
             case "writeFileMulti":
-                for fileJSON in json[0].arrayValue {
-                    var data: Data;
-                    
-                    if(fileJSON["data"]["type"].stringValue == "Uint8Array") {
-                        let uint8array = fileJSON["data"]["data"].arrayValue.map({ number in
-                            return number.uInt8!
-                        })
-                        data = Data(uint8array)
-                    } else {
-                        data = fileJSON["data"].stringValue.data(using: .utf8)!
-                    }
-                    
-                    let maybeError = writeFile(fileJSON["path"].stringValue, data, json[1]["recursive"].boolValue)
+                var i = 1;
+                while(i < args.count) {
+                    let file = args[i] as! String
+                    let data = args[i + 1]!
+                    let maybeError = self.fs.writeFile(file: file, strOrData: data)
                     if(maybeError is AdapterError){
                         return done(maybeError)
                     }
+                    i += 2
                 }
                 return done(true)
-            case "unlink": return done(self.fs.unlink(path: json[0].stringValue))
-            case "readdir": return done(self.fs.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue, recursive: json[1]["recursive"].boolValue))
-            case "mkdir": return done(self.fs.mkdir(path: json[0].stringValue))
-            case "rmdir": return done(self.fs.rmdir(path: json[0].stringValue))
-            case "stat": return done(self.fs.stat(path: json[0].stringValue))
-            case "lstat": return done(self.fs.lstat(path: json[0].stringValue))
+            case "unlink": return done(self.fs.unlink(path: args[0] as! String))
+            case "readdir":
+                var withFileTypes = false
+                var recursive = false
+                if(args.count > 1) {
+                    let options = args[1] as! JSON
+                    withFileTypes = options["withFileTypes"].boolValue
+                    recursive = options["recursive"].boolValue
+                }
+                return done(self.fs.readdir(path: args[0] as! String, withFileTypes: withFileTypes, recursive: recursive))
+            case "mkdir": return done(self.fs.mkdir(path: args[0] as! String))
+            case "rmdir": return done(self.fs.rmdir(path: args[0] as! String))
+            case "stat": return done(self.fs.stat(path: args[0] as! String))
+            case "lstat": return done(self.fs.lstat(path: args[0] as! String))
             case "exists":
-                let exists = self.fs.exists(path: json[0].stringValue)
+                let exists = self.fs.exists(path: args[0] as! String)
                 return done(exists == nil ? false : exists)
             case "rename":
-                return done(self.fs.rename(oldPath: json[0].stringValue, newPath: json[1].stringValue))
+                return done(self.fs.rename(oldPath: args[0] as! String, newPath: args[1] as! String))
             default: break
             }
             break
         case "fetch":
-            var body: Data;
+            let url = args[0] as! String
             
-            if(json[1]["body"]["type"].stringValue == "Uint8Array") {
-                let uint8array = json[1]["body"]["data"].arrayValue.map({ number in
-                    return number.uInt8!
-                })
-                body = Data(uint8array)
-            } else {
-                body = json[1]["body"].stringValue.data(using: .utf8)!
+            var body: Data? = nil;
+            if(args.count > 1) {
+                if(args[1] is Data) {
+                    body = (args[1] as! Data)
+                } else if(args[1] is String) {
+                    body = (args[1] as! String).data(using: .utf8)
+                }
             }
-        
-            let headersJSON = json[1]["headers"].dictionaryValue
+            
+            var method = "GET"
             var headers: [String: String] = [:]
-            headersJSON.keys.forEach { header in
-                headers[header] = headersJSON[header]!.stringValue
+            var timeout = 0.0
+            
+            var encoding = "utf8"
+        
+            if(args.count > 2 && args[2] is JSON) {
+                let options = args[2] as! JSON
+                
+                if(!options["method"].stringValue.isEmpty) {
+                    method = options["method"].stringValue
+                }
+                
+                options["headers"].dictionaryValue.keys.forEach { header in
+                    headers[header] = options["headers"][header].stringValue
+                }
+                
+                if(options["timeout"].numberValue != 0) {
+                    timeout = Double(truncating: options["timeout"].numberValue)
+                }
+                
+                if(!options["encoding"].stringValue.isEmpty) {
+                    encoding = options["encoding"].stringValue
+                }
             }
             
             return self.fetch(
-                urlStr: json[0].stringValue,
+                urlStr: url,
                 headers: headers,
-                method: json[1]["method"].stringValue,
-                timeout: json[1]["timeout"].double,
-                body: body) { headers, statusCode, statusMessage, data in
-                    var body: Any?
+                method: method,
+                timeout: timeout,
+                body: body ?? Data()) { headers, statusCode, statusMessage, data in
+                    var body: String?
                     
-                    if (json[1]["encoding"].stringValue == "utf8") {
+                    if (encoding == "utf8") {
                         body = String(data: data, encoding: .utf8)
-                    } else {
-                        body = ["type": "Uint8Array", "data": [UInt8](data)]
+                    } else if (encoding == "base64") {
+                        body = data.base64EncodedString()
                     }
                     
                     DispatchQueue.main.async {
@@ -132,14 +133,56 @@ class Adapter {
                             "headers": headers,
                             "statusCode": statusCode,
                             "statusMessage": statusMessage,
-                            "body": body
+                            "body": body ?? ""
                         ])
+                    }
+                }
+        case "fetchRaw":
+            let url = args[0] as! String
+            
+            var body: Data? = nil;
+            if(args.count > 1) {
+                if(args[1] is Data) {
+                    body = (args[1] as! Data)
+                } else if(args[1] is String) {
+                    body = (args[1] as! String).data(using: .utf8)
+                }
+            }
+            
+            var method = "GET"
+            var headers: [String: String] = [:]
+            var timeout = 0.0
+        
+            if(args.count > 2 && args[2] is JSON) {
+                let options = args[2] as! JSON
+                
+                if(!options["method"].stringValue.isEmpty) {
+                    method = options["method"].stringValue
+                }
+                
+                options["headers"].dictionaryValue.keys.forEach { header in
+                    headers[header] = options["headers"][header].stringValue
+                }
+                
+                if(options["timeout"].numberValue != 0) {
+                    timeout = Double(truncating: options["timeout"].numberValue)
+                }
+            }
+            
+            return self.fetch(
+                urlStr: url,
+                headers: headers,
+                method: method,
+                timeout: timeout,
+                body: body ?? Data()) { headers, statusCode, statusMessage, data in
+                    DispatchQueue.main.async {
+                        done(data)
                     }
                 }
         case "broadcast":
             let peerMessage = [
                 "projectId": self.projectId,
-                "data": json[0].stringValue
+                "data": (args[0] as! String)
             ]
             InstanceEditor.singleton!.push(messageType: "sendData", message: JSON(peerMessage).rawString()!)
             return done(true);
@@ -236,7 +279,14 @@ class AdapterFS {
         return contents
     }
     
-    func writeFile(file: String, data: Data) -> Any? {
+    func writeFile(file: String, strOrData: Any) -> Any? {
+        let data: Data = strOrData is String
+        ? (strOrData as! String).data(using: .utf8)!
+        : (strOrData as! Data)
+        
+        let directory = file.split(separator: "/").dropLast()
+        self.mkdir(path: directory.joined(separator: "/"))
+        
         let itemPath = self.baseDirectory + "/" + file
         
         do {
