@@ -31,6 +31,38 @@ export function createAdapter(
         }
     };
 
+    const sendFetch = async (options: {
+        url: string,
+        method: string,
+        headers: Record<string, string>,
+        timeout: number,
+        body: string | Uint8Array,
+    }) => {
+        let signal: AbortSignal = undefined,
+            timeoutId: ReturnType<typeof setTimeout>;
+        if (options?.timeout) {
+            const controller = new AbortController();
+            timeoutId = setTimeout(
+                () => controller.abort(),
+                options.timeout * 1000
+            );
+            signal = controller.signal;
+        }
+
+        const response = await fetch(options.url, {
+            method: options?.method || "GET",
+            headers: options?.headers || {},
+            body: options.body ? Buffer.from(options.body) : undefined,
+            signal
+        });
+
+        if (timeoutId) clearTimeout(timeoutId);
+
+        const headers = convertHeadersToObj(response.headers);
+
+        return { headers, response }
+    }
+
     return {
         platform,
         fs: {
@@ -134,27 +166,13 @@ export function createAdapter(
             body,
             options
         ) {
-            let signal: AbortSignal = undefined,
-                timeoutId: ReturnType<typeof setTimeout>;
-            if (options?.timeout) {
-                const controller = new AbortController();
-                timeoutId = setTimeout(
-                    () => controller.abort(),
-                    options.timeout * 1000
-                );
-                signal = controller.signal;
-            }
-
-            const response = await fetch(url, {
-                method: options?.method || "GET",
-                headers: options?.headers || {},
-                body: body ? Buffer.from(body) : undefined,
-                signal
+            const { headers, response } = await sendFetch({
+                url,
+                body,
+                method: options?.method,
+                headers: options?.headers,
+                timeout: options?.timeout
             });
-
-            if (timeoutId) clearTimeout(timeoutId);
-
-            const headers = convertHeadersToObj(response.headers);
 
             const responseBody = options?.encoding === "base64"
                 ? fromByteArray(new Uint8Array(await response.arrayBuffer()))
@@ -174,25 +192,13 @@ export function createAdapter(
                 method?: "GET" | "POST" | "PUT" | "DELETE";
                 timeout?: number;
             }) => {
-                let signal: AbortSignal = undefined,
-                timeoutId: ReturnType<typeof setTimeout>;
-            if (options?.timeout) {
-                const controller = new AbortController();
-                timeoutId = setTimeout(
-                    () => controller.abort(),
-                    options.timeout * 1000
-                );
-                signal = controller.signal;
-            }
-
-            const response = await fetch(url, {
-                method: options?.method || "GET",
-                headers: options?.headers || {},
-                body: body ? Buffer.from(body) : undefined,
-                signal
+            const { response } = await sendFetch({
+                url,
+                body,
+                method: options?.method,
+                headers: options?.headers,
+                timeout: options?.timeout
             });
-
-            if (timeoutId) clearTimeout(timeoutId);
 
             return new Uint8Array(await response.arrayBuffer());
         },
