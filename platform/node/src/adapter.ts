@@ -140,7 +140,7 @@ export function createAdapter(
                 const controller = new AbortController();
                 timeoutId = setTimeout(
                     () => controller.abort(),
-                    options.timeout
+                    options.timeout * 1000
                 );
                 signal = controller.signal;
             }
@@ -180,7 +180,7 @@ export function createAdapter(
                 const controller = new AbortController();
                 timeoutId = setTimeout(
                     () => controller.abort(),
-                    options.timeout
+                    options.timeout * 1000
                 );
                 signal = controller.signal;
             }

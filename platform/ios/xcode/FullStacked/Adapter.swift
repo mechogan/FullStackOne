@@ -204,13 +204,14 @@ class Adapter {
                   _ statusMessage: String,
                   _ data: Data
                ) -> Void) {
+                   print(urlStr)
                    let url = URL(string: urlStr)!
                    var request = URLRequest(url: url)
                    
                    request.httpMethod = method.isEmpty ? "GET" : method
                    
                    if(timeout != nil){
-                       request.timeoutInterval = timeout! / 1000
+                       request.timeoutInterval = timeout!
                    }
                    
                    for (headerName, headerValue) in headers {
