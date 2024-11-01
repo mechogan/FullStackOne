@@ -49,7 +49,11 @@ function numberTo4Bytes(n: number) {
 
 function bytesToNumber(bytes: Uint8Array) {
     return (
-        (bytes[0] << 24 | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3] << 0)) >>> 0
+        ((bytes[0] << 24) |
+            (bytes[1] << 16) |
+            (bytes[2] << 8) |
+            (bytes[3] << 0)) >>>
+        0
     );
 }
 
@@ -152,7 +156,7 @@ export function convertObjectToArray(obj: object) {
 
 export function convertArrayToObject(arr: any[]) {
     let obj = {};
-    for(let i = 0; i < arr.length; i += 2) {
+    for (let i = 0; i < arr.length; i += 2) {
         obj[arr[i]] = arr[i + 1];
     }
     return obj;

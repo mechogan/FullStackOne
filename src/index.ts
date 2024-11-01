@@ -53,21 +53,23 @@ async function fetchCall(pathComponents: string[], ...args) {
         method: "POST",
         body: serializeArgs(args)
     });
-    
+
     const contentType = response.headers.get("content-type");
 
     let data = null;
-    if(contentType?.startsWith("text/plain")) {
+    if (contentType?.startsWith("text/plain")) {
         data = await response.text();
-    } else if(contentType?.startsWith("application/json")) {
+    } else if (contentType?.startsWith("application/json")) {
         data = await response.json();
-    } else if(contentType?.startsWith("application/octet-stream")) {
+    } else if (contentType?.startsWith("application/octet-stream")) {
         data = new Uint8Array(await response.arrayBuffer());
     } else {
-        console.error("Unknown content-type in IPC return call. Using arrayBuffer");
+        console.error(
+            "Unknown content-type in IPC return call. Using arrayBuffer"
+        );
         data = await response.arrayBuffer();
     }
-    
+
     if (response.status >= 299) {
         throw data;
     }

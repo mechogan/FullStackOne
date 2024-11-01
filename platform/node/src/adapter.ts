@@ -32,11 +32,11 @@ export function createAdapter(
     };
 
     const sendFetch = async (options: {
-        url: string,
-        method: string,
-        headers: Record<string, string>,
-        timeout: number,
-        body: string | Uint8Array,
+        url: string;
+        method: string;
+        headers: Record<string, string>;
+        timeout: number;
+        body: string | Uint8Array;
     }) => {
         let signal: AbortSignal = undefined,
             timeoutId: ReturnType<typeof setTimeout>;
@@ -60,8 +60,8 @@ export function createAdapter(
 
         const headers = convertHeadersToObj(response.headers);
 
-        return { headers, response }
-    }
+        return { headers, response };
+    };
 
     return {
         platform,
@@ -79,7 +79,9 @@ export function createAdapter(
             writeFileMulti(options, ...files) {
                 const promises = [];
                 for (let i = 0; i < files.length; i += 2) {
-                    promises.push(writeFile(files[i] as string, files[i + 1], options))
+                    promises.push(
+                        writeFile(files[i] as string, files[i + 1], options)
+                    );
                 }
                 return Promise.all(promises);
             },
@@ -151,7 +153,6 @@ export function createAdapter(
                 newPath = baseDirectory + "/" + newPath;
 
                 if (typeof exists?.isFile === "boolean") {
-                    console.log("deleting");
                     await fs.promises.rm(newPath, {
                         recursive: true,
                         force: true
@@ -161,11 +162,7 @@ export function createAdapter(
                 return fs.promises.rename(oldPath, newPath);
             }
         },
-        async fetch(
-            url,
-            body,
-            options
-        ) {
+        async fetch(url, body, options) {
             const { headers, response } = await sendFetch({
                 url,
                 body,
@@ -174,9 +171,12 @@ export function createAdapter(
                 timeout: options?.timeout
             });
 
-            const responseBody = options?.encoding === "base64"
-                ? fromByteArray(new Uint8Array(await response.arrayBuffer()))
-                : await response.text();
+            const responseBody =
+                options?.encoding === "base64"
+                    ? fromByteArray(
+                          new Uint8Array(await response.arrayBuffer())
+                      )
+                    : await response.text();
 
             return {
                 headers,
@@ -185,13 +185,15 @@ export function createAdapter(
                 body: responseBody
             };
         },
-        fetchRaw: async (url: string,
+        fetchRaw: async (
+            url: string,
             body?: string | Uint8Array,
             options?: {
                 headers?: Record<string, string>;
                 method?: "GET" | "POST" | "PUT" | "DELETE";
                 timeout?: number;
-            }) => {
+            }
+        ) => {
             const { response } = await sendFetch({
                 url,
                 body,

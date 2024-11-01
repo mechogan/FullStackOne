@@ -8,7 +8,10 @@ export function bindPassRequestBody(
             const headers = args?.[1]?.headers || {};
             headers["request-id"] = id.toString();
             args[1].headers = headers;
-            const maybePromise = passRequestBody(id, args?.[1]?.body as Uint8Array);
+            const maybePromise = passRequestBody(
+                id,
+                args?.[1]?.body as Uint8Array
+            );
             if (maybePromise instanceof Promise) {
                 await maybePromise;
             }

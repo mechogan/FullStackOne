@@ -6,33 +6,33 @@ import { bindPassRequestBody } from "../../../src/android";
 
 export type PackageInstallerWorkerMessage =
     | {
-        type: "ready";
-    }
+          type: "ready";
+      }
     | {
-        type: "ready-android"
-    }
+          type: "ready-android";
+      }
     | {
-        type: "body-android",
-        id: number,
-        body: Uint8Array
-    }
+          type: "body-android";
+          id: number;
+          body: Uint8Array;
+      }
     | {
-        name: string;
-        type: "progress";
-        status: string;
-        loaded?: number;
-        total?: number;
-    }
+          name: string;
+          type: "progress";
+          status: string;
+          loaded?: number;
+          total?: number;
+      }
     | {
-        name: string;
-        type: "dependencies";
-        packages: string[];
-    }
+          name: string;
+          type: "dependencies";
+          packages: string[];
+      }
     | {
-        name: string;
-        type: "done";
-        success: boolean;
-    };
+          name: string;
+          type: "done";
+          success: boolean;
+      };
 
 const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
 const td = new TextDecoder();
@@ -40,30 +40,29 @@ const td = new TextDecoder();
 const maxPayloadSize = 100000; // 100kb
 const maxFilesPerPaylod = 10;
 
-const passingBodyToMainThread = new Map<number, () => void>()
+const passingBodyToMainThread = new Map<number, () => void>();
 
 self.onmessage = (message: MessageEvent) => {
-    if(message.data.platform) {
-        if(message.data.platform !== "android") return;
+    if (message.data.platform) {
+        if (message.data.platform !== "android") return;
 
         bindPassRequestBody((id, body) => {
             return new Promise<void>((resolve) => {
                 passingBodyToMainThread.set(id, resolve);
-                sendMessage({ type: "body-android", id, body })
+                sendMessage({ type: "body-android", id, body });
             });
         });
 
         sendMessage({ type: "ready-android" });
         return;
     }
-    if(message.data.request_id) {
+    if (message.data.request_id) {
         const resolve = passingBodyToMainThread.get(message.data.request_id);
         resolve?.();
         passingBodyToMainThread.delete(message.data.request_id);
 
         return;
     }
-
 
     install(message.data)
         .then(() =>
@@ -117,10 +116,13 @@ async function install(name: string) {
 
     let filesToWrite: [string, Uint8Array][] = [];
     const writeFiles = async () => {
-        await rpc().fs.writeFileMulti({
-            absolutePath: true,
-            recursive: true
-        }, ...filesToWrite.flat());
+        await rpc().fs.writeFileMulti(
+            {
+                absolutePath: true,
+                recursive: true
+            },
+            ...filesToWrite.flat()
+        );
         filesToWrite = [];
     };
 

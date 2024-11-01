@@ -16,7 +16,11 @@ import {
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
 import os from "os";
-import { convertObjectToArray, deserializeArgs, serializeArgs } from "../../../src/serialization";
+import {
+    convertObjectToArray,
+    deserializeArgs,
+    serializeArgs
+} from "../../../src/serialization";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -115,7 +119,11 @@ export function main(
                 data
             })
         );
-    const adapter = createAdapter(directories.rootDirectory, platform, mainBroadcast);
+    const adapter = createAdapter(
+        directories.rootDirectory,
+        platform,
+        mainBroadcast
+    );
     const mainAdapter: AdapterEditor = {
         ...adapter,
 
@@ -206,38 +214,37 @@ function upgradeFS(
     editorDirectory: string,
     defaultFS: Adapter["fs"]
 ): AdapterEditor["fs"] {
-
-
     let fsEditor = {};
-    Object.entries(defaultFS)
-        .forEach(([name, method]) => {
-            fsEditor[name] = async (...args: any[]) => {
-                let absolutePath = !!args.find(arg => arg?.absolutePath);
-            
-                if(absolutePath) {
-                    // @ts-ignore
-                    return method(...args)
-                }
+    Object.entries(defaultFS).forEach(([name, method]) => {
+        fsEditor[name] = async (...args: any[]) => {
+            let absolutePath = !!args.find((arg) => arg?.absolutePath);
 
-                let path = editorDirectory + "/" + args[0];
-                switch(name) {
-                    case "exists":
-                        let stats: Awaited<ReturnType<typeof fs["promises"]["stat"]>>
-                        try {
-                            stats = await fs.promises.stat(path)
-                        } catch(e) {
-                            return null
-                        }
-                        return { isFile: stats.isFile() }
-                    case "readFile":
-                        return fs.promises.readFile(path, {
-                            encoding: args?.[1]?.encoding
-                        }); 
-                }
+            if (absolutePath) {
+                // @ts-ignore
+                return method(...args);
             }
-        });
-    
-    return fsEditor as AdapterEditor["fs"]
+
+            let path = editorDirectory + "/" + args[0];
+            switch (name) {
+                case "exists":
+                    let stats: Awaited<
+                        ReturnType<(typeof fs)["promises"]["stat"]>
+                    >;
+                    try {
+                        stats = await fs.promises.stat(path);
+                    } catch (e) {
+                        return null;
+                    }
+                    return { isFile: stats.isFile() };
+                case "readFile":
+                    return fs.promises.readFile(path, {
+                        encoding: args?.[1]?.encoding
+                    });
+            }
+        };
+    });
+
+    return fsEditor as AdapterEditor["fs"];
 }
 
 const te = new TextEncoder();
@@ -278,7 +285,6 @@ function createHandler(mainAdapter: AdapterEditor) {
         // remove leading slash
         if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
-
         // check for [path]/index.html
         let maybeIndexHTML = pathname + (pathname ? "/" : "") + "index.html";
         if ((await adapter.fs.exists(maybeIndexHTML))?.isFile) {
@@ -317,7 +323,8 @@ function createHandler(mainAdapter: AdapterEditor) {
             if (method) {
                 response.status = 200;
 
-                const args = body && body.length
+                const args =
+                    body && body.length
                         ? bodyFromQuery
                             ? JSON.parse(td.decode(body))
                             : deserializeArgs(body)
@@ -346,7 +353,7 @@ function createHandler(mainAdapter: AdapterEditor) {
 
                 response.mimeType = "text/plain";
                 if (responseBody) {
-                    if(typeof responseBody === "string") {
+                    if (typeof responseBody === "string") {
                         response.data = te.encode(responseBody);
                     } else if (ArrayBuffer.isView(responseBody)) {
                         response.mimeType = "application/octet-stream";

@@ -22,4 +22,4 @@ export type fetchRaw = (
         method?: "GET" | "POST" | "PUT" | "DELETE";
         timeout?: number;
     }
-) => Promise<Uint8Array>
+) => Promise<Uint8Array>;

@@ -53,13 +53,17 @@ export default {
 
         const { access_token } = json;
 
-        const userResponse = await rpc().fetch("https://api.github.com/user", null, {
-            headers: {
-                authorization: `Bearer ${access_token}`,
-                accept: "application/json"
-            },
-            encoding: "utf8"
-        });
+        const userResponse = await rpc().fetch(
+            "https://api.github.com/user",
+            null,
+            {
+                headers: {
+                    authorization: `Bearer ${access_token}`,
+                    accept: "application/json"
+                },
+                encoding: "utf8"
+            }
+        );
 
         const user = JSON.parse(userResponse.body as string);
 

@@ -11,8 +11,8 @@ export type Adapter = {
 
 declare global {
     var rpc: () => {
-        fetch: Adapter["fetch"],
-        fetchRaw: Adapter["fetchRaw"],
+        fetch: Adapter["fetch"];
+        fetchRaw: Adapter["fetchRaw"];
         broadcast(data: string): void;
         platform: () => Promise<Adapter["platform"]>;
         fs: Omit<Adapter["fs"], "readFile" | "readdir"> & {
