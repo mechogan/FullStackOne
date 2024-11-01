@@ -151,7 +151,7 @@ class Adapter {
             
             var method = "GET"
             var headers: [String: String] = [:]
-            var timeout = 0.0
+            var timeout = 15.0
         
             if(args.count > 2 && args[2] is JSON) {
                 let options = args[2] as! JSON

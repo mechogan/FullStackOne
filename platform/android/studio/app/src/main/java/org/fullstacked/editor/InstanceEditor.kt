@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import kotlin.math.abs
 
 
 val editorProject = Project(
@@ -101,7 +102,7 @@ class AdapterEditor(
         return null
     }
 
-    private fun esbuildSwitch(methodPath: List<String>, body: String?) : Any? {
+    private fun esbuildSwitch(methodPath: List<String>, args: List<Any?>) : Any? {
         when (methodPath.first()) {
             "version" -> return version()
             "check" -> return true
@@ -109,15 +110,13 @@ class AdapterEditor(
             "tmpFile" -> {
                 when (methodPath.elementAt(1)) {
                     "write" -> {
-                        val json = JSONArray(body)
-                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + json.getString(0)
+                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + (args[0] as String)
                         val file = File(filePath)
-                        file.writeText(json.getString(1), Charsets.UTF_8)
+                        file.writeText(args[1] as String)
                         return filePath
                     }
                     "unlink" -> {
-                        val json = JSONArray(body)
-                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + json.getString(0)
+                        val filePath = InstanceEditor.singleton.context.cacheDir.toString() + "/" + (args[0] as String)
                         val file = File(filePath)
                         file.delete()
                         return true
@@ -125,11 +124,9 @@ class AdapterEditor(
                 }
             }
             "build" -> {
-                val json = JSONArray(body)
-
                 val errors = build(
-                    input = json.getString(0),
-                    outdir = json.getString(1),
+                    input = args[0] as String,
+                    outdir = args[1] as String,
                     nodePath = this.baseDirectory + "/.cache/node_modules"
                 )
 
@@ -143,7 +140,7 @@ class AdapterEditor(
         return null
     }
 
-    private fun connectivitySwitch(methodPath: List<String>, body: String?) : Any? {
+    private fun connectivitySwitch(methodPath: List<String>, args: List<Any?>) : Any? {
         when (methodPath.first()) {
             "name" -> return android.os.Build.MODEL
             "infos" -> {
@@ -181,8 +178,7 @@ class AdapterEditor(
             "advertise" -> {
                 when (methodPath.elementAt(1)) {
                     "start" -> {
-                        val json = JSONArray(body)
-                        val peerJSON = json.getJSONObject(0)
+                        val peerJSON = args[0] as JSONObject
                         this.bonjour.startAdvertising(Peer(
                             id = peerJSON.getString("id"),
                             name = peerJSON.getString("name")
@@ -202,8 +198,7 @@ class AdapterEditor(
                         return true
                     }
                     "peerNearbyIsDead" -> {
-                        val args = JSONArray(body)
-                        this.bonjour.peerNearbyIsDead(args.getString(0))
+                        this.bonjour.peerNearbyIsDead(args[0] as String)
                         return true
                     }
                     "stop" -> {
@@ -212,46 +207,22 @@ class AdapterEditor(
                     }
                 }
             }
-            "open" -> {
-                val peerNearbyJSON = JSONArray(body).getJSONObject(0)
-                val peerJSON = peerNearbyJSON.getJSONObject("peer")
-                val peerNearby = PeerNearby(
-                    peer = Peer(
-                        id = peerJSON.getString("id"),
-                        name = peerJSON.getString("name")
-                    ),
-                    addresses = listOf(peerNearbyJSON.getJSONArray("addresses").getString(0)),
-                    port = peerNearbyJSON.getString("port").toInt()
-                )
-
-                return true
-            }
+            "open" -> {}
             "disconnect" -> {
-                val json = JSONArray(body)
-                this.webSocketServer.disconnect(json.getString(0))
+                this.webSocketServer.disconnect(args[0] as String)
                 return true
             }
             "trustConnection" -> {
-                val json = JSONArray(body)
-                this.webSocketServer.trustConnection(json.getString(0))
+                this.webSocketServer.trustConnection(args[0] as String)
                 return true
             }
             "send" -> {
-                val json = JSONArray(body);
-                this.webSocketServer.send(json.getString(0), json.getString(1), json.getBoolean(2))
+                this.webSocketServer.send(args[0] as String, args[1] as String, args[2] as Boolean)
                 return true
             }
             "convey" -> {
-                var projectId = ""
-                var data = ""
-
-                val args = JSONArray(body)
-                try{
-                    projectId = args.getString(0)
-                }catch (_: Exception) { }
-                try{
-                    data = args.getString(1)
-                }catch (_: Exception) { }
+                val projectId = args[0] as String
+                val data = args[1] as String
 
                 InstanceEditor.singleton.instances.forEach { instance ->
                     if(instance.project.id == projectId) {
@@ -280,22 +251,22 @@ class AdapterEditor(
         return true
     }
 
-    override fun callAdapterMethod(methodPath: ArrayList<String>, body: String?): Any? {
+    override fun callAdapterMethod(methodPath: ArrayList<String>, args: List<Any?>): Any? {
         when (methodPath.first()) {
             "migrate" -> {
-                val projectJSON = JSONArray(body).getJSONObject(0)
+                val projectJSON = args[0] as JSONObject
                 val oldPath = projectJSON.getString("location")
                 val newPath = projectJSON.getString("id")
                 return this.fs.rename(oldPath, newPath)
             }
             "directories" -> return this.directoriesSwitch(methodPath.elementAt(1))
-            "esbuild" -> return this.esbuildSwitch(methodPath.subList(1, methodPath.size), body)
-            "connectivity" -> return this.connectivitySwitch(methodPath.subList(1, methodPath.size), body)
-            "run" -> return this.run(JSONArray(body).getJSONObject(0))
+            "esbuild" -> return this.esbuildSwitch(methodPath.subList(1, methodPath.size), args)
+            "connectivity" -> return this.connectivitySwitch(methodPath.subList(1, methodPath.size), args)
+            "run" -> return this.run(args[0] as JSONObject)
             "open" -> {
-                val projectJSON = JSONArray(body).getJSONObject(0)
-                val title = projectJSON.getString("title")
-                val location = projectJSON.getString("location")
+                val project = args[0] as JSONObject
+                val title = project.getString("title")
+                val location = project.getString("location")
 
                 val file = File(this.baseDirectory + "/" + location + "/" + title + ".zip")
                 if(!file.exists()) return false
@@ -310,34 +281,19 @@ class AdapterEditor(
             "fs" -> {
                 var absolutePath = false
                 var utf8 = false
-                val json = if (!body.isNullOrEmpty()) JSONArray(body) else JSONArray("[]")
 
-                // writeFile, rename
-                if (json.length() > 2) {
-                    try {
-                        val opt = JSONObject(json.getString(2))
-                        absolutePath = opt.getBoolean("absolutePath")
-                    } catch (_: Exception) { }
-                }
-                // readFile, writeFileMulti
-                else if (json.length() > 1) {
-                    try {
-                        val opt = JSONObject(json.getString(1))
-                        absolutePath = opt.getBoolean("absolutePath")
-                    } catch (_: Exception) {
-                    }
-                    try {
-                        val opt = JSONObject(json.getString(1))
-                        utf8 = opt.getString("encoding") == "utf8"
-                    } catch (_: Exception) {
+                for(arg in args) {
+                    if (arg is JSONObject) {
+                        absolutePath = absolutePath || arg.optBoolean("absolutePath")
+                        utf8 = utf8 || arg.optString("encoding") == "utf8"
                     }
                 }
 
-                if (absolutePath) return super.callAdapterMethod(methodPath, body)
+                if (absolutePath) return super.callAdapterMethod(methodPath, args)
 
-                if (json.length() == 0) return null
+                if (args.isEmpty()) return null
 
-                val file = this.getFile(json.getString(0))
+                val file = this.getFile(args[0] as String)
 
                 if (file != null && utf8) {
                     return convertInputStreamToString(file)
@@ -348,7 +304,7 @@ class AdapterEditor(
         }
 
 
-        return super.callAdapterMethod(methodPath, body)
+        return super.callAdapterMethod(methodPath, args)
     }
 }
 

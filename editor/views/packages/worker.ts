@@ -2,10 +2,19 @@ import "./worker-env";
 import rpc from "../../rpc";
 import gzip from "gzip-js";
 import untar from "js-untar";
+import { bindPassRequestBody } from "../../../src/android";
 
 export type PackageInstallerWorkerMessage =
     | {
         type: "ready";
+    }
+    | {
+        type: "ready-android"
+    }
+    | {
+        type: "body-android",
+        id: number,
+        body: Uint8Array
     }
     | {
         name: string;
@@ -31,7 +40,31 @@ const td = new TextDecoder();
 const maxPayloadSize = 100000; // 100kb
 const maxFilesPerPaylod = 10;
 
+const passingBodyToMainThread = new Map<number, () => void>()
+
 self.onmessage = (message: MessageEvent) => {
+    if(message.data.platform) {
+        if(message.data.platform !== "android") return;
+
+        bindPassRequestBody((id, body) => {
+            return new Promise<void>((resolve) => {
+                passingBodyToMainThread.set(id, resolve);
+                sendMessage({ type: "body-android", id, body })
+            });
+        });
+
+        sendMessage({ type: "ready-android" });
+        return;
+    }
+    if(message.data.request_id) {
+        const resolve = passingBodyToMainThread.get(message.data.request_id);
+        resolve?.();
+        passingBodyToMainThread.delete(message.data.request_id);
+
+        return;
+    }
+
+
     install(message.data)
         .then(() =>
             sendMessage({

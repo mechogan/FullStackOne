@@ -19,6 +19,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 
 var id = 0
@@ -107,11 +109,14 @@ class WebViewClientCustom(
     private val adapter: Adapter,
 ) : WebViewClient() {
     var ready = false
-    private val reqBody = HashMap<Int, String>()
+    private val reqBody = HashMap<Int, ByteArray>()
 
+    // https://stackoverflow.com/a/45506857
+    // Base64 seems faster
     @JavascriptInterface
-    fun passRequestBody(reqId: Int, body: String){
-        this.reqBody[reqId] = body
+    fun passRequestBody(reqId: Int, body: String?) {
+        if(body != null)
+            this.reqBody[reqId] = Base64.getDecoder().decode(body)
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -184,12 +189,12 @@ class WebViewClientCustom(
         println(pathname)
 
         // we jump into the adapter methods
-        var body: String? = null;
+        var args: List<Any?>? = null;
         val reqIdStr = request.requestHeaders["request-id"]
         if(reqIdStr != null) {
             val reqId = reqIdStr.toInt()
             if(this.reqBody[reqId] != null) {
-                body = this.reqBody[reqId]
+                args = this.deserializeArgs(this.reqBody[reqId]!!)
                 this.reqBody.remove(reqId)
             }
         }
@@ -197,12 +202,30 @@ class WebViewClientCustom(
         // maybe in query param
         val maybeBody = request.url.getQueryParameter("body")
         if(maybeBody != null) {
-            body = URLDecoder.decode(maybeBody, "UTF-8")
+            val queryArgs = mutableListOf<Any?>()
+            val argsJSON = JSONArray(URLDecoder.decode(maybeBody, "UTF-8"))
+            var i = 0
+            while (i < argsJSON.length()) {
+                if(argsJSON.optInt(i) != 0) {
+                    queryArgs.add(argsJSON.getInt(i))
+                } else if(argsJSON.optJSONObject(i) != null) {
+                    queryArgs.add(argsJSON.getJSONObject(i))
+                } else {
+                    queryArgs.add((argsJSON.getString(i)))
+                }
+
+                i++
+            }
+            args = queryArgs
         }
 
         val methodPath = ArrayList(pathname.split("/"))
 
-        val response = when (val maybeResponseData = this.adapter.callAdapterMethod(methodPath, body)) {
+        if(args == null) {
+            args = listOf()
+        }
+
+        val response = when (val maybeResponseData = this.adapter.callAdapterMethod(methodPath, args)) {
             is InputStream -> {
                 WebResourceResponse(
                     "application/octet-stream",
@@ -321,5 +344,78 @@ class WebViewClientCustom(
         }
 
         return response
+    }
+
+    private fun bytesToNumber(bytes: ByteArray) : Int {
+        return ((bytes[0].toUByte().toUInt() shl 24) or
+                (bytes[1].toUByte().toUInt() shl 16) or
+                (bytes[2].toUByte().toUInt() shl 8) or
+                (bytes[3].toUByte().toUInt() shl 0)).toInt()
+
+    }
+
+    private fun deserializeNumber(bytes: ByteArray): Int {
+        val negative = bytes[0].toInt() == 1
+
+        var n = 0u
+        for ((i, byte) in bytes.withIndex()) {
+            if(i != 0) {
+                n += byte.toUByte().toUInt() shl ((i - 1) * 8)
+            }
+        }
+
+        if(negative) {
+            return 0 - n.toInt()
+        } else {
+            return n.toInt()
+        }
+    }
+
+    private fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
+        val args = mutableListOf<Any?>()
+
+        var cursor = 0
+        while(cursor < data.size) {
+            val type = DataType.from(data[cursor])
+            cursor += 1
+            val length = this.bytesToNumber(data.slice(cursor..< cursor + 4).toByteArray())
+            cursor += 4
+            val arg = data.slice(cursor..< cursor + length).toByteArray()
+            cursor += length
+
+            when (type) {
+                DataType.UNDEFINED ->
+                    args.add(null)
+                DataType.BOOLEAN ->
+                    if(arg[0].toInt() == 1) {
+                        args.add(true)
+                    }else {
+                        args.add(false)
+                    }
+                DataType.STRING ->
+                    args.add(String(arg, StandardCharsets.UTF_8))
+                DataType.NUMBER ->
+                    args.add(this.deserializeNumber(arg))
+                DataType.JSON ->
+                    args.add(JSONObject(String(arg, StandardCharsets.UTF_8)))
+                DataType.UINT8ARRAY ->
+                    args.add(arg)
+            }
+        }
+
+        return args
+    }
+}
+
+enum class DataType(val type: Byte) {
+    UNDEFINED(0),
+    BOOLEAN(1),
+    STRING(2),
+    NUMBER(3),
+    JSON(4),
+    UINT8ARRAY(5);
+
+    companion object {
+        fun from(value: Byte) = entries.first { it.type == value }
     }
 }

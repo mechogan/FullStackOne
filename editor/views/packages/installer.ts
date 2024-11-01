@@ -2,6 +2,7 @@ import rpc from "../../rpc";
 import { Dialog } from "../../components/dialog";
 import { PackagesInstallProgress } from "./progress";
 import type { PackageInstallerWorkerMessage } from "./worker";
+import { fromByteArray } from "base64-js"
 
 let nodeModulesDirectory: string;
 
@@ -100,7 +101,13 @@ async function checkIfAlreadyInstalled(packageName: string) {
     });
 }
 
-function createWorker() {
+let platform: Awaited<ReturnType<ReturnType<typeof rpc>["platform"]>>;
+async function createWorker() {
+
+    if(!platform) {
+        platform = await rpc().platform();
+    }
+
     const activeWorker: ActiveWorker = {
         worker: new Worker("worker-package-install.js", { type: "module" }),
         ready: false,
@@ -109,11 +116,26 @@ function createWorker() {
     workers.add(activeWorker);
     return new Promise<void>((resolve) => {
         activeWorker.worker.onmessage = (message) => {
+
             const msg: PackageInstallerWorkerMessage = message.data;
             if (msg.type === "ready") {
+                if (platform === "android") {
+                    activeWorker.worker.postMessage({ platform });
+                } else {
+                    activeWorker.ready = true;
+                    resolve();
+                }
+            } 
+            else if(msg.type === "ready-android") {
                 activeWorker.ready = true;
                 resolve();
-            } else {
+            }
+            else if(msg.type === "body-android") {
+                const { id, body } = msg;
+                globalThis.Android.passRequestBody(id, fromByteArray(body));
+                activeWorker.worker.postMessage({ request_id: id });
+            }
+            else {
                 packagesToInstall.get(msg.name).onmessage(msg);
             }
         };

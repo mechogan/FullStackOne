@@ -2,11 +2,12 @@ import { SourceMapConsumer } from "source-map-js";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
 import { bindPassRequestBody } from "./android";
-import { convertArrayToObject, deserializeArgs, serializeArgs } from "./serialization";
+import { serializeArgs } from "./serialization";
+import { fromByteArray } from "base64-js";
 
 if ((globalThis as any).Android) {
     bindPassRequestBody((id, body) =>
-        (globalThis as any).Android.passRequestBody(id, body)
+        (globalThis as any).Android.passRequestBody(id, fromByteArray(body))
     );
 }
 
