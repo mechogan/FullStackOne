@@ -44,7 +44,8 @@ if (fs.existsSync("editor/build"))
 
 const toBuild = [
     ["editor/index.ts", "index"],
-    ["editor/typescript/worker.ts", "worker-ts"]
+    ["editor/typescript/worker.ts", "worker-ts"],
+    ["editor/views/packages/worker.ts", "worker-package-install"]
 ];
 
 const baseJS = await fs.promises.readFile(baseFile, { encoding: "utf-8" });

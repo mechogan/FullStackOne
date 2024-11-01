@@ -87,26 +87,16 @@ class AdapterEditor: Adapter {
         }
     }
     
-    override func callAdapterMethod(methodPath: [String.SubSequence], body: Data, done: @escaping (_ maybeData: Any?) -> Void) {
+    override func callAdapterMethod(methodPath: [String.SubSequence], args: [Any?], done: @escaping (_ maybeData: Any?) -> Void) {
         if(methodPath.count == 0) {
             return done(nil)
         }
         
-        let json = try! JSON(data: body)
-        
-        let writeFile = { (path: String, data: Data, recursive: Bool) in
-            if(recursive) {
-                let directory = path.split(separator: "/").dropLast()
-                self.fsEditor.mkdir(path: directory.joined(separator: "/"))
-            }
-            
-            return self.fsEditor.writeFile(file: path, data: data)
-        }
-        
         switch(methodPath.first) {
         case "migrate":
-            let oldPath = json[0]["location"].stringValue
-            let newPath = json[0]["id"].stringValue
+            let project = args[0] as! JSON
+            let oldPath = project["location"].stringValue
+            let newPath = project["id"].stringValue
             return done(self.fsEditor.rename(oldPath: oldPath, newPath: newPath))
             case "directories":
                 switch(methodPath[1]) {
@@ -118,56 +108,63 @@ class AdapterEditor: Adapter {
                 }
                 break
             case "fs":
-                if (json[1]["absolutePath"].boolValue || json[2]["absolutePath"].boolValue) {
-                    switch(methodPath[1]){
-                        case "readFile": return done(self.fsEditor.readFile(path: json[0].stringValue, utf8: json[1]["encoding"].stringValue == "utf8"))
-                        case "writeFile":
-                            var data: Data;
-                            
-                            if(json[1]["type"].stringValue == "Uint8Array") {
-                                let uint8array = json[1]["data"].arrayValue.map({ number in
-                                    return number.uInt8!
-                                })
-                                data = Data(uint8array)
-                            } else {
-                                data = json[1].stringValue.data(using: .utf8)!
-                            }
-                        
-                            return done(writeFile(json[0].stringValue, data, json[2]["recursive"].boolValue))
-                        case "writeFileMulti":
-                            for fileJSON in json[0].arrayValue {
-                                var data: Data;
-                                
-                                if(fileJSON["data"]["type"].stringValue == "Uint8Array") {
-                                    let uint8array = fileJSON["data"]["data"].arrayValue.map({ number in
-                                        return number.uInt8!
-                                    })
-                                    data = Data(uint8array)
-                                } else {
-                                    data = fileJSON["data"].stringValue.data(using: .utf8)!
-                                }
-                                
-                                let maybeError = writeFile(fileJSON["path"].stringValue, data, json[1]["recursive"].boolValue)
-                                if(maybeError is AdapterError){
-                                    return done(maybeError)
-                                }
-                            }
-                            return done(true)
-                        case "unlink": return done(self.fsEditor.unlink(path: json[0].stringValue))
-                        case "readdir": return done(self.fsEditor.readdir(path: json[0].stringValue, withFileTypes: json[1]["withFileTypes"].boolValue, recursive: json[1]["recursive"].boolValue))
-                        case "mkdir": return done(self.fsEditor.mkdir(path: json[0].stringValue))
-                        case "rmdir": return done(self.fsEditor.rmdir(path: json[0].stringValue))
-                        case "stat": return done(self.fsEditor.stat(path: json[0].stringValue))
-                        case "lstat": return done(self.fsEditor.lstat(path: json[0].stringValue))
-                        case "exists":
-                            let exists = self.fsEditor.exists(path: json[0].stringValue)
-                            return done(exists == nil ? false : exists)
-                        case "rename":
-                            return done(self.fsEditor.rename(oldPath: json[0].stringValue, newPath: json[1].stringValue))
-                        default: break;
+            
+            var absolutePath = false
+            if(args[0] is String && (args[0] as! String).contains("@types/react")) {
+                print(args[0] as! String)
+                print("ici")
+            }
+            if(args.count > 0 && args[0] is JSON && (args[0] as! JSON)["absolutePath"].boolValue){
+                absolutePath = true
+            } else if(args.count > 1 && args[1] is JSON && (args[1] as! JSON)["absolutePath"].boolValue) {
+                absolutePath = true
+            } else if (args.count > 2 && args[2] is JSON && (args[2] as! JSON)["absolutePath"].boolValue) {
+                absolutePath = true
+            }
+            
+            if (absolutePath) {
+                switch(methodPath[1]){
+                case "readFile":
+                    let utf8 = args.count > 1 && (args[1] as! JSON)["encoding"].stringValue == "utf8"
+                    return done(self.fsEditor.readFile(path: args[0] as! String, utf8: utf8))
+                case "writeFile":
+                    return done(self.fsEditor.writeFile(file: args[0] as! String, strOrData: args[1]!))
+                case "writeFileMulti":
+                    var i = 1;
+                    while(i < args.count) {
+                        let file = args[i] as! String
+                        let data = args[i + 1]!
+                        let maybeError = self.fsEditor.writeFile(file: file, strOrData: data)
+                        if(maybeError is AdapterError){
+                            return done(maybeError)
+                        }
+                        i += 2
                     }
+                    return done(true)
+                case "unlink": return done(self.fsEditor.unlink(path: args[0] as! String))
+                case "readdir":
+                    var withFileTypes = false
+                    var recursive = false
+                    if(args.count > 1) {
+                        let options = args[1] as! JSON
+                        withFileTypes = options["withFileTypes"].boolValue
+                        recursive = options["recursive"].boolValue
+                    }
+                    let files = self.fsEditor.readdir(path: args[0] as! String, withFileTypes: withFileTypes, recursive: recursive)
+                    return done(files)
+                    case "mkdir": return done(self.fsEditor.mkdir(path: args[0] as! String))
+                    case "rmdir": return done(self.fsEditor.rmdir(path: args[0] as! String))
+                    case "stat": return done(self.fsEditor.stat(path: args[0] as! String))
+                    case "lstat": return done(self.fsEditor.lstat(path: args[0] as! String))
+                    case "exists":
+                        let exists = self.fsEditor.exists(path: args[0] as! String)
+                        return done(exists == nil ? false : exists)
+                    case "rename":
+                        return done(self.fsEditor.rename(oldPath: args[0] as! String, newPath: args[1] as! String))
+                    default: break;
                 }
-                break
+            }
+            break
             case "esbuild":
                 switch(methodPath[1]) {
                 case "version":
@@ -183,20 +180,20 @@ class AdapterEditor: Adapter {
                 case "tmpFile":
                     switch(methodPath[2]) {
                     case "write":
-                        let path = self.cacheDirectory + json[0].stringValue
-                        let data = json[1].stringValue.data(using: .utf8)!
+                        let path = self.cacheDirectory + (args[0] as! String)
+                        let data = (args[1] as! String).data(using: .utf8)!
                         try! data.write(to: URL(string: path)!)
                         return done(String(path.dropFirst("file://".count)))
                     case "unlink":
-                        let path = self.cacheDirectory + json[0].stringValue
+                        let path = self.cacheDirectory + (args[0] as! String)
                         try! FileManager.default.removeItem(at: URL(string: path)!)
                         return done(true)
                     default: break;
                     }
                 case "build":
-                    let inputPtr = UnsafeMutablePointer<Int8>(mutating: (json[0].stringValue as NSString).utf8String)
+                    let inputPtr = UnsafeMutablePointer<Int8>(mutating: ((args[0] as! String) as NSString).utf8String)
                     let outPtr = UnsafeMutablePointer<Int8>(mutating: ("index" as NSString).utf8String)
-                    let outdirPtr = UnsafeMutablePointer<Int8>(mutating: (json[1].stringValue as NSString).utf8String)
+                    let outdirPtr = UnsafeMutablePointer<Int8>(mutating: ((args[1] as! String) as NSString).utf8String)
                     let nodePathPtr = UnsafeMutablePointer<Int8>(mutating: (self.rootDirectory + "/" + self.nodeModulesDirectory as NSString).utf8String)
                     
                     var errorsPtr = UnsafeMutablePointer<Int8>(nil)
@@ -212,104 +209,108 @@ class AdapterEditor: Adapter {
                         return done(JSON(parseJSON: errors))
                     }
                 
-                    return done(true)
+                    return done(1)
                 default: break
                 }
                 break
-            case "run":
-                let projectDirectory = self.rootDirectory + "/" + json[0]["location"].stringValue
+        case "run":
+            let project = args[0] as! JSON
+            let projectDirectory = self.rootDirectory + "/" + project["location"].stringValue
+                
+            let runningInstance = RunningInstances.singleton?.getInstance(projectDirectory: projectDirectory)
+        
+            if(runningInstance != nil) {
+                runningInstance!.webview.reload()
+            } else {
+                let project = Project(
+                    location: projectDirectory,
+                    id: project["id"].stringValue,
+                    title: project["title"].stringValue)
+                RunningInstances.singleton?.addInstance(instance: Instance(project: project))
+            }
+        
+            return done(true)
+        case "open":
+            let project = args[0] as! JSON
+            let projectLocation = self.rootDirectory + "/" + project["location"].stringValue
+            UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
+            return done(true)
+        case "connectivity":
+            switch(methodPath[1]) {
+            case "infos":
+                return done(false)
+            case "name":
+                return done(UIDevice.current.name)
+            case "peers":
+                switch(methodPath[2]){
+                case "nearby":
+                    var peersNearby: [JSON] = []
+                    let peersNearbyBonjour = self.bonjour.getPeersNearby().arrayValue
+                    let peersNearbyMultipeer = self.multipeer.getPeersNearby().arrayValue
                     
-                let runningInstance = RunningInstances.singleton?.getInstance(projectDirectory: projectDirectory)
-            
-                if(runningInstance != nil) {
-                    runningInstance!.webview.reload()
-                } else {
-                    let project = Project(
-                        location: projectDirectory,
-                        id: json[0]["id"].stringValue,
-                        title: json[0]["title"].stringValue)
-                    RunningInstances.singleton?.addInstance(instance: Instance(project: project))
+                    for peerNearby in peersNearbyBonjour {
+                        peersNearby.append(peerNearby)
+                    }
+                    for peerNearby in peersNearbyMultipeer {
+                        peersNearby.append(peerNearby)
+                    }
+                    
+                    return done(JSON(peersNearby))
+                default: break
                 }
-            
-                return done(true)
-            case "open": 
-                let projectLocation = self.rootDirectory + "/" + json[0]["location"].stringValue
-                UIApplication.shared.open(URL(string: "shareddocuments://" + projectLocation)!)
-                return done(true)
-            case "connectivity":
-                switch(methodPath[1]) {
-                case "infos":
-                    return done(false)
-                case "name":
-                    return done(UIDevice.current.name)
-                case "peers":
-                    switch(methodPath[2]){
-                    case "nearby":
-                        var peersNearby: [JSON] = []
-                        let peersNearbyBonjour = self.bonjour.getPeersNearby().arrayValue
-                        let peersNearbyMultipeer = self.multipeer.getPeersNearby().arrayValue
-                        
-                        for peerNearby in peersNearbyBonjour {
-                            peersNearby.append(peerNearby)
-                        }
-                        for peerNearby in peersNearbyMultipeer {
-                            peersNearby.append(peerNearby)
-                        }
-                        
-                        return done(JSON(peersNearby))
-                    default: break
-                    }
-                case "advertise": 
-                    switch(methodPath[2]){
-                    case "start": 
-                        self.multipeer.startAdvertising(id: json[0]["id"].stringValue, name: json[0]["name"].stringValue)
-                        return done(true)
-                    case "stop": 
-                        self.multipeer.stopAdvertising()
-                        return done(true)
-                    default: break
-                    }
-                case "browse": 
-                    switch(methodPath[2]){
-                    case "start":
-                        self.bonjour.startBrowsing()
-                        self.multipeer.startBrowsing()
-                        return done(true)
-                    case "peerNearbyIsDead":
-                        self.bonjour.peerNearbyIsDead(id: json[0].stringValue)
-                        return done(true)
-                    case "stop":
-                        self.bonjour.stopBrowsing()
-                        self.multipeer.stopBrowsing()
-                        return done(true)
-                    default: break
-                    }
-                case "open":
-                    self.multipeer.open(id: json[0].stringValue, meId: json[1]["id"].stringValue, meName: json[1]["name"].stringValue)
+            case "advertise":
+                switch(methodPath[2]){
+                case "start":
+                    let peer = args[0] as! JSON
+                    self.multipeer.startAdvertising(id: peer["id"].stringValue, name: peer["name"].stringValue)
                     return done(true)
-                case "disconnect":
-                    self.multipeer.disconnect(id: json[0].stringValue)
-                    return done(true)
-                case "trustConnection":
-                    self.multipeer.trustConnection(id: json[0].stringValue)
-                    return done(true)
-                case "send":
-                    self.multipeer.send(id: json[0].stringValue, data: json[1].stringValue, pairing: json[2].boolValue)
-                    return done(true)
-                case "convey":
-                    let data = json[1].stringValue;
-                    let projectId = json[0].stringValue;
-                    RunningInstances.singleton!.instances.forEach({instance in
-                        if(instance.adapter.projectId == projectId) {
-                            instance.push(messageType: "peerData", message: data)
-                        }
-                    })
+                case "stop":
+                    self.multipeer.stopAdvertising()
                     return done(true)
                 default: break
                 }
+            case "browse":
+                switch(methodPath[2]){
+                case "start":
+                    self.bonjour.startBrowsing()
+                    self.multipeer.startBrowsing()
+                    return done(true)
+                case "peerNearbyIsDead":
+                    self.bonjour.peerNearbyIsDead(id: args[0] as! String)
+                    return done(true)
+                case "stop":
+                    self.bonjour.stopBrowsing()
+                    self.multipeer.stopBrowsing()
+                    return done(true)
+                default: break
+                }
+            case "open":
+                let me = (args[1] as! JSON)
+                self.multipeer.open(id: (args[0] as! String), meId: me["id"].stringValue, meName: me["name"].stringValue)
+                return done(true)
+            case "disconnect":
+                self.multipeer.disconnect(id: args[0] as! String)
+                return done(true)
+            case "trustConnection":
+                self.multipeer.trustConnection(id: args[0] as! String)
+                return done(true)
+            case "send":
+                self.multipeer.send(id: args[0] as! String, data: args[1] as! String, pairing: args[2] as! Bool)
+                return done(true)
+            case "convey":
+                let data = args[1] as! String
+                let projectId = args[0] as! String;
+                RunningInstances.singleton!.instances.forEach({instance in
+                    if(instance.adapter.projectId == projectId) {
+                        instance.push(messageType: "peerData", message: data)
+                    }
+                })
+                return done(true)
             default: break
+            }
+        default: break
         }
         
-        return super.callAdapterMethod(methodPath: methodPath, body: body, done: done)
+        return super.callAdapterMethod(methodPath: methodPath, args: args, done: done)
     }
 }

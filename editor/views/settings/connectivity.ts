@@ -257,9 +257,8 @@ function pingWebAddress(webAddress: WebAddress) {
     return new Promise<boolean>((resolve) => {
         const url = constructURL(webAddress, "http");
         rpc()
-            .fetch(url + "/ping", {
-                timeout: 3000,
-                encoding: "utf8"
+            .fetch(url + "/ping", null, {
+                timeout: 3000
             })
             .then((res) => resolve(res.body === "pong"))
             .catch(() => resolve(false));

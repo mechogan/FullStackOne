@@ -2,7 +2,6 @@ import type EsbuildModuleType from "esbuild";
 import type { Bonjour } from "./connectivity/bonjour";
 import fs from "fs";
 import mime from "mime";
-import { decodeUint8Array } from "../../../src/Uint8Array";
 import { AdapterEditor, SetupDirectories } from "../../../editor/rpc";
 import { WebSocketServer } from "./connectivity/websocketServer";
 import { createAdapter } from "./adapter";
@@ -17,6 +16,11 @@ import {
 import { Platform } from "../../../src/platforms";
 import fastQueryString from "fast-querystring";
 import os from "os";
+import {
+    convertObjectToArray,
+    deserializeArgs,
+    serializeArgs
+} from "../../../src/serialization";
 
 export type EsbuildFunctions = {
     load: () => Promise<typeof EsbuildModuleType>;
@@ -115,7 +119,11 @@ export function main(
                 data
             })
         );
-    const adapter = createAdapter(editorDirectory, platform, mainBroadcast);
+    const adapter = createAdapter(
+        directories.rootDirectory,
+        platform,
+        mainBroadcast
+    );
     const mainAdapter: AdapterEditor = {
         ...adapter,
 
@@ -132,7 +140,7 @@ export function main(
         },
 
         directories,
-        fs: upgradeFS(directories.rootDirectory, adapter.fs),
+        fs: upgradeFS(editorDirectory, adapter.fs),
         connectivity,
         esbuild: {
             version: async () => esbuildModule.version,
@@ -203,170 +211,40 @@ export function main(
 }
 
 function upgradeFS(
-    rootDirectory: string,
+    editorDirectory: string,
     defaultFS: Adapter["fs"]
 ): AdapterEditor["fs"] {
-    const writeFile: AdapterEditor["fs"]["writeFile"] = async (
-        file,
-        data,
-        options
-    ) => {
-        const filePath = rootDirectory + "/" + file;
+    let fsEditor = {};
+    Object.entries(defaultFS).forEach(([name, method]) => {
+        fsEditor[name] = async (...args: any[]) => {
+            let absolutePath = !!args.find((arg) => arg?.absolutePath);
 
-        if (options?.recursive) {
-            const directory = filePath.split("/").slice(0, -1);
-            await fs.promises.mkdir(directory.join("/"), {
-                recursive: true
-            });
-        }
+            if (absolutePath) {
+                // @ts-ignore
+                return method(...args);
+            }
 
-        return fs.promises.writeFile(filePath, data, options);
-    };
-
-    const existsAndIsFile = async (
-        path: string,
-        options?: { absolutePath?: boolean }
-    ) => {
-        if (options?.absolutePath) {
-            try {
-                const stats = await fs.promises.stat(
-                    rootDirectory + "/" + path
-                );
-                return { isFile: stats.isFile() };
-            } catch (e) {
-                return null;
-            }
-        }
-        return defaultFS.exists(path);
-    };
-
-    return {
-        ...defaultFS,
-        readFile: (
-            path,
-            options?: { encoding?: "utf8"; absolutePath?: boolean }
-        ) => {
-            if (options?.absolutePath) {
-                return fs.promises.readFile(
-                    rootDirectory + "/" + path,
-                    options
-                );
-            }
-            return defaultFS.readFile(path, options);
-        },
-        writeFile: async (file, data, options) => {
-            if (options?.absolutePath) {
-                return writeFile(file, data, options);
-            }
-            return defaultFS.writeFile(file, data, options);
-        },
-        writeFileMulti: (files, options) => {
-            if (options?.absolutePath) {
-                return Promise.all(
-                    files.map(({ path, data }) =>
-                        writeFile(path, data, options)
-                    )
-                );
-            }
-            return defaultFS.writeFileMulti(files, options);
-        },
-        unlink: (path, options) => {
-            if (options?.absolutePath) {
-                return fs.promises.unlink(rootDirectory + "/" + path);
-            }
-            return defaultFS.unlink(path);
-        },
-        readdir: async (
-            path,
-            options?: {
-                withFileTypes: true;
-                absolutePath?: boolean;
-                recursive?: boolean;
-            }
-        ) => {
-            if (options?.absolutePath) {
-                const items = await fs.promises.readdir(
-                    rootDirectory + "/" + path,
-                    options
-                );
-                if (!options?.withFileTypes) {
-                    return (items as unknown as string[]).map((filename) =>
-                        filename.split("\\").join("/")
-                    );
-                }
-
-                return items.map((item) => ({
-                    ...item,
-                    isDirectory: item.isDirectory()
-                }));
-            }
-            return defaultFS.readdir(path, options);
-        },
-        mkdir: async (path, options) => {
-            if (options?.absolutePath) {
-                await fs.promises.mkdir(rootDirectory + "/" + path, {
-                    recursive: true
-                });
-                return;
-            }
-            return defaultFS.mkdir(path);
-        },
-        rmdir: (path, options) => {
-            if (options?.absolutePath) {
-                const dirPath = rootDirectory + "/" + path;
-                if (!fs.existsSync(dirPath)) return;
-                return fs.promises.rm(dirPath, {
-                    recursive: true
-                });
-            }
-            return defaultFS.rmdir(path);
-        },
-        stat: async (path, options) => {
-            if (options?.absolutePath) {
-                const stats: any = await fs.promises.stat(
-                    rootDirectory + "/" + path
-                );
-                stats.isDirectory = stats.isDirectory();
-                stats.isFile = stats.isFile();
-                return stats;
-            }
-            return defaultFS.stat(path);
-        },
-        lstat: async (path, options) => {
-            if (options?.absolutePath) {
-                const stats: any = await fs.promises.lstat(
-                    rootDirectory + "/" + path
-                );
-                stats.isDirectory = stats.isDirectory();
-                stats.isFile = stats.isFile();
-                return stats;
-            }
-            return defaultFS.lstat(path);
-        },
-        exists: existsAndIsFile,
-        rename: async (oldPath, newPath, options) => {
-            if (oldPath === newPath) return;
-
-            if (options?.absolutePath) {
-                const exists = await existsAndIsFile(newPath, {
-                    absolutePath: true
-                });
-
-                oldPath = rootDirectory + "/" + oldPath;
-                newPath = rootDirectory + "/" + newPath;
-
-                if (typeof exists?.isFile === "boolean") {
-                    await fs.promises.rm(newPath, {
-                        recursive: true,
-                        force: true
+            let path = editorDirectory + "/" + args[0];
+            switch (name) {
+                case "exists":
+                    let stats: Awaited<
+                        ReturnType<(typeof fs)["promises"]["stat"]>
+                    >;
+                    try {
+                        stats = await fs.promises.stat(path);
+                    } catch (e) {
+                        return null;
+                    }
+                    return { isFile: stats.isFile() };
+                case "readFile":
+                    return fs.promises.readFile(path, {
+                        encoding: args?.[1]?.encoding
                     });
-                }
-
-                return fs.promises.rename(oldPath, newPath);
             }
-            return defaultFS.rename(oldPath, newPath);
-        }
-    };
+        };
+    });
+
+    return fsEditor as AdapterEditor["fs"];
 }
 
 const te = new TextEncoder();
@@ -391,10 +269,14 @@ function createHandler(mainAdapter: AdapterEditor) {
 
         // the rest can be used as query
         const query = pathAndQuery.join("?");
+        let bodyFromQuery = false;
         if (query.length) {
             const searchParams = fastQueryString.parse(query);
             const maybeBody: string = searchParams["body"];
-            if (maybeBody) body = te.encode(decodeURIComponent(maybeBody));
+            if (maybeBody) {
+                bodyFromQuery = true;
+                body = te.encode(decodeURIComponent(maybeBody));
+            }
         }
 
         // remove trailing slash
@@ -404,7 +286,7 @@ function createHandler(mainAdapter: AdapterEditor) {
         if (pathname?.startsWith("/")) pathname = pathname.slice(1);
 
         // check for [path]/index.html
-        let maybeIndexHTML = pathname + "/index.html";
+        let maybeIndexHTML = pathname + (pathname ? "/" : "") + "index.html";
         if ((await adapter.fs.exists(maybeIndexHTML))?.isFile) {
             pathname = maybeIndexHTML;
         }
@@ -430,7 +312,7 @@ function createHandler(mainAdapter: AdapterEditor) {
                 data
             };
         }
-        // rpc methods
+        // ipc methods
         else {
             const methodPath = pathname.split("/");
             let method = methodPath.reduce(
@@ -443,7 +325,9 @@ function createHandler(mainAdapter: AdapterEditor) {
 
                 const args =
                     body && body.length
-                        ? JSON.parse(td.decode(body), decodeUint8Array)
+                        ? bodyFromQuery
+                            ? JSON.parse(td.decode(body))
+                            : deserializeArgs(body)
                         : [];
 
                 let responseBody = method;
@@ -467,24 +351,20 @@ function createHandler(mainAdapter: AdapterEditor) {
                     }
                 }
 
-                let type = "text/plain";
+                response.mimeType = "text/plain";
                 if (responseBody) {
-                    if (ArrayBuffer.isView(responseBody)) {
-                        type = "application/octet-stream";
-                        responseBody = new Uint8Array(responseBody.buffer);
+                    if (typeof responseBody === "string") {
+                        response.data = te.encode(responseBody);
+                    } else if (ArrayBuffer.isView(responseBody)) {
+                        response.mimeType = "application/octet-stream";
+                        response.data = new Uint8Array(responseBody.buffer);
                     } else {
-                        if (typeof responseBody !== "string") {
-                            type = "application/json";
-                            responseBody = JSON.stringify(responseBody);
-                        }
-                        responseBody = te.encode(responseBody);
+                        response.mimeType = "application/json";
+                        response.data = te.encode(JSON.stringify(responseBody));
                     }
-                    response.data = responseBody;
                 } else {
                     delete response.data;
                 }
-
-                response.mimeType = type;
             }
         }
 

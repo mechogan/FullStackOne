@@ -1,12 +1,13 @@
 import { SourceMapConsumer } from "source-map-js";
-import { decodeUint8Array } from "./Uint8Array";
 import { Platform } from "./platforms";
 import type { AwaitAll, AwaitNone } from "../editor/rpc";
 import { bindPassRequestBody } from "./android";
+import { serializeArgs } from "./serialization";
+import { fromByteArray } from "base64-js";
 
 if ((globalThis as any).Android) {
     bindPassRequestBody((id, body) =>
-        (globalThis as any).Android.passRequestBody(id, body)
+        (globalThis as any).Android.passRequestBody(id, fromByteArray(body))
     );
 }
 
@@ -33,7 +34,7 @@ function syncRequest(pathComponents: string[], ...args) {
     else {
         data = request.responseText;
         if (contentType?.startsWith("application/json")) {
-            data = JSON.parse(data, decodeUint8Array);
+            data = JSON.parse(data);
         }
     }
 
@@ -50,20 +51,23 @@ async function fetchCall(pathComponents: string[], ...args) {
 
     const response = await fetch(url.toString(), {
         method: "POST",
-        body: JSON.stringify(args)
+        body: serializeArgs(args)
     });
 
     const contentType = response.headers.get("content-type");
 
-    let data: any;
-
-    if (contentType?.startsWith("application/octet-stream"))
-        data = new Uint8Array(await response.arrayBuffer());
-    else {
+    let data = null;
+    if (contentType?.startsWith("text/plain")) {
         data = await response.text();
-        if (contentType?.startsWith("application/json")) {
-            data = JSON.parse(data, decodeUint8Array);
-        }
+    } else if (contentType?.startsWith("application/json")) {
+        data = await response.json();
+    } else if (contentType?.startsWith("application/octet-stream")) {
+        data = new Uint8Array(await response.arrayBuffer());
+    } else {
+        console.error(
+            "Unknown content-type in IPC return call. Using arrayBuffer"
+        );
+        data = await response.arrayBuffer();
     }
 
     if (response.status >= 299) {

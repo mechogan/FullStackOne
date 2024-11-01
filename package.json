@@ -38,6 +38,7 @@
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/xterm": "^5.5.0",
         "@zip.js/zip.js": "^2.7.52",
+        "base64-js": "^1.5.1",
         "buffer": "^6.0.3",
         "codemirror": "^6.0.1",
         "dotenv": "^16.4.5",

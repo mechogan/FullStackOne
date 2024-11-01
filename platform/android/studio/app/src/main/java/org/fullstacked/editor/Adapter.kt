@@ -1,10 +1,10 @@
 package org.fullstacked.editor
 
+import io.ktor.util.encodeBase64
 import okhttp3.OkHttpClient
 import okhttp3.Request.Builder
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -13,6 +13,13 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.TimeUnit
+
+data class FetchResponse(
+    val headers: MutableMap<String, String>,
+    val statusCode: Int,
+    val statusMessage: String,
+    val body: ByteArray?
+)
 
 open class Adapter(
     val projectId: String,
@@ -27,205 +34,215 @@ open class Adapter(
         return ByteArrayInputStream(data as ByteArray)
     }
 
-    fun writeFile(path: String, data: ByteArray?, recursive: Boolean) : Any? {
-        if(recursive) {
-            val dir = path.split("/").dropLast(1)
-            this.fs.mkdir(dir.joinToString("/"))
-        }
-
-        return this.fs.writeFile(path, data ?: byteArrayOf())
-    }
-
-    open fun callAdapterMethod(methodPath: ArrayList<String>, body: String?): Any? {
+    open fun callAdapterMethod(methodPath: ArrayList<String>, args: List<Any?>): Any? {
         if(methodPath.isEmpty()) return null
-
-        val json = if(!body.isNullOrEmpty()) JSONArray(body) else JSONArray("[]")
 
         when (methodPath.first()) {
             "platform" -> return this.platform
-            "fs" -> return this.fsSwitch(methodPath[1], json)
-            "fetch" -> return this.fetch(json)
-            "broadcast" -> return this.broadcast(json)
+            "fs" -> return this.fsSwitch(methodPath[1], args)
+            "fetch" -> return this.fetch(args)
+            "fetchRaw" -> return this.fetchRaw(args)
+            "broadcast" -> return this.broadcast(args)
         }
 
         return null
     }
 
-    private fun broadcast(json: JSONArray) : Boolean {
+    private fun broadcast(args: List<Any?>) : Boolean {
         val peerMessage = JSONObject()
         peerMessage.put("projectId", this.projectId)
-        peerMessage.put("data", json.getString(0))
+        peerMessage.put("data", args[0] as String)
         InstanceEditor.singleton.push("sendData", peerMessage.toString())
 
         return true
     }
 
-    private fun fsSwitch(method: String, json: JSONArray) : Any? {
+    private fun fsSwitch(method: String, args: List<Any?>) : Any? {
         when (method) {
             "readFile" -> {
-                if(json.length() == 0) {
-                    return ""
-                }
-
-                var utf8 = false
-                if(json.length() > 1) {
-                    try {
-                        val opt = json.getJSONObject(1)
-                        utf8 = opt.getString("encoding") == "utf8"
-                    } catch (_: Exception) {
-                        try {
-                            utf8 = json.getString(1) == "utf8"
-                        } catch (_: Exception) { }
-                    }
-                }
-
-                return this.fs.readFile(json.getString(0), utf8)
+                val utf8 = args.size > 1 && (args[1] as JSONObject).optString("encoding") == "utf8"
+                return this.fs.readFile(args[0] as String, utf8)
             }
             "writeFile" -> {
-                var data: ByteArray? = null
-
-                try {
-                    if(json.getJSONObject(1).get("type") == "Uint8Array") {
-                        val numberArr = json.getJSONObject(1).getJSONArray("data")
-                        val byteArray = ByteArray(numberArr.length())
-                        for (i in 0..<numberArr.length()) {
-                            byteArray[i] = numberArr.get(i).toString().toInt().toByte()
-                        }
-                        data = byteArray
-                    }
-                }catch (e: Exception) {
-                    data = json.getString(1).toByteArray()
-                }
-
-                var recursive = false
-                if(json.length() > 2) {
-                    try {
-                        val opt = json.getJSONObject(2)
-                        recursive = opt.getBoolean("recursive")
-                    } catch (_: Exception) { }
-                }
-
-                return this.writeFile(json.getString(0), data, recursive)
+                return this.fs.writeFile(args[0] as String, args[1]!!)
             }
             "writeFileMulti" -> {
-                var recursive = false
-                if(json.length() > 1) {
-                    val opt = json.getJSONObject(1)
-                    try {
-                        recursive = opt.getBoolean("recursive")
-                    } catch (_: Exception) { }
-                }
-
-                val files = json.getJSONArray(0)
-                for (i in 0..<files.length()) {
-                    val file = files.getJSONObject(i)
-                    var data: ByteArray? = null
-
-                    try {
-                        val uint8array = file.getJSONObject("data")
-                        if(uint8array.get("type") == "Uint8Array") {
-                            val numberArr = uint8array.getJSONArray("data")
-                            val byteArray = ByteArray(numberArr.length())
-                            for (index in 0..<numberArr.length()) {
-                                byteArray[index] = numberArr.get(index).toString().toInt().toByte()
-                            }
-                            data = byteArray
-                        }
-                    }catch (e: Exception) {
-                        data = file.getString("data").toByteArray()
-                    }
-
-                    val maybeError = this.writeFile(file.getString("path"), data, recursive)
-                    if(maybeError != null && maybeError != true)
+                var i = 1;
+                while(i < args.size) {
+                    val file = args[i] as String
+                    val data = args[i + 1]
+                    val maybeError = this.fs.writeFile(file, data!!)
+                    if(maybeError is AdapterError){
                         return maybeError
+                    }
+                    i += 2
                 }
-
                 return true
             }
-            "unlink" -> return this.fs.unlink(json.getString(0))
+            "unlink" -> return this.fs.unlink(args[0] as String)
             "readdir" -> {
                 var recursive = false
                 var withFileTypes = false
-                if(json.length() > 1) {
-                    val opt = json.getJSONObject(1)
-                    try {
-                        recursive = opt.getBoolean("recursive")
-                    } catch (_: Exception) { }
-                    try {
-                        withFileTypes = opt.getBoolean("withFileTypes")
-                    } catch (_: Exception) { }
+                if(args.size > 1) {
+                    val opt = args[1] as JSONObject
+                    recursive = opt.optBoolean("recursive")
+                    withFileTypes = opt.optBoolean("withFileTypes")
                 }
 
-                return this.fs.readdir(json.getString(0), withFileTypes, recursive)
+                return this.fs.readdir(args[0] as String, withFileTypes, recursive)
             }
-            "mkdir" -> return this.fs.mkdir(json.getString(0))
-            "rmdir" -> return this.fs.rmdir(json.getString(0))
-            "stat" -> return this.fs.stat(json.getString(0))
-            "lstat" -> return this.fs.stat(json.getString(0))
-            "exists" -> return this.fs.exists(json.getString(0))
-            "rename" -> return this.fs.rename(json.getString(0), json.getString(1))
+            "mkdir" -> return this.fs.mkdir(args[0] as String)
+            "rmdir" -> return this.fs.rmdir(args[0] as String)
+            "stat" -> return this.fs.stat(args[0] as String)
+            "lstat" -> return this.fs.stat(args[0] as String)
+            "exists" -> return this.fs.exists(args[0] as String)
+            "rename" -> return this.fs.rename(args[0] as String, args[1] as String)
         }
 
         return null
     }
 
-    private fun fetch(json: JSONArray): Any? {
+    private fun fetch(args: List<Any?>) : JSONObject? {
+        val url = args[0] as String
+
+        var body: ByteArray? = null
+        if(args.size > 1) {
+            if(args[1] is String){
+                body = (args[1] as String).toByteArray()
+            } else if (args[1] is ByteArray) {
+                body = args[1] as ByteArray
+            }
+        }
+
+        var method = "GET"
+        val headers = mutableMapOf<String, String>()
+        var timeout = 15L
+        var encoding = "utf8"
+
+        if(args.size > 2) {
+            val options = args[2] as JSONObject
+
+            if(options.optString("method").isNotEmpty()) {
+                method = options.getString("method")
+            }
+
+            if(options.optJSONObject("headers") != null) {
+                options.getJSONObject("headers").keys().forEach { key ->
+                    headers[key] = options.getJSONObject("headers").getString(key)
+                }
+            }
+
+            if(options.optLong("timeout") != 0L) {
+                timeout = options.getLong("timeout")
+            }
+
+            if(options.optString("encoding").isNotEmpty()) {
+                encoding = options.getString("encoding")
+            }
+        }
+
+        val response = this.fetchRequest(
+            url,
+            headers,
+            method,
+            timeout,
+            body
+        )
+
+        if(response == null) {
+            return null
+        }
+
+        val responseHeaders = JSONObject()
+        response.headers.forEach { (key, value) ->
+            responseHeaders.put(key, value)
+        }
+
+        val responseJSON = JSONObject()
+        responseJSON.put("headers", responseHeaders)
+        responseJSON.put("statusCode", response.statusCode)
+        responseJSON.put("statusMessage", response.statusMessage)
+
+        if(response.body != null) {
+            if(encoding == "base64") {
+                responseJSON.put("body", response.body.encodeBase64())
+            } else {
+                responseJSON.put("body", response.body.toString(Charsets.UTF_8))
+            }
+        } else {
+            responseJSON.put("body", "")
+        }
+
+        return responseJSON
+    }
+
+    private fun fetchRaw(args: List<Any?>) : ByteArray? {
+        val url = args[0] as String
+
+        var body: ByteArray? = null
+        if(args.size > 1) {
+            if(args[1] is String){
+                body = (args[1] as String).toByteArray()
+            } else if (args[1] is ByteArray) {
+                body = args[1] as ByteArray
+            }
+        }
+
+        var method = "GET"
+        val headers = mutableMapOf<String, String>()
+        var timeout = 15L
+
+        if(args.size > 2) {
+            val options = args[2] as JSONObject
+
+            if(options.optString("method").isNotEmpty()) {
+                method = options.getString("method")
+            }
+
+            if(options.optJSONObject("headers") != null) {
+                options.getJSONObject("headers").keys().forEach { key ->
+                    headers[key] = options.getJSONObject("headers").getString(key)
+                }
+            }
+
+            if(options.optLong("timeout") != 0L) {
+                timeout = options.getLong("timeout")
+            }
+        }
+
+        val response = this.fetchRequest(
+            url,
+            headers,
+            method,
+            timeout,
+            body
+        )
+
+        if(response == null) {
+            return null
+        }
+
+        return response.body
+    }
+
+    private fun fetchRequest(
+        url: String,
+        headers: MutableMap<String, String>,
+        method: String,
+        timeout: Long,
+        body: ByteArray?
+        ): FetchResponse? {
         val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(timeout, TimeUnit.SECONDS)
+            .writeTimeout(timeout, TimeUnit.SECONDS)
+            .readTimeout(timeout, TimeUnit.SECONDS)
             .build()
 
         var request: Builder? = null
         try {
             request = Builder()
-                .url(json.getString(0))
+                .url(url)
         } catch (e: Exception) { return null }
-
-        var utf8 = false
-        var method = "GET"
-        val headers = mutableMapOf<String, String>()
-        var body: ByteArray? = null
-
-        if(json.length() > 1) {
-            val opt = json.getJSONObject(1)
-
-            try {
-                utf8 = opt.getString("encoding") == "utf8"
-            } catch (_: Exception) { }
-
-            try {
-                method = opt.getString("method")
-            } catch (_: Exception) { }
-
-            try {
-                val jsonHeaders = opt.getJSONObject("headers")
-                for(key in jsonHeaders.keys()) {
-                    headers[key] = jsonHeaders.getString(key)
-                }
-            } catch (_: Exception) { }
-
-            try {
-                val jsonBody = opt.getJSONObject("body")
-                if(jsonBody.getString("type") == "Uint8Array") {
-                    val numberArr = jsonBody.getJSONArray("data")
-                    val byteArray = ByteArray(numberArr.length())
-                    for (i in 0..<numberArr.length()) {
-                        val numStr = numberArr.get(i).toString()
-                        val num = numStr.toInt()
-                        byteArray[i] = num.toByte()
-                    }
-                    body = byteArray
-                }
-            } catch (_: Exception) { }
-
-            if(body == null) {
-                try {
-                    val jsonBody = opt.getString("body")
-                    body = jsonBody.toByteArray()
-                } catch (_: Exception) { }
-            }
-        }
 
         request.method(method, body?.toRequestBody())
 
@@ -241,39 +258,17 @@ open class Adapter(
             client.newCall(request.build()).execute()
         } catch (e: Exception) { return null }
 
-        val responseJson = JSONObject()
-
-        responseJson.put("statusCode", response.code)
-        responseJson.put("statusMessage", response.message)
-
-        val responseHeaders = JSONObject()
+        val responseHeaders = mutableMapOf<String, String>()
         response.headers.forEach { (key, value) ->
-            responseHeaders.put(key, value)
-        }
-        responseJson.put("headers", responseHeaders)
-
-        if(utf8) {
-            if(response.body == null) {
-                responseJson.put("body", "")
-            } else {
-                responseJson.put("body", response.body?.string() ?: "")
-            }
-        } else {
-            val responseBody = JSONObject()
-            responseBody.put("type", "Uint8Array")
-
-            val responseBodyData = JSONArray()
-            if(response.body != null) {
-                response.body?.bytes()?.forEach { byte ->
-                    responseBodyData.put(byte)
-                }
-            }
-            responseBody.put("data", responseBodyData)
-
-            responseJson.put("body", responseBody)
+            responseHeaders[key] = value
         }
 
-        return responseJson
+        return FetchResponse(
+            headers = responseHeaders,
+            statusCode = response.code,
+            statusMessage = response.message,
+            body = response.body?.bytes()
+        )
     }
 }
 
@@ -310,13 +305,20 @@ class AdapterFS(private val baseDirectory: String) {
             file.readBytes()
     }
 
-    fun writeFile(path: String, data: ByteArray) : Any {
+    fun writeFile(path: String, strOrData: Any) : Any {
         val itemPath = this.baseDirectory + "/" + path
+
+        val dir = itemPath.split("/").dropLast(1)
+        File(dir.joinToString("/")).mkdirs()
 
         val file = File(itemPath);
 
         try {
-            file.writeBytes(data)
+            if(strOrData is String) {
+                file.writeText(strOrData)
+            } else {
+                file.writeBytes(strOrData as ByteArray)
+            }
         } catch (e: Exception) {
             return AdapterError(
                 code = "ENOENT",
@@ -417,9 +419,10 @@ class AdapterFS(private val baseDirectory: String) {
     fun rmdir(path: String): Boolean? {
         val itemPath = this.baseDirectory + "/" + path
         val existsAndIsDirectory = this.itemExistsAndIsDirectory(itemPath)
-        if(existsAndIsDirectory == null || !existsAndIsDirectory) return null
-        val dir = File(itemPath)
-        dir.deleteRecursively()
+        if(existsAndIsDirectory != null && existsAndIsDirectory) {
+            val dir = File(itemPath)
+            dir.deleteRecursively()
+        }
         return true
     }
 

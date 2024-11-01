@@ -1,4 +1,5 @@
 import api from "..";
+import rpc from "../../rpc";
 import { Browser } from "../../../src/connectivity/browser";
 import {
     PEER_ADVERSTISING_METHOD,
@@ -47,8 +48,7 @@ export class BrowseWeb implements Browser {
 
             const promise = new Promise<Peer>((resolve) => {
                 rpc()
-                    .fetch(url, {
-                        encoding: "utf8",
+                    .fetch(url, null, {
                         timeout: 2000
                     })
                     .then((response) => {

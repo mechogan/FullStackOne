@@ -71,6 +71,7 @@ function EditorVersion() {
 async function getLatestVersionTag() {
     const response = await rpc().fetch(
         "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
+        null,
         {
             encoding: "utf8"
         }

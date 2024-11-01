@@ -1,3 +1,4 @@
+import { fromByteArray } from "base64-js";
 import type { methods } from "./worker";
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
@@ -74,7 +75,7 @@ function start(workingDirectory: string) {
                 resolve();
             } else if (message.data.body) {
                 const { id, body } = message.data;
-                (globalThis as any).Android?.passRequestBody(id, body);
+                globalThis.Android.passRequestBody(id, fromByteArray(body));
                 worker.postMessage({ request_id: id });
             } else {
                 const { id, data } = message.data;

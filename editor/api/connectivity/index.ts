@@ -92,7 +92,7 @@ const verifyWSS = async (peerNearby: PeerNearbyBonjour | PeerNearbyWeb) => {
 
         const response = await new Promise((resolve) => {
             rpc()
-                .fetch(url, {
+                .fetch(url, null, {
                     encoding: "utf8",
                     timeout: 500
                 })

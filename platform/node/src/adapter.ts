@@ -1,3 +1,4 @@
+import { fromByteArray } from "base64-js";
 import type { Adapter } from "../../../src/adapter/fullstacked";
 import fs from "fs";
 
@@ -30,6 +31,38 @@ export function createAdapter(
         }
     };
 
+    const sendFetch = async (options: {
+        url: string;
+        method: string;
+        headers: Record<string, string>;
+        timeout: number;
+        body: string | Uint8Array;
+    }) => {
+        let signal: AbortSignal = undefined,
+            timeoutId: ReturnType<typeof setTimeout>;
+        if (options?.timeout) {
+            const controller = new AbortController();
+            timeoutId = setTimeout(
+                () => controller.abort(),
+                options.timeout * 1000
+            );
+            signal = controller.signal;
+        }
+
+        const response = await fetch(options.url, {
+            method: options?.method || "GET",
+            headers: options?.headers || {},
+            body: options.body ? Buffer.from(options.body) : undefined,
+            signal
+        });
+
+        if (timeoutId) clearTimeout(timeoutId);
+
+        const headers = convertHeadersToObj(response.headers);
+
+        return { headers, response };
+    };
+
     return {
         platform,
         fs: {
@@ -43,12 +76,14 @@ export function createAdapter(
                 );
             },
             writeFile,
-            writeFileMulti(files, options) {
-                return Promise.all(
-                    files.map(({ path, data }) =>
-                        writeFile(path, data, options)
-                    )
-                );
+            writeFileMulti(options, ...files) {
+                const promises = [];
+                for (let i = 0; i < files.length; i += 2) {
+                    promises.push(
+                        writeFile(files[i] as string, files[i + 1], options)
+                    );
+                }
+                return Promise.all(promises);
             },
             unlink: (path) => {
                 return fs.promises.unlink(baseDirectory + "/" + path);
@@ -118,7 +153,6 @@ export function createAdapter(
                 newPath = baseDirectory + "/" + newPath;
 
                 if (typeof exists?.isFile === "boolean") {
-                    console.log("deleting");
                     await fs.promises.rm(newPath, {
                         recursive: true,
                         force: true
@@ -128,49 +162,47 @@ export function createAdapter(
                 return fs.promises.rename(oldPath, newPath);
             }
         },
-        async fetch(
-            url: string,
-            options?: {
-                headers?: Record<string, string>;
-                method?: "GET" | "POST" | "PUT" | "DELETE";
-                body?: string | Uint8Array;
-                encoding?: string;
-                timeout?: number;
-            }
-        ) {
-            let signal: AbortSignal = undefined,
-                timeoutId: ReturnType<typeof setTimeout>;
-            if (options?.timeout) {
-                const controller = new AbortController();
-                timeoutId = setTimeout(
-                    () => controller.abort(),
-                    options.timeout
-                );
-                signal = controller.signal;
-            }
-
-            const response = await fetch(url, {
-                method: options?.method || "GET",
-                headers: options?.headers || {},
-                body: options?.body ? Buffer.from(options?.body) : undefined,
-                signal
+        async fetch(url, body, options) {
+            const { headers, response } = await sendFetch({
+                url,
+                body,
+                method: options?.method,
+                headers: options?.headers,
+                timeout: options?.timeout
             });
 
-            if (timeoutId) clearTimeout(timeoutId);
-
-            const headers = convertHeadersToObj(response.headers);
-
-            const body =
-                options?.encoding === "utf8"
-                    ? await response.text()
-                    : new Uint8Array(await response.arrayBuffer());
+            const responseBody =
+                options?.encoding === "base64"
+                    ? fromByteArray(
+                          new Uint8Array(await response.arrayBuffer())
+                      )
+                    : await response.text();
 
             return {
                 headers,
                 statusCode: response.status,
                 statusMessage: response.statusText,
-                body
+                body: responseBody
             };
+        },
+        fetchRaw: async (
+            url: string,
+            body?: string | Uint8Array,
+            options?: {
+                headers?: Record<string, string>;
+                method?: "GET" | "POST" | "PUT" | "DELETE";
+                timeout?: number;
+            }
+        ) => {
+            const { response } = await sendFetch({
+                url,
+                body,
+                method: options?.method,
+                headers: options?.headers,
+                timeout: options?.timeout
+            });
+
+            return new Uint8Array(await response.arrayBuffer());
         },
 
         broadcast
