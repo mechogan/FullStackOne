@@ -38,7 +38,7 @@ class Adapter {
         case "fs":
             switch(methodPath[1]) {
             case "readFile":
-                let utf8 = args.count >= 1 && (args[1] as! JSON)["encoding"].stringValue == "utf8"
+                let utf8 = args.count > 1 && (args[1] as! JSON)["encoding"].stringValue == "utf8"
                 return done(self.fs.readFile(path: args[0] as! String, utf8: utf8))
             case "writeFile":
                 return done(self.fs.writeFile(file: args[0] as! String, strOrData: args[1]!))
@@ -204,7 +204,6 @@ class Adapter {
                   _ statusMessage: String,
                   _ data: Data
                ) -> Void) {
-                   print(urlStr)
                    let url = URL(string: urlStr)!
                    var request = URLRequest(url: url)
                    
