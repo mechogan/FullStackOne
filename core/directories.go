@@ -1,6 +1,6 @@
 package main
 
-type Directories struct {
+type DirectoriesStruct struct {
     root string
 	config string
 	nodeModules string
@@ -8,10 +8,10 @@ type Directories struct {
 }
 
 
-var directories *Directories = nil
+var Directories *DirectoriesStruct = nil
 
 func SetupDirectories(root string, config string, nodeModules string, editor string) {
-	directories = &Directories{
+	Directories = &DirectoriesStruct{
 		root: root,
 		config: config,
 		nodeModules: nodeModules,

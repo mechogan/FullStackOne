@@ -38,7 +38,7 @@ function deserializeNumber(bytes: Uint8Array) {
     return negative ? 0 - n : n;
 }
 
-function numberTo4Bytes(n: number) {
+export function numberTo4Bytes(n: number) {
     const uint8Array = new Uint8Array(4);
     uint8Array[0] = (n & 0xff000000) >> 24;
     uint8Array[1] = (n & 0x00ff0000) >> 16;

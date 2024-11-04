@@ -7,7 +7,7 @@ macos-x86_64:
 	GOOS=darwin \
 	GOARCH=amd64 \
 	SDK=macosx \
-	CC=$(CURDIR)/apple/clangwrap.sh \
+	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
 	go build -buildmode=c-shared -o $(OUT)/macos-x86_64 ..
 
@@ -16,5 +16,7 @@ macos-x86_64:
 ###### Android #######
 
 ###### Windows #######
+win-x86_64:
+	windows.bat
 
 ###### Linux #######
