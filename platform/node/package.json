@@ -20,7 +20,8 @@
     },
     "type": "module",
     "dependencies": {
-        "esbuild": "^0.24.0"
+        "esbuild": "^0.24.0",
+        "ffi-rs": "^1.0.98"
     },
     "devDependencies": {
         "bonjour-service": "^1.2.1",

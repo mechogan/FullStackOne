@@ -1,21 +1,33 @@
 package main
 
+// #include <stdlib.h>
+import "C"
+
 import (
-	"C"
 	"fmt"
 	"unsafe"
+	"os"
 
-	esbuild "fullstacked/editor/src"
+	esbuild "fullstacked/editor/src/esbuild"
+	staticFiles "fullstacked/editor/src/staticFiles"
 )
 
 func main() {
-	fmt.Println(C.GoString((*C.char)(esbuild.Version())))
+	fmt.Println(esbuild.Version())
 }
 
 //export call
-func call(buffer *C.uchar, len C.int) {
-	bytes := C.GoBytes(unsafe.Pointer(buffer), len)
-	for _, n := range(bytes) {
-        fmt.Printf("%v ", n)
-    }
+func call(buffer unsafe.Pointer, length C.int, responsePtr *unsafe.Pointer) (C.int) {
+	bytes := C.GoBytes(buffer, length)
+
+	response, _ := os.ReadFile(string(bytes))
+
+	*responsePtr = C.CBytes(response)
+
+	return C.int(len(response))
+}
+
+//export freePtr
+func freePtr(ptr unsafe.Pointer) {
+	C.free(ptr)
 }
