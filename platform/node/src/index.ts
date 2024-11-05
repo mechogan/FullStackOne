@@ -4,11 +4,24 @@ import open from "open";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { numberTo4Bytes } from "../../../src/serialization";
+import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
+
+
+
+const binDirectory = path.resolve(process.cwd(), "bin");
+const libBinary = os.platform() === "darwin"
+    ? "macos-x86_64"
+    : os.platform() === "win32"
+        ? "win-x86_64.dll"
+        : null;
+
+if(!libBinary) {
+    throw "unknown platform";
+}
+
+const libPath = path.resolve(binDirectory, libBinary);
 
 const library = "fullstacked";
-const libPath = path.resolve(process.cwd(), "bin", "win-x86_64.dll");
-console.log(fs.existsSync(libPath))
 ffi.open({
     library: library,
     path: libPath
@@ -43,9 +56,18 @@ await ffi.load({
     freeResultMemory: true
 });
 
-
+const platform = new TextEncoder().encode("node");
 
 const requestHandler = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+    if(req.url === "/platform") {
+        res.writeHead(200, {
+            "content-type": "text/plain",
+            "content-length": platform.length
+        });
+        res.end(platform);
+        return;
+    }
+
     const uint8array = new TextEncoder().encode(req.url);
     const request = new Uint8Array([
         1,
@@ -115,9 +137,14 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
     })
 
     const response = new Uint8Array(data.buffer);
+    const [mimeType, payload] = deserializeArgs(response);
 
-    console.log(new TextDecoder().decode(response))
-
+    res.writeHead(200, {
+        "content-type": mimeType,
+        "content-length": payload?.length,
+        "cache-control": "no-cache"
+    });
+    res.end(payload);
 }
 
 const port = 9000;

@@ -9,7 +9,7 @@ macos-x86_64:
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
-	go build -buildmode=c-shared -o $(OUT)/macos-x86_64 ..
+	go build -buildmode=c-shared -o $(OUT)/macos-x86_64 -v ..
 
 ###### iOS/iPadOS #######
 

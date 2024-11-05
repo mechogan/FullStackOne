@@ -8,7 +8,7 @@ fs.cpSync(path.resolve("..", "..", "editor", "build"), editorOut, {
     recursive: true
 });
 
-fs.cpSync(path.resolve("..", "..", "core", "bin", "win-x86_64.dll"), "bin/win-x86_64.dll")
+fs.cpSync(path.resolve("..", "..", "core", "bin"), "bin", { recursive: true, force: true })
 
 esbuild.buildSync({
     entryPoints: ["src/index.ts"],
