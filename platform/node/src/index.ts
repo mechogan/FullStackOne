@@ -2,10 +2,8 @@ import ffi from "ffi-rs"
 import http from "http";
 import open from "open";
 import path from "path";
-import fs from "fs";
 import os from "os";
 import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
-
 
 
 const binDirectory = path.resolve(process.cwd(), "bin");
@@ -68,14 +66,22 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
         return;
     }
 
+    else if(req.url === "/call") {
+        
+    }
+
     const uint8array = new TextEncoder().encode(req.url);
     const request = new Uint8Array([
-        1,
-        1,
-        ...numberTo4Bytes(0),
-        2, // STRING
-        ...numberTo4Bytes(uint8array.length),
-        ...uint8array
+        1, // isEditor
+
+        ...numberTo4Bytes(0), // no project id
+
+        1, // Static File Method
+        
+        // args
+        2, // arg type: STRING
+        ...numberTo4Bytes(uint8array.length), // arg length
+        ...uint8array // arg data
     ])
 
     const responsePtr = ffi.createPointer({

@@ -5,8 +5,7 @@ const (
 	BOOLEAN   = 1
 	STRING    = 2
 	NUMBER    = 3
-	JSON      = 4
-	BUFFER    = 5
+	BUFFER    = 4
 )
 
 func DeserializeBytesToNumber(bytes []byte) int {
@@ -55,12 +54,11 @@ func DeserializeNumber(bytes []byte) int {
 	return int(n)
 }
 
-func DeserializeArgs(data []byte) (string, []any) {
+func DeserializeArgs(data []byte) (int, []any) {
 	cursor := 0
-	projectIdLength := DeserializeBytesToNumber(data[cursor : cursor+4])
-	cursor += 4
-	projectId := string(data[cursor : cursor+projectIdLength])
-	cursor += projectIdLength
+
+	method := int(data[cursor])
+	cursor++;
 
 	var args []any
 
@@ -81,14 +79,11 @@ func DeserializeArgs(data []byte) (string, []any) {
 			args = append(args, string(argData))
 		case NUMBER:
 			args = append(args, DeserializeNumber(argData))
-		case JSON:
-			// TODO
-			args = append(args, nil)
 		case BUFFER:
 			args = append(args, argData)
 		}
 
 	}
 
-	return projectId, args
+	return method, args
 }

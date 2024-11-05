@@ -6,8 +6,7 @@ enum DataType {
     BOOLEAN = 1,
     STRING = 2,
     NUMBER = 3,
-    JSON = 4,
-    UINT8ARRAY = 5
+    UINT8ARRAY = 4
 }
 
 function serializeNumber(n: number) {
@@ -83,9 +82,6 @@ export function serializeArgs(args: any[]) {
         } else if (typeof arg === "number") {
             type = DataType.NUMBER;
             data = serializeNumber(arg);
-        } else if (typeof arg === "object") {
-            type = DataType.JSON;
-            data = te.encode(JSON.stringify(arg));
         } else {
             console.error("Using unknown type with IPC call");
             return null;
@@ -137,9 +133,6 @@ export function deserializeArgs(data: Uint8Array) {
                 break;
             case DataType.NUMBER:
                 args.push(deserializeNumber(arg));
-                break;
-            case DataType.JSON:
-                args.push(JSON.parse(td.decode(arg)));
                 break;
             case DataType.UINT8ARRAY:
                 args.push(arg);

@@ -9,114 +9,115 @@ import { CloneGit } from "./views/add-project/clone-git";
 import { Project as ProjectType } from "./api/config/types";
 import { esbuildInstall } from "./views/esbuild";
 
-// fix windows scrollbars
-if (navigator.userAgent.includes("Windows")) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "/scrollbars.css";
-    document.head.append(link);
-}
 
-globalThis.onPush["launchURL"] = async (deeplink: string) => {
-    const repo = api.deeplink.getRepo(deeplink);
-    if (!repo) return;
+// // fix windows scrollbars
+// if (navigator.userAgent.includes("Windows")) {
+//     const link = document.createElement("link");
+//     link.rel = "stylesheet";
+//     link.href = "/scrollbars.css";
+//     document.head.append(link);
+// }
 
-    const launchProject = async (project: ProjectType) => {
-        if (repo.branch) {
-            await api.git.checkout(project, repo.branch);
-        }
-        stackNavigation.navigate(
-            Project({
-                project,
-                run: true,
-                didUpdateProject: projects.reloadProjectsList
-            }),
-            BG_COLOR
-        );
-    };
+// globalThis.onPush["launchURL"] = async (deeplink: string) => {
+//     const repo = api.deeplink.getRepo(deeplink);
+//     if (!repo) return;
 
-    const project = await api.deeplink.findExistingProjectWithRepoUrl(repo.url);
-    if (project) {
-        return launchProject(project);
-    }
+//     const launchProject = async (project: ProjectType) => {
+//         if (repo.branch) {
+//             await api.git.checkout(project, repo.branch);
+//         }
+//         stackNavigation.navigate(
+//             Project({
+//                 project,
+//                 run: true,
+//                 didUpdateProject: projects.reloadProjectsList
+//             }),
+//             BG_COLOR
+//         );
+//     };
 
-    stackNavigation.navigate(
-        CloneGit({
-            didCloneProject: (project) => {
-                projects.reloadProjectsList();
-                stackNavigation.back();
-                launchProject(project);
-            },
-            repoUrl: repo.url
-        }),
-        BG_COLOR
-    );
-};
+//     const project = await api.deeplink.findExistingProjectWithRepoUrl(repo.url);
+//     if (project) {
+//         return launchProject(project);
+//     }
 
-// check for new install
-const installDemo = await api.config.init();
+//     stackNavigation.navigate(
+//         CloneGit({
+//             didCloneProject: (project) => {
+//                 projects.reloadProjectsList();
+//                 stackNavigation.back();
+//                 launchProject(project);
+//             },
+//             repoUrl: repo.url
+//         }),
+//         BG_COLOR
+//     );
+// };
 
-document.querySelector("#splash").remove();
-const projects = Projects();
-stackNavigation.navigate(projects.container, BG_COLOR);
+// // check for new install
+// const installDemo = await api.config.init();
 
-const esbuildIsInstalled = await rpc().esbuild.check();
-if (!esbuildIsInstalled) {
-    await esbuildInstall();
-}
+// document.querySelector("#splash").remove();
+// const projects = Projects();
+// stackNavigation.navigate(projects.container, BG_COLOR);
 
-if (installDemo) {
-    const name = "Demo.zip";
-    const data = (await rpc().fs.readFile(name)) as Uint8Array;
-    stackNavigation.navigate(
-        ImportZip({
-            didImportProject: () => {
-                projects.reloadProjectsList();
-                stackNavigation.back();
+// const esbuildIsInstalled = await rpc().esbuild.check();
+// if (!esbuildIsInstalled) {
+//     await esbuildInstall();
+// }
 
-                // webcontainer test
-                testDemo();
-            },
-            zip: {
-                data,
-                name
-            }
-        }),
-        BG_COLOR
-    );
-}
+// if (installDemo) {
+//     const name = "Demo.zip";
+//     const data = (await rpc().fs.readFile(name)) as Uint8Array;
+//     stackNavigation.navigate(
+//         ImportZip({
+//             didImportProject: () => {
+//                 projects.reloadProjectsList();
+//                 stackNavigation.back();
 
-// init connectivity
-await api.connectivity.init();
+//                 // webcontainer test
+//                 testDemo();
+//             },
+//             zip: {
+//                 data,
+//                 name
+//             }
+//         }),
+//         BG_COLOR
+//     );
+// }
 
-// for webcontainer test purposes
-async function testDemo() {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.has("demo")) {
-        const demoProject = (await api.projects.list()).find(
-            ({ title }) => title === "Demo"
-        );
-        if (demoProject) {
-            stackNavigation.navigate(
-                Project({
-                    project: demoProject,
-                    didUpdateProject: null,
-                    run: true
-                }),
-                BG_COLOR
-            );
-        }
-    }
-}
+// // init connectivity
+// await api.connectivity.init();
 
-const windows = new Map<string, Window>();
-onPush["open"] = (subdomain) => {
-    let win = windows.get(subdomain);
-    if (!win || win.closed) {
-        const url = new URL(window.location.href);
-        url.host = subdomain + "." + url.host;
-        win = window.open(url.toString(), "_blank");
-        windows.set(subdomain, win);
-    }
-    win.focus();
-};
+// // for webcontainer test purposes
+// async function testDemo() {
+//     const searchParams = new URLSearchParams(window.location.search);
+//     if (searchParams.has("demo")) {
+//         const demoProject = (await api.projects.list()).find(
+//             ({ title }) => title === "Demo"
+//         );
+//         if (demoProject) {
+//             stackNavigation.navigate(
+//                 Project({
+//                     project: demoProject,
+//                     didUpdateProject: null,
+//                     run: true
+//                 }),
+//                 BG_COLOR
+//             );
+//         }
+//     }
+// }
+
+// const windows = new Map<string, Window>();
+// onPush["open"] = (subdomain) => {
+//     let win = windows.get(subdomain);
+//     if (!win || win.closed) {
+//         const url = new URL(window.location.href);
+//         url.host = subdomain + "." + url.host;
+//         win = window.open(url.toString(), "_blank");
+//         windows.set(subdomain, win);
+//     }
+//     win.focus();
+// };
