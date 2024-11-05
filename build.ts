@@ -51,7 +51,7 @@ const toBuild = [
 const baseJS = await fs.promises.readFile(baseFile, { encoding: "utf-8" });
 let buildErrors = [];
 for (const [input, output] of toBuild) {
-    const mergedContent = `${baseJS}\nimport("${path.resolve(input).split("\\").join("/")}");`;
+    const mergedContent = `import("${path.resolve(input).split("\\").join("/")}");`;
     const tmpFile = `.cache/tmp-${Date.now()}.js`;
     await fs.promises.writeFile(tmpFile, mergedContent);
     const errors = build(

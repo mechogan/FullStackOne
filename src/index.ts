@@ -4,8 +4,11 @@ import { NodeBridge } from "./node-bridge";
 
 const platform = await (await fetch("/platform")).text() as Platform;
 
+console.log(platform)
+
 switch (platform) {
     case Platform.NODE:
+        console.log("ici")
         ipc.bridge = NodeBridge
         break;
     case Platform.IOS:
@@ -17,3 +20,5 @@ switch (platform) {
 }
 
 globalThis.ipc = ipc.methods;
+
+export default ipc;

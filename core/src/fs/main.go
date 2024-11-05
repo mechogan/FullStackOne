@@ -23,8 +23,8 @@ func WriteFile(path string, data []byte) []byte {
 	err := os.WriteFile(path, data, 0644)
 
 	if(err != nil) {
-		return serialize.SerializeBuffer([]byte{0})
+		return serialize.SerializeBoolean(false)
 	}
 
-	return serialize.SerializeBuffer([]byte{1})
+	return serialize.SerializeBoolean(true)
 }

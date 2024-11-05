@@ -7,7 +7,7 @@ import (
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-func Version() (string) {
+func Version() string {
 	_ = api.Transform("const x = 0", api.TransformOptions{})
     bi, _ := debug.ReadBuildInfo()
 

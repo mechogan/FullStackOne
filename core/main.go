@@ -73,8 +73,8 @@ const (
 
 	// EDITOR ONLY
 
-	DIR_CONFIG = 12
-	DIR_NODE_MODULES = 13
+	CONFIG_GET = 12
+	CONFIG_SAVE = 13
 
 	ESBUILD_VERSION = 14
 	ESBUILD_BUILD = 15
@@ -126,10 +126,10 @@ func fsSwitch(method int, baseDir string, args []any) ([]byte) {
 func editorSwitch(method int, args []any) ([]byte) {
 
 	switch method {
-	case DIR_CONFIG:
-		return serialize.SerializeString(Directories.config)
-	case DIR_NODE_MODULES:
-		return serialize.SerializeString(Directories.nodeModules)
+	case CONFIG_GET:
+		return ConfigGet(args[0].(string))
+	case CONFIG_SAVE:
+		return ConfigSave(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
 	}

@@ -8,7 +8,10 @@ import { Project } from "./views/project";
 import { CloneGit } from "./views/add-project/clone-git";
 import { Project as ProjectType } from "./api/config/types";
 import { esbuildInstall } from "./views/esbuild";
+import { ipcEditor } from "./ipc";
 
+const esbuildVersion = await ipcEditor.esbuild.version();
+console.log(esbuildVersion);
 
 // // fix windows scrollbars
 // if (navigator.userAgent.includes("Windows")) {

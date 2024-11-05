@@ -35,7 +35,7 @@ function readFile(path: string, options?: { encoding: "utf8" }) : Promise<string
 }
 
 // 3
-function writeFile(path: string, data: string | Uint8Array) : Promise<void> {
+function writeFile(path: string, data: string | Uint8Array) : Promise<boolean> {
     if(typeof data === "string") {
         data = te.encode(data);
     }
@@ -45,5 +45,5 @@ function writeFile(path: string, data: string | Uint8Array) : Promise<void> {
         ...serializeArgs([path, data])
     ]);
 
-    return ipc.bridge(payload)
+    return ipc.bridge(payload, ([success]) => success)
 }

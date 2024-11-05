@@ -9,7 +9,7 @@ import (
 	serialize "fullstacked/editor/src/serialize"
 )
 
-func Serve(baseDir string, filePath string) ([]byte) {
+func Serve(baseDir string, filePath string) []byte {
 	if(strings.HasPrefix(filePath, "/")) {
 		filePath = filePath[1:]
 	}

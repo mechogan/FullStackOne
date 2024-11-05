@@ -24,6 +24,17 @@ func SerializeNumberToBytes(num int) []byte {
 	return bytes
 }
 
+func SerializeBoolean(value bool) []byte {
+	bytes := []byte{BOOLEAN}
+	bytes = append(bytes, SerializeNumberToBytes(1)...)
+	if(value) {
+		bytes = append(bytes, 1)
+	} else {
+		bytes = append(bytes, 0)
+	}
+	return bytes
+}
+
 func SerializeString(str string) []byte {
 	bytes := []byte{STRING}
 	strData := []byte(str)
