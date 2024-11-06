@@ -1,7 +1,6 @@
 import ffi from "ffi-rs";
 import path from "path";
 import os from "os";
-import { deserializeArgs } from "../../../src/serialization";
 
 const binDirectory = path.resolve(process.cwd(), "bin");
 const libBinary = os.platform() === "darwin"

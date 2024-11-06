@@ -1,7 +1,7 @@
-import type {ipc} from "./ipc";
-import { deserializeArgs } from "./serialization";
+import type {ipc} from "../ipc";
+import { deserializeArgs } from "../serialization";
 
-export const NodeBridge: typeof ipc.bridge = async (payload: Uint8Array, transformer?: (responseArgs: any[]) => any) => {
+export const BridgeNode: typeof ipc.bridge = async (payload: Uint8Array, transformer?: (responseArgs: any[]) => any) => {
     const response = await fetch("/call", {
         method: "POST",
         body: payload

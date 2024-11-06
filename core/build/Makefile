@@ -13,9 +13,19 @@ macos-x86_64:
 
 ###### iOS/iPadOS #######
 
+ios-arm64:
+	CGO_ENABLED=1 \
+	GOOS=ios \
+	GOARCH=arm64 \
+	SDK=iphoneos \
+	CC=$(CURDIR)/apple-clang.sh \
+	CGO_CFLAGS="-fembed-bitcode" \
+	go build -buildmode=c-archive -tags ios -o $(OUT)/ios-arm64.a -v ..
+
 ###### Android #######
 
 ###### Windows #######
+
 win-x86_64:
 	windows.bat
 

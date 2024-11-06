@@ -46,7 +46,7 @@ export function numberTo4Bytes(n: number) {
     return uint8Array;
 }
 
-function bytesToNumber(bytes: Uint8Array) {
+export function bytesToNumber(bytes: Uint8Array) {
     return (
         ((bytes[0] << 24) |
             (bytes[1] << 16) |
