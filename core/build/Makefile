@@ -24,9 +24,21 @@ ios-arm64:
 
 ###### Android #######
 
+android-arm64:
+	CGO_ENABLED=1 \
+	GOOS=android \
+	GOARCH=arm64 \
+	CGO_LDFLAGS="-Wl,-soname,android-arm64.so" \
+	CC=~/Library/Android/sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android34-clang \
+	go build -buildmode=c-shared -o $(OUT)/android-arm64.so -v ..
+
 ###### Windows #######
 
 win-x86_64:
-	windows.bat
+	CGO_ENABLED=1 \
+	GOOS=windows \
+	GOARCH=amd64 \
+	CC=x86_64-w64-mingw32-gcc \
+	go build -buildmode=c-shared -o $(OUT)/win-x86_64.dll -v ..
 
 ###### Linux #######

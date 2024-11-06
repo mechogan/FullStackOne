@@ -16,6 +16,7 @@ switch (platform) {
     case Platform.ELECTRON:
     case Platform.DOCKER:
     case Platform.WEBCONTAINER:
+    case Platform.WINDOWS:
         console.log("Bridge not yet implemented");
 }
 
