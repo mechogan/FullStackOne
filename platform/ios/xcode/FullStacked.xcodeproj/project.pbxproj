@@ -19,8 +19,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9C5A1ED92CDB99BB009B4A20 /* ios-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "ios-arm64.h"; path = "/Users/cplepage/editor/core/bin/ios-arm64.h"; sourceTree = "<absolute>"; };
-		9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "ios-arm64.a"; path = "/Users/cplepage/editor/core/bin/ios-arm64.a"; sourceTree = "<absolute>"; };
+		9C5A1ED92CDB99BB009B4A20 /* ios-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "ios-arm64.h"; path = "../../../core/bin/ios-arm64.h"; sourceTree = SOURCE_ROOT; };
+		9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "ios-arm64.a"; path = "../../../core/bin/ios-arm64.a"; sourceTree = SOURCE_ROOT; };
 		9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instance.swift; sourceTree = "<group>"; };
 		9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		9C7081332BE6CBA100EF0A6B /* FullStacked.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FullStacked.entitlements; sourceTree = "<group>"; };
