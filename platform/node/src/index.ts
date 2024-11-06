@@ -1,4 +1,3 @@
-
 import http from "http";
 import open from "open";
 import path from "path";
@@ -12,11 +11,11 @@ import { call, setDirectories } from "./call";
 const newConfigDir = path.resolve(os.homedir(), ".config", "fullstacked");
 const oldConfigDir = path.resolve(os.homedir(), "FullStacked", ".config");
 const oldConfigDirExists = fs.existsSync(oldConfigDir);
-if(oldConfigDirExists) {
+if (oldConfigDirExists) {
     fs.cpSync(oldConfigDir, newConfigDir, {
-        recursive: true, 
+        recursive: true,
         filter: (source) => !source.includes("node_modules")
-    })
+    });
 }
 
 // end migration
@@ -26,7 +25,7 @@ await setDirectories({
     root,
     config: path.resolve(os.homedir(), ".config", "fullstacked"),
     nodeModules: path.resolve(root, "node_modules"),
-    editor: path.resolve(process.cwd(), "editor"),
+    editor: path.resolve(process.cwd(), "editor")
 });
 
 const platform = new TextEncoder().encode("node");
@@ -53,7 +52,10 @@ const readBody = (req: http.IncomingMessage) =>
 
 const te = new TextEncoder();
 
-const requestHandler = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+const requestHandler = async (
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+) => {
     const pathname = decodeURI(req.url);
 
     if (pathname === "/platform") {
@@ -64,19 +66,20 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
         return res.end(platform);
     } else if (pathname === "/call") {
         const payload = await readBody(req);
-        const data = await call(new Uint8Array([
-            1, // isEditor
-            ...numberTo4Bytes(0), // no project id
-            ...payload
-        ]));
+        const data = await call(
+            new Uint8Array([
+                1, // isEditor
+                ...numberTo4Bytes(0), // no project id
+                ...payload
+            ])
+        );
         res.writeHead(200, {
             "content-type": "application/octet-stream",
             "content-length": data.length,
             "cache-control": "no-cache"
         });
-        return res.end(data)
+        return res.end(data);
     }
-
 
     // static file serving
 
@@ -93,7 +96,7 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
         2, // arg type: STRING
         ...numberTo4Bytes(uint8array.length), // arg length
         ...uint8array // arg data
-    ])
+    ]);
 
     const [mimeType, body] = deserializeArgs(await call(payload));
 
@@ -114,16 +117,14 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
         "cache-control": "no-cache"
     });
     res.end(body);
-}
+};
 
 const port = 9000;
 
-http
-    .createServer(requestHandler)
-    .listen(port);
+http.createServer(requestHandler).listen(port);
 
 open(`http://localhost:${port}`);
 
-['SIGINT', 'SIGTERM', 'SIGQUIT']
-    .forEach(signal =>
-        process.on(signal, () => process.exit()));
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((signal) =>
+    process.on(signal, () => process.exit())
+);

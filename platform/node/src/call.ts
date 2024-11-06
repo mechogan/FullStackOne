@@ -3,13 +3,14 @@ import path from "path";
 import os from "os";
 
 const binDirectory = path.resolve(process.cwd(), "bin");
-const libBinary = os.platform() === "darwin"
-    ? "macos-x86_64"
-    : os.platform() === "win32"
-        ? "win-x86_64.dll"
-        : null;
+const libBinary =
+    os.platform() === "darwin"
+        ? "macos-x86_64"
+        : os.platform() === "win32"
+          ? "win-x86_64.dll"
+          : null;
 
-if(!libBinary) {
+if (!libBinary) {
     throw "unknown platform";
 }
 
@@ -27,11 +28,11 @@ ffi.open({
 });
 
 export function setDirectories(directories: {
-    root: string,
-    config: string,
-    nodeModules: string,
-    editor: string
-}){
+    root: string;
+    config: string;
+    nodeModules: string;
+    editor: string;
+}) {
     return ffi.load({
         errno: false,
         library,
@@ -40,7 +41,7 @@ export function setDirectories(directories: {
             ffi.DataType.String,
             ffi.DataType.String,
             ffi.DataType.String,
-            ffi.DataType.String,
+            ffi.DataType.String
         ],
         retType: ffi.DataType.Void,
         paramsValue: [
@@ -54,15 +55,16 @@ export function setDirectories(directories: {
     });
 }
 
-
-export async function call(payload: Uint8Array){
+export async function call(payload: Uint8Array) {
     const responsePtr = ffi.createPointer({
-        paramsType: [ffi.arrayConstructor({
-            type: ffi.DataType.U8Array,
-            length: 0
-        })],
+        paramsType: [
+            ffi.arrayConstructor({
+                type: ffi.DataType.U8Array,
+                length: 0
+            })
+        ],
         paramsValue: [new Uint8Array()]
-    })
+    });
 
     const responseLength = await ffi.load({
         errno: false,
@@ -74,11 +76,7 @@ export async function call(payload: Uint8Array){
             ffi.DataType.External
         ],
         retType: ffi.DataType.I32,
-        paramsValue: [
-            payload,
-            payload.byteLength,
-            responsePtr.at(0)
-        ],
+        paramsValue: [payload, payload.byteLength, responsePtr.at(0)],
         runInNewThread: true,
         freeResultMemory: true
     });
@@ -86,24 +84,22 @@ export async function call(payload: Uint8Array){
     const uint8arrayConstructor = ffi.arrayConstructor({
         type: ffi.DataType.U8Array,
         length: responseLength
-    })
+    });
 
-    const data = ffi.restorePointer({
-        retType: [uint8arrayConstructor],
-        paramsValue: responsePtr
-    }).at(0) as unknown as Buffer;
+    const data = ffi
+        .restorePointer({
+            retType: [uint8arrayConstructor],
+            paramsValue: responsePtr
+        })
+        .at(0) as unknown as Buffer;
 
     ffi.load({
         errno: false,
         library,
         funcName: "freePtr",
-        paramsType: [
-            ffi.DataType.External
-        ],
+        paramsType: [ffi.DataType.External],
         retType: ffi.DataType.Void,
-        paramsValue: [
-            ffi.unwrapPointer(responsePtr).at(0)
-        ],
+        paramsValue: [ffi.unwrapPointer(responsePtr).at(0)],
         runInNewThread: true,
         freeResultMemory: true
     });
@@ -112,7 +108,7 @@ export async function call(payload: Uint8Array){
         paramsType: [uint8arrayConstructor],
         paramsValue: responsePtr,
         pointerType: ffi.PointerType.RsPointer
-    })
+    });
 
     return new Uint8Array(data.buffer);
 }

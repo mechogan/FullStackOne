@@ -7,8 +7,4 @@ export const ipcEditor = {
     esbuild: {
         version: () => ipc.bridge(new Uint8Array([14]), ([str]) => str)
     }
-}
-
-
-
-
+};

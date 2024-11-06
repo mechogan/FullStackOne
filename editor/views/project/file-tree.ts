@@ -134,9 +134,9 @@ type TreeRecursiveOpts = {
 async function TreeRecursive(opts: TreeRecursiveOpts) {
     const container = document.createElement("ul");
 
-    const contents = (await ipcEditor.fs.readdir(opts.directory, {
+    const contents = await ipcEditor.fs.readdir(opts.directory, {
         withFileTypes: true
-    }));
+    });
 
     const items = contents
         .filter(

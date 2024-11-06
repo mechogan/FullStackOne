@@ -1,7 +1,10 @@
-import { serializeArgs } from "./serialization"
+import { serializeArgs } from "./serialization";
 
 export const ipc = {
-    bridge: null as (payload: Uint8Array, transformer?: (responseArgs: any[]) => any) => any,
+    bridge: null as (
+        payload: Uint8Array,
+        transformer?: (responseArgs: any[]) => any
+    ) => any,
     methods: {
         fs: {
             readFile,
@@ -16,69 +19,77 @@ export const ipc = {
         // fetch: () => any
         // broadcast: () => null
     }
-}
+};
 
 const te = new TextEncoder();
 
 // 2
-function readFile(path: string) : Promise<Uint8Array> 
-function readFile(path: string, options: { encoding: "utf8" }) : Promise<string>
-function readFile(path: string, options?: { encoding: "utf8" }) : Promise<string | Uint8Array> {
+function readFile(path: string): Promise<Uint8Array>;
+function readFile(path: string, options: { encoding: "utf8" }): Promise<string>;
+function readFile(
+    path: string,
+    options?: { encoding: "utf8" }
+): Promise<string | Uint8Array> {
     const payload = new Uint8Array([
         2,
         ...serializeArgs([path, options?.encoding === "utf8"])
     ]);
 
-    const transformer = ([stringOrBuffer]) => stringOrBuffer
+    const transformer = ([stringOrBuffer]) => stringOrBuffer;
 
     return ipc.bridge(payload, transformer);
 }
 
 // 3
-function writeFile(path: string, data: string | Uint8Array) : Promise<boolean> {
-    if(typeof data === "string") {
+function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
+    if (typeof data === "string") {
         data = te.encode(data);
     }
 
-    const payload = new Uint8Array([
-        3,
-        ...serializeArgs([path, data])
-    ]);
+    const payload = new Uint8Array([3, ...serializeArgs([path, data])]);
 
-    return ipc.bridge(payload, ([success]) => success)
+    return ipc.bridge(payload, ([success]) => success);
 }
 
 // 4
 
-
 type Dirent = {
     name: string;
-    isDirectory: boolean
-}
+    isDirectory: boolean;
+};
 
 // 5
-function readdir(path: string, options?: { recursive?: boolean, withFileTypes?: false }) : Promise<string[]>
-function readdir(path: string, options?: { recursive?: boolean, withFileTypes: true }) : Promise<Dirent[]>
-function readdir(path: string, options?: { recursive?: boolean, withFileTypes?: boolean }) : Promise<string[] | Dirent[]> {
+function readdir(
+    path: string,
+    options?: { recursive?: boolean; withFileTypes?: false }
+): Promise<string[]>;
+function readdir(
+    path: string,
+    options?: { recursive?: boolean; withFileTypes: true }
+): Promise<Dirent[]>;
+function readdir(
+    path: string,
+    options?: { recursive?: boolean; withFileTypes?: boolean }
+): Promise<string[] | Dirent[]> {
     const payload = new Uint8Array([
         5,
         ...serializeArgs([path, !!options?.recursive, !!options?.withFileTypes])
     ]);
 
-    const transformer = (items: (string[] | (string | boolean)[])) => {
-        if(options?.withFileTypes) {
+    const transformer = (items: string[] | (string | boolean)[]) => {
+        if (options?.withFileTypes) {
             const dirents: Dirent[] = [];
             for (let i = 0; i < items.length; i = i + 2) {
                 dirents.push({
                     name: items[i] as string,
                     isDirectory: items[i + 1] as boolean
-                })
+                });
             }
             return dirents;
         }
 
         return items;
-    }
+    };
 
-    return ipc.bridge(payload, transformer)
+    return ipc.bridge(payload, transformer);
 }

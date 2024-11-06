@@ -24,16 +24,17 @@ import { ProjectSettings } from "./project-settings";
 import { Settings } from "./settings";
 import Fuse, { IFuseOptions } from "fuse.js";
 
-
-let projectListPromise: ReturnType<typeof ipcEditor.config.get<CONFIG_TYPE.PROJECTS>>;
+let projectListPromise: ReturnType<
+    typeof ipcEditor.config.get<CONFIG_TYPE.PROJECTS>
+>;
 const getProjectsList = () => {
-    if(!projectListPromise) {
+    if (!projectListPromise) {
         projectListPromise = ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
-        setTimeout(() => projectListPromise = null, 300);
+        setTimeout(() => (projectListPromise = null), 300);
     }
 
     return projectListPromise;
-}
+};
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();

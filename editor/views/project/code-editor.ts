@@ -376,7 +376,9 @@ async function loadJsTsExtensions(filePath: string) {
 }
 
 async function loadTypeScript(filePath: string) {
-    const { tsErrorLinter, tsAutocomplete, tsTypeDefinition } = await import("./ts-extensions");
+    const { tsErrorLinter, tsAutocomplete, tsTypeDefinition } = await import(
+        "./ts-extensions"
+    );
     await WorkerTS.start(workingDirectory);
 
     return [
@@ -400,7 +402,7 @@ async function createImageView(filePath: string) {
     const imageView = {
         path: filePath,
         destroy,
-        save: async () => { },
+        save: async () => {},
         load: async () => {
             destroy();
             loadFromFile(imageView.path);
@@ -419,8 +421,8 @@ async function createBinaryView(filePath: string) {
 
     const binaryView = {
         path: filePath,
-        destroy: () => { },
-        save: async () => { },
+        destroy: () => {},
+        save: async () => {},
         load: async () => {
             const stats = await rpc().fs.stat(filePath, { absolutePath: true });
             console.log(stats);

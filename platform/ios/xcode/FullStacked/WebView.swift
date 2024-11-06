@@ -102,8 +102,6 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
             pathname = "/"
         }
         
-        print(pathname)
-        
         if(pathname == "platform") {
             let data = platform.data(using: .utf8)!
             self.send(urlSchemeTask: urlSchemeTask,
@@ -133,7 +131,6 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
              statusCode: 200,
              mimeType: args[0] as! String,
              data: args[1] as! Data)
-        
     }
     
     func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) { }
