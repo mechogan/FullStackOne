@@ -11,16 +11,12 @@ import {
 } from "@codemirror/lint";
 import rpc from "../../rpc";
 import { WorkerTS } from "../../typescript";
-import {
-    tsAutocomplete,
-    tsErrorLinter,
-    tsTypeDefinition
-} from "./ts-extensions";
 import { autocompletion } from "@codemirror/autocomplete";
 import prettier from "prettier";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
 import prettyBytes from "pretty-bytes";
+import { ipcEditor } from "../../ipc";
 
 window.addEventListener("keydown", async (e) => {
     if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
@@ -262,10 +258,9 @@ async function createViewEditor(filePath: string) {
     };
 
     const loadContentFromFile = (path: string) => {
-        return rpc().fs.readFile(path, {
-            absolutePath: true,
+        return ipcEditor.fs.readFile(path, {
             encoding: "utf8"
-        }) as Promise<string>;
+        });
     };
 
     const editorView = new EditorView({
@@ -381,6 +376,7 @@ async function loadJsTsExtensions(filePath: string) {
 }
 
 async function loadTypeScript(filePath: string) {
+    const { tsErrorLinter, tsAutocomplete, tsTypeDefinition } = await import("./ts-extensions");
     await WorkerTS.start(workingDirectory);
 
     return [
@@ -394,9 +390,7 @@ async function createImageView(filePath: string) {
     const img = document.createElement("img");
 
     const loadFromFile = async (path: string) => {
-        const imageData = await rpc().fs.readFile(path, {
-            absolutePath: true
-        });
+        const imageData = await ipcEditor.fs.readFile(path);
         const imageBlob = new Blob([imageData]);
         img.src = window.URL.createObjectURL(imageBlob);
     };
@@ -406,7 +400,7 @@ async function createImageView(filePath: string) {
     const imageView = {
         path: filePath,
         destroy,
-        save: async () => {},
+        save: async () => { },
         load: async () => {
             destroy();
             loadFromFile(imageView.path);
@@ -425,8 +419,8 @@ async function createBinaryView(filePath: string) {
 
     const binaryView = {
         path: filePath,
-        destroy: () => {},
-        save: async () => {},
+        destroy: () => { },
+        save: async () => { },
         load: async () => {
             const stats = await rpc().fs.stat(filePath, { absolutePath: true });
             console.log(stats);

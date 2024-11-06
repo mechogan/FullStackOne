@@ -2,7 +2,7 @@ import projects from "./projects";
 import config from "./config";
 import git from "./git";
 import packages from "./packages";
-import connectivity from "./connectivity";
+// import connectivity from "./connectivity";
 import deeplink from "./deeplink";
 
 export default {
@@ -10,6 +10,6 @@ export default {
     config,
     git,
     packages,
-    connectivity,
+    // connectivity,
     deeplink
 };

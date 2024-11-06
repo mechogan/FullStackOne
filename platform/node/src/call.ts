@@ -115,6 +115,5 @@ export async function call(payload: Uint8Array){
         pointerType: ffi.PointerType.RsPointer
     })
 
-    const response = new Uint8Array(data.buffer);
-    return deserializeArgs(response);
+    return new Uint8Array(data.buffer);
 }

@@ -1,5 +1,17 @@
 import { Peer, PeerTrusted, WebAddress } from "../../src/connectivity/types";
 
+export enum CONFIG_TYPE {
+    PROJECTS = "projects",
+    GIT = "git",
+    CONNECTIVITY = "connectivity"
+}
+
+export type CONFIG_DATA_TYPE = {
+    [CONFIG_TYPE.PROJECTS]: Project[];
+    [CONFIG_TYPE.GIT]: GitAuths;
+    [CONFIG_TYPE.CONNECTIVITY]: Connectivity;
+};
+
 export type Project = {
     title: string;
     id: string;

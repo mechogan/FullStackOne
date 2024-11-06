@@ -9,9 +9,7 @@ import { CloneGit } from "./views/add-project/clone-git";
 import { Project as ProjectType } from "./api/config/types";
 import { esbuildInstall } from "./views/esbuild";
 import { ipcEditor } from "./ipc";
-
-const esbuildVersion = await ipcEditor.esbuild.version();
-console.log(esbuildVersion);
+import { CONFIG_TYPE } from "./types";
 
 // // fix windows scrollbars
 // if (navigator.userAgent.includes("Windows")) {
@@ -60,9 +58,9 @@ console.log(esbuildVersion);
 // // check for new install
 // const installDemo = await api.config.init();
 
-// document.querySelector("#splash").remove();
-// const projects = Projects();
-// stackNavigation.navigate(projects.container, BG_COLOR);
+document.querySelector("#splash").remove();
+const projects = Projects();
+stackNavigation.navigate(projects.container, BG_COLOR);
 
 // const esbuildIsInstalled = await rpc().esbuild.check();
 // if (!esbuildIsInstalled) {

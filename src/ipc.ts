@@ -5,9 +5,9 @@ export const ipc = {
     methods: {
         fs: {
             readFile,
-            writeFile
+            writeFile,
             // unlink
-            // readdir
+            readdir
             // mkdir
             // rmdir
             // exists
@@ -46,4 +46,39 @@ function writeFile(path: string, data: string | Uint8Array) : Promise<boolean> {
     ]);
 
     return ipc.bridge(payload, ([success]) => success)
+}
+
+// 4
+
+
+type Dirent = {
+    name: string;
+    isDirectory: boolean
+}
+
+// 5
+function readdir(path: string, options?: { recursive?: boolean, withFileTypes?: false }) : Promise<string[]>
+function readdir(path: string, options?: { recursive?: boolean, withFileTypes: true }) : Promise<Dirent[]>
+function readdir(path: string, options?: { recursive?: boolean, withFileTypes?: boolean }) : Promise<string[] | Dirent[]> {
+    const payload = new Uint8Array([
+        5,
+        ...serializeArgs([path, !!options?.recursive, !!options?.withFileTypes])
+    ]);
+
+    const transformer = (items: (string[] | (string | boolean)[])) => {
+        if(options?.withFileTypes) {
+            const dirents: Dirent[] = [];
+            for (let i = 0; i < items.length; i = i + 2) {
+                dirents.push({
+                    name: items[i] as string,
+                    isDirectory: items[i + 1] as boolean
+                })
+            }
+            return dirents;
+        }
+
+        return items;
+    }
+
+    return ipc.bridge(payload, transformer)
 }

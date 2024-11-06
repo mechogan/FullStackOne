@@ -1,18 +1,8 @@
 import { ipc } from "../../src/ipc";
 import { serializeArgs } from "../../src/serialization";
-import { Connectivity, GitAuths, Project } from "../types";
+import { CONFIG_DATA_TYPE, CONFIG_TYPE, Connectivity, GitAuths, Project } from "../types";
 
-export enum CONFIG_TYPE {
-    PROJECTS = "projects",
-    GIT = "git",
-    CONNECTIVITY = "connectivity"
-}
 
-type DATA_TYPE = {
-    [CONFIG_TYPE.PROJECTS]: Project[];
-    [CONFIG_TYPE.GIT]: GitAuths;
-    [CONFIG_TYPE.CONNECTIVITY]: Connectivity;
-};
 
 
 export const config = {
@@ -20,7 +10,7 @@ export const config = {
     save
 }
 
-function get<T extends CONFIG_TYPE>(configType: T) : Promise<DATA_TYPE[T]> {
+function get<T extends CONFIG_TYPE>(configType: T) : Promise<CONFIG_DATA_TYPE[T]> {
     const payload = new Uint8Array([
         12,
         ...serializeArgs([configType])
@@ -31,7 +21,7 @@ function get<T extends CONFIG_TYPE>(configType: T) : Promise<DATA_TYPE[T]> {
     return ipc.bridge(payload, transformer);
 }
 
-function save<T extends CONFIG_TYPE>(configType: T, configData: DATA_TYPE[T]) : Promise<boolean> {
+function save<T extends CONFIG_TYPE>(configType: T, configData: CONFIG_DATA_TYPE[T]) : Promise<boolean> {
     const payload = new Uint8Array([
         13,
         ...serializeArgs([configType, JSON.stringify(configData)])

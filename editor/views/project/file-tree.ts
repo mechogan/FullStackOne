@@ -4,6 +4,7 @@ import { Button, ButtonGroup } from "../../components/primitives/button";
 import { Icon } from "../../components/primitives/icon";
 import { InputText } from "../../components/primitives/inputs";
 import { NEW_FILE_ID } from "../../constants";
+import { ipcEditor } from "../../ipc";
 import rpc from "../../rpc";
 import { WorkerTS } from "../../typescript";
 import { CodeEditor } from "./code-editor";
@@ -133,28 +134,18 @@ type TreeRecursiveOpts = {
 async function TreeRecursive(opts: TreeRecursiveOpts) {
     const container = document.createElement("ul");
 
-    const contents = (await rpc().fs.readdir(opts.directory, {
-        absolutePath: true,
+    const contents = (await ipcEditor.fs.readdir(opts.directory, {
         withFileTypes: true
-    })) as Dirent[];
+    }));
 
     const items = contents
         .filter(
             ({ name }) => !name.startsWith(".build") && !name.startsWith(".git")
         )
         .sort((a, b) => {
-            const isDirectoryA =
-                typeof a.isDirectory === "function"
-                    ? a.isDirectory()
-                    : a.isDirectory;
-            const isDirectoryB =
-                typeof b.isDirectory === "function"
-                    ? b.isDirectory()
-                    : b.isDirectory;
-
-            if (isDirectoryA && !isDirectoryB) {
+            if (a.isDirectory && !b.isDirectory) {
                 return -1;
-            } else if (!isDirectoryA && isDirectoryB) {
+            } else if (!a.isDirectory && b.isDirectory) {
                 return 1;
             }
 

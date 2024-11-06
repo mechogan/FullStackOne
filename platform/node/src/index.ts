@@ -3,16 +3,31 @@ import http from "http";
 import open from "open";
 import path from "path";
 import os from "os";
-import { numberTo4Bytes } from "../../../src/serialization";
+import fs from "fs";
+import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
 import { call, setDirectories } from "./call";
 
+// MIGRATION 2024-11-05 - 0.9.0 to 0.10.0
 
+const newConfigDir = path.resolve(os.homedir(), ".config", "fullstacked");
+const oldConfigDir = path.resolve(os.homedir(), "FullStacked", ".config");
+const oldConfigDirExists = fs.existsSync(oldConfigDir);
+if(oldConfigDirExists) {
+    fs.cpSync(oldConfigDir, newConfigDir, {
+        recursive: true, 
+        filter: (source) => !source.includes("node_modules")
+    })
+}
+
+// end migration
+
+const root = path.resolve(os.homedir(), "FullStacked");
 await setDirectories({
-    root: path.resolve(os.homedir(), "FullStacked"),
+    root,
     config: path.resolve(os.homedir(), ".config", "fullstacked"),
-    nodeModules: path.resolve(os.homedir(), ".config", "fullstacked", "node_modules"),
+    nodeModules: path.resolve(root, "node_modules"),
     editor: path.resolve(process.cwd(), "editor"),
-})
+});
 
 const platform = new TextEncoder().encode("node");
 
@@ -39,18 +54,21 @@ const readBody = (req: http.IncomingMessage) =>
 const te = new TextEncoder();
 
 const requestHandler = async (req: http.IncomingMessage, res: http.ServerResponse) => {
-    console.log(req.url);
+    const pathname = decodeURI(req.url);
 
-    if (req.url === "/platform") {
+    if (pathname === "/platform") {
         res.writeHead(200, {
             "content-type": "text/plain",
             "content-length": platform.length
         });
         return res.end(platform);
-    }
-    else if (req.url === "/call") {
+    } else if (pathname === "/call") {
         const payload = await readBody(req);
-        const data = await call(payload);
+        const data = await call(new Uint8Array([
+            1, // isEditor
+            ...numberTo4Bytes(0), // no project id
+            ...payload
+        ]));
         res.writeHead(200, {
             "content-type": "application/octet-stream",
             "content-length": data.length,
@@ -62,7 +80,7 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
 
     // static file serving
 
-    const uint8array = te.encode(req.url);
+    const uint8array = te.encode(pathname);
     const payload = new Uint8Array([
         1, // isEditor
 
@@ -77,7 +95,7 @@ const requestHandler = async (req: http.IncomingMessage, res: http.ServerRespons
         ...uint8array // arg data
     ])
 
-    const [mimeType, body] = await call(payload)
+    const [mimeType, body] = deserializeArgs(await call(payload));
 
     // not found
     if (!mimeType) {

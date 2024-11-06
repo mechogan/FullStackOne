@@ -118,6 +118,10 @@ func fsSwitch(method int, baseDir string, args []any) ([]byte) {
 		return fs.ReadFile(filePath, args[1].(bool))
 	case FS_WRITEFILE:
 		return fs.WriteFile(filePath, args[1].([]byte))
+	case FS_UNLINK:
+		return nil
+	case FS_READDIR:
+		return fs.ReadDir(filePath, args[1].(bool), args[2].(bool))
 	}
 
 	return nil

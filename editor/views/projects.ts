@@ -14,13 +14,26 @@ import {
     PROJECTS_VIEW_ID,
     SETTINGS_BUTTON_ID
 } from "../constants";
+import { ipcEditor } from "../ipc";
 import stackNavigation from "../stack-navigation";
+import { CONFIG_TYPE } from "../types";
 import { AddProject } from "./add-project";
 import { Peers } from "./peers";
 import { Project } from "./project";
 import { ProjectSettings } from "./project-settings";
 import { Settings } from "./settings";
 import Fuse, { IFuseOptions } from "fuse.js";
+
+
+let projectListPromise: ReturnType<typeof ipcEditor.config.get<CONFIG_TYPE.PROJECTS>>;
+const getProjectsList = () => {
+    if(!projectListPromise) {
+        projectListPromise = ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
+        setTimeout(() => projectListPromise = null, 300);
+    }
+
+    return projectListPromise;
+}
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();
@@ -93,11 +106,11 @@ function PeersWidget() {
 
     const peersConnectedCount = document.createElement("div");
     const renderPeersConnectedCount = () => {
-        const count = api.connectivity.peers.connections().size;
-        peersConnectedCount.innerText = count !== 0 ? count.toString() : "";
+        // const count = api.connectivity.peers.connections().size;
+        // peersConnectedCount.innerText = count !== 0 ? count.toString() : "";
     };
     renderPeersConnectedCount();
-    api.connectivity.peers.onPeersEvent.add(renderPeersConnectedCount);
+    // api.connectivity.peers.onPeersEvent.add(renderPeersConnectedCount);
 
     const peersButton = Button({
         style: "icon-large",
@@ -139,7 +152,7 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
     };
 
     const reloadFuse = () => {
-        api.projects.list().then((projects) => {
+        getProjectsList().then((projects) => {
             fuseSearch = new Fuse([...projects], fuseOptions);
         });
     };
@@ -192,7 +205,7 @@ function ProjectsList(opts: ProjectsListOpts) {
         project: ProjectType;
         tile: ReturnType<typeof ProjectTile>;
     }[] = [];
-    api.projects.list().then((projects) => {
+    getProjectsList().then((projects) => {
         projects
             .sort((a, b) => b.createdDate - a.createdDate)
             .forEach((project) => {

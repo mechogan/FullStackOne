@@ -5,7 +5,7 @@ export const ipcEditor = {
     ...ipc.methods,
     config,
     esbuild: {
-        version: () => ipc.bridge(new Uint8Array([12]), ([str]) => str)
+        version: () => ipc.bridge(new Uint8Array([14]), ([str]) => str)
     }
 }
 
