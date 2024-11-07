@@ -4,26 +4,24 @@ package main
 import "C"
 
 import (
-	"fmt"
 	"path"
 	"unsafe"
 
+	setup "fullstacked/editor/src/setup"
 	esbuild "fullstacked/editor/src/esbuild"
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	staticFiles "fullstacked/editor/src/staticFiles"
 )
 
-func main() {
-	fmt.Println(esbuild.Version())
-}
+func main() { }
 
 //export directories
 func directories(root *C.char,
 	config *C.char,
 	nodeModules *C.char,
 	editor *C.char) {
-	SetupDirectories(
+	setup.SetupDirectories(
 		C.GoString(root),
 		C.GoString(config),
 		C.GoString(nodeModules),
@@ -86,17 +84,17 @@ func callMethod(
 	method int, 
 	args []any,
 ) ([]byte) {
-	baseDir := Directories.root + "/" + projectId
+	baseDir := setup.Directories.Root + "/" + projectId
 
 	switch {
 	case method == STATIC_FILE:
 		if(isEditor){
-			baseDir = Directories.editor
+			baseDir = setup.Directories.Editor
 		}
 		return staticFiles.Serve(baseDir, args[0].(string))
 	case method >= 2 && method <= 9:
 		if(isEditor){
-			baseDir = Directories.root
+			baseDir = setup.Directories.Root
 		}
 		return fsSwitch(method, baseDir, args)
 	case method >= 12:
@@ -131,9 +129,9 @@ func editorSwitch(method int, args []any) ([]byte) {
 
 	switch method {
 	case CONFIG_GET:
-		return ConfigGet(args[0].(string))
+		return setup.ConfigGet(args[0].(string))
 	case CONFIG_SAVE:
-		return ConfigSave(args[0].(string), args[1].(string))
+		return setup.ConfigSave(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
 	}

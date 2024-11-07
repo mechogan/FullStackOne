@@ -68,3 +68,11 @@ win-x86_64:
 	go build -buildmode=c-shared -o $(OUT)/win-x86_64.dll -v ..
 
 ###### Linux #######
+
+###### WebAssembly #######
+
+wasm:
+	GOOS=js \
+	GOARCH=wasm \
+	go build -o $(OUT)/wasm.wasm -v ../wasm && \
+	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.js $(OUT)
