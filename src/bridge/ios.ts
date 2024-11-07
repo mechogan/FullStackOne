@@ -12,7 +12,6 @@ export const BridgeIOS: typeof ipc.bridge = async (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
-    console.trace(payload);
     const currentIds = Array.from(requests.keys()).sort();
     let requestId = 0;
     for (const id of currentIds) {

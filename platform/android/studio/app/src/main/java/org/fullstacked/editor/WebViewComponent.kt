@@ -1,7 +1,6 @@
 package org.fullstacked.editor
 
 import android.annotation.SuppressLint
-import android.graphics.Color
 import android.net.Uri
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
@@ -11,14 +10,18 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import java.nio.charset.StandardCharsets
-import java.util.Arrays
+import java.util.Base64
 
 class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewClient() {
     val webView = createWebView(this)
 
+    // https://stackoverflow.com/a/45506857
+    // Bridging with Base64 seems faster...
     @JavascriptInterface
-    fun bridge(id: Int, payload: String) {
-
+    fun bridge(payloadBase64: String) : String {
+        val payload = Base64.getDecoder().decode(payloadBase64)
+        val response = instance.callLib(payload)
+        return Base64.getEncoder().encodeToString(response)
     }
 
     override fun shouldInterceptRequest(
@@ -47,7 +50,7 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         val pathnameData = pathname.toByteArray()
         var payload = byteArrayOf(
             1, // static file method
-            2 // STRING
+            2  // STRING
         )
         payload += numberToBytes(pathnameData.size)
         payload += pathnameData

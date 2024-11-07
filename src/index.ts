@@ -2,6 +2,7 @@ import { ipc } from "./ipc";
 import { Platform } from "./platforms";
 import { BridgeNode } from "./bridge/node";
 import { BridgeIOS } from "./bridge/ios";
+import { BridgeAndroid } from "./bridge/android";
 
 const platform = (await (await fetch("/platform")).text()) as Platform;
 
@@ -13,6 +14,8 @@ switch (platform) {
         ipc.bridge = BridgeIOS;
         break;
     case Platform.ANDROID:
+        ipc.bridge = BridgeAndroid;
+        break;
     case Platform.ELECTRON:
     case Platform.DOCKER:
     case Platform.WEBCONTAINER:
