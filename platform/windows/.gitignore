@@ -1,3 +1,5 @@
 obj
 *.user
 .vs
+editor
+win-x86_64*
