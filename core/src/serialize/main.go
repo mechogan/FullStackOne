@@ -17,7 +17,7 @@ func DeserializeBytesToNumber(bytes []byte) int {
 
 func SerializeNumberToBytes(num int) []byte {
 	bytes := []byte{0, 0, 0, 0}
-	bytes[0] = uint8((num & 0xff000000) >> 24)
+	bytes[0] = uint8((uint(num) & uint(0xff000000)) >> 24)
 	bytes[1] = uint8((num & 0x00ff0000) >> 16)
 	bytes[2] = uint8((num & 0x0000ff00) >> 8)
 	bytes[3] = uint8((num & 0x000000ff) >> 0)

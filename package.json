@@ -3,7 +3,7 @@
     "version": "0.9.1",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
-        "start": "npm run build && npm start -w platform/node",
+        "start": "npm run build -- --no-zip && npm start -w platform/node",
         "prettier": "prettier . --write",
         "typecheck": "tsc --noEmit && cd platform/electron && npm run typecheck",
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
@@ -38,6 +38,7 @@
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/xterm": "^5.5.0",
         "@zip.js/zip.js": "^2.7.52",
+        "adm-zip": "^0.5.16",
         "base64-js": "^1.5.1",
         "buffer": "^6.0.3",
         "codemirror": "^6.0.1",
@@ -61,5 +62,8 @@
         "typescript": "^5.6.2",
         "url-parse": "^1.5.10",
         "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@types/adm-zip": "^0.5.6"
     }
 }

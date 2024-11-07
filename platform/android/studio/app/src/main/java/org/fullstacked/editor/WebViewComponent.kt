@@ -1,0 +1,178 @@
+package org.fullstacked.editor
+
+import android.annotation.SuppressLint
+import android.graphics.Color
+import android.net.Uri
+import android.webkit.JavascriptInterface
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import java.nio.charset.StandardCharsets
+import java.util.Arrays
+
+class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewClient() {
+    val webView = createWebView(this)
+
+    @JavascriptInterface
+    fun bridge(id: Int, payload: String) {
+
+    }
+
+    override fun shouldInterceptRequest(
+        view: WebView?,
+        request: WebResourceRequest?
+    ): WebResourceResponse? {
+        if(request?.url?.host != "localhost") {
+            return super.shouldInterceptRequest(view, request)
+        }
+
+        val pathname = request.url?.path ?: "/"
+
+        println("request: $pathname")
+
+        if(pathname == "/platform") {
+            return WebResourceResponse(
+                "text/plain",
+                "utf-8",
+                "android".byteInputStream()
+            )
+        }
+
+
+        // static file serving
+
+        val pathnameData = pathname.toByteArray()
+        var payload = byteArrayOf(
+            1, // static file method
+            2 // STRING
+        )
+        payload += numberToBytes(pathnameData.size)
+        payload += pathnameData
+
+        val response = this.instance.callLib(payload)
+        val args = deserializeArgs(response)
+
+        if(args.size == 0) {
+            return WebResourceResponse(
+                "text/plain",
+                "utf-8",
+                404,
+                "Not Found",
+                mapOf(),
+                "Not Found".byteInputStream()
+            )
+        }
+
+        return WebResourceResponse(
+            args[0] as String,
+            "",
+            (args[1] as ByteArray).inputStream()
+        )
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+fun createWebView(delegate: WebViewComponent) : WebView {
+    WebView.setWebContentsDebuggingEnabled(true)
+    val webView = WebView(delegate.ctx)
+
+//    val bgColor = if(isEditor) Color.TRANSPARENT else Color.WHITE
+//    webView.setBackgroundColor(bgColor)
+    webView.webViewClient = delegate
+    webView.webChromeClient = object : WebChromeClient() {
+        override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
+            try {
+                delegate.ctx.fileChooserValueCallback = filePathCallback;
+                delegate.ctx.fileChooserResultLauncher.launch(fileChooserParams?.createIntent())
+            } catch (_: Exception) { }
+            return true
+        }
+    }
+    webView.settings.javaScriptEnabled = true
+    webView.loadUrl("http://localhost")
+    webView.addJavascriptInterface(delegate, "android")
+
+    return webView
+}
+
+fun numberToBytes(num: Int) : ByteArray {
+    val bytes = ByteArray(4)
+    bytes[0] = ((num.toUInt() and 0xff000000u) shr 24).toByte()
+    bytes[1] = ((num.toUInt() and 0x00ff0000u) shr 16).toByte()
+    bytes[2] = ((num.toUInt() and 0x0000ff00u) shr  8).toByte()
+    bytes[3] = ((num.toUInt() and 0x000000ffu) shr  0).toByte()
+    return bytes
+}
+
+private fun bytesToNumber(bytes: ByteArray) : Int {
+    return ((bytes[0].toUByte().toUInt() shl 24) or
+            (bytes[1].toUByte().toUInt() shl 16) or
+            (bytes[2].toUByte().toUInt() shl 8) or
+            (bytes[3].toUByte().toUInt() shl 0)).toInt()
+
+}
+
+fun deserializeNumber(bytes: ByteArray): Int {
+    val negative = bytes[0].toInt() == 1
+
+    var n = 0u
+    for ((i, byte) in bytes.withIndex()) {
+        if(i != 0) {
+            n += byte.toUByte().toUInt() shl ((i - 1) * 8)
+        }
+    }
+
+    if(negative) {
+        return 0 - n.toInt()
+    } else {
+        return n.toInt()
+    }
+}
+
+fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
+    val args = mutableListOf<Any?>()
+
+    var cursor = 0
+    while(cursor < data.size) {
+        val type = DataType.from(data[cursor])
+        cursor += 1
+        val length = bytesToNumber(data.slice(cursor..< cursor + 4).toByteArray())
+        cursor += 4
+        val arg = data.slice(cursor..< cursor + length).toByteArray()
+        cursor += length
+
+        when (type) {
+            DataType.UNDEFINED ->
+                args.add(null)
+            DataType.BOOLEAN ->
+                if(arg[0].toInt() == 1) {
+                    args.add(true)
+                }else {
+                    args.add(false)
+                }
+            DataType.STRING ->
+                args.add(String(arg, StandardCharsets.UTF_8))
+            DataType.NUMBER ->
+                args.add(deserializeNumber(arg))
+            DataType.UINT8ARRAY ->
+                args.add(arg)
+        }
+    }
+
+    return args
+}
+
+enum class DataType(val type: Byte) {
+    UNDEFINED(0),
+    BOOLEAN(1),
+    STRING(2),
+    NUMBER(3),
+    UINT8ARRAY(4);
+
+    companion object {
+        fun from(value: Byte) = entries.first { it.type == value }
+    }
+}

@@ -2,9 +2,7 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 
-const editorOut = "editor";
-
-fs.cpSync(path.resolve("..", "..", "editor", "build"), editorOut, {
+fs.cpSync(path.resolve("..", "..", "out", "editor"), "editor", {
     recursive: true
 });
 

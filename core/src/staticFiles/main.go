@@ -37,7 +37,7 @@ func Serve(baseDir string, filePath string) []byte {
 
 	fileExtComponents := strings.Split(filePathAbs, ".")
 	ext := fileExtComponents[len(fileExtComponents) - 1]
-	mimeType := mime.TypeByExtension("." + ext)
+	mimeType := strings.Split(mime.TypeByExtension("." + ext), ";")[0]
 
 	fileData, _ := os.ReadFile(filePathAbs)
 

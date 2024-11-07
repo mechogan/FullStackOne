@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # Since this is the top level CMakeLists.txt, the project name is also accessible
 # with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
 # build script scope).
-project("editor")
+project("editor-core")
 
 if(${ANDROID_ABI} MATCHES "arm64-v8a")
     add_compile_definitions(ANDROID_ABI_arm64)
@@ -20,11 +20,11 @@ if(${ANDROID_ABI} MATCHES "x86_64")
     add_compile_definitions(ANDROID_ABI_x64)
 endif ()
 
-add_library(esbuild SHARED IMPORTED)
+add_library(core SHARED IMPORTED)
 set_target_properties(
-        esbuild
+        core
         PROPERTIES IMPORTED_LOCATION
-        ${CMAKE_CURRENT_SOURCE_DIR}/esbuild/${ANDROID_ABI}/esbuild.so )
+        ${CMAKE_CURRENT_SOURCE_DIR}/bin/android-${ANDROID_ABI}.so )
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -41,13 +41,13 @@ set_target_properties(
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
     # List C/C++ source files with relative paths to this CMakeLists.txt.
-    editor.cpp)
+        bridge.cpp)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
 target_link_libraries(${CMAKE_PROJECT_NAME}
     # List libraries link to the target library
-    esbuild
+    core
     android
     log)

@@ -117,7 +117,6 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
         let pathnameData = pathname.data(using: .utf8)!
         var payload = Data([
             1, // static file method
-            
             2 // STRING
         ])
         payload.append(pathnameData.count.toBytes())
