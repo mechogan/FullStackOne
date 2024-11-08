@@ -153,8 +153,8 @@ function SearchAndAdd(opts: SearchAndAddOpts) {
     };
 
     const reloadFuse = () => {
-        getProjectsList().then((projects) => {
-            fuseSearch = new Fuse([...projects], fuseOptions);
+        getProjectsList().then(({projects}) => {
+            fuseSearch = new Fuse(projects || [], fuseOptions);
         });
     };
     reloadFuse();
@@ -207,8 +207,7 @@ function ProjectsList(opts: ProjectsListOpts) {
         tile: ReturnType<typeof ProjectTile>;
     }[] = [];
     getProjectsList().then((projects) => {
-        projects
-            .sort((a, b) => b.createdDate - a.createdDate)
+        projects?.projects?.sort((a, b) => b.createdDate - a.createdDate)
             .forEach((project) => {
                 const tile = ProjectTile({
                     project,

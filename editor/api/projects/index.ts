@@ -4,7 +4,7 @@ import { Project } from "../config/types";
 import rpc from "../../rpc";
 import * as zip from "@zip.js/zip.js";
 import zipDirectory from "./zip";
-import * as sass from "sass";
+// import * as sass from "sass";
 import type esbuild from "esbuild";
 import slugify from "slugify";
 import api from "..";

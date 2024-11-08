@@ -3,9 +3,6 @@ import { serializeArgs } from "../../src/serialization";
 import {
     CONFIG_DATA_TYPE,
     CONFIG_TYPE,
-    Connectivity,
-    GitAuths,
-    Project
 } from "../types";
 
 export const config = {
@@ -18,7 +15,23 @@ function get<T extends CONFIG_TYPE>(
 ): Promise<CONFIG_DATA_TYPE[T]> {
     const payload = new Uint8Array([12, ...serializeArgs([configType])]);
 
-    const transformer = ([string]) => JSON.parse(string);
+    const transformer = ([string]) => {
+        if(!string) return {};
+
+        // MIGRATION 0.9.0 -> 0.10.0 | 08-10-2024
+        // no array at json root
+
+        let json = JSON.parse(string);
+        if(configType === CONFIG_TYPE.PROJECTS && Array.isArray(json)) {
+            json = {
+                projects: json
+            }
+        }
+
+        // END
+
+        return json;
+    };
 
     return ipc.bridge(payload, transformer);
 }

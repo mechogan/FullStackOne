@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
@@ -33,6 +34,7 @@ func call(this js.Value, args []js.Value) interface{} {
 func main() {
 	c := make(chan struct{}, 0)
 
+	fmt.Println("FullStacked WASM")
 	fs.WASM = true
 
 	js.Global().Set("directories", js.FuncOf(directories))

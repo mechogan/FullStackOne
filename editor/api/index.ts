@@ -1,6 +1,6 @@
 import projects from "./projects";
 import config from "./config";
-import git from "./git";
+// import git from "./git";
 import packages from "./packages";
 // import connectivity from "./connectivity";
 import deeplink from "./deeplink";
@@ -8,7 +8,7 @@ import deeplink from "./deeplink";
 export default {
     projects,
     config,
-    git,
+    // git,
     packages,
     // connectivity,
     deeplink

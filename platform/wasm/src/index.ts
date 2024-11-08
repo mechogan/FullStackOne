@@ -42,7 +42,7 @@ let payload = new Uint8Array([
     ...editorZip
 ])
 const unzipResult = deserializeArgs(call(payload)).at(0)
-if(!unzipResult) {
+if (!unzipResult) {
     console.error("Failed to unzip editor");
 }
 
@@ -69,7 +69,79 @@ const [mimeType, contents] = staticFileServing("/");
 const parser = new DOMParser();
 const indexHTML = parser.parseFromString(td.decode(contents), mimeType)
 
-console.log(indexHTML)
+window.fetch = async function(url: string, options: any){
+    if(url === "/platform") {
+        return {
+            text: () => new Promise<string>(res => res("wasm"))
+        }
+    }
 
+    const [_, contents] = staticFileServing(url);
+    return {
+        text: () => new Promise<string>(res => res(td.decode(contents))),
+        arrayBuffer: () => new Promise<ArrayBuffer>(res => res(contents.buffer))
+    }
+} as any
 
-export { };
+globalThis.lib = {
+    call(payload: Uint8Array) {
+        const data = new Uint8Array([
+            1, // isEditor
+            ...numberTo4Bytes(0), // no project id
+            ...payload
+        ])
+        return call(data);
+    }
+}
+
+// HEAD (link => style, title => title)
+indexHTML.head.querySelectorAll<HTMLElement>(":scope > *")
+    .forEach(element => {
+        if (element instanceof HTMLTitleElement) {
+            document.title = element.innerText;
+            return;
+        } 
+
+        if (element instanceof HTMLLinkElement && element.rel === "stylesheet") {
+            const url = new URL(element.href);
+            const [type, content] = staticFileServing(url.pathname);
+            const blob = new Blob([content], { type })
+            element.href = URL.createObjectURL(blob);
+        } 
+        
+        document.head.append(element);
+    });
+
+globalThis.fsWasm = globalThis.fs;
+
+// BODY (script => script, img => img)
+indexHTML.body.querySelectorAll<HTMLElement>(":scope > *")
+    .forEach(element => {
+        if (element instanceof HTMLScriptElement) {
+            const script = document.createElement("script");
+            script.type = element.type;
+
+            const url = new URL(element.src);
+            const [type, content] = staticFileServing(url.pathname);
+            const blob = new Blob([content], { type })
+            script.src = URL.createObjectURL(blob);
+            element = script;
+        } else {
+            element.querySelectorAll<HTMLImageElement>("img")
+                .forEach(replaceImageWithObjectURL);
+
+            if (element instanceof HTMLImageElement) {
+                replaceImageWithObjectURL(element)
+            }
+        }
+
+        document.body.append(element);
+    });
+
+function replaceImageWithObjectURL(img: HTMLImageElement) {
+    const url = new URL(img.src);
+    const [type, imageData] = staticFileServing(url.pathname);
+    const blob = new Blob([imageData], { type });
+    const objURL = URL.createObjectURL(blob);
+    img.src = objURL;
+}
