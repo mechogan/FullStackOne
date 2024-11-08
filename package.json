@@ -9,7 +9,8 @@
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
     "workspaces": [
-        "platform/node"
+        "platform/node",
+        "platform/wasm"
     ],
     "author": "FullStacked Org.",
     "license": "GPL-3.0",
@@ -19,6 +20,7 @@
         "trailingComma": "none"
     },
     "dependencies": {
+        "@types/adm-zip": "^0.5.6",
         "@aws-sdk/client-s3": "^3.658.1",
         "@codemirror/lang-html": "^6.4.9",
         "@codemirror/lang-javascript": "^6.2.2",
@@ -62,8 +64,5 @@
         "typescript": "^5.6.2",
         "url-parse": "^1.5.10",
         "ws": "^8.18.0"
-    },
-    "devDependencies": {
-        "@types/adm-zip": "^0.5.6"
     }
 }

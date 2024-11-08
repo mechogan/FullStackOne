@@ -39,8 +39,6 @@ class MainActivity : ComponentActivity() {
         val nodeModules = "$root/node_modules"
         val editor = this.filesDir.absolutePath + "/editor"
 
-        this.extractEditorFiles(editor)
-
         this.directories(
             root,
             config,
@@ -48,40 +46,39 @@ class MainActivity : ComponentActivity() {
             editor
         )
 
+        val instanceEditor = Instance(true, "");
+
+        this.extractEditorFiles(instanceEditor, editor)
+
         super.onCreate(savedInstanceState)
         this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
 
-        this.setContentView(WebViewComponent(this, Instance(true, "")).webView)
+        this.setContentView(WebViewComponent(this, instanceEditor).webView)
     }
 
-    private fun extractEditorFiles(editorDir: String) {
+    private fun extractEditorFiles(instanceEditor: Instance, editorDir: String) {
         // TODO: check extracted version vs current build
         // extract only if needed
 
-        val editorZip = ZipInputStream(this.assets.open("editor.zip"))
-        var entry: ZipEntry? = editorZip.nextEntry
-        while (entry != null) {
-            if(entry.isDirectory) {
-                val f = File(editorDir + "/" + entry.name)
-                f.mkdirs()
-            } else {
-                val outStream = FileOutputStream(editorDir + "/" + entry.name)
-                val outBuffer = BufferedOutputStream(outStream)
-                val tmpBuffer = ByteArray(2048)
-                var read = 0
-                while ((editorZip.read(tmpBuffer).also { read = it }) != -1) {
-                    outBuffer.write(tmpBuffer, 0, read)
-                }
-
-                editorZip.closeEntry()
-                outBuffer.close()
-                outStream.close()
-            }
-            entry = editorZip.nextEntry
+        val destination = editorDir.toByteArray()
+        val zipData = this.assets.open("editor.zip").readBytes()
+        var payload = byteArrayOf(
+            30, // UNZIP
+            2   // STRING
+        )
+        payload += numberToBytes(destination.size)
+        payload += destination
+        payload += byteArrayOf(
+            4 // BUFFER
+        )
+        payload += numberToBytes(zipData.size)
+        payload += zipData
+        val unzipped = deserializeArgs(instanceEditor.callLib(payload))[0] as Boolean
+        if(unzipped) {
+            println("UNZIPPED !")
+        } else {
+            println("FAILED TO UNZIPPED")
         }
-
-        val stat = Files.readAttributes(Paths.get(editorDir + "/index.html"), BasicFileAttributes::class.java)
-        println(stat.size())
     }
 
 

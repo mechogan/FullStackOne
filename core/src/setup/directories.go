@@ -1,5 +1,9 @@
 package setup
 
+import (
+	fs "fullstacked/editor/src/fs"
+)
+
 type DirectoriesStruct struct {
     Root string
 	Config string
@@ -16,4 +20,9 @@ func SetupDirectories(root string, config string, nodeModules string, editor str
 		NodeModules: nodeModules,
 		Editor: editor,
 	}
+
+	fs.MkDir(root)
+	fs.MkDir(config)
+	fs.MkDir(nodeModules)
+	fs.MkDir(editor)
 }

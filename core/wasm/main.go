@@ -1,8 +1,8 @@
 package main
 
 import (
-	// methods "fullstacked/editor/src/methods"
-	"fmt"
+	fs "fullstacked/editor/src/fs"
+	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
 
 	"syscall/js"
@@ -22,11 +22,7 @@ func call(this js.Value, args []js.Value) interface{} {
 	payload := make([]byte, args[0].Get("length").Int());
 	_ = js.CopyBytesToGo(payload, args[0])
 
-	for _, b := range(payload) {
-		fmt.Println(b)
-	}
-
-	response := []byte{5,6,7,8}
+	response := methods.Call(payload)
 	arrayConstructor := js.Global().Get("Uint8Array")
 	dataJS := arrayConstructor.New(len(response))
 	js.CopyBytesToJS(dataJS, response)
@@ -36,6 +32,8 @@ func call(this js.Value, args []js.Value) interface{} {
 
 func main() {
 	c := make(chan struct{}, 0)
+
+	fs.WASM = true
 
 	js.Global().Set("directories", js.FuncOf(directories))
     js.Global().Set("call", js.FuncOf(call))

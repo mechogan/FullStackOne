@@ -2,10 +2,10 @@ package staticFiles
 
 import (
 	"mime"
-	"os"
 	"path"
 	"strings"
 
+	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 )
 
@@ -22,14 +22,14 @@ func Serve(baseDir string, filePath string) []byte {
 	filePathComponents = append(filePathComponents, strings.Split(filePath, "/")...)
 	filePathAbs := path.Join(filePathComponents...)
 
-	fileStat, err := os.Stat(filePathAbs)
+	fileStat, err := fs.Stat(filePathAbs)
 	if(err != nil) {
 		return nil
 	}
 
-	if(fileStat.IsDir()) {
+	if(fileStat.IsDir) {
 		filePathAbs += "/index.html"
-		_, err := os.Stat(filePathAbs)
+		_, err := fs.Stat(filePathAbs)
 		if(err != nil) {
 			return nil
 		}
@@ -39,10 +39,9 @@ func Serve(baseDir string, filePath string) []byte {
 	ext := fileExtComponents[len(fileExtComponents) - 1]
 	mimeType := strings.Split(mime.TypeByExtension("." + ext), ";")[0]
 
-	fileData, _ := os.ReadFile(filePathAbs)
 
 	data := serialize.SerializeString(mimeType)
-	data = append(data, serialize.SerializeBuffer(fileData)...)
+	data = append(data, fs.ReadFileSerialized(filePathAbs, false)...)
 
 	return data
 }

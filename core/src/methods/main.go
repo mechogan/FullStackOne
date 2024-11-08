@@ -8,6 +8,7 @@ import (
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
+	utils "fullstacked/editor/src/utils"
 )
 
 const (
@@ -34,6 +35,8 @@ const (
 
 	ESBUILD_VERSION = 14
 	ESBUILD_BUILD = 15
+
+	UNZIP = 30
 )
 
 func Call(payload []byte) []byte {
@@ -75,13 +78,13 @@ func fsSwitch(method int, baseDir string, args []any) ([]byte) {
 
 	switch method {
 	case FS_READFILE:
-		return fs.ReadFile(filePath, args[1].(bool))
+		return fs.ReadFileSerialized(filePath, args[1].(bool))
 	case FS_WRITEFILE:
-		return fs.WriteFile(filePath, args[1].([]byte))
+		return fs.WriteFileSerialized(filePath, args[1].([]byte))
 	case FS_UNLINK:
 		return nil
 	case FS_READDIR:
-		return fs.ReadDir(filePath, args[1].(bool), args[2].(bool))
+		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool))
 	}
 
 	return nil
@@ -96,6 +99,8 @@ func editorSwitch(method int, args []any) ([]byte) {
 		return setup.ConfigSave(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
+	case UNZIP:
+		return serialize.SerializeBoolean(utils.Unzip(args[0].(string), args[1].([]byte)))
 	}
 
 	return nil
