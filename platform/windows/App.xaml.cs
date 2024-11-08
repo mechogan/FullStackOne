@@ -122,7 +122,7 @@ namespace windows
                 cursor++;
                 int length = bytesToNumber(bytes[new Range(cursor, cursor + 4)]);
                 cursor += 4;
-                byte[] arg = bytes[new Range(cursor, bytes.Length - 1)];
+                byte[] arg = bytes[new Range(cursor, cursor + length)];
                 cursor += length;
 
                 switch (type) {
