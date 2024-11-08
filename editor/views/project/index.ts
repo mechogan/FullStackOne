@@ -130,12 +130,12 @@ export function Project(opts: ProjectOpts) {
     container.append(content);
 
     pullEvents.start?.();
-    api.git.pull(opts.project).then(() => {
-        pullEvents.end?.();
-        CodeEditor.reloadActiveFilesContent();
-        fileTree.reloadFileTree();
-        gitWidget.reloadBranchAndCommit();
-    });
+    // api.git.pull(opts.project).then(() => {
+    //     pullEvents.end?.();
+    //     CodeEditor.reloadActiveFilesContent();
+    //     fileTree.reloadFileTree();
+    //     gitWidget.reloadBranchAndCommit();
+    // });
 
     if (opts.run) {
         setTimeout(() => runButton.click(), 1);
@@ -164,15 +164,15 @@ function GitWidget(opts: GitWidgetOpts) {
     const renderBranchAndCommit = async () => {
         const branchAndCommitContainer = document.createElement("div");
 
-        const [branch, commit] = await Promise.all([
-            api.git.currentBranch(opts.project),
-            api.git.log(opts.project, 1)
-        ]);
+        // const [branch, commit] = await Promise.all([
+        //     api.git.currentBranch(opts.project),
+        //     api.git.log(opts.project, 1)
+        // ]);
 
-        branchAndCommitContainer.innerHTML = `
-                <div><b>${branch}</b></div>
-                <div>${commit.at(0).oid.slice(0, 7)}<div>
-            `;
+        // branchAndCommitContainer.innerHTML = `
+        //         <div><b>${branch}</b></div>
+        //         <div>${commit.at(0).oid.slice(0, 7)}<div>
+        //     `;
 
         return branchAndCommitContainer;
     };
@@ -193,13 +193,13 @@ function GitWidget(opts: GitWidgetOpts) {
         iconLeft: "Git"
     });
     gitButton.disabled = true;
-    api.git
-        .currentBranch(opts.project)
-        .then(() => {
-            gitButton.disabled = false;
-            reloadBranchAndCommit();
-        })
-        .catch(() => {});
+    // api.git
+    //     .currentBranch(opts.project)
+    //     .then(() => {
+    //         gitButton.disabled = false;
+    //         reloadBranchAndCommit();
+    //     })
+    //     .catch(() => {});
 
     gitButton.onclick = () => {
         let remove: ReturnType<typeof Git>;
