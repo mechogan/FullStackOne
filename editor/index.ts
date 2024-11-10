@@ -1,15 +1,4 @@
-import api from "./api";
-import rpc from "./rpc";
-import stackNavigation from "./stack-navigation";
-import { BG_COLOR } from "./constants";
 import { Projects } from "./views/projects";
-import { ImportZip } from "./views/add-project/import-zip";
-import { Project } from "./views/project";
-import { CloneGit } from "./views/add-project/clone-git";
-import { Project as ProjectType } from "./api/config/types";
-import { esbuildInstall } from "./views/esbuild";
-import { ipcEditor } from "./ipc";
-import { CONFIG_TYPE } from "./types";
 
 // // fix windows scrollbars
 // if (navigator.userAgent.includes("Windows")) {
@@ -59,8 +48,7 @@ import { CONFIG_TYPE } from "./types";
 // const installDemo = await api.config.init();
 
 document.querySelector("#splash").remove();
-const projects = Projects();
-stackNavigation.navigate(projects.container, BG_COLOR);
+Projects();
 
 // const esbuildIsInstalled = await rpc().esbuild.check();
 // if (!esbuildIsInstalled) {

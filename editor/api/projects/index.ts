@@ -8,9 +8,10 @@ import zipDirectory from "./zip";
 import type esbuild from "esbuild";
 import slugify from "slugify";
 import api from "..";
+import { ipcEditor } from "../../ipc";
 
 const list = async () => {
-    const projects = (await config.load(CONFIG_TYPE.PROJECTS)) || [];
+    const projects = (await config.load(CONFIG_TYPE.PROJECTS));
 
     // MIGRATION 2024-07-18 : add project ID
     let save = false;
@@ -52,9 +53,7 @@ const create = async (project: Omit<Project, "createdDate">) => {
     };
     projects.push(newProject);
     await config.save(CONFIG_TYPE.PROJECTS, projects);
-    await rpc().fs.mkdir(project.location || project.id, {
-        absolutePath: true
-    });
+    await ipcEditor.fs.mkdir(project.id);
     return newProject;
 };
 const deleteProject = async (project: Project) => {

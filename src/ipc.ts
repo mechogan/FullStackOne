@@ -10,8 +10,8 @@ export const ipc = {
             readFile,
             writeFile,
             // unlink
-            readdir
-            // mkdir
+            readdir,
+            mkdir
             // rmdir
             // exists
             // rename
@@ -92,4 +92,14 @@ function readdir(
     };
 
     return ipc.bridge(payload, transformer);
+}
+
+// 6
+function mkdir(path: string) {
+    const payload = new Uint8Array([
+        6,
+        ...serializeArgs([path])
+    ]);
+
+    return ipc.bridge(payload, ([success]) => success);
 }

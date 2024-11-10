@@ -1,5 +1,6 @@
 import { BACK_BUTTON_CLASS } from "../constants";
 import stackNavigation from "../stack-navigation";
+import { createElement } from "./element";
 import { Button } from "./primitives/button";
 
 type TopBarOpts = {
@@ -13,7 +14,7 @@ type TopBarOpts = {
 let h1Height: number, getH1HeightInterval: ReturnType<typeof setInterval>;
 
 export function TopBar(opts?: Partial<TopBarOpts>) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("top-bar");
 
     const left = document.createElement("div");

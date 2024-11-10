@@ -21,8 +21,8 @@ func SetupDirectories(root string, config string, nodeModules string, editor str
 		Editor: editor,
 	}
 
-	fs.MkDir(root)
-	fs.MkDir(config)
-	fs.MkDir(nodeModules)
-	fs.MkDir(editor)
+	fs.Mkdir(root)
+	fs.Mkdir(config)
+	fs.Mkdir(nodeModules)
+	fs.Mkdir(editor)
 }

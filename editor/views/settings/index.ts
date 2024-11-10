@@ -32,7 +32,9 @@ export function Settings() {
         Version()
     );
 
-    return container;
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    });
 }
 
 function Packages() {

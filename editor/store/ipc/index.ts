@@ -1,4 +1,4 @@
-import ipc from "../../src";
+import ipc from "../../../src";
 import { config } from "./config";
 
 export const ipcEditor = {

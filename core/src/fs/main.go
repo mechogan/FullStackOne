@@ -101,7 +101,7 @@ func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
 	return bytes;
 }
 
-func MkDir(path string) bool {
+func Mkdir(path string) bool {
 	err := (error)(nil)
 
 	if(WASM) {
@@ -113,8 +113,8 @@ func MkDir(path string) bool {
 	return err == nil
 }
 
-func MkDirSerialized(path string) []byte {
-	return serialize.SerializeBoolean(MkDir(path))
+func MkdirSerialized(path string) []byte {
+	return serialize.SerializeBoolean(Mkdir(path))
 }
 
 type SmallFileInfo struct {
