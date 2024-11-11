@@ -38,10 +38,12 @@ namespace windows
                 string base64 = args.TryGetWebMessageAsString();
                 byte[] data = Convert.FromBase64String(base64);
                 byte[] id = data[new Range(0, 4)];
+                App.PrintByteArray(id);
                 byte[] payload = data[new Range(4, data.Length)];
-                byte[] response = this.instance.callLib(payload);
-                App.combineBuffers([id, response]);
-                _ = await this.webview.ExecuteScriptAsync("window.respond(`" + Convert.ToBase64String(response) + ")");
+                byte[] libResponse = this.instance.callLib(payload);
+                byte[] response = App.combineBuffers([id, libResponse]);
+                App.PrintByteArray(response);
+                _ = await this.webview.CoreWebView2.ExecuteScriptAsync("window.respond(`" + Convert.ToBase64String(response) + "`)");
             };
             this.webview.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
             this.webview.CoreWebView2.WebResourceRequested += delegate (CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs args)
