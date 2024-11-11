@@ -44,9 +44,7 @@ function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
 
 // 4
 function unlink(path: string) {
-    const payload = new Uint8Array([
-        4,
-        ...serializeArgs([path])]);
+    const payload = new Uint8Array([4, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
@@ -101,23 +99,19 @@ function mkdir(path: string) {
 
 // 7
 function rmdir(path: string) {
-    const payload = new Uint8Array([
-        7,
-        ...serializeArgs([path])]);
+    const payload = new Uint8Array([7, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 8
 function exists(path: string) {
-    const payload = new Uint8Array([
-        8,
-        ...serializeArgs([path])]);
+    const payload = new Uint8Array([8, ...serializeArgs([path])]);
 
     const transformer = ([exists, isFile]: [boolean, boolean]) => {
         if (!exists) return undefined;
-        return { isFile }
-    }
+        return { isFile };
+    };
 
     return ipc.bridge(payload, transformer);
 }
@@ -127,4 +121,32 @@ function rename(oldPath: string, newPath: string) {
     const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath])]);
 
     return ipc.bridge(payload, ([success]) => success);
+}
+
+// 10
+function stat(path: string) : Promise<{
+    name: string,
+    size: number,
+    modTime: number,
+    isDirectory: boolean
+}> {
+    const payload = new Uint8Array([
+        10,
+        ...serializeArgs([path])
+    ]);
+
+    const transformer = (responseArgs: any[]) => {
+        if(!responseArgs.length) return null;
+
+        const [name, size, modTime, isDirectory] = responseArgs;
+
+        return {
+            name,
+            size,
+            modTime,
+            isDirectory
+        }
+    }
+
+    return ipc.bridge(payload, transformer)
 }

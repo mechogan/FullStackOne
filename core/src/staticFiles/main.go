@@ -22,15 +22,15 @@ func Serve(baseDir string, filePath string) []byte {
 	filePathComponents = append(filePathComponents, strings.Split(filePath, "/")...)
 	filePathAbs := path.Join(filePathComponents...)
 
-	fileStat, err := fs.Stat(filePathAbs)
-	if err != nil {
+	exists, isFile := fs.Exists(filePathAbs)
+	if !exists {
 		return nil
 	}
 
-	if fileStat.IsDir {
+	if !isFile { // then isDir
 		filePathAbs += "/index.html"
-		_, err := fs.Stat(filePathAbs)
-		if err != nil {
+		exists, isFile := fs.Exists(filePathAbs)
+		if !exists || !isFile {
 			return nil
 		}
 	}

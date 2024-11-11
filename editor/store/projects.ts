@@ -49,6 +49,6 @@ async function deleteP(project: Project) {
     projects.splice(indexOf, 1);
     await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
-    
+
     ipcEditor.fs.rmdir(project.id);
 }

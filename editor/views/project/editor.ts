@@ -1,64 +1,84 @@
+import { createElement } from "../../components/element";
 import { Button } from "../../components/primitives/button";
+import { createRefresheable } from "../../components/refresheable";
+import { Store } from "../../store";
 import { Project } from "../../types";
 import { CodeEditor } from "./code-editor";
 
-
 export function Editor(project: Project) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("editor");
 
-    const editorContainer = document.createElement("div");
-    CodeEditor.parent = {
-        workingDirectory: opts.directory,
-        element: editorContainer
-    };
-    container.append(FileTabs(), editorContainer);
+    const refresheableFileTabs = createRefresheable(FileTabs)
+    Store.editor.codeEditor.openedFiles.subscribe(refresheableFileTabs.refresh);
+
+    const codeEditor = CodeEditor();
+
+    container.append(
+        refresheableFileTabs.element, 
+        codeEditor
+    );
+
+    container.ondestroy = () => {
+        Store.editor.codeEditor.openedFiles.unsubscribe(refresheableFileTabs.refresh);
+        refresheableFileTabs.element.destroy();
+        codeEditor.destroy();
+    }
 
     return container;
 }
 
-function FileTabs() {
-    const container = document.createElement("ul");
+function FileTabs(openedFiles: Set<string>) {
+    const container = createElement("ul");
     container.classList.add("file-tabs");
 
-    const renderTabs = () => {
-        Array.from(container.children).forEach((child) => child.remove());
+    const items = Array.from(openedFiles).map(Tab)
 
-        let openedTab: HTMLLIElement;
-        CodeEditor.activeFiles.forEach((item) => {
-            const li = document.createElement("li");
-            if (item.path === CodeEditor.openedFilePath) {
-                li.classList.add("opened");
-                openedTab = li;
-            } else {
-                li.onclick = () => CodeEditor.addFile(item.path);
-            }
+    container.append(...items);
 
-            const name = document.createElement("span");
-            name.innerText = item.path.split("/").pop();
-
-            const closeButton = Button({
-                style: "icon-small",
-                iconLeft: "Close"
-            });
-
-            closeButton.onclick = (e) => {
-                e.stopPropagation();
-                CodeEditor.remove(item.path);
-            };
-
-            li.append(name, closeButton);
-
-            container.append(li);
-        });
-
-        if (openedTab) {
-            openedTab.scrollIntoView();
-        }
-    };
-
-    CodeEditor.onActiveFileChange = renderTabs;
-    renderTabs();
+    container.ondestroy = () => {
+        items.forEach(e => e.destroy());
+    }
 
     return container;
+}
+
+
+function Tab(path: string){
+    const li = createElement("li");
+    
+    const name = document.createElement("span");
+    name.innerText = path.split("/").pop();
+
+    const closeButton = Button({
+        style: "icon-small",
+        iconLeft: "Close"
+    });
+
+    closeButton.onclick = e => {
+        e.stopPropagation();
+        Store.editor.codeEditor.closeFile(path);
+    }
+
+    li.append(name, closeButton);
+
+    li.onclick = () => {
+        Store.editor.codeEditor.focusFile(path);
+    }
+
+    const onFocusFileChange = (focusedFile: string) => {
+        if(focusedFile === path) {
+            li.classList.add("opened");
+            li.scrollIntoView();
+        } else {
+            li.classList.remove("opened");
+        }
+    }
+
+    Store.editor.codeEditor.focusedFile.subscribe(onFocusFileChange);
+    li.ondestroy = () => {
+        Store.editor.codeEditor.focusedFile.unsubscribe(onFocusFileChange);
+    }
+
+    return li;
 }

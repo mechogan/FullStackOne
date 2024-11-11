@@ -82,7 +82,7 @@ func vExists(path string) (bool, bool) {
 	return false, false
 }
 
-func vStat(path string) (*SmallFileInfo, error) {
+func vStat(path string) *SmallFileInfo {
 	f := virtFS[path]
 	d := false
 
@@ -94,7 +94,7 @@ func vStat(path string) (*SmallFileInfo, error) {
 	}
 
 	if f == nil && !d {
-		return nil, errors.New("ENOENT")
+		return nil
 	}
 
 	pathComponents := strings.Split(path, "/")
@@ -104,7 +104,7 @@ func vStat(path string) (*SmallFileInfo, error) {
 		int64(len(f)),
 		time.Unix(0, 0),
 		d,
-	}, nil
+	}
 }
 
 func vRename(oldPath string, newPath string) error {

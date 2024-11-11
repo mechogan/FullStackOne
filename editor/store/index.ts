@@ -1,9 +1,9 @@
-import { codeEditor } from "./code-editor";
+import { editor } from "./editor";
 import { projects } from "./projects";
 
 export const Store = {
     projects,
-    codeEditor
+    editor
 };
 
 export function createSubscribable<T>(

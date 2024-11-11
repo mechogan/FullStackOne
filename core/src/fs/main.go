@@ -209,7 +209,7 @@ type SmallFileInfo struct {
 	IsDir   bool
 }
 
-func Stat(path string) (*SmallFileInfo, error) {
+func Stat(path string) *SmallFileInfo {
 	if WASM {
 		return vStat(path)
 	}
@@ -217,7 +217,7 @@ func Stat(path string) (*SmallFileInfo, error) {
 	fileInfo, err := os.Stat(path)
 
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	return &SmallFileInfo{
@@ -225,11 +225,24 @@ func Stat(path string) (*SmallFileInfo, error) {
 		fileInfo.Size(),
 		fileInfo.ModTime(),
 		fileInfo.IsDir(),
-	}, nil
+	}
 }
 
-func StatSerialized(path string) {
+func StatSerialized(path string) []byte {
+	stats := Stat(path)
 
+	if(stats == nil) {
+		return nil
+	}
+
+	bytes := []byte{}
+
+	bytes = append(bytes, serialize.SerializeString(stats.Name)...)
+	bytes = append(bytes, serialize.SerializeNumber(int(stats.Size))...)
+	bytes = append(bytes, serialize.SerializeNumber(int(stats.ModTime.UnixMilli()))...)
+	bytes = append(bytes, serialize.SerializeBoolean(stats.IsDir)...)
+
+	return bytes
 }
 
 func Rename(oldPath string, newPath string) bool {

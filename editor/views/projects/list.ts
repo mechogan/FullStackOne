@@ -78,7 +78,7 @@ function ProjectTile(project: ProjectType) {
     const container = document.createElement("div");
     container.classList.add("project-tile");
 
-    container.onclick = () => Project(project)
+    container.onclick = () => Project(project);
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");

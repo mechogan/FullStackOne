@@ -23,19 +23,21 @@ const (
 	FS_RMDIR     = 7
 	FS_EXISTS    = 8
 	FS_RENAME    = 9
+	FS_STAT		 = 10
 
-	FETCH     = 10
-	BROADCAST = 11
+	FETCH     = 15
+	BROADCAST = 20
 
 	// EDITOR ONLY
 
-	CONFIG_GET  = 12
-	CONFIG_SAVE = 13
-
-	ESBUILD_VERSION = 14
-	ESBUILD_BUILD   = 15
-
 	ARCHIVE_UNZIP = 30
+
+	CONFIG_GET  = 50
+	CONFIG_SAVE = 51
+
+	ESBUILD_VERSION = 55
+	ESBUILD_BUILD   = 56
+
 )
 
 func Call(payload []byte) []byte {
@@ -61,7 +63,7 @@ func Call(payload []byte) []byte {
 			baseDir = setup.Directories.Root
 		}
 		return fsSwitch(method, baseDir, args)
-	case method >= 12:
+	case method > 20:
 		if !isEditor {
 			return nil
 		}
@@ -93,6 +95,8 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 	case FS_RENAME:
 		newPath := path.Join(baseDir, args[1].(string))
 		return fs.RenameSerialized(filePath, newPath)
+	case FS_STAT:
+		return fs.StatSerialized(filePath)
 	}
 
 	return nil
