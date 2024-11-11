@@ -73,6 +73,16 @@ class MainActivity : ComponentActivity() {
         )
         payload += numberToBytes(zipData.size)
         payload += zipData
+
+        // use absolute path to unzip to
+        payload += byteArrayOf(
+            1 // BOOLEAN
+        )
+        payload += numberToBytes(1)
+        payload += byteArrayOf(
+            1 // true
+        )
+
         val unzipped = deserializeArgs(instanceEditor.callLib(payload))[0] as Boolean
         if(unzipped) {
             println("UNZIPPED !")

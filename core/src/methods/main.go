@@ -8,7 +8,7 @@ import (
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
-	utils "fullstacked/editor/src/utils"
+	archive "fullstacked/editor/src/archive"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 	ESBUILD_VERSION = 14
 	ESBUILD_BUILD = 15
 
-	UNZIP = 30
+	ARCHIVE_UNZIP = 30
 )
 
 func Call(payload []byte) []byte {
@@ -85,6 +85,10 @@ func fsSwitch(method int, baseDir string, args []any) ([]byte) {
 		return nil
 	case FS_READDIR:
 		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool))
+	case FS_RENAME:
+		oldPath := filePath
+		newPath := path.Join(baseDir, args[1].(string))
+		return fs.RenameSerialized(oldPath, newPath)
 	}
 
 	return nil
@@ -99,8 +103,16 @@ func editorSwitch(method int, args []any) ([]byte) {
 		return setup.ConfigSave(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
-	case UNZIP:
-		return serialize.SerializeBoolean(utils.Unzip(args[0].(string), args[1].([]byte)))
+	case ARCHIVE_UNZIP:
+		destination := path.Join(setup.Directories.Root, args[0].(string))
+
+		// the unzip methood is useful for Android and WASM
+		// allow to unzip out of the root dir
+		if(len(args) > 2 && args[2].(bool)) {
+			destination = args[0].(string)
+		}
+
+		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
 	}
 
 	return nil

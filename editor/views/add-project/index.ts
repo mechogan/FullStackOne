@@ -32,16 +32,12 @@ export function AddProject() {
     //         BG_COLOR
     //     );
 
-    // const importZipButton = Button({
-    //     text: "Import zip",
-    //     iconLeft: "Archive"
-    // });
-    // importZipButton.id = IMPORT_ZIP_ID;
-    // importZipButton.onclick = () =>
-    //     stackNavigation.navigate(
-    //         ImportZip({ didImportProject: onProjectCreation }),
-    //         BG_COLOR
-    //     );
+    const importZipButton = Button({
+        text: "Import zip",
+        iconLeft: "Archive"
+    });
+    importZipButton.id = IMPORT_ZIP_ID;
+    importZipButton.onclick = ImportZip
 
     const createEmptyButton = Button({
         text: "Create empty project",
@@ -51,7 +47,7 @@ export function AddProject() {
 
     buttonsContainer.append(
         // cloneGitButton, 
-        // importZipButton, 
+        importZipButton, 
         createEmptyButton
     );
     container.append(buttonsContainer);

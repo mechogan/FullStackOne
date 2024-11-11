@@ -9,6 +9,7 @@ import { BridgeWindows } from "./bridge/windows";
 const platform = (await (await fetch("/platform")).text()) as Platform;
 
 switch (platform) {
+    case Platform.DOCKER:
     case Platform.NODE:
         ipc.bridge = BridgeNode;
         break;
@@ -25,8 +26,6 @@ switch (platform) {
         ipc.bridge = BridgeWindows;
         break;
     case Platform.ELECTRON:
-    case Platform.DOCKER:
-    case Platform.WEBCONTAINER:
         console.log("Bridge not yet implemented");
 }
 

@@ -39,7 +39,10 @@ let payload = new Uint8Array([
     ...editorDir,
     4, // BUFFER
     ...numberTo4Bytes(editorZip.length),
-    ...editorZip
+    ...editorZip,
+    1, // BOOLEAN
+    ...numberTo4Bytes(1),
+    1
 ])
 const unzipResult = deserializeArgs(call(payload)).at(0)
 if (!unzipResult) {

@@ -1,25 +1,16 @@
-import { serializeArgs } from "./serialization";
+import { ipc } from ".";
+import { serializeArgs } from "../serialization";
 
-export const ipc = {
-    bridge: null as (
-        payload: Uint8Array,
-        transformer?: (responseArgs: any[]) => any
-    ) => any,
-    methods: {
-        fs: {
-            readFile,
-            writeFile,
-            // unlink
-            readdir,
-            mkdir
-            // rmdir
-            // exists
-            // rename
-        }
-        // fetch: () => any
-        // broadcast: () => null
-    }
-};
+export const fs = {
+    readFile,
+    writeFile,
+    // unlink
+    readdir,
+    mkdir,
+    // rmdir
+    // exists
+    rename
+}
 
 const te = new TextEncoder();
 
@@ -99,6 +90,16 @@ function mkdir(path: string) {
     const payload = new Uint8Array([
         6,
         ...serializeArgs([path])
+    ]);
+
+    return ipc.bridge(payload, ([success]) => success);
+}
+
+// 9
+function rename(oldPath: string, newPath: string) {
+    const payload = new Uint8Array([
+        9,
+        ...serializeArgs([oldPath, newPath])
     ]);
 
     return ipc.bridge(payload, ([success]) => success);

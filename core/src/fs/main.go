@@ -14,7 +14,7 @@ func ReadFile(path string) ([]byte, error) {
 	fileData := ([]byte)(nil)
 	err := (error)(nil)
 
-	if(WASM) {
+	if WASM {
 		fileData, err = vReadFile(path)
 	} else {
 		fileData, err = os.ReadFile(path)
@@ -30,7 +30,7 @@ func ReadFile(path string) ([]byte, error) {
 func ReadFileSerialized(path string, asString bool) []byte {
 	fileData, err := ReadFile(path)
 
-	if(err != nil) {
+	if err != nil {
 		return nil
 	}
 
@@ -44,7 +44,7 @@ func ReadFileSerialized(path string, asString bool) []byte {
 func WriteFile(path string, data []byte) error {
 	err := (error)(nil)
 
-	if(WASM) {
+	if WASM {
 		err = vWriteFile(path, data)
 	} else {
 		err = os.WriteFile(path, data, 0644)
@@ -58,58 +58,86 @@ func WriteFileSerialized(path string, data []byte) []byte {
 	return serialize.SerializeBoolean(err != nil)
 }
 
+func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
+	items := []SmallFileInfo{}
+
+	if WASM {
+		items = vReadDir(path, recursive)
+	} else {
+
+		if recursive {
+			err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+
+				items = append(items, SmallFileInfo{
+					Name:  path,
+					IsDir: d.IsDir(),
+				})
+
+				return nil
+			})
+
+			if err != nil {
+				return nil, err
+			}
+		} else {
+
+			entries, err := os.ReadDir(path)
+
+			if err != nil {
+				return nil, err
+			}
+
+			for _, item := range entries {
+				items = append(items, SmallFileInfo{
+					Name: item.Name(),
+					IsDir: item.IsDir(),
+				})
+			}
+		}
+	}
+
+	return items, nil
+}
 
 func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
-	bytes := []byte{}
+	items := ([]SmallFileInfo)(nil)
+	err := (error)(nil)
 
-	if(recursive) {
-		err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-			if(err != nil) {
-				return err
-			}
-
-			bytes = append(bytes, serialize.SerializeString(path)...)
-
-			if(withFileTypes) {
-				bytes = append(bytes, serialize.SerializeBoolean(d.IsDir())...)
-			}
-
-			return nil
-		})
+	if(WASM) {
+		items = vReadDir(path, recursive)
+	} else {
+		items, err = ReadDir(path, recursive)
 
 		if(err != nil) {
 			return nil
 		}
-
-		return bytes
 	}
 
-	items, err := os.ReadDir(path)
+	bytes := []byte{}
+	for _, item := range items {
 
-	if(err != nil) {
-		return nil
-	}
+		bytes = append(bytes, serialize.SerializeString(item.Name)...)
 
-	for _, item  := range items {
-		bytes = append(bytes, serialize.SerializeString(item.Name())...)
-
-		if(withFileTypes) {
-			bytes = append(bytes, serialize.SerializeBoolean(item.IsDir())...)
+		if withFileTypes {
+			bytes = append(bytes, serialize.SerializeBoolean(item.IsDir)...)
 		}
 	}
 
-	return bytes;
+	return bytes
 }
 
 func Mkdir(path string) bool {
 	err := (error)(nil)
 
-	if(WASM) {
-		err = vMkDir(path)
+	if WASM {
+		err = vMkdir(path)
 	} else {
 		err = os.MkdirAll(path, 0755)
 	}
-	
+
 	return err == nil
 }
 
@@ -118,21 +146,20 @@ func MkdirSerialized(path string) []byte {
 }
 
 type SmallFileInfo struct {
-	Name string 
-	Size int64 
-	ModTime time.Time 
-	IsDir bool 
+	Name    string
+	Size    int64
+	ModTime time.Time
+	IsDir   bool
 }
 
-
 func Stat(path string) (*SmallFileInfo, error) {
-	if(WASM) {
+	if WASM {
 		return vStat(path)
-	} 
-	
-	fileInfo, err := os.Stat(path);
+	}
 
-	if(err != nil) {
+	fileInfo, err := os.Stat(path)
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -146,4 +173,20 @@ func Stat(path string) (*SmallFileInfo, error) {
 
 func StatSerialized(path string) {
 
+}
+
+func Rename(oldPath string, newPath string) bool {
+	err := (error)(nil)
+
+	if WASM {
+		err = vRename(oldPath, newPath)
+	} else {
+		err = os.Rename(oldPath, newPath)
+	}
+
+	return err == nil
+}
+
+func RenameSerialized(oldPath string, newPath string) []byte {
+	return serialize.SerializeBoolean(Rename(oldPath, newPath))
 }

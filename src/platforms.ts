@@ -4,7 +4,6 @@ export enum Platform {
     ANDROID = "android",
     ELECTRON = "electron",
     DOCKER = "docker",
-    WEBCONTAINER = "webcontainer",
     WINDOWS = "windows",
     WASM = "wasm"
 }
