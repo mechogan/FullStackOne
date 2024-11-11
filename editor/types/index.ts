@@ -8,7 +8,7 @@ export enum CONFIG_TYPE {
 
 export type CONFIG_DATA_TYPE = {
     [CONFIG_TYPE.PROJECTS]: {
-        projects: Project[]
+        projects: Project[];
     };
     [CONFIG_TYPE.GIT]: GitAuths;
     [CONFIG_TYPE.CONNECTIVITY]: Connectivity;

@@ -4,7 +4,6 @@ import esbuild from "esbuild";
 import child_process from "child_process";
 import AdmZip from "adm-zip";
 
-
 const production = process.argv.includes("--production");
 
 // TypeScript fix for JSC (Safari/WebKit) memory leak
@@ -31,11 +30,10 @@ if (textBlockToUpdate) {
 
 // END fix
 
-
 const outDir = "out";
 const outDirEditor = `${outDir}/editor`;
 const outBaseFileJs = `${outDirEditor}/base.js`;
-const outTsLib = `${outDirEditor}/tsLib`
+const outTsLib = `${outDirEditor}/tsLib`;
 
 if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true });
@@ -56,17 +54,19 @@ const toBuild = [
 
 for (const [input, output] of toBuild) {
     esbuild.buildSync({
-        entryPoints: [{
-            in: input,
-            out: output
-        }],
+        entryPoints: [
+            {
+                in: input,
+                out: output
+            }
+        ],
         bundle: true,
         format: "esm",
         outdir: outDirEditor,
         sourcemap: production ? false : "external",
         splitting: false,
         minify: production
-    })
+    });
 }
 
 fs.cpSync("editor/index.html", `${outDirEditor}/index.html`);
@@ -84,7 +84,10 @@ const scrollbarsStyle = "editor/style/globals/scrollbars.scss";
 const scrollbarsCSS = await sass.compileAsync(scrollbarsStyle, {
     style: production ? "compressed" : "expanded"
 });
-await fs.promises.writeFile(`${outDirEditor}/scrollbars.css`, scrollbarsCSS.css);
+await fs.promises.writeFile(
+    `${outDirEditor}/scrollbars.css`,
+    scrollbarsCSS.css
+);
 
 fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
     recursive: true
@@ -92,8 +95,8 @@ fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
 
 const sampleDemoDir = "editor-sample-demo";
 if (fs.existsSync(sampleDemoDir)) {
-    const zip = new AdmZip()
-    zip.addLocalFolder(sampleDemoDir, "", (file) => !file.startsWith(".git"))
+    const zip = new AdmZip();
+    zip.addLocalFolder(sampleDemoDir, "", (file) => !file.startsWith(".git"));
     zip.writeZip(`${outDirEditor}/Demo.zip`);
 }
 
@@ -135,6 +138,6 @@ if (!process.argv.includes("--no-zip")) {
     const outZip = `${outZipDir}/editor.zip`;
     const zip = new AdmZip();
     zip.addLocalFolder(outDirEditor);
-    fs.mkdirSync(outZipDir, { recursive: true })
+    fs.mkdirSync(outZipDir, { recursive: true });
     zip.writeZip(outZip);
 }

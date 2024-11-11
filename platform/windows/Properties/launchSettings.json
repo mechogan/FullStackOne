@@ -1,10 +1,10 @@
 {
-  "profiles": {
-    "windows (Package)": {
-      "commandName": "MsixPackage"
-    },
-    "windows (Unpackaged)": {
-      "commandName": "Project"
+    "profiles": {
+        "windows (Package)": {
+            "commandName": "MsixPackage"
+        },
+        "windows (Unpackaged)": {
+            "commandName": "Project"
+        }
     }
-  }
 }

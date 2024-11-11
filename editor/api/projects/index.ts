@@ -11,7 +11,7 @@ import api from "..";
 import { ipcEditor } from "../../ipc";
 
 const list = async () => {
-    const projects = (await config.load(CONFIG_TYPE.PROJECTS));
+    const projects = await config.load(CONFIG_TYPE.PROJECTS);
 
     // MIGRATION 2024-07-18 : add project ID
     let save = false;

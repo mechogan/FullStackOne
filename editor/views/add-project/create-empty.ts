@@ -6,7 +6,6 @@ import { Store } from "../../store";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
 
-
 export function CreateEmpty() {
     const container = document.createElement("div");
     container.classList.add("view", "create-form");
@@ -51,7 +50,7 @@ export function CreateEmpty() {
                 title: inputTitle.input.value,
                 id
             })
-            .then(() => stackNavigation.back())
+            .then(() => stackNavigation.back());
     };
 
     form.append(inputTitle.container, inputIdentifier.container, createButton);

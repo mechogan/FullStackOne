@@ -1,11 +1,9 @@
 import { Button } from "../../components/primitives/button";
+import { Project } from "../../types";
 import { CodeEditor } from "./code-editor";
 
-type EditorOpts = {
-    directory: string;
-};
 
-export function Editor(opts: EditorOpts) {
+export function Editor(project: Project) {
     const container = document.createElement("div");
     container.classList.add("editor");
 

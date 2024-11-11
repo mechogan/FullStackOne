@@ -1,9 +1,9 @@
 import { createSubscribable } from ".";
-import { CONFIG_TYPE, Project } from "../types"
+import { CONFIG_TYPE, Project } from "../types";
 import { ipcEditor } from "./ipc";
 
 const list = createSubscribable(listP, []);
-const filterValue = createSubscribable(() => filterP)
+const filterValue = createSubscribable(() => filterP);
 
 export const projects = {
     list: list.subscription,
@@ -14,14 +14,14 @@ export const projects = {
         value: filterValue.subscription,
         set: setFilter
     }
-}
+};
 
 async function listP() {
     const { projects } = await ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
     return projects || [];
 }
 
-let filterP = ""
+let filterP = "";
 function setFilter(value: string) {
     filterP = value;
     filterValue.notify();
@@ -31,7 +31,7 @@ async function create(project: Omit<Project, "createdDate">) {
     const newProject: Project = {
         ...project,
         createdDate: Date.now()
-    }
+    };
     const projects = await listP();
     projects.push(newProject);
     await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
@@ -49,4 +49,6 @@ async function deleteP(project: Project) {
     projects.splice(indexOf, 1);
     await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
+    
+    ipcEditor.fs.rmdir(project.id);
 }

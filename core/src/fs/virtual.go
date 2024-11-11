@@ -26,6 +26,11 @@ func vWriteFile(path string, data []byte) error {
 	return nil
 }
 
+func vUnlink(path string) error {
+	delete(virtFS, path)
+	return nil
+}
+
 func vMkdir(path string) error {
 	for _, dir := range virtDirs {
 		if dir == path {
@@ -35,6 +40,46 @@ func vMkdir(path string) error {
 
 	virtDirs = append(virtDirs, path)
 	return nil
+}
+
+func vRmdir(path string) error {
+	indexesToRemove := []int{}
+
+	for i, dir := range virtDirs {
+		if strings.HasPrefix(dir, path) {
+			indexesToRemove = append(indexesToRemove, i)
+		}
+	}
+
+	for i := len(indexesToRemove) - 1; i >= 0; i-- {
+		indexToRemove := indexesToRemove[i]
+		virtDirs[indexToRemove] = virtDirs[len(virtDirs)-1]
+		virtDirs = virtDirs[:len(virtDirs)-1]
+	}
+
+	for file := range virtFS {
+		if strings.HasPrefix(file, path) {
+			delete(virtFS, file)
+		}
+	}
+
+	return nil
+}
+
+func vExists(path string) (bool, bool) {
+	for _, dir := range virtDirs {
+		if(path == dir) {
+			return true, false
+		}
+	}
+
+	for file := range virtFS {
+		if(file == path) {
+			return true, true
+		}
+	}
+
+	return false, false
 }
 
 func vStat(path string) (*SmallFileInfo, error) {
@@ -82,7 +127,6 @@ func vRename(oldPath string, newPath string) error {
 	return nil
 }
 
-
 func splitPath(filePath string) []string {
 	pathComponents := []string{}
 	remaining := filePath
@@ -91,23 +135,21 @@ func splitPath(filePath string) []string {
 		dir, file := path.Split(remaining)
 		pathComponents = append(pathComponents, file)
 
-		if(dir == "") {
+		if dir == "" {
 			break
 		}
 
-		remaining = dir[:len(dir) - 2]
+		remaining = dir[:len(dir)-1]
 	}
-	
+
 	reversed := make([]string, len(pathComponents))
 
 	for i := range reversed {
-		reversed[i] = pathComponents[len(pathComponents) - 1 - i]
+		reversed[i] = pathComponents[len(pathComponents)-1-i]
 	}
 
 	return reversed
 }
-
-
 
 func vReadDir(path string, recursive bool) []SmallFileInfo {
 	items := []SmallFileInfo{}
@@ -115,12 +157,12 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 	pathComponents := splitPath(path)
 
 	for _, dir := range virtDirs {
-		if(strings.HasPrefix(dir, path)) {
-			dirComponents := splitPath(dir);
+		if strings.HasPrefix(dir, path) {
+			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
-			if(recursive || len(dirComponents) - len(pathComponents) == 1) {
+			if recursive || len(dirComponents)-len(pathComponents) == 1 {
 				items = append(items, SmallFileInfo{
-					Name: relativeName,
+					Name:  relativeName,
 					IsDir: true,
 				})
 			}
@@ -128,12 +170,12 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 	}
 
 	for file := range virtFS {
-		if(strings.HasPrefix(file, path)) {
-			fileComponents := splitPath(file);
+		if strings.HasPrefix(file, path) {
+			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)
-			if(recursive || len(fileComponents) - len(pathComponents) == 1) {
+			if recursive || len(fileComponents)-len(pathComponents) == 1 {
 				items = append(items, SmallFileInfo{
-					Name: relativeName,
+					Name:  relativeName,
 					IsDir: false,
 				})
 			}

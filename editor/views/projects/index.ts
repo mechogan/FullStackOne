@@ -1,6 +1,11 @@
 import { Button } from "../../components/primitives/button";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { BG_COLOR, PROJECTS_TITLE, PROJECTS_VIEW_ID, SETTINGS_BUTTON_ID } from "../../constants";
+import {
+    BG_COLOR,
+    PROJECTS_TITLE,
+    PROJECTS_VIEW_ID,
+    SETTINGS_BUTTON_ID
+} from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { List } from "./list";
 import { SearchAdd } from "./search-add";
@@ -16,10 +21,7 @@ export function Projects() {
 
     const list = List();
 
-    scrollable.append(
-        SearchAdd(),
-        list
-    )
+    scrollable.append(SearchAdd(), list);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
@@ -27,7 +29,7 @@ export function Projects() {
             topBar.destroy();
             list.destroy();
         }
-    })
+    });
 }
 
 function TopBar() {

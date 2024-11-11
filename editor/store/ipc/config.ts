@@ -1,9 +1,6 @@
 import { ipc } from "../../../src/ipc";
 import { serializeArgs } from "../../../src/serialization";
-import {
-    CONFIG_DATA_TYPE,
-    CONFIG_TYPE,
-} from "../../types";
+import { CONFIG_DATA_TYPE, CONFIG_TYPE } from "../../types";
 
 export const config = {
     get,
@@ -16,16 +13,16 @@ function get<T extends CONFIG_TYPE>(
     const payload = new Uint8Array([12, ...serializeArgs([configType])]);
 
     const transformer = ([string]) => {
-        if(!string) return {};
+        if (!string) return {};
 
         // MIGRATION 0.9.0 -> 0.10.0 | 08-10-2024
         // no array at json root
 
         let json = JSON.parse(string);
-        if(configType === CONFIG_TYPE.PROJECTS && Array.isArray(json)) {
+        if (configType === CONFIG_TYPE.PROJECTS && Array.isArray(json)) {
             json = {
                 projects: json
-            }
+            };
         }
 
         // END

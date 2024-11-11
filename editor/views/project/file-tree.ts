@@ -4,8 +4,8 @@ import { Button, ButtonGroup } from "../../components/primitives/button";
 import { Icon } from "../../components/primitives/icon";
 import { InputText } from "../../components/primitives/inputs";
 import { NEW_FILE_ID } from "../../constants";
-import { ipcEditor } from "../../ipc";
-import rpc from "../../rpc";
+import { ipcEditor } from "../../store/ipc";
+import { Project } from "../../types";
 import { WorkerTS } from "../../typescript";
 import { CodeEditor } from "./code-editor";
 
@@ -17,46 +17,28 @@ let activeItem: {
     el?: HTMLLIElement;
 };
 
-type FileTreeOpts = {
-    directory: string;
-    onClosePanel: () => void;
-};
 
-export function FileTree(opts: FileTreeOpts) {
-    openedDirectory.clear();
-    activeItem = null;
-
+export function FileTree(project: Project) {
     const container = document.createElement("div");
     container.classList.add("file-tree");
 
-    const topActions = document.createElement("div");
+    container.append(
+        TopActions(),
+        TreeRecursive(project.id)
+    )
+
+    return container;
+}
+
+function TopActions() {
+    const container = document.createElement("div");
 
     const left = document.createElement("div");
     const toggleWidth = Button({
         style: "icon-small",
         iconLeft: "Side Panel"
     });
-    toggleWidth.onclick = opts.onClosePanel;
     left.append(toggleWidth);
-
-    const reloadFileTree = () => {
-        WorkerTS.call().invalidateWorkingDirectory();
-
-        TreeRecursive({
-            directory: opts.directory,
-            didDeleteOrRenameItem: reloadFileTree
-        }).then((updatedTreeRoot) => {
-            treeRoot.replaceWith(updatedTreeRoot);
-            treeRoot = updatedTreeRoot;
-        });
-
-        if (!treeRoot) treeRoot = document.createElement("ul");
-    };
-
-    const treeContainer = document.createElement("div");
-    let treeRoot: Awaited<ReturnType<typeof TreeRecursive>>;
-    reloadFileTree();
-    treeContainer.append(treeRoot);
 
     const right = document.createElement("div");
     const newFileButton = Button({
@@ -64,296 +46,58 @@ export function FileTree(opts: FileTreeOpts) {
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () =>
-        AddFile({
-            baseDirectory: opts.directory,
-            treeRoot,
-            didCreateItem: reloadFileTree
-        });
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () =>
-        AddDirectory({
-            baseDirectory: opts.directory,
-            treeRoot,
-            didCreateItem: reloadFileTree
-        });
 
     const uploadButton = Button({
         style: "icon-small",
         iconLeft: "Upload"
     });
-    uploadButton.classList.add("import-file");
-    const form = document.createElement("form");
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-
-    fileInput.onchange = async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const data = new Uint8Array(await file.arrayBuffer());
-
-        const directory = activeItem
-            ? activeItem.isDirectory
-                ? activeItem.path
-                : activeItem.path.split("/").slice(0, -1).join("/")
-            : opts.directory;
-
-        rpc()
-            .fs.writeFile(`${directory}/${file.name}`, data, {
-                absolutePath: true
-            })
-            .then(() => reloadFileTree());
-
-        form.reset();
-    };
-
-    form.append(fileInput);
-    uploadButton.append(form);
-
-    uploadButton.onclick = () => fileInput.click();
 
     right.append(newFileButton, newDirectoryButton, uploadButton);
 
-    topActions.append(left, right);
 
-    container.append(topActions, treeContainer);
+    container.append(
+        left,
+        right
+    )
 
-    return { container, reloadFileTree };
+    return container
 }
 
-type TreeRecursiveOpts = {
-    directory: string;
-    didDeleteOrRenameItem: () => void;
-};
 
-async function TreeRecursive(opts: TreeRecursiveOpts) {
+function TreeRecursive(directory: string) {
     const container = document.createElement("ul");
 
-    const contents = await ipcEditor.fs.readdir(opts.directory, {
-        withFileTypes: true
-    });
+    ipcEditor.fs.readdir(directory, { withFileTypes: true })
+        .then(items => {
+            const itemsElements = items
+                .filter(
+                    ({ name }) => !name.startsWith(".build") && !name.startsWith(".git")
+                )
+                .sort((a, b) => {
+                    if (a.isDirectory && !b.isDirectory) {
+                        return -1;
+                    } else if (!a.isDirectory && b.isDirectory) {
+                        return 1;
+                    }
 
-    const items = contents
-        .filter(
-            ({ name }) => !name.startsWith(".build") && !name.startsWith(".git")
-        )
-        .sort((a, b) => {
-            if (a.isDirectory && !b.isDirectory) {
-                return -1;
-            } else if (!a.isDirectory && b.isDirectory) {
-                return 1;
-            }
-
-            return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
+                    return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
+                })
+                .map((dirent) => Item(directory, dirent));
+            container.append(...itemsElements);
         })
-        .map((dirent) =>
-            Item({
-                directory: opts.directory,
-                dirent,
-                didDeleteOrRename: opts.didDeleteOrRenameItem
-            })
-        );
-
-    container.append(...items);
 
     return container;
 }
 
-type ItemOpts = {
-    directory: string;
-    dirent: Dirent;
-    didDeleteOrRename: () => void;
-};
-
-function Item(opts: ItemOpts) {
-    const path = opts.directory + "/" + opts.dirent.name;
+function Item(parentDirectory: string, itemDirent: Dirent) {
     const item = document.createElement("li");
 
-    const nameAndOptions = document.createElement("div");
-    nameAndOptions.classList.add("name-and-options");
-    item.append(nameAndOptions);
-
-    const nameContainer = document.createElement("div");
-    nameContainer.classList.add("name");
-    nameContainer.innerHTML = `<span>${opts.dirent.name}</span>`;
-    nameAndOptions.append(nameContainer);
-
-    const isDirectory =
-        typeof opts.dirent.isDirectory === "function"
-            ? opts.dirent.isDirectory()
-            : opts.dirent.isDirectory;
-
-    let children: HTMLUListElement;
-    const openDirectory = async () => {
-        item.classList.add("opened");
-        children = await TreeRecursive({
-            directory: path,
-            didDeleteOrRenameItem: opts.didDeleteOrRename
-        });
-        item.append(children);
-        openedDirectory.add(path);
-    };
-
-    if (isDirectory) {
-        const icon = Icon("Caret");
-        nameContainer.prepend(icon);
-
-        if (openedDirectory.has(path)) {
-            openDirectory();
-        }
-    }
-
-    const setActive = () => {
-        activeItem?.el?.classList?.remove("active");
-        activeItem = {
-            path,
-            isDirectory,
-            open: isDirectory ? openDirectory : null,
-            el: item
-        };
-        item.classList.add("active");
-    };
-
-    nameAndOptions.onclick = () => {
-        if (isDirectory) {
-            if (children) {
-                if (activeItem?.path === path) {
-                    item.classList.remove("opened");
-                    children.remove();
-                    children = null;
-                    openedDirectory.delete(path);
-                }
-            } else {
-                openDirectory();
-            }
-        } else {
-            CodeEditor.addFile(path);
-        }
-
-        setActive();
-    };
-
-    const options = Button({
-        style: "icon-small",
-        iconLeft: "Options"
-    });
-
-    options.onclick = (e) => {
-        e.stopPropagation();
-
-        const renameButton = Button({
-            text: "Rename",
-            iconLeft: "Edit"
-        });
-        renameButton.onclick = () => {
-            const form = ItemInputForm({
-                initialValue: opts.dirent.name,
-                directory: opts.directory,
-                forDirectory: isDirectory,
-                didSubmit: async (directory, name) => {
-                    if (!name) return;
-                    const newPath = directory + "/" + name;
-
-                    let pathToReplace = [
-                        {
-                            oldPath: path,
-                            newPath: newPath
-                        }
-                    ];
-                    if (isDirectory) {
-                        const directoryContent = (await rpc().fs.readdir(path, {
-                            recursive: true,
-                            absolutePath: true
-                        })) as string[];
-                        pathToReplace = directoryContent.map((item) => ({
-                            oldPath: `${path}/${item}`,
-                            newPath: `${newPath}/${item}`
-                        }));
-                    }
-
-                    if (activeItem.path === path) {
-                        activeItem = {
-                            path: newPath
-                        };
-                    }
-
-                    rpc()
-                        .fs.rename(path, newPath, { absolutePath: true })
-                        .then(() => {
-                            opts.didDeleteOrRename();
-                            pathToReplace.forEach(({ oldPath, newPath }) => {
-                                CodeEditor.replacePath(oldPath, newPath);
-                            });
-                        });
-                }
-            });
-
-            nameAndOptions.replaceWith(form);
-        };
-
-        const deleteButton = Button({
-            text: "Delete",
-            iconLeft: "Trash",
-            color: "red"
-        });
-        deleteButton.onclick = () => {
-            if (activeItem.path === path) {
-                activeItem = null;
-            }
-
-            if (isDirectory) {
-                rpc()
-                    .fs.readdir(path, { recursive: true, absolutePath: true })
-                    .then((files: string[]) => {
-                        files.forEach((file) => {
-                            CodeEditor.remove(`${path}/${file}`);
-                        });
-
-                        rpc()
-                            .fs.rmdir(path, { absolutePath: true })
-                            .then(opts.didDeleteOrRename);
-                    });
-            } else {
-                CodeEditor.remove(path, true);
-                rpc()
-                    .fs.unlink(path, { absolutePath: true })
-                    .then(opts.didDeleteOrRename);
-            }
-        };
-
-        const parentList = item.parentElement;
-        const isRootList = parentList.parentElement.tagName === "DIV";
-        let shouldDisplayOptionsReversed = false;
-        if (isRootList && parentList.children.length > 4) {
-            const indexOf = Array.from(parentList.children).indexOf(item);
-            shouldDisplayOptionsReversed =
-                parentList.children.length - indexOf <= 2;
-        }
-
-        Popover({
-            anchor: options,
-            content: ButtonGroup(
-                shouldDisplayOptionsReversed
-                    ? [deleteButton, renameButton]
-                    : [renameButton, deleteButton]
-            ),
-            align: {
-                y: shouldDisplayOptionsReversed ? "bottom" : "top",
-                x: "right"
-            }
-        });
-    };
-
-    nameAndOptions.append(options);
-
-    if (activeItem?.path === path) {
-        setActive();
-    }
+    item.innerText = itemDirent.name;
 
     return item;
 }

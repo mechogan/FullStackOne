@@ -5,7 +5,7 @@ export const BridgeWasm: typeof ipc.bridge = async (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
-    const response = globalThis.lib.call(payload)
+    const response = globalThis.lib.call(payload);
     const args = deserializeArgs(response);
 
     if (transformer) {

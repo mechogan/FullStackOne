@@ -27,7 +27,7 @@ func SerializeNumberToBytes(num int) []byte {
 func SerializeBoolean(value bool) []byte {
 	bytes := []byte{BOOLEAN}
 	bytes = append(bytes, SerializeNumberToBytes(1)...)
-	if(value) {
+	if value {
 		bytes = append(bytes, 1)
 	} else {
 		bytes = append(bytes, 0)
@@ -69,7 +69,7 @@ func DeserializeArgs(data []byte) (int, []any) {
 	cursor := 0
 
 	method := int(data[cursor])
-	cursor++;
+	cursor++
 
 	var args []any
 

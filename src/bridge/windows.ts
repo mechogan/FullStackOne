@@ -26,14 +26,14 @@ export const BridgeWindows: typeof ipc.bridge = async (
     return new Promise((resolve) => {
         requests.set(requestId, (data) => {
             const args = deserializeArgs(data);
-            
+
             if (transformer) {
                 return resolve(transformer(args));
             }
 
             resolve(args);
         });
-        
+
         globalThis.chrome.webview.postMessage(base64);
     });
 };

@@ -20,7 +20,7 @@ func directories(this js.Value, args []js.Value) interface{} {
 }
 
 func call(this js.Value, args []js.Value) interface{} {
-	payload := make([]byte, args[0].Get("length").Int());
+	payload := make([]byte, args[0].Get("length").Int())
 	_ = js.CopyBytesToGo(payload, args[0])
 
 	response := methods.Call(payload)
@@ -38,7 +38,7 @@ func main() {
 	fs.WASM = true
 
 	js.Global().Set("directories", js.FuncOf(directories))
-    js.Global().Set("call", js.FuncOf(call))
+	js.Global().Set("call", js.FuncOf(call))
 
-    <-c
+	<-c
 }

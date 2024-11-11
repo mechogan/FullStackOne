@@ -7,17 +7,18 @@ import { createRefresheable } from "../../components/refresheable";
 import { PROJECTS_VIEW_ID, BG_COLOR } from "../../constants";
 import { Store } from "../../store";
 import { Project as ProjectType } from "../../types";
+import { Project } from "../project";
 
-export function List(){
+export function List() {
     const container = createElement("div");
 
     const grid = createRefresheable(Grid);
     Store.projects.list.subscribe(grid.refresh);
     container.ondestroy = () => {
         grid.element.destroy();
-        Store.projects.list.unsubscribe(grid.refresh)
-    }
-    container.append(grid.element)
+        Store.projects.list.unsubscribe(grid.refresh);
+    };
+    container.append(grid.element);
 
     return container;
 }
@@ -35,8 +36,6 @@ const fuseOptions: IFuseOptions<ProjectType> = {
     ]
 };
 
-
-
 function Grid(projects: ProjectType[]) {
     const container = createElement("div");
 
@@ -44,14 +43,16 @@ function Grid(projects: ProjectType[]) {
 
     const filteredGrid = createRefresheable(GridFiltered);
 
-    const filter: Parameters<typeof Store.projects.filter.value.subscribe>[0] = (searchString) => {
-        if(!searchString) {
-            filteredGrid.refresh(projects)
+    const filter: Parameters<
+        typeof Store.projects.filter.value.subscribe
+    >[0] = (searchString) => {
+        if (!searchString) {
+            filteredGrid.refresh(projects);
         } else {
             const fuseResults = fuse.search(searchString);
-            filteredGrid.refresh(fuseResults.map(({ item }) => item))
+            filteredGrid.refresh(fuseResults.map(({ item }) => item));
         }
-    }
+    };
 
     Store.projects.filter.value.subscribe(filter);
     container.ondestroy = () => Store.projects.filter.value.unsubscribe(filter);
@@ -68,7 +69,7 @@ function GridFiltered(projects: ProjectType[]) {
         .sort((a, b) => b.createdDate - a.createdDate)
         .map(ProjectTile);
 
-    container.append(...projectsTiles)
+    container.append(...projectsTiles);
 
     return container;
 }
@@ -77,7 +78,7 @@ function ProjectTile(project: ProjectType) {
     const container = document.createElement("div");
     container.classList.add("project-tile");
 
-    // container.onclick = () => Project(null)
+    container.onclick = () => Project(project)
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");
@@ -130,7 +131,7 @@ function ProjectTile(project: ProjectType) {
             deleteButton.onclick = () => {
                 remove();
                 Store.projects.deleteP(project);
-            }
+            };
         };
 
         const shareButton = Button({

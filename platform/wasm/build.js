@@ -2,7 +2,7 @@ import fs from "fs";
 import esbuild from "esbuild";
 
 if (fs.existsSync("bin")) {
-    fs.rmSync("bin", { recursive: true })
+    fs.rmSync("bin", { recursive: true });
 }
 fs.mkdirSync("bin");
 
@@ -16,4 +16,4 @@ esbuild.buildSync({
     outfile: "index.js",
     bundle: true,
     format: "esm"
-})
+});

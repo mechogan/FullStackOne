@@ -10,12 +10,12 @@ import (
 )
 
 func Serve(baseDir string, filePath string) []byte {
-	if(strings.HasPrefix(filePath, "/")) {
+	if strings.HasPrefix(filePath, "/") {
 		filePath = filePath[1:]
 	}
 
-	if(strings.HasSuffix(filePath, "/")) {
-		filePath = filePath[:len(filePath) - 1]
+	if strings.HasSuffix(filePath, "/") {
+		filePath = filePath[:len(filePath)-1]
 	}
 
 	filePathComponents := []string{baseDir}
@@ -23,22 +23,21 @@ func Serve(baseDir string, filePath string) []byte {
 	filePathAbs := path.Join(filePathComponents...)
 
 	fileStat, err := fs.Stat(filePathAbs)
-	if(err != nil) {
+	if err != nil {
 		return nil
 	}
 
-	if(fileStat.IsDir) {
+	if fileStat.IsDir {
 		filePathAbs += "/index.html"
 		_, err := fs.Stat(filePathAbs)
-		if(err != nil) {
+		if err != nil {
 			return nil
 		}
 	}
 
 	fileExtComponents := strings.Split(filePathAbs, ".")
-	ext := fileExtComponents[len(fileExtComponents) - 1]
-	mimeType := strings.Split(mime.TypeByExtension("." + ext), ";")[0]
-
+	ext := fileExtComponents[len(fileExtComponents)-1]
+	mimeType := strings.Split(mime.TypeByExtension("."+ext), ";")[0]
 
 	data := serialize.SerializeString(mimeType)
 	data = append(data, fs.ReadFileSerialized(filePathAbs, false)...)

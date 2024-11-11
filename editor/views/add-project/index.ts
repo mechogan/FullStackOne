@@ -7,7 +7,6 @@ import { CloneGit } from "./clone-git";
 import { CreateEmpty } from "./create-empty";
 import { ImportZip } from "./import-zip";
 
-
 export function AddProject() {
     const container = document.createElement("div");
     container.id = "add-project";
@@ -37,17 +36,17 @@ export function AddProject() {
         iconLeft: "Archive"
     });
     importZipButton.id = IMPORT_ZIP_ID;
-    importZipButton.onclick = ImportZip
+    importZipButton.onclick = ImportZip;
 
     const createEmptyButton = Button({
         text: "Create empty project",
         iconLeft: "Glitter"
     });
-    createEmptyButton.onclick = CreateEmpty
+    createEmptyButton.onclick = CreateEmpty;
 
     buttonsContainer.append(
-        // cloneGitButton, 
-        importZipButton, 
+        // cloneGitButton,
+        importZipButton,
         createEmptyButton
     );
     container.append(buttonsContainer);
@@ -56,11 +55,11 @@ export function AddProject() {
     // go back
     const goBackOnNewProject = () => stackNavigation.back();
     Store.projects.list.subscribe(goBackOnNewProject);
-    
+
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
             Store.projects.list.unsubscribe(goBackOnNewProject);
         }
-    })
+    });
 }

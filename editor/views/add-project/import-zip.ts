@@ -11,7 +11,6 @@ import { title } from "process";
 import slugify from "slugify";
 import { Store } from "../../store";
 
-
 export function ImportZip() {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
@@ -35,15 +34,15 @@ export function ImportZip() {
         if (!file) return;
         zipFileInput.input.disabled = true;
         loadZipFile(file, scrollable).then(() => {
-            stackNavigation.back()
+            stackNavigation.back();
         });
-    }
+    };
 
     scrollable.append(form);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR
-    })
+    });
 }
 
 export function CreateLoader(opts: { text: string }) {
@@ -72,7 +71,6 @@ export function ConsoleTerminal() {
     return { container, text, logger };
 }
 
-
 async function loadZipFile(file: File, scrollable: HTMLElement) {
     const loader = CreateLoader({
         text: "Importing Project..."
@@ -94,7 +92,7 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     await ipcEditor.archive.unzip(tmpDir, zipData);
 
     consoleTerminal.text.innerText += `Looking for .fullstacked file\n`;
-    const contents = await ipcEditor.fs.readdir(tmpDir)
+    const contents = await ipcEditor.fs.readdir(tmpDir);
 
     // remove .zip extension
     const defaultName = file.name.split(".").slice(0, -1).join(".");
@@ -102,24 +100,26 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     const project: Parameters<typeof Store.projects.create>[0] = {
         title: defaultName,
         id: slugify(defaultName, { lower: true })
-    }
+    };
 
     if (contents.includes(".fullstacked")) {
         try {
-            const fullstackedFile = await ipcEditor.fs.readFile(".tmp/.fullstacked", { encoding: "utf8" });
+            const fullstackedFile = await ipcEditor.fs.readFile(
+                ".tmp/.fullstacked",
+                { encoding: "utf8" }
+            );
             const fullstackedProjectData = JSON.parse(fullstackedFile);
             consoleTerminal.text.innerText += `Found valid .fullstacked file\n`;
             consoleTerminal.text.innerText += `${JSON.stringify(fullstackedFile, null, 2)}\n`;
             project.title = fullstackedProjectData.title || project.title;
-            project.id    = fullstackedProjectData.id || project.id;
-            if(fullstackedProjectData.git?.url) {
+            project.id = fullstackedProjectData.id || project.id;
+            if (fullstackedProjectData.git?.url) {
                 project.gitRepository = {
                     url: fullstackedProjectData.git?.url
-                }
+                };
             }
-        } catch(e) {
+        } catch (e) {
             consoleTerminal.text.innerText += `Found invalid .fullstacked file\n`;
-
         }
     }
 
@@ -132,4 +132,4 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
 
     consoleTerminal.logger(`Finished importing ${file.name}`);
     consoleTerminal.logger("Done");
-};
+}

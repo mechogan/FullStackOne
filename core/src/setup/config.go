@@ -7,11 +7,11 @@ import (
 )
 
 func ConfigGet(configFile string) []byte {
-	filePath := path.Join(Directories.Config, configFile + ".json") 
+	filePath := path.Join(Directories.Config, configFile+".json")
 
 	config, err := fs.ReadFile(filePath)
 
-	if(err != nil) {
+	if err != nil {
 		return nil
 	}
 
@@ -19,13 +19,13 @@ func ConfigGet(configFile string) []byte {
 }
 
 func ConfigSave(configFile string, data string) []byte {
-	filePath := path.Join(Directories.Config, configFile + ".json")
+	filePath := path.Join(Directories.Config, configFile+".json")
 
 	fs.Mkdir(path.Dir(filePath))
 
 	err := fs.WriteFile(filePath, []byte(data))
 
-	if(err != nil) {
+	if err != nil {
 		return serialize.SerializeBoolean(false)
 	}
 

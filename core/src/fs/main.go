@@ -58,6 +58,22 @@ func WriteFileSerialized(path string, data []byte) []byte {
 	return serialize.SerializeBoolean(err != nil)
 }
 
+func Unlink(path string) bool {
+	err := (error)(nil)
+
+	if WASM {
+		err = vUnlink(path)
+	} else {
+		err = os.Remove(path)
+	}
+
+	return err == nil
+}
+
+func UnlinkSerialized(path string) []byte {
+	return serialize.SerializeBoolean(Unlink(path))
+}
+
 func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 	items := []SmallFileInfo{}
 
@@ -92,7 +108,7 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 
 			for _, item := range entries {
 				items = append(items, SmallFileInfo{
-					Name: item.Name(),
+					Name:  item.Name(),
 					IsDir: item.IsDir(),
 				})
 			}
@@ -106,12 +122,12 @@ func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
 	items := ([]SmallFileInfo)(nil)
 	err := (error)(nil)
 
-	if(WASM) {
+	if WASM {
 		items = vReadDir(path, recursive)
 	} else {
 		items, err = ReadDir(path, recursive)
 
-		if(err != nil) {
+		if err != nil {
 			return nil
 		}
 	}
@@ -143,6 +159,47 @@ func Mkdir(path string) bool {
 
 func MkdirSerialized(path string) []byte {
 	return serialize.SerializeBoolean(Mkdir(path))
+}
+
+func Rmdir(path string) bool {
+	err := (error)(nil)
+
+	if WASM {
+		err = vRmdir(path)
+	} else {
+		err = os.RemoveAll(path)
+	}
+
+	return err == nil
+}
+
+func RmdirSerialized(path string) []byte {
+	return serialize.SerializeBoolean(Rmdir(path))
+}
+
+func Exists(path string) (bool, bool) {
+	exists := false
+	isFile := false
+
+	if(WASM) {
+		exists, isFile = vExists(path)
+	} else {
+		stat, err := os.Stat(path)
+		if(err == nil) {
+			exists = true
+			isFile = !stat.IsDir()
+		}
+	}
+
+	return exists, isFile
+}
+
+func ExistsSerialized(path string) []byte {
+	bytes := []byte{}
+	exists, isFile := Exists(path);
+	bytes = append(bytes, serialize.SerializeBoolean(exists)...)
+	bytes = append(bytes, serialize.SerializeBoolean(isFile)...)
+	return bytes
 }
 
 type SmallFileInfo struct {

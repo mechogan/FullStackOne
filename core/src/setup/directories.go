@@ -5,20 +5,20 @@ import (
 )
 
 type DirectoriesStruct struct {
-    Root string
-	Config string
+	Root        string
+	Config      string
 	NodeModules string
-	Editor string
+	Editor      string
 }
 
 var Directories *DirectoriesStruct = nil
 
 func SetupDirectories(root string, config string, nodeModules string, editor string) {
 	Directories = &DirectoriesStruct{
-		Root: root,
-		Config: config,
+		Root:        root,
+		Config:      config,
 		NodeModules: nodeModules,
-		Editor: editor,
+		Editor:      editor,
 	}
 
 	fs.Mkdir(root)

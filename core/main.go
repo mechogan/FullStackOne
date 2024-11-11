@@ -10,7 +10,7 @@ import (
 	setup "fullstacked/editor/src/setup"
 )
 
-func main() { }
+func main() {}
 
 //export directories
 func directories(root *C.char,
@@ -26,8 +26,8 @@ func directories(root *C.char,
 }
 
 //export call
-func call(buffer unsafe.Pointer, length C.int, responsePtr *unsafe.Pointer) (C.int) {
-	response := methods.Call(C.GoBytes(buffer, length)	)
+func call(buffer unsafe.Pointer, length C.int, responsePtr *unsafe.Pointer) C.int {
+	response := methods.Call(C.GoBytes(buffer, length))
 	*responsePtr = C.CBytes(response)
 	return C.int(len(response))
 }

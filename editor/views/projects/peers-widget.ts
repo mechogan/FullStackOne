@@ -1,5 +1,5 @@
 import { createElement } from "../../components/element";
 
-export function PeersWidget(){
+export function PeersWidget() {
     return createElement("div");
 }

@@ -4,13 +4,13 @@ import { serializeArgs } from "../serialization";
 export const fs = {
     readFile,
     writeFile,
-    // unlink
+    unlink,
     readdir,
     mkdir,
-    // rmdir
-    // exists
+    rmdir,
+    exists,
     rename
-}
+};
 
 const te = new TextEncoder();
 
@@ -43,6 +43,13 @@ function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
 }
 
 // 4
+function unlink(path: string) {
+    const payload = new Uint8Array([
+        4,
+        ...serializeArgs([path])]);
+
+    return ipc.bridge(payload, ([success]) => success);
+}
 
 type Dirent = {
     name: string;
@@ -87,20 +94,37 @@ function readdir(
 
 // 6
 function mkdir(path: string) {
-    const payload = new Uint8Array([
-        6,
-        ...serializeArgs([path])
-    ]);
+    const payload = new Uint8Array([6, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
+// 7
+function rmdir(path: string) {
+    const payload = new Uint8Array([
+        7,
+        ...serializeArgs([path])]);
+
+    return ipc.bridge(payload, ([success]) => success);
+}
+
+// 8
+function exists(path: string) {
+    const payload = new Uint8Array([
+        8,
+        ...serializeArgs([path])]);
+
+    const transformer = ([exists, isFile]: [boolean, boolean]) => {
+        if (!exists) return undefined;
+        return { isFile }
+    }
+
+    return ipc.bridge(payload, transformer);
+}
+
 // 9
 function rename(oldPath: string, newPath: string) {
-    const payload = new Uint8Array([
-        9,
-        ...serializeArgs([oldPath, newPath])
-    ]);
+    const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
