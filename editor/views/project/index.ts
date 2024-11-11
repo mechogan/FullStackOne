@@ -7,12 +7,11 @@ import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Button } from "../../components/primitives/button";
 import { FileTree } from "./file-tree";
-import { Editor } from "./editor";
 import { Store } from "../../store";
+import { createElement } from "../../components/element";
+// import { Editor } from "./editor";
 
 export function Project(project: ProjectType) {
-    Store.project.setCurrentProject(project);
-
     const container = document.createElement("div");
     container.id = PROJECT_VIEW_ID;
     container.classList.add("view");
@@ -27,7 +26,7 @@ export function Project(project: ProjectType) {
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
-            
+            fileTreeAndEditor.destroy()
         }
     })
 }
@@ -39,7 +38,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         actions: TopBarActions(),
         onBack: () => {
             if (fileTreeAndEditor.classList.contains("closed-panel")) {
-                fileTreeAndEditor.classList.remove("closed-panel");
+                Store.codeEditor.setSidePanelClosed(false)
                 return false;
             }
 
@@ -70,12 +69,23 @@ function TopBarActions() {
 }
 
 function FileTreeAndEditor(project: ProjectType){
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("file-tree-and-editor");
+
+    const toggleSidePanel = (closed: boolean) => {
+        if(closed) {
+            container.classList.add("closed-panel")
+        } else {
+            container.classList.remove("closed-panel")
+        }
+    }
+    
+    Store.codeEditor.sidePanelClosed.subscribe(toggleSidePanel);
+    container.ondestroy = () => Store.codeEditor.sidePanelClosed.unsubscribe(toggleSidePanel);
 
     container.append(
         FileTree(project),
-        Editor(project)
+        // Editor(project)
     )
 
     return container;
