@@ -38,7 +38,17 @@ async function create(project: Omit<Project, "createdDate">) {
     list.notify();
 }
 
-function update(project: Project, updatedProject: Project) {
+async function update(project: Project, updatedProject: Project) {
+    const projects = await listP();
+    const indexOf = projects.findIndex(({id}) => id === project.id);
+    if(indexOf === -1) return;
+
+    if(project.id != updatedProject.id) {
+        await ipcEditor.fs.rename(project.id, updatedProject.id);
+    }
+
+    projects[indexOf] = updatedProject;
+    await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
 }
 

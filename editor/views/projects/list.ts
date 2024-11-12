@@ -8,6 +8,7 @@ import { PROJECTS_VIEW_ID, BG_COLOR } from "../../constants";
 import { Store } from "../../store";
 import { Project as ProjectType } from "../../types";
 import { Project } from "../project";
+import { ProjectSettings } from "../project-settings";
 
 export function List() {
     const container = createElement("div");
@@ -147,7 +148,7 @@ function ProjectTile(project: ProjectType) {
             text: "Settings",
             iconLeft: "Settings"
         });
-        // projectSettingsButton.onclick = () => ProjectSettings(null)
+        projectSettingsButton.onclick = () => ProjectSettings(project)
 
         const buttonsGroup = ButtonGroup([
             deleteButton,
