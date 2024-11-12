@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -80,6 +81,7 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 	if WASM {
 		items = vReadDir(path, recursive)
 	} else {
+		pathComponents := splitPath(filepath.ToSlash(path))
 
 		if recursive {
 			err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
@@ -87,8 +89,10 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 					return err
 				}
 
+				itemPathComponents := splitPath(filepath.ToSlash(path))
+
 				items = append(items, SmallFileInfo{
-					Name:  path,
+					Name:  strings.Join(itemPathComponents[len(pathComponents):], "/"),
 					IsDir: d.IsDir(),
 				})
 

@@ -3,8 +3,10 @@ import open from "open";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
+import { deserializeArgs, numberTo4Bytes, serializeArgs } from "../../../src/serialization";
 import { call, setDirectories } from "./call";
+import fastQueryString from "fast-querystring";
+import { fromBase64 } from "../../../editor/api/connectivity/cryptoUtils";
 
 // MIGRATION 2024-11-05 - 0.9.0 to 0.10.0
 
@@ -56,7 +58,8 @@ const requestHandler = async (
     req: http.IncomingMessage,
     res: http.ServerResponse
 ) => {
-    const pathname = decodeURI(req.url);
+    let [pathname, query] = req.url.split("?");
+    pathname = decodeURI(pathname);
 
     if (pathname === "/platform") {
         res.writeHead(200, {
@@ -66,6 +69,23 @@ const requestHandler = async (
         return res.end(platform);
     } else if (pathname === "/call") {
         const payload = await readBody(req);
+        const data = await call(
+            new Uint8Array([
+                1, // isEditor
+                ...numberTo4Bytes(0), // no project id
+                ...payload
+            ])
+        );
+        res.writeHead(200, {
+            "content-type": "application/octet-stream",
+            "content-length": data.length,
+            "cache-control": "no-cache"
+        });
+        return res.end(data);
+    } else if (pathname === "/call-sync") {
+        const parsedQuery = fastQueryString.parse(query);
+        const payloadBase64 = decodeURIComponent(parsedQuery.payload)
+        const payload = fromBase64(payloadBase64);
         const data = await call(
             new Uint8Array([
                 1, // isEditor

@@ -12,7 +12,7 @@ export function Editor(project: Project) {
     const refresheableFileTabs = createRefresheable(FileTabs);
     Store.editor.codeEditor.openedFiles.subscribe(refresheableFileTabs.refresh);
 
-    const codeEditor = CodeEditor();
+    const codeEditor = CodeEditor(project);
 
     container.append(refresheableFileTabs.element, codeEditor);
 

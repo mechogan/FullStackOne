@@ -7,7 +7,7 @@ import { FileTree } from "./file-tree";
 import { Store } from "../../store";
 import { createElement } from "../../components/element";
 import { Editor } from "./editor";
-// import { Editor } from "./editor";
+import { WorkerTS } from "../../typescript";
 
 export function Project(project: ProjectType) {
     const container = document.createElement("div");
@@ -15,36 +15,20 @@ export function Project(project: ProjectType) {
     container.classList.add("view");
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
+    const topBar = TopBar(project, fileTreeAndEditor);
 
-    container.append(TopBar(project, fileTreeAndEditor), fileTreeAndEditor);
+    container.append(topBar, fileTreeAndEditor);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
+            topBar.destroy();
             fileTreeAndEditor.destroy();
         }
     });
 }
 
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
-    const topBar = TopBarComponent({
-        title: project.title,
-        subtitle: project.id,
-        actions: TopBarActions(),
-        onBack: () => {
-            if (fileTreeAndEditor.classList.contains("closed-panel")) {
-                Store.editor.setSidePanelClosed(false);
-                return false;
-            }
-
-            return true;
-        }
-    });
-
-    return topBar;
-}
-
-function TopBarActions() {
     const gitButton = Button({
         style: "icon-large",
         iconLeft: "Git"
@@ -55,12 +39,42 @@ function TopBarActions() {
         iconLeft: "TypeScript"
     });
 
+    tsButton.disabled = true;
+    const flashOnWorking = (request: Map<number, Function>) => {
+        if(request.size > 0) {
+            tsButton.disabled = false;
+            tsButton.classList.add("working");
+        } else {
+            tsButton.classList.remove("working");
+        }
+    }
+    WorkerTS.working.subscribe(flashOnWorking)
+    
+
     const runButton = Button({
         style: "icon-large",
         iconLeft: "Play"
     });
 
-    return [gitButton, tsButton, runButton];
+    const topBar = TopBarComponent({
+        title: project.title,
+        subtitle: project.id,
+        actions: [gitButton, tsButton, runButton],
+        onBack: () => {
+            if (fileTreeAndEditor.classList.contains("closed-panel")) {
+                Store.editor.setSidePanelClosed(false);
+                return false;
+            }
+
+            return true;
+        }
+    });
+
+    topBar.ondestroy = () => {
+        WorkerTS.working.unsubscribe(flashOnWorking)
+    }
+
+    return topBar;
 }
 
 function FileTreeAndEditor(project: ProjectType) {

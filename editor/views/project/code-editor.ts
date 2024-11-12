@@ -1,4 +1,4 @@
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { createElement, ElementComponent } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
@@ -9,6 +9,7 @@ import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import {
+    Diagnostic,
     linter,
     lintGutter
 } from "@codemirror/lint";
@@ -18,13 +19,19 @@ import prettierPluginCSS from "prettier/plugins/postcss";
 import prettierPluginMD from "prettier/plugins/markdown";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
-import { EditorSelection, SelectionRange } from "@codemirror/state";
+import { EditorSelection } from "@codemirror/state";
+import { WorkerTS } from "../../typescript";
+import { tsAutocomplete, tsErrorLinter, tsTypeDefinition } from "./ts-extensions";
+import { Project } from "../../types";
+import { autocompletion } from "@codemirror/autocomplete";
 
 const tabWidth = 4;
-
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
 
-export function CodeEditor() {
+let workingDirectory: string;
+export function CodeEditor(project: Project) {
+    workingDirectory = project.id;
+
     const container = createElement("div");
 
     Store.editor.codeEditor.openedFiles.subscribe(createViews);
@@ -42,7 +49,7 @@ export function CodeEditor() {
 
 type View = {
     element: ElementComponent;
-    editorView?: EditorView;
+    editorView?: EditorView & { save: (throttled?: boolean) => Promise<void> };
 };
 
 const views = new Map<string, View>();
@@ -54,7 +61,9 @@ function createViews(filesPaths: Set<string>) {
         pathToClose.add(path);
     }
     pathToClose.forEach(path => {
-        views.get(path).editorView?.destroy();
+        const view = views.get(path);
+        view.editorView?.save(false)
+            .then(() => view.editorView?.destroy());
         views.delete(path);
         if (focusedViewPath === path) {
             Store.editor.codeEditor.focusFile(null);
@@ -146,9 +155,25 @@ function createViewEditor(filePath: string) {
             extensions: [
                 ...defaultExtensions,
                 ...(await languageExtensions(filePath)),
+                EditorView.updateListener.of(() => view.editorView.save())
             ],
             parent: container
-        });
+        }) as any;
+
+        let throttler: ReturnType<typeof setTimeout>;
+        view.editorView.save = (throttled = true) => new Promise<void>((resolve) => {
+            if(throttler) {
+                clearTimeout(throttler);
+            }
+
+            throttler = setTimeout(async () => {
+                throttler = null;
+                const exists = await ipcEditor.fs.exists(filePath);
+                if(!exists?.isFile) return resolve();
+                await ipcEditor.fs.writeFile(filePath, view.editorView.state.doc.toString())
+                resolve()
+            }, throttled ? 2000 : 0);
+        })
     });
 
     return view;
@@ -215,10 +240,21 @@ async function loadJsTsExtensions(filePath: string) {
     }
     // load typescript
     else {
-        // extensions.push(...(await loadTypeScript(filePath)));
+        extensions.push(...(await loadTypeScript(filePath)));
     }
 
     return extensions;
+}
+
+async function loadTypeScript(filePath: string) {
+    await WorkerTS.start(workingDirectory);
+
+    return [
+        EditorView.updateListener.of((ctx) => WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())),
+        linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
+        autocompletion({ override: [tsAutocomplete(filePath)] }),
+        hoverTooltip(tsTypeDefinition(filePath))
+    ];
 }
 
 
@@ -243,10 +279,10 @@ async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
     if (!prettierSupport.includes(fileExtension)) return;
 
     let filepath = focusedViewPath
-    if(fileExtension === UTF8_Ext.SVG) {
+    if (fileExtension === UTF8_Ext.SVG) {
         filepath = filepath.slice(0, 0 - ".svg".length) + ".html";
     }
-    
+
     const formatted = await prettier.format(
         view.editorView.state.doc.toString(),
         {
