@@ -40,10 +40,10 @@ async function create(project: Omit<Project, "createdDate">) {
 
 async function update(project: Project, updatedProject: Project) {
     const projects = await listP();
-    const indexOf = projects.findIndex(({id}) => id === project.id);
-    if(indexOf === -1) return;
+    const indexOf = projects.findIndex(({ id }) => id === project.id);
+    if (indexOf === -1) return;
 
-    if(project.id != updatedProject.id) {
+    if (project.id != updatedProject.id) {
         await ipcEditor.fs.rename(project.id, updatedProject.id);
     }
 

@@ -15,6 +15,16 @@ const openedFiles = createSubscribable(() => codeEditorOpenedFiles);
 let codeEditorFocusedFile: string;
 const focusedFile = createSubscribable(() => codeEditorFocusedFile);
 
+type BuildError = {
+    file: string;
+    line: number;
+    col: number;
+    length: number;
+    message: string;
+};
+let codeEditorBuildErrors: BuildError[] = [];
+const buildErrors = createSubscribable(() => codeEditorBuildErrors);
+
 export const editor = {
     sidePanelClosed: sidePanel.subscription,
     setSidePanelClosed,
@@ -36,7 +46,11 @@ export const editor = {
         focusedFile: focusedFile.subscription,
         focusFile,
 
-        clearFiles
+        clearFiles,
+
+        buildErrors: buildErrors.subscription,
+        addBuildError,
+        clearAllBuildErrors
     }
 };
 
@@ -79,9 +93,19 @@ function focusFile(path: string) {
     focusedFile.notify();
 }
 
-function clearFiles(){
+function clearFiles() {
     codeEditorOpenedFiles.clear();
     codeEditorFocusedFile = null;
     openedFiles.notify();
     focusedFile.notify();
+}
+
+function addBuildError(error: BuildError) {
+    codeEditorBuildErrors.push(error);
+    buildErrors.notify();
+}
+
+function clearAllBuildErrors() {
+    codeEditorBuildErrors = [];
+    buildErrors.notify();
 }

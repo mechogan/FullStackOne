@@ -8,11 +8,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import {
-    Diagnostic,
-    linter,
-    lintGutter
-} from "@codemirror/lint";
+import { Diagnostic, linter, lintGutter } from "@codemirror/lint";
 import prettier from "prettier";
 import prettierPluginHTML from "prettier/plugins/html";
 import prettierPluginCSS from "prettier/plugins/postcss";
@@ -21,7 +17,11 @@ import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
 import { EditorSelection } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
-import { tsAutocomplete, tsErrorLinter, tsTypeDefinition } from "./ts-extensions";
+import {
+    tsAutocomplete,
+    tsErrorLinter,
+    tsTypeDefinition
+} from "./ts-extensions";
 import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
 
@@ -35,6 +35,8 @@ export function CodeEditor(project: Project) {
     const container = createElement("div");
 
     Store.editor.codeEditor.openedFiles.subscribe(createViews);
+
+    Store.editor.codeEditor.buildErrors.subscribe(console.log);
 
     const refresheable = createRefresheable(focusFile);
     Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
@@ -60,16 +62,15 @@ function createViews(filesPaths: Set<string>) {
         if (filesPaths.has(path)) continue;
         pathToClose.add(path);
     }
-    pathToClose.forEach(path => {
+    pathToClose.forEach((path) => {
         const view = views.get(path);
-        view.editorView?.save(false)
-            .then(() => view.editorView?.destroy());
+        view.editorView?.save(false).then(() => view.editorView?.destroy());
         views.delete(path);
         if (focusedViewPath === path) {
             Store.editor.codeEditor.focusFile(null);
         }
     });
-    filesPaths.forEach(path => {
+    filesPaths.forEach((path) => {
         if (views.get(path)) return;
         focusFile(path);
     });
@@ -149,36 +150,44 @@ function createViewEditor(filePath: string) {
         editorView: null
     };
 
-    ipcEditor.fs.readFile(filePath, { encoding: "utf8" }).then(async (content) => {
-        view.editorView = new EditorView({
-            doc: content,
-            extensions: [
-                ...defaultExtensions,
-                ...(await languageExtensions(filePath)),
-                EditorView.updateListener.of(() => view.editorView.save())
-            ],
-            parent: container
-        }) as any;
+    ipcEditor.fs
+        .readFile(filePath, { encoding: "utf8" })
+        .then(async (content) => {
+            view.editorView = new EditorView({
+                doc: content,
+                extensions: [
+                    ...defaultExtensions,
+                    ...(await languageExtensions(filePath)),
+                    EditorView.updateListener.of(() => view.editorView.save())
+                ],
+                parent: container
+            }) as any;
 
-        let throttler: ReturnType<typeof setTimeout>;
-        view.editorView.save = (throttled = true) => new Promise<void>((resolve) => {
-            if(throttler) {
-                clearTimeout(throttler);
-            }
+            let throttler: ReturnType<typeof setTimeout>;
+            view.editorView.save = (throttled = true) =>
+                new Promise<void>((resolve) => {
+                    if (throttler) {
+                        clearTimeout(throttler);
+                    }
 
-            throttler = setTimeout(async () => {
-                throttler = null;
-                const exists = await ipcEditor.fs.exists(filePath);
-                if(!exists?.isFile) return resolve();
-                await ipcEditor.fs.writeFile(filePath, view.editorView.state.doc.toString())
-                resolve()
-            }, throttled ? 2000 : 0);
-        })
-    });
+                    throttler = setTimeout(
+                        async () => {
+                            throttler = null;
+                            const exists = await ipcEditor.fs.exists(filePath);
+                            if (!exists?.isFile) return resolve();
+                            await ipcEditor.fs.writeFile(
+                                filePath,
+                                view.editorView.state.doc.toString()
+                            );
+                            resolve();
+                        },
+                        throttled ? 2000 : 0
+                    );
+                });
+        });
 
     return view;
 }
-
 
 async function languageExtensions(filePath: string) {
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
@@ -250,13 +259,14 @@ async function loadTypeScript(filePath: string) {
     await WorkerTS.start(workingDirectory);
 
     return [
-        EditorView.updateListener.of((ctx) => WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())),
+        EditorView.updateListener.of((ctx) =>
+            WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
+        ),
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
         autocompletion({ override: [tsAutocomplete(filePath)] }),
         hoverTooltip(tsTypeDefinition(filePath))
     ];
 }
-
 
 const prettierPlugins = [
     prettierPluginHTML,
@@ -264,8 +274,7 @@ const prettierPlugins = [
     prettierPluginMD,
     prettierPluginEstree,
     prettierPluginTypeScript
-]
-
+];
 
 async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
     if (e.key !== "s" || (!e.metaKey && !e.ctrlKey)) return;
@@ -275,10 +284,13 @@ async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
     const view = views.get(focusedViewPath);
     if (!view?.editorView) return;
 
-    const fileExtension = focusedViewPath.split(".").pop().toLowerCase() as UTF8_Ext;
+    const fileExtension = focusedViewPath
+        .split(".")
+        .pop()
+        .toLowerCase() as UTF8_Ext;
     if (!prettierSupport.includes(fileExtension)) return;
 
-    let filepath = focusedViewPath
+    let filepath = focusedViewPath;
     if (fileExtension === UTF8_Ext.SVG) {
         filepath = filepath.slice(0, 0 - ".svg".length) + ".html";
     }
@@ -294,13 +306,19 @@ async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
 
     let selection = view.editorView.state.selection;
 
-    let range = selection.ranges?.at(0)
+    let range = selection.ranges?.at(0);
     if (range?.from > formatted.length) {
-        selection = selection.replaceRange(EditorSelection.range(formatted.length, range.to), 0)
-        range = selection.ranges?.at(0)
+        selection = selection.replaceRange(
+            EditorSelection.range(formatted.length, range.to),
+            0
+        );
+        range = selection.ranges?.at(0);
     }
     if (range?.to > formatted.length) {
-        selection = selection.replaceRange(EditorSelection.range(range.from, formatted.length), 0)
+        selection = selection.replaceRange(
+            EditorSelection.range(range.from, formatted.length),
+            0
+        );
     }
 
     view.editorView.dispatch({
@@ -312,7 +330,6 @@ async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
         selection
     });
 }
-
 
 enum UTF8_Ext {
     JAVASCRIPT = "js",
@@ -367,7 +384,7 @@ const prettierSupport = [
     UTF8_Ext.CSS,
     UTF8_Ext.SASS,
     UTF8_Ext.SCSS
-]
+];
 
 export type FileError = {
     line: number;

@@ -50,7 +50,7 @@ export function ProjectSettings(project: Project) {
 
         const updatedProject = {
             ...project
-        }
+        };
 
         updatedProject.title = titleInput.input.value;
         updatedProject.id = identifierInput.input.value;
@@ -63,13 +63,14 @@ export function ProjectSettings(project: Project) {
             return;
         }
 
-        Store.projects.update(project, updatedProject)
-            .then(() => stackNavigation.back())
+        Store.projects
+            .update(project, updatedProject)
+            .then(() => stackNavigation.back());
     };
 
     scrollable.append(form);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR
-    })
+    });
 }

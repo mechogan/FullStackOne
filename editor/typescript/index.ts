@@ -32,7 +32,7 @@ let reqsCount = 0;
 let directory: string;
 
 let requests = new Map<number, Function>();
-const tsRequests = createSubscribable(() => requests)
+const tsRequests = createSubscribable(() => requests);
 
 export const WorkerTS = {
     working: tsRequests.subscription,

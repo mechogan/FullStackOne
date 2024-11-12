@@ -1,6 +1,14 @@
 package main
 
-// #include <stdlib.h>
+
+/*
+#include <stdlib.h>
+
+typedef const void (*Callback)(char *projectId, char *msg);
+static inline void CallMyFunction(void *callback, char *projectId, char *msg) {
+    ((Callback)callback)(projectId, msg);
+}
+*/
 import "C"
 
 import (
@@ -21,6 +29,16 @@ func directories(root *C.char,
 		C.GoString(config),
 		C.GoString(editor),
 	)
+}
+
+var cCallback = (unsafe.Pointer)(nil)
+//export callback
+func callback(cb unsafe.Pointer) {
+	cCallback = cb
+
+	setup.Callback = func(projectId string, message string) {
+		C.CallMyFunction(cCallback, C.CString(projectId), C.CString(message))
+	}
 }
 
 //export call

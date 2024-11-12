@@ -3,10 +3,15 @@ import open from "open";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { deserializeArgs, numberTo4Bytes, serializeArgs } from "../../../src/serialization";
-import { call, setDirectories } from "./call";
+import {
+    deserializeArgs,
+    numberTo4Bytes,
+    serializeArgs
+} from "../../../src/serialization";
+import { call, setCallback, setDirectories } from "./call";
 import fastQueryString from "fast-querystring";
 import { fromBase64 } from "../../../editor/api/connectivity/cryptoUtils";
+import ws, { WebSocketServer } from "ws";
 
 // MIGRATION 2024-11-05 - 0.9.0 to 0.10.0
 
@@ -83,7 +88,7 @@ const requestHandler = async (
         return res.end(data);
     } else if (pathname === "/call-sync") {
         const parsedQuery = fastQueryString.parse(query);
-        const payloadBase64 = decodeURIComponent(parsedQuery.payload)
+        const payloadBase64 = decodeURIComponent(parsedQuery.payload);
         const payload = fromBase64(payloadBase64);
         const data = await call(
             new Uint8Array([
@@ -140,7 +145,22 @@ const requestHandler = async (
 
 const port = 9000;
 
-http.createServer(requestHandler).listen(port);
+const server = http.createServer(requestHandler);
+server.listen(port);
+
+const webSockets = new Set<ws.WebSocket>();
+const wss = new WebSocketServer({ noServer: true });
+server.on("upgrade", (...args) => {
+    wss.handleUpgrade(...args, (ws) => {
+        webSockets.add(ws);
+        ws.on("close", () => {
+            webSockets.delete(ws);
+        });
+    });
+});
+const cb = (_: string, message: string) =>
+    webSockets.forEach((webSocket) => webSocket.send(message));
+await setCallback(cb);
 
 open(`http://localhost:${port}`);
 

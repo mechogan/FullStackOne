@@ -148,7 +148,7 @@ function ProjectTile(project: ProjectType) {
             text: "Settings",
             iconLeft: "Settings"
         });
-        projectSettingsButton.onclick = () => ProjectSettings(project)
+        projectSettingsButton.onclick = () => ProjectSettings(project);
 
         const buttonsGroup = ButtonGroup([
             deleteButton,

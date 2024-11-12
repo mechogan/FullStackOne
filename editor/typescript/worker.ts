@@ -13,7 +13,7 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import { fsSync } from "../ipc/fsSync"
+import { fsSync } from "../ipc/fsSync";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -108,7 +108,8 @@ const makeSureSourceFilesAreLoaded = () => {
         );
     }
 
-    const files = fsSync.readdir(workingDirectory)
+    const files = fsSync
+        .readdir(workingDirectory)
         .map((filename) => workingDirectory + "/" + filename);
 
     sourceFiles = {};
@@ -116,7 +117,7 @@ const makeSureSourceFilesAreLoaded = () => {
     files.forEach((file) => {
         sourceFiles[file] = {
             contents: null,
-            version: 0,
+            version: 0
         };
     });
 };
@@ -229,8 +230,12 @@ function initLanguageServiceHost(): LanguageServiceHost {
 
                 if (!moduleFiles) {
                     try {
-                        moduleFiles = fsSync.readdir("node_modules/" + moduleName)
-                            .map((file) => "node_modules/" + moduleName + "/" + file);
+                        moduleFiles = fsSync
+                            .readdir("node_modules/" + moduleName)
+                            .map(
+                                (file) =>
+                                    "node_modules/" + moduleName + "/" + file
+                            );
                     } catch (e) {
                         moduleFiles = [];
                     }

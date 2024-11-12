@@ -6,11 +6,7 @@ function syncRequest(method: number, ...args: any[]) {
     const searchParams = new URLSearchParams();
     const payload = new Uint8Array([method, ...serializeArgs(args)]);
     searchParams.set("payload", encodeURIComponent(toBase64(payload)));
-    request.open(
-        "GET",
-        "/call-sync?" + searchParams.toString(),
-        false
-    );
+    request.open("GET", "/call-sync?" + searchParams.toString(), false);
     request.responseType = "arraybuffer";
     request.send();
 
@@ -20,18 +16,14 @@ function syncRequest(method: number, ...args: any[]) {
 export const fsSync = {
     staticFile: (path: string) => {
         const request = new XMLHttpRequest();
-        request.open(
-            "GET",
-            "/" + path,
-            false
-        );
+        request.open("GET", "/" + path, false);
         request.send();
         return request.responseText;
     },
     // 2
     readFile: function (path: string): string {
         return syncRequest(
-            2, 
+            2,
             path,
             true // encoding == "utf8"
         ).at(0);
@@ -39,10 +31,10 @@ export const fsSync = {
     // 5
     readdir: function (path: string): string[] {
         return syncRequest(
-            5, 
+            5,
             path,
             true, // recursive
             false // withFileType
         );
     }
-}
+};

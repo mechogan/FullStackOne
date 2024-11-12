@@ -27,11 +27,9 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
             .slice(e.start, e.start + e.length)
             .slice(1, -1);
 
-        return (
-            !moduleName.startsWith(".") 
-            // &&
-            // !CodeEditor.ignoreTypes.has(`@types/${moduleName}`)
-        );
+        return !moduleName.startsWith(".");
+        // &&
+        // !CodeEditor.ignoreTypes.has(`@types/${moduleName}`)
     });
 
     if (needsTypes.length) {
@@ -43,16 +41,13 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
         //         .slice(1, -1);
         //     return `@types/${moduleName}`;
         // });
-
         // const installPromises = modulesNames.map(packageInstaller.install);
         // const installations = await Promise.allSettled(installPromises);
-
         // installations.forEach((install, i) => {
         //     if (install.status === "rejected") {
         //         CodeEditor.ignoreTypes.add(modulesNames[i]);
         //     }
         // });
-
         // await WorkerTS.restart();
         // tsErrors = await getAllTsError();
     }

@@ -1,6 +1,6 @@
 import { ipc } from "./ipc";
 import { Platform } from "./platforms";
-import { BridgeNode } from "./bridge/node";
+import { BridgeNode, initCallbackNode } from "./bridge/node";
 import { BridgeIOS } from "./bridge/ios";
 import { BridgeAndroid } from "./bridge/android";
 import { BridgeWasm } from "./bridge/wasm";
@@ -12,6 +12,7 @@ switch (platform) {
     case Platform.DOCKER:
     case Platform.NODE:
         ipc.bridge = BridgeNode;
+        initCallbackNode();
         break;
     case Platform.IOS:
         ipc.bridge = BridgeIOS;
@@ -32,3 +33,5 @@ switch (platform) {
 globalThis.ipc = ipc.methods;
 
 export default ipc;
+
+(globalThis as any).onmessage = (message: string) => {};

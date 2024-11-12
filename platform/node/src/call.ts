@@ -42,11 +42,29 @@ export function setDirectories(directories: {
             ffi.DataType.String
         ],
         retType: ffi.DataType.Void,
-        paramsValue: [
-            directories.root,
-            directories.config,
-            directories.editor
+        paramsValue: [directories.root, directories.config, directories.editor],
+        runInNewThread: true,
+        freeResultMemory: true
+    });
+}
+
+export function setCallback(cb: (projectId: string, message: string) => void) {
+    const funcExternal = ffi.createPointer({
+        paramsType: [
+            ffi.funcConstructor({
+                paramsType: [ffi.DataType.String, ffi.DataType.String],
+                retType: ffi.DataType.Void
+            })
         ],
+        paramsValue: [cb]
+    });
+
+    return ffi.load({
+        library,
+        funcName: "callback",
+        retType: ffi.DataType.Void,
+        paramsType: [ffi.DataType.External],
+        paramsValue: ffi.unwrapPointer(funcExternal),
         runInNewThread: true,
         freeResultMemory: true
     });

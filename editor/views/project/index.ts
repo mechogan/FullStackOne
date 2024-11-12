@@ -13,9 +13,8 @@ import { Loader } from "../../components/loader";
 
 let lastOpenedProjectId: string;
 export function Project(project: ProjectType) {
-
     // gives a chance if back button by mistake
-    if(lastOpenedProjectId !== project.id) {
+    if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();
         Store.editor.fileTree.setActiveItem(null);
         Store.editor.fileTree.clearOpenedDirectories();
@@ -54,15 +53,14 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
 
     tsButton.disabled = true;
     const flashOnWorking = (request: Map<number, Function>) => {
-        if(request.size > 0) {
+        if (request.size > 0) {
             tsButton.disabled = false;
             tsButton.classList.add("working");
         } else {
             tsButton.classList.remove("working");
         }
-    }
-    WorkerTS.working.subscribe(flashOnWorking)
-    
+    };
+    WorkerTS.working.subscribe(flashOnWorking);
 
     const runButton = Button({
         style: "icon-large",
@@ -74,9 +72,21 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         loaderContainer.classList.add("loader-container");
         loaderContainer.append(Loader());
         runButton.replaceWith(loaderContainer);
-        console.log(await ipcEditor.esbuild.build(project));
+        const buildErrors = await ipcEditor.esbuild.build(project);
+        if (buildErrors?.length) {
+            buildErrors.forEach((error) => {
+                Store.editor.codeEditor.addBuildError({
+                    file: error.location.file,
+                    line: error.location.line,
+                    col: error.location.column,
+                    length: error.location.length,
+                    message: error.text
+                });
+            });
+        } else {
+        }
         loaderContainer.replaceWith(runButton);
-    }
+    };
 
     const topBar = TopBarComponent({
         title: project.title,
@@ -93,8 +103,8 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     });
 
     topBar.ondestroy = () => {
-        WorkerTS.working.unsubscribe(flashOnWorking)
-    }
+        WorkerTS.working.unsubscribe(flashOnWorking);
+    };
 
     return topBar;
 }

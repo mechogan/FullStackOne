@@ -37,6 +37,8 @@ const (
 
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
+
+	PACKAGES_INSTALL = 60
 )
 
 func Call(payload []byte) []byte {

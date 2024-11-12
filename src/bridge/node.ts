@@ -18,3 +18,10 @@ export const BridgeNode: typeof ipc.bridge = async (
 
     return args;
 };
+
+export function initCallbackNode() {
+    const url = new URL(globalThis.location.href);
+    url.protocol = "ws:";
+    const ws = new WebSocket(url.toString());
+    ws.onmessage = (e) => console.log(e);
+}
