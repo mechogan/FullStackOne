@@ -4,15 +4,12 @@ import { Button } from "../../components/primitives/button";
 import { Icon } from "../../components/primitives/icon";
 import { NEW_FILE_ID } from "../../constants";
 import { Store } from "../../store";
-import { ipcEditor } from "../../store/ipc";
+import { ipcEditor } from "../../ipc";
 import { Project } from "../../types";
 
 export function FileTree(project: Project) {
     const container = createElement("div");
     container.classList.add("file-tree");
-
-    Store.editor.fileTree.setActiveItem(null);
-    Store.editor.fileTree.clearOpenedDirectories();
 
     const scrollableTree = document.createElement("div");
     const treeRecursive = TreeRecursive(project.id);

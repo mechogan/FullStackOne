@@ -30,7 +30,6 @@ ffi.open({
 export function setDirectories(directories: {
     root: string;
     config: string;
-    nodeModules: string;
     editor: string;
 }) {
     return ffi.load({
@@ -40,14 +39,12 @@ export function setDirectories(directories: {
         paramsType: [
             ffi.DataType.String,
             ffi.DataType.String,
-            ffi.DataType.String,
             ffi.DataType.String
         ],
         retType: ffi.DataType.Void,
         paramsValue: [
             directories.root,
             directories.config,
-            directories.nodeModules,
             directories.editor
         ],
         runInNewThread: true,

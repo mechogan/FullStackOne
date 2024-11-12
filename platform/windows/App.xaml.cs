@@ -13,7 +13,7 @@ namespace windows
     {
 
         [DllImport("win-x86_64.dll")]
-        public static extern void directories(void* root, void* config, void* nodeModules, void* editor);
+        public static extern void directories(void* root, void* config, void* editor);
 
         public App()
         {
@@ -25,22 +25,18 @@ namespace windows
             string userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             string root = Path.Combine(userDir, "FullStacked");
             string config = Path.Combine(userDir, ".config", "fullstacked");
-            string nodeModules = Path.Combine(root, "node_modules");
             string editor = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledPath, "editor");
 
             byte[] rootBytes = Encoding.UTF8.GetBytes(root);
             byte[] configBytes = Encoding.UTF8.GetBytes(config);
-            byte[] nodeModulesBytes = Encoding.UTF8.GetBytes(nodeModules);
             byte[] editorBytes = Encoding.UTF8.GetBytes(editor);
 
             fixed (void* rootPtr = rootBytes, 
                 configPtr = configBytes, 
-                nodeModulesPtr = nodeModulesBytes,
                 editorPtr = editorBytes) {
                 directories(
                     rootPtr,
                     configPtr,
-                    nodeModulesPtr,
                     editorPtr
                     );
             }

@@ -1,5 +1,5 @@
-import { deserializeArgs, serializeArgs } from "../../../src/serialization";
-import { toBase64 } from "../../api/connectivity/cryptoUtils";
+import { deserializeArgs, serializeArgs } from "../../src/serialization";
+import { toBase64 } from "../api/connectivity/cryptoUtils";
 
 function syncRequest(method: number, ...args: any[]) {
     const request = new XMLHttpRequest();

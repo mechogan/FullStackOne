@@ -1,6 +1,6 @@
-import { ipc } from "../../../src/ipc";
-import { serializeArgs } from "../../../src/serialization";
-import { CONFIG_DATA_TYPE, CONFIG_TYPE } from "../../types";
+import { ipc } from "../../src/ipc";
+import { serializeArgs } from "../../src/serialization";
+import { CONFIG_DATA_TYPE, CONFIG_TYPE } from "../types";
 
 export const config = {
     get,

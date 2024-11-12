@@ -1,5 +1,5 @@
-import ipc from "../../../src";
-import { serializeArgs } from "../../../src/serialization";
+import ipc from "../../src";
+import { serializeArgs } from "../../src/serialization";
 
 export const archive = {
     zip,

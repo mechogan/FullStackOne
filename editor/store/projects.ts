@@ -1,6 +1,6 @@
 import { createSubscribable } from ".";
 import { CONFIG_TYPE, Project } from "../types";
-import { ipcEditor } from "./ipc";
+import { ipcEditor } from "../ipc";
 
 const list = createSubscribable(listP, []);
 const filterValue = createSubscribable(() => filterP);

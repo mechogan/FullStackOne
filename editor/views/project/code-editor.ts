@@ -2,7 +2,7 @@ import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { createElement, ElementComponent } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
-import { ipcEditor } from "../../store/ipc";
+import { ipcEditor } from "../../ipc";
 import prettyBytes from "pretty-bytes";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";

@@ -13,7 +13,7 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import { fsSync } from "../store/ipc/fsSync"
+import { fsSync } from "../ipc/fsSync"
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {

@@ -34,7 +34,9 @@ export const editor = {
         closeFile,
 
         focusedFile: focusedFile.subscription,
-        focusFile
+        focusFile,
+
+        clearFiles
     }
 };
 
@@ -74,5 +76,12 @@ function closeFile(path: string) {
 
 function focusFile(path: string) {
     codeEditorFocusedFile = path;
+    focusedFile.notify();
+}
+
+function clearFiles(){
+    codeEditorOpenedFiles.clear();
+    codeEditorFocusedFile = null;
+    openedFiles.notify();
     focusedFile.notify();
 }

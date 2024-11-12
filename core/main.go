@@ -15,12 +15,10 @@ func main() {}
 //export directories
 func directories(root *C.char,
 	config *C.char,
-	nodeModules *C.char,
 	editor *C.char) {
 	setup.SetupDirectories(
 		C.GoString(root),
 		C.GoString(config),
-		C.GoString(nodeModules),
 		C.GoString(editor),
 	)
 }

@@ -26,7 +26,6 @@ const root = path.resolve(os.homedir(), "FullStacked");
 await setDirectories({
     root,
     config: path.resolve(os.homedir(), ".config", "fullstacked"),
-    nodeModules: path.resolve(root, "node_modules"),
     editor: path.resolve(process.cwd(), "editor")
 });
 

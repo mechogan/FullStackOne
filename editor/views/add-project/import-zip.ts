@@ -6,7 +6,7 @@ import { ViewScrollable } from "../../components/view-scrollable";
 import { createProjectFromFullStackedFile } from "../../api/projects";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
-import { ipcEditor } from "../../store/ipc";
+import { ipcEditor } from "../../ipc";
 import { title } from "process";
 import slugify from "slugify";
 import { Store } from "../../store";

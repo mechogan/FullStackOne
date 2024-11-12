@@ -8,8 +8,21 @@ import { Store } from "../../store";
 import { createElement } from "../../components/element";
 import { Editor } from "./editor";
 import { WorkerTS } from "../../typescript";
+import { ipcEditor } from "../../ipc";
+import { Loader } from "../../components/loader";
 
+let lastOpenedProjectId: string;
 export function Project(project: ProjectType) {
+
+    // gives a chance if back button by mistake
+    if(lastOpenedProjectId !== project.id) {
+        Store.editor.codeEditor.clearFiles();
+        Store.editor.fileTree.setActiveItem(null);
+        Store.editor.fileTree.clearOpenedDirectories();
+    }
+
+    lastOpenedProjectId = project.id;
+
     const container = document.createElement("div");
     container.id = PROJECT_VIEW_ID;
     container.classList.add("view");
@@ -55,6 +68,15 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         style: "icon-large",
         iconLeft: "Play"
     });
+
+    runButton.onclick = async () => {
+        const loaderContainer = document.createElement("div");
+        loaderContainer.classList.add("loader-container");
+        loaderContainer.append(Loader());
+        runButton.replaceWith(loaderContainer);
+        console.log(await ipcEditor.esbuild.build(project));
+        loaderContainer.replaceWith(runButton);
+    }
 
     const topBar = TopBarComponent({
         title: project.title,

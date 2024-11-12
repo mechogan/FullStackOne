@@ -110,6 +110,9 @@ func editorSwitch(method int, args []any) []byte {
 		return setup.ConfigSave(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
+	case ESBUILD_BUILD:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		return serialize.SerializeString(esbuild.Build(projectDirectory))
 	case ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 
