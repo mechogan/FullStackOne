@@ -3,10 +3,12 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Web;
 using Windows.Storage.Streams;
 
 namespace windows
@@ -55,6 +57,15 @@ namespace windows
                 {
                     IRandomAccessStream stream = new MemoryStream(Encoding.UTF8.GetBytes("windows")).AsRandomAccessStream();
                     args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html");
+                    return;
+                }
+                else if (pathname == "/call-sync")
+                {
+                    NameValueCollection queryDictionary = HttpUtility.ParseQueryString(uri.Query);
+                    byte[] syncPayload = Convert.FromBase64String(HttpUtility.UrlDecode(queryDictionary.Get("payload")));
+                    byte[] libResponse = this.instance.callLib(syncPayload);
+                    IRandomAccessStream syncResStream = new MemoryStream(libResponse).AsRandomAccessStream();
+                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(syncResStream, 200, "OK", "Content-Type: application/octet-stream");
                     return;
                 }
 
