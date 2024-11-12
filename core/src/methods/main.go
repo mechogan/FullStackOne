@@ -57,7 +57,7 @@ func Call(payload []byte) []byte {
 			baseDir = setup.Directories.Editor
 		}
 		return staticFiles.Serve(baseDir, args[0].(string))
-	case method >= 2 && method <= 9:
+	case method >= 2 && method <= 10:
 		if isEditor {
 			baseDir = setup.Directories.Root
 		}

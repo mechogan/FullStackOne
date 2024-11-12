@@ -35,19 +35,22 @@ func SerializeNumber(num int) []byte {
 	}
 
 	bytesNeeded := int(math.Ceil(math.Log(absNum+1) / math.Log(2) / 8))
-	bytes := make([]byte, bytesNeeded+1)
+	bytesNum := make([]byte, bytesNeeded+1)
 
 	if negative {
-		bytes[0] = 1
+		bytesNum[0] = 1
 	} else {
-		bytes[0] = 0
+		bytesNum[0] = 0
 	}
 
 	for i := range bytesNeeded {
 		mask := math.Pow(2, float64((i+1)*8)) - 1
-		bytes[i+1] = uint8(uint(absNum) & uint(mask) >> uint(i*8))
+		bytesNum[i+1] = uint8(uint(absNum) & uint(mask) >> uint(i*8))
 	}
 
+	bytes := []byte{NUMBER}
+	bytes = append(bytes, SerializeNumberToBytes(len(bytesNum))...)
+	bytes = append(bytes, bytesNum...)
 	return bytes
 }
 
