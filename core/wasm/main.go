@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
@@ -31,6 +32,22 @@ func call(this js.Value, args []js.Value) interface{} {
 	return dataJS
 }
 
+func vfs(this js.Value, args []js.Value) interface{} {
+	fileMap := make(map[string]int)
+
+	for file, data := range(fs.VirtFS) {
+		fileMap[file] = len(data)
+	}
+
+	for _, dir := range(fs.VirtDirs) {
+		fileMap[dir] = 0
+	}
+
+	jsonString, _ := json.Marshal(fileMap)
+	
+	return js.ValueOf(string(jsonString))
+} 
+
 func main() {
 	c := make(chan struct{}, 0)
 
@@ -39,6 +56,7 @@ func main() {
 
 	js.Global().Set("directories", js.FuncOf(directories))
 	js.Global().Set("call", js.FuncOf(call))
+	js.Global().Set("vfs", js.FuncOf(vfs))
 
 	<-c
 }

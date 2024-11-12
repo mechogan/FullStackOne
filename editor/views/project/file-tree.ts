@@ -160,9 +160,7 @@ function Item(item: Dirent & { parentDirectory: string }) {
             children = null;
         }
     };
-    Store.editor.fileTree.openedDirectories.subscribe(
-        onOpenedDirectoryChange
-    );
+    Store.editor.fileTree.openedDirectories.subscribe(onOpenedDirectoryChange);
 
     container.ondestroy = () => {
         Store.editor.fileTree.activeItem.unsubscribe(onActiveItemChange);

@@ -9,7 +9,8 @@ export const fs = {
     mkdir,
     rmdir,
     exists,
-    rename
+    rename,
+    stat
 };
 
 const te = new TextEncoder();
@@ -43,7 +44,7 @@ function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
 }
 
 // 4
-function unlink(path: string) {
+function unlink(path: string): Promise<boolean> {
     const payload = new Uint8Array([4, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
@@ -91,21 +92,21 @@ function readdir(
 }
 
 // 6
-function mkdir(path: string) {
+function mkdir(path: string): Promise<boolean> {
     const payload = new Uint8Array([6, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 7
-function rmdir(path: string) {
+function rmdir(path: string): Promise<boolean> {
     const payload = new Uint8Array([7, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 8
-function exists(path: string) {
+function exists(path: string): Promise<{ isFile: boolean }> {
     const payload = new Uint8Array([8, ...serializeArgs([path])]);
 
     const transformer = ([exists, isFile]: [boolean, boolean]) => {
@@ -117,26 +118,23 @@ function exists(path: string) {
 }
 
 // 9
-function rename(oldPath: string, newPath: string) {
+function rename(oldPath: string, newPath: string): Promise<boolean> {
     const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 10
-function stat(path: string) : Promise<{
-    name: string,
-    size: number,
-    modTime: number,
-    isDirectory: boolean
+function stat(path: string): Promise<{
+    name: string;
+    size: number;
+    modTime: number;
+    isDirectory: boolean;
 }> {
-    const payload = new Uint8Array([
-        10,
-        ...serializeArgs([path])
-    ]);
+    const payload = new Uint8Array([10, ...serializeArgs([path])]);
 
     const transformer = (responseArgs: any[]) => {
-        if(!responseArgs.length) return null;
+        if (!responseArgs.length) return null;
 
         const [name, size, modTime, isDirectory] = responseArgs;
 
@@ -145,8 +143,8 @@ function stat(path: string) : Promise<{
             size,
             modTime,
             isDirectory
-        }
-    }
+        };
+    };
 
-    return ipc.bridge(payload, transformer)
+    return ipc.bridge(payload, transformer);
 }

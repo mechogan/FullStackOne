@@ -23,7 +23,7 @@ const (
 	FS_RMDIR     = 7
 	FS_EXISTS    = 8
 	FS_RENAME    = 9
-	FS_STAT		 = 10
+	FS_STAT      = 10
 
 	FETCH     = 15
 	BROADCAST = 20
@@ -37,7 +37,6 @@ const (
 
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
-
 )
 
 func Call(payload []byte) []byte {

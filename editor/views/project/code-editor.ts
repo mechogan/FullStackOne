@@ -1,9 +1,13 @@
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { createElement, ElementComponent } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
 import { ipcEditor } from "../../store/ipc";
 import prettyBytes from "pretty-bytes";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { basicSetup } from "codemirror";
+import { indentWithTab } from "@codemirror/commands";
+import { indentUnit } from "@codemirror/language";
 
 export function CodeEditor() {
     const container = createElement("div");
@@ -11,32 +15,32 @@ export function CodeEditor() {
     Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
     container.ondestroy = () => {
         Store.editor.codeEditor.focusedFile.unsubscribe(refresheable.refresh);
-    }
+    };
     container.append(refresheable.element);
     return container;
 }
 
-type GenericView = {
-    path: string,
-    dom: ElementComponent
-}
+type View = {
+    element: ElementComponent;
+    editorView?: EditorView;
+};
 
-type CodeView = GenericView | (EditorView & { path: string })
-
-const views = new Set<CodeView>();
+const views = new Map<string, View>();
 
 function focusFile(path: string) {
-    let view = find(views, view => view.path === path);
+    if (!path) return createElement("div");
 
-    if(!view) {
+    let view = views.get(path);
+
+    if (!view) {
         view = createView(path);
-        views.add(view);
+        views.set(path, view);
     }
 
-    return view.dom as ElementComponent;
+    return view.element;
 }
 
-function createView(filePath: string): CodeView {
+function createView(filePath: string): View {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(BINARY_Ext).find((ext) => ext === fileExtension)) {
         return createBinaryView(filePath);
@@ -51,17 +55,59 @@ function createBinaryView(filePath: string) {
     const container = createElement("div");
     container.classList.add("binary-view");
 
-    const binaryView = {
-        path: filePath,
-        dom: container
-    };
+    ipcEditor.fs
+        .stat(filePath)
+        .then((stats) => (container.innerText = prettyBytes(stats.size)));
 
-    const stats = ipcEditor.fs.stat(filePath);
-    container.innerText = prettyBytes(stats.size);
-
-    return binaryView;
+    return { element: container };
 }
 
+function createImageView(filePath: string) {
+    const container = createElement("div");
+    container.classList.add("image-view");
+    const img = document.createElement("img");
+    container.append(img);
+
+    let imageURL: string;
+
+    container.ondestroy = () => {
+        URL.revokeObjectURL(imageURL);
+    };
+
+    ipcEditor.fs.readFile(filePath).then((imageData) => {
+        const blob = new Blob([imageData]);
+        imageURL = URL.createObjectURL(blob);
+        img.src = imageURL;
+    });
+
+    return { element: container };
+}
+
+const defaultExtensions = [
+    basicSetup,
+    oneDark,
+    keymap.of([indentWithTab]),
+    indentUnit.of("    ")
+];
+
+function createViewEditor(filePath: string) {
+    const container = createElement("div");
+
+    const view: View = {
+        element: container,
+        editorView: null
+    };
+
+    ipcEditor.fs.readFile(filePath, { encoding: "utf8" }).then((content) => {
+        view.editorView = new EditorView({
+            doc: content,
+            extensions: defaultExtensions,
+            parent: container
+        });
+    });
+
+    return view;
+}
 
 export function find<T>(
     set: Set<T> | MapIterator<T>,
@@ -71,7 +117,6 @@ export function find<T>(
         if (predicate(item)) return item;
     }
 }
-
 
 enum UTF8_Ext {
     JAVASCRIPT = "js",

@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-var virtFS = make(map[string][]byte)
-var virtDirs = []string{}
+var VirtFS = make(map[string][]byte)
+var VirtDirs = []string{}
 
 func vReadFile(path string) ([]byte, error) {
-	f := virtFS[path]
+	f := VirtFS[path]
 
 	if f == nil {
 		return nil, errors.New("ENOENT")
@@ -22,30 +22,35 @@ func vReadFile(path string) ([]byte, error) {
 }
 
 func vWriteFile(path string, data []byte) error {
-	virtFS[path] = data
+	VirtFS[path] = data
 	return nil
 }
 
 func vUnlink(path string) error {
-	delete(virtFS, path)
+	delete(VirtFS, path)
 	return nil
 }
 
 func vMkdir(path string) error {
-	for _, dir := range virtDirs {
+	// no trailing slash
+	if(strings.HasSuffix(path, "/")) {
+		path = path[:len(path) - 1]
+	}
+
+	for _, dir := range VirtDirs {
 		if dir == path {
 			return nil
 		}
 	}
 
-	virtDirs = append(virtDirs, path)
+	VirtDirs = append(VirtDirs, path)
 	return nil
 }
 
 func vRmdir(path string) error {
 	indexesToRemove := []int{}
 
-	for i, dir := range virtDirs {
+	for i, dir := range VirtDirs {
 		if strings.HasPrefix(dir, path) {
 			indexesToRemove = append(indexesToRemove, i)
 		}
@@ -53,13 +58,13 @@ func vRmdir(path string) error {
 
 	for i := len(indexesToRemove) - 1; i >= 0; i-- {
 		indexToRemove := indexesToRemove[i]
-		virtDirs[indexToRemove] = virtDirs[len(virtDirs)-1]
-		virtDirs = virtDirs[:len(virtDirs)-1]
+		VirtDirs[indexToRemove] = VirtDirs[len(VirtDirs)-1]
+		VirtDirs = VirtDirs[:len(VirtDirs)-1]
 	}
 
-	for file := range virtFS {
+	for file := range VirtFS {
 		if strings.HasPrefix(file, path) {
-			delete(virtFS, file)
+			delete(VirtFS, file)
 		}
 	}
 
@@ -67,14 +72,14 @@ func vRmdir(path string) error {
 }
 
 func vExists(path string) (bool, bool) {
-	for _, dir := range virtDirs {
-		if(path == dir) {
+	for _, dir := range VirtDirs {
+		if path == dir {
 			return true, false
 		}
 	}
 
-	for file := range virtFS {
-		if(file == path) {
+	for file := range VirtFS {
+		if file == path {
 			return true, true
 		}
 	}
@@ -83,10 +88,10 @@ func vExists(path string) (bool, bool) {
 }
 
 func vStat(path string) *SmallFileInfo {
-	f := virtFS[path]
+	f := VirtFS[path]
 	d := false
 
-	for _, dir := range virtDirs {
+	for _, dir := range VirtDirs {
 		if dir == path {
 			d = true
 			break
@@ -108,19 +113,17 @@ func vStat(path string) *SmallFileInfo {
 }
 
 func vRename(oldPath string, newPath string) error {
-	for i, dir := range virtDirs {
+	for i, dir := range VirtDirs {
 		if strings.HasPrefix(dir, oldPath) {
-			virtDirs[i] = strings.Replace(dir, oldPath, newPath, 1)
-			break
+			VirtDirs[i] = strings.Replace(dir, oldPath, newPath, 1)
 		}
 	}
 
-	for file, data := range virtFS {
+	for file, data := range VirtFS {
 		if strings.HasPrefix(file, oldPath) {
 			newFile := strings.Replace(file, oldPath, newPath, 1)
-			virtFS[newFile] = data
-			delete(virtFS, file)
-			break
+			VirtFS[newFile] = data
+			delete(VirtFS, file)
 		}
 	}
 
@@ -156,7 +159,7 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 
 	pathComponents := splitPath(path)
 
-	for _, dir := range virtDirs {
+	for _, dir := range VirtDirs {
 		if strings.HasPrefix(dir, path) {
 			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
@@ -169,7 +172,7 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 		}
 	}
 
-	for file := range virtFS {
+	for file := range VirtFS {
 		if strings.HasPrefix(file, path) {
 			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)

@@ -82,14 +82,11 @@ function FileTreeAndEditor(project: ProjectType) {
     const fileTree = FileTree(project);
     const editor = Editor(project);
 
-    container.append(
-        fileTree,
-        editor
-    );
+    container.append(fileTree, editor);
 
     container.ondestroy = () => {
         fileTree.destroy();
-        editor.destroy()
+        editor.destroy();
     };
 
     return container;

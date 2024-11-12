@@ -181,11 +181,11 @@ func Exists(path string) (bool, bool) {
 	exists := false
 	isFile := false
 
-	if(WASM) {
+	if WASM {
 		exists, isFile = vExists(path)
 	} else {
 		stat, err := os.Stat(path)
-		if(err == nil) {
+		if err == nil {
 			exists = true
 			isFile = !stat.IsDir()
 		}
@@ -196,7 +196,7 @@ func Exists(path string) (bool, bool) {
 
 func ExistsSerialized(path string) []byte {
 	bytes := []byte{}
-	exists, isFile := Exists(path);
+	exists, isFile := Exists(path)
 	bytes = append(bytes, serialize.SerializeBoolean(exists)...)
 	bytes = append(bytes, serialize.SerializeBoolean(isFile)...)
 	return bytes
@@ -231,7 +231,7 @@ func Stat(path string) *SmallFileInfo {
 func StatSerialized(path string) []byte {
 	stats := Stat(path)
 
-	if(stats == nil) {
+	if stats == nil {
 		return nil
 	}
 
