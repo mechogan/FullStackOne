@@ -1,6 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
+import { ipcEditor } from "../../ipc";
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -33,23 +34,15 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     });
 
     if (needsTypes.length) {
-        // const modulesNames = needsTypes.map((e) => {
-        //     const text = e.file?.text || view.state.doc.toString();
-        //     const moduleName = text
-        //         .toString()
-        //         .slice(e.start, e.start + e.length)
-        //         .slice(1, -1);
-        //     return `@types/${moduleName}`;
-        // });
-        // const installPromises = modulesNames.map(packageInstaller.install);
-        // const installations = await Promise.allSettled(installPromises);
-        // installations.forEach((install, i) => {
-        //     if (install.status === "rejected") {
-        //         CodeEditor.ignoreTypes.add(modulesNames[i]);
-        //     }
-        // });
-        // await WorkerTS.restart();
-        // tsErrors = await getAllTsError();
+        needsTypes.forEach((e) => {
+            const text = e.file?.text || view.state.doc.toString();
+            const moduleName = text
+                .toString()
+                .slice(e.start, e.start + e.length)
+                .slice(1, -1);
+            ipcEditor.packages.install(`@types/${moduleName}`);
+        });
+        await WorkerTS.restart();
     }
 
     return tsErrors

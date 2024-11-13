@@ -18,6 +18,7 @@ export function Project(project: ProjectType) {
         Store.editor.codeEditor.clearFiles();
         Store.editor.fileTree.setActiveItem(null);
         Store.editor.fileTree.clearOpenedDirectories();
+        Store.editor.codeEditor.clearAllBuildErrors();
     }
 
     lastOpenedProjectId = project.id;
@@ -86,6 +87,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
                 });
             });
         } else {
+            ipcEditor.open(project.id);
         }
         loaderContainer.replaceWith(runButton);
     };

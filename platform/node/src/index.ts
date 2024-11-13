@@ -5,8 +5,7 @@ import os from "os";
 import fs from "fs";
 import {
     deserializeArgs,
-    numberTo4Bytes,
-    serializeArgs
+    numberTo4Bytes
 } from "../../../src/serialization";
 import { call, setCallback, setDirectories } from "./call";
 import fastQueryString from "fast-querystring";
@@ -103,6 +102,9 @@ const requestHandler = async (
             "cache-control": "no-cache"
         });
         return res.end(data);
+    } else if(pathname === "/open") {
+        open("http://localhost:9001")
+        return;
     }
 
     // static file serving
