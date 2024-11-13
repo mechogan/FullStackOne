@@ -158,8 +158,8 @@ server.on("upgrade", (...args) => {
         });
     });
 });
-const cb = (_: string, message: string) =>
-    webSockets.forEach((webSocket) => webSocket.send(message));
+const cb = (_: string, messageType: string, message: string) =>
+    webSockets.forEach((webSocket) => webSocket.send(JSON.stringify([messageType, message])));
 await setCallback(cb);
 
 open(`http://localhost:${port}`);

@@ -10,31 +10,15 @@ enum DataType {
 }
 
 function serializeNumber(n: number) {
-    const negative = n < 0;
-
-    n = Math.abs(n);
-    const bytesNeeded = Math.ceil(Math.log(n + 1) / Math.log(2) / 8);
-    const uint8Array = new Uint8Array(bytesNeeded + 1);
-    uint8Array[0] = negative ? 1 : 0;
-
-    for (let i = 1; i <= bytesNeeded; i++) {
-        const mask = Math.pow(2, i * 8) - 1;
-        uint8Array[i] = (n & mask) >>> ((i - 1) * 8);
-    }
-
-    return uint8Array;
+    const view = new DataView(new ArrayBuffer(8))
+    view.setFloat64(0, n);
+    return new Uint8Array(view.buffer);
 }
 
 function deserializeNumber(bytes: Uint8Array) {
-    const negative = bytes[0] === 1;
-
-    let n = 0;
-
-    for (let i = 1; i <= bytes.byteLength; i++) {
-        n += (bytes[i] << ((i - 1) * 8)) >>> 0;
-    }
-
-    return negative ? 0 - n : n;
+    const buffer = new ArrayBuffer(8);
+    new Uint8Array(buffer).set(bytes);
+    return new DataView(buffer).getFloat64(0, false);
 }
 
 export function numberTo4Bytes(n: number) {

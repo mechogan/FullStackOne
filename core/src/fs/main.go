@@ -242,8 +242,8 @@ func StatSerialized(path string) []byte {
 	bytes := []byte{}
 
 	bytes = append(bytes, serialize.SerializeString(stats.Name)...)
-	bytes = append(bytes, serialize.SerializeNumber(int(stats.Size))...)
-	bytes = append(bytes, serialize.SerializeNumber(int(stats.ModTime.UnixMilli()))...)
+	bytes = append(bytes, serialize.SerializeNumber(float64(stats.Size))...)
+	bytes = append(bytes, serialize.SerializeNumber(float64(stats.ModTime.UnixMilli()))...)
 	bytes = append(bytes, serialize.SerializeBoolean(stats.IsDir)...)
 
 	return bytes

@@ -34,6 +34,31 @@ globalThis.ipc = ipc.methods;
 
 export default ipc;
 
-(globalThis as any).onmessage = (message: string) => {
-    console.log(message)
+
+const messageListeners = new Map<string, Set<(message: string) => void>>();
+export const addMessageListener = (messageType: string, cb: (message: string) => void) => {
+    let listeners = messageListeners.get(messageType);
+    if(!listeners) {
+        listeners = new Set<typeof cb>()
+        messageListeners.set(messageType, listeners);
+    }
+    listeners.add(cb);
+}
+export const removeMessageListener = (messageType: string, cb: (message: string) => void) => {
+    let listeners = messageListeners.get(messageType);
+    listeners?.delete(cb);
+    if(listeners?.size === 0) {
+        messageListeners.delete(messageType)
+    }
+}
+
+(globalThis as any).onmessage = (messageType: string, message: string) => {
+    const listeners = messageListeners.get(messageType);
+    if(!listeners?.size) {
+        console.log(`No message listener for message of type [${messageType}]`);
+    } else {
+        listeners.forEach(cb => cb(message))
+    }
 };
+
+addMessageListener("log", console.log);

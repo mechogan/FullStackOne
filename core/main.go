@@ -4,9 +4,9 @@ package main
 /*
 #include <stdlib.h>
 
-typedef const void (*Callback)(char *projectId, char *msg);
-static inline void CallMyFunction(void *callback, char *projectId, char *msg) {
-    ((Callback)callback)(projectId, msg);
+typedef const void (*Callback)(char *projectId, char* type, char *msg);
+static inline void CallMyFunction(void *callback, char *projectId, char * type, char *msg) {
+    ((Callback)callback)(projectId, type, msg);
 }
 */
 import "C"
@@ -36,8 +36,13 @@ var cCallback = (unsafe.Pointer)(nil)
 func callback(cb unsafe.Pointer) {
 	cCallback = cb
 
-	setup.Callback = func(projectId string, message string) {
-		C.CallMyFunction(cCallback, C.CString(projectId), C.CString(message))
+	setup.Callback = func(projectId string, messageType string, message string) {
+		C.CallMyFunction(
+			cCallback, 
+			C.CString(projectId), 
+			C.CString(messageType),  
+			C.CString(message),
+		)
 	}
 }
 

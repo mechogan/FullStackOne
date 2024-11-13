@@ -82,7 +82,7 @@ func vResolveFile(filePath string) *string {
 }
 
 func Build(projectDirectory string) string {
-	setup.Callback("", "WE BUILDING");
+	setup.Callback("", "log", "WE BUILDING");
 
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)

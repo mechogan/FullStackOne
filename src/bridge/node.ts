@@ -25,6 +25,7 @@ export function initCallbackNode() {
     url.protocol = "ws:";
     const ws = new WebSocket(url.toString());
     ws.onmessage = (e) => {
-        (globalThis as any).onmessage(e.data)
+        const [type, message] = JSON.parse(e.data);
+        (globalThis as any).onmessage(type, message)
     };
 }

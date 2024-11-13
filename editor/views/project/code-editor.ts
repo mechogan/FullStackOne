@@ -29,20 +29,29 @@ import { BuildError } from "../../store/editor";
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
 
-let workingDirectory: string;
+let workingDirectory: string, buildErrors: BuildError[] = [];;
 export function CodeEditor(project: Project) {
     workingDirectory = project.id;
 
     const container = createElement("div");
 
-    Store.editor.codeEditor.openedFiles.subscribe(createViews);
-    Store.editor.codeEditor.buildErrors.subscribe(applyBuildErrors);
+    const onBuildErrors = (errors: BuildError[]) => {
+        buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
+        buildErrors.forEach(err => {
+            Store.editor.codeEditor.openFile(err.file);
+            Store.editor.codeEditor.focusFile(err.file);
+        })
+    }
+
     const refresheable = createRefresheable(focusFile);
     Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
+    Store.editor.codeEditor.openedFiles.subscribe(createViews);
+    Store.editor.codeEditor.buildErrors.subscribe(onBuildErrors);
 
     container.ondestroy = () => {
         Store.editor.codeEditor.openedFiles.unsubscribe(createViews);
         Store.editor.codeEditor.focusedFile.unsubscribe(refresheable.refresh);
+        Store.editor.codeEditor.buildErrors.unsubscribe(onBuildErrors);
     };
     container.append(refresheable.element);
     return container;
@@ -93,21 +102,12 @@ function focusFile(path: string) {
     return view.element;
 }
 
-let buildErrors: BuildError[] = [];
-function applyBuildErrors(errors: BuildError[]) {
-    buildErrors = errors;
-    errors.forEach(err => {
-        Store.editor.codeEditor.openFile(err.file);
-        Store.editor.codeEditor.focusFile(err.file);
-    })
-}
-
 function displayBuildErrors(path: string, view: View) {
-    if(!view.editorView) return;
+    if (!view.editorView) return;
 
     const errors = buildErrors.filter(({ file }) => file === path);
 
-    if(errors.length === 0) return;
+    if (errors.length === 0) return;
 
     const diagnostics: Diagnostic[] = errors.map((fileError) => {
         const from = view.editorView.state.doc.line(fileError.line).from + fileError.col;
@@ -214,7 +214,7 @@ function createViewEditor(filePath: string) {
                         throttled ? 2000 : 0
                     );
                 });
-            
+
             displayBuildErrors(filePath, view);
         });
 

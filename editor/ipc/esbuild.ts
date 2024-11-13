@@ -26,7 +26,9 @@ function build(project: Project): Promise<Message[]> {
                 location: error.location
                     ? {
                         ...error.location,
-                        file: project.id + error.location.file.split(project.id).pop()
+                        file: error.location.file.includes(project.id)
+                            ? project.id + error.location.file.split(project.id).pop()
+                            : error.location.file
                     }
                     : null
             }));

@@ -48,11 +48,15 @@ export function setDirectories(directories: {
     });
 }
 
-export function setCallback(cb: (projectId: string, message: string) => void) {
+export function setCallback(cb: (projectId: string, messageType: string, message: string) => void) {
     const funcExternal = ffi.createPointer({
         paramsType: [
             ffi.funcConstructor({
-                paramsType: [ffi.DataType.String, ffi.DataType.String],
+                paramsType: [
+                    ffi.DataType.String, 
+                    ffi.DataType.String, 
+                    ffi.DataType.String
+                ],
                 retType: ffi.DataType.Void
             })
         ],

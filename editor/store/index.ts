@@ -1,9 +1,11 @@
+import { packages } from "./packages";
 import { editor } from "./editor";
 import { projects } from "./projects";
 
 export const Store = {
     projects,
-    editor
+    editor,
+    packages
 };
 
 export function createSubscribable<T>(

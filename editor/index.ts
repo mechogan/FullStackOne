@@ -1,4 +1,4 @@
-import { Packages } from "./packages";
+import { Packages } from "./views/packages";
 import { Projects } from "./views/projects";
 
 // fix windows scrollbars

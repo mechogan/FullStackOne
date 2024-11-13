@@ -6,6 +6,7 @@ import (
 	archive "fullstacked/editor/src/archive"
 	esbuild "fullstacked/editor/src/esbuild"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -45,7 +46,7 @@ func Call(payload []byte) []byte {
 	cursor := 0
 	isEditor := payload[cursor] == 1
 	cursor++
-	projectIdLength := serialize.DeserializeBytesToNumber(payload[cursor : cursor+4])
+	projectIdLength := serialize.DeserializeBytesToInt(payload[cursor : cursor+4])
 	cursor += 4
 	projectId := string(payload[cursor : cursor+projectIdLength])
 	cursor += projectIdLength
@@ -125,6 +126,9 @@ func editorSwitch(method int, args []any) []byte {
 		}
 
 		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
+	case PACKAGES_INSTALL:
+		packages.Install(args[0].(string))
+		return nil
 	}
 
 	return nil
