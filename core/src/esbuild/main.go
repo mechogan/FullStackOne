@@ -58,7 +58,32 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
+func vResolveFile(filePath string) *string {
+	possibleFiles := []string{
+		filePath,
+		filePath + ".ts",
+		filePath + ".tsx",
+		filePath + ".js",
+		filePath + ".jsx",
+		filePath + "/index.ts",
+		filePath + "/index.tsx",
+		filePath + "/index.js",
+		filePath + "/index.jsx",
+	}
+
+	for _, file := range(possibleFiles) {
+		exists, isFile := fs.Exists(file)
+		if(exists && isFile) {
+			return &file
+		}
+	}
+
+	return nil
+}
+
 func Build(projectDirectory string) string {
+	setup.Callback("", "WE BUILDING");
+
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
 	if(entryPoint == nil) {
@@ -77,15 +102,62 @@ func Build(projectDirectory string) string {
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	if (fs.WASM) {
+		fmt.Println("WE BUILDING WASM")
 		wasmFS := esbuild.Plugin{
 			Name: "wasm-fs",
 			Setup: func(build esbuild.PluginBuild) {
-				build.OnLoad(esbuild.OnLoadOptions{Filter: `*`},
+				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
+				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+					filePath := args.Path
+
+					if(strings.HasPrefix(filePath, ".")) {
+						filePath = path.Clean(path.Join(args.ResolveDir, args.Path))
+					} else {
+						filePath =  "/" + args.Path
+					}
+
+					resolved := vResolveFile(filePath[1:])
+
+					if(resolved == nil) {
+						return esbuild.OnResolveResult{}, nil
+					}
+					
+					return esbuild.OnResolveResult{
+						Path: "/" + *resolved,
+					}, nil
+					
+				})
+
+
+				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 					fmt.Println(args.Path)
-					data := ""
+
+					pathComponents := strings.Split(args.Path, ".")
+					ext := pathComponents[len(pathComponents)-1]
+
+					loader := esbuild.LoaderJS
+
+					switch(ext) {
+					case "ts":
+						loader = esbuild.LoaderTS
+					case "tsx":
+						loader = esbuild.LoaderTSX
+					case "jsx":
+						loader = esbuild.LoaderJSX
+					}
+
+					exists, isFile := fs.Exists(args.Path[1:])
+
+					if(!exists || !isFile) {
+						return esbuild.OnLoadResult{}, nil
+					}
+
+					data, _ := fs.ReadFile(args.Path[1:])
+					dataStr := string(data)
 					return esbuild.OnLoadResult{
-						Contents: &data,
+						Contents: &dataStr,
+						Loader: loader,
 					  }, nil
 				})
 			},
@@ -104,7 +176,7 @@ func Build(projectDirectory string) string {
 		Bundle: true,
 		Format: esbuild.FormatESModule,
 		Sourcemap: esbuild.SourceMapInlineAndExternal,
-		Write: true,
+		Write: !fs.WASM,
 		NodePaths: []string{setup.Directories.NodeModules},
 		Plugins: plugins,
 	})

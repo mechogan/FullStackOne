@@ -48,8 +48,7 @@ esbuild.buildSync({
 
 const toBuild = [
     ["editor/index.ts", "index"],
-    ["editor/typescript/worker.ts", "worker-ts"],
-    ["editor/views/packages/worker.ts", "worker-package-install"]
+    ["editor/typescript/worker.ts", "worker-ts"]
 ];
 
 for (const [input, output] of toBuild) {

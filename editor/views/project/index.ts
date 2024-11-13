@@ -68,6 +68,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     });
 
     runButton.onclick = async () => {
+        Store.editor.codeEditor.clearAllBuildErrors();
         const loaderContainer = document.createElement("div");
         loaderContainer.classList.add("loader-container");
         loaderContainer.append(Loader());
@@ -75,6 +76,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         const buildErrors = await ipcEditor.esbuild.build(project);
         if (buildErrors?.length) {
             buildErrors.forEach((error) => {
+                if(!error.location) return;
                 Store.editor.codeEditor.addBuildError({
                     file: error.location.file,
                     line: error.location.line,

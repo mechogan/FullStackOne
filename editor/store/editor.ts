@@ -15,7 +15,7 @@ const openedFiles = createSubscribable(() => codeEditorOpenedFiles);
 let codeEditorFocusedFile: string;
 const focusedFile = createSubscribable(() => codeEditorFocusedFile);
 
-type BuildError = {
+export type BuildError = {
     file: string;
     line: number;
     col: number;

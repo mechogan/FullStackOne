@@ -8,7 +8,6 @@ declare global {
     var directories: (
         root: string,
         config: string,
-        nodeModules: string,
         editor: string
     ) => void;
     var call: (payload: Uint8Array) => Uint8Array;
@@ -28,7 +27,7 @@ const dirs = {
     editor: "editor"
 };
 
-directories(dirs.root, dirs.config, dirs.nodeModules, dirs.editor);
+directories(dirs.root, dirs.config, dirs.editor);
 
 const te = new TextEncoder();
 const editorDir = te.encode(dirs.editor);
@@ -101,6 +100,8 @@ globalThis.lib = {
         return call(data);
     }
 };
+
+document.body.innerText = "";
 
 // HEAD (link => style, title => title)
 indexHTML.head

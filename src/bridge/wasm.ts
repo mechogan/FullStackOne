@@ -1,7 +1,8 @@
 import type { ipc } from "../ipc";
 import { deserializeArgs } from "../serialization";
 
-export const BridgeWasm: typeof ipc.bridge = async (
+// SYNC
+export const BridgeWasm: typeof ipc.bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {

@@ -63,30 +63,35 @@ function restart() {
     return WorkerTS.start(directory);
 }
 
+let readyPromise: Promise<void>;
+
 function start(workingDirectory: string) {
     directory = workingDirectory;
+    
+    if(!readyPromise){
+        readyPromise = new Promise<void>((resolve) => {
+            worker = new Worker("worker-ts.js", { type: "module" });
+            worker.onmessage = async (message) => {
+                if (message.data.ready) {
+                    await WorkerTS.call().start(workingDirectory);
+                    resolve();
+                } else {
+                    const { id, data } = message.data;
+                    const promiseResolve = requests.get(id);
+                    promiseResolve(data);
+                    requests.delete(id);
+                }
+    
+                tsRequests.notify();
+            };
+        });
+    }
 
-    return new Promise<void>((resolve) => {
-        if (worker) return resolve();
-
-        worker = new Worker("worker-ts.js", { type: "module" });
-        worker.onmessage = async (message) => {
-            if (message.data.ready) {
-                await WorkerTS.call().start(workingDirectory);
-                resolve();
-            } else {
-                const { id, data } = message.data;
-                const promiseResolve = requests.get(id);
-                promiseResolve(data);
-                requests.delete(id);
-            }
-
-            tsRequests.notify();
-        };
-    });
+    return readyPromise
 }
 
 function dispose() {
+    readyPromise = null;
     worker?.terminate();
     worker = null;
 

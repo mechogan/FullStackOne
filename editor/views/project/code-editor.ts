@@ -8,7 +8,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import { Diagnostic, linter, lintGutter } from "@codemirror/lint";
+import { Diagnostic, linter, lintGutter, setDiagnostics } from "@codemirror/lint";
 import prettier from "prettier";
 import prettierPluginHTML from "prettier/plugins/html";
 import prettierPluginCSS from "prettier/plugins/postcss";
@@ -24,6 +24,7 @@ import {
 } from "./ts-extensions";
 import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
+import { BuildError } from "../../store/editor";
 
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
@@ -35,9 +36,7 @@ export function CodeEditor(project: Project) {
     const container = createElement("div");
 
     Store.editor.codeEditor.openedFiles.subscribe(createViews);
-
-    Store.editor.codeEditor.buildErrors.subscribe(console.log);
-
+    Store.editor.codeEditor.buildErrors.subscribe(applyBuildErrors);
     const refresheable = createRefresheable(focusFile);
     Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
 
@@ -89,7 +88,38 @@ function focusFile(path: string) {
         views.set(path, view);
     }
 
+    displayBuildErrors(path, view);
+
     return view.element;
+}
+
+let buildErrors: BuildError[] = [];
+function applyBuildErrors(errors: BuildError[]) {
+    buildErrors = errors;
+    errors.forEach(err => {
+        Store.editor.codeEditor.openFile(err.file);
+        Store.editor.codeEditor.focusFile(err.file);
+    })
+}
+
+function displayBuildErrors(path: string, view: View) {
+    if(!view.editorView) return;
+
+    const errors = buildErrors.filter(({ file }) => file === path);
+
+    if(errors.length === 0) return;
+
+    const diagnostics: Diagnostic[] = errors.map((fileError) => {
+        const from = view.editorView.state.doc.line(fileError.line).from + fileError.col;
+        return {
+            from,
+            to: from + fileError.length,
+            severity: "error",
+            message: fileError.message
+        };
+    });
+
+    view.editorView.dispatch(setDiagnostics(view.editorView.state, diagnostics));
 }
 
 function createView(filePath: string): View {
@@ -184,6 +214,8 @@ function createViewEditor(filePath: string) {
                         throttled ? 2000 : 0
                     );
                 });
+            
+            displayBuildErrors(filePath, view);
         });
 
     return view;

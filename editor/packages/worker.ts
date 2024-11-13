@@ -1,8 +1,8 @@
 import "./worker-env";
-import rpc from "../../rpc";
+import rpc from "../rpc";
 import gzip from "gzip-js";
 import untar from "js-untar";
-import { bindPassRequestBody } from "../../../src/android";
+import { bindPassRequestBody } from "../../src/android";
 
 export type PackageInstallerWorkerMessage =
     | {

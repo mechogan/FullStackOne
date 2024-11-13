@@ -1,5 +1,5 @@
-import rpc from "../../rpc";
-import { Dialog } from "../../components/dialog";
+import rpc from "../rpc";
+import { Dialog } from "../components/dialog";
 import { PackagesInstallProgress } from "./progress";
 import type { PackageInstallerWorkerMessage } from "./worker";
 import { fromByteArray } from "base64-js";

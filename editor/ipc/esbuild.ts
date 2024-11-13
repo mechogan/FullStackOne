@@ -9,23 +9,28 @@ export const esbuild = {
 };
 
 // 55
-function version() {}
+function version() { }
 
 // 56
 function build(project: Project): Promise<Message[]> {
     const payload = new Uint8Array([56, ...serializeArgs([project.id])]);
 
-    const transformer = ([jsonStr]) =>
-        (JSON.parse(jsonStr) as Message[])
-            ?.map(uncapitalizeKeys)
+    const transformer = ([jsonStr]) => {
+        const json = JSON.parse(jsonStr) as Message[];
+
+        console.log(json)
+
+        return json?.map(uncapitalizeKeys)
             .map((error) => ({
                 ...error,
-                location: {
-                    ...error.location,
-                    file:
-                        project.id + error.location.file.split(project.id).pop()
-                }
+                location: error.location
+                    ? {
+                        ...error.location,
+                        file: project.id + error.location.file.split(project.id).pop()
+                    }
+                    : null
             }));
+    }
 
     return ipc.bridge(payload, transformer);
 }

@@ -34,4 +34,6 @@ globalThis.ipc = ipc.methods;
 
 export default ipc;
 
-(globalThis as any).onmessage = (message: string) => {};
+(globalThis as any).onmessage = (message: string) => {
+    console.log(message)
+};

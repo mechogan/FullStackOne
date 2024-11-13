@@ -1,3 +1,4 @@
+import { Packages } from "./packages";
 import { Projects } from "./views/projects";
 
 // fix windows scrollbars
@@ -49,6 +50,7 @@ if (navigator.userAgent.includes("Windows")) {
 
 document.querySelector("#splash").remove();
 Projects();
+Packages();
 
 // const esbuildIsInstalled = await rpc().esbuild.check();
 // if (!esbuildIsInstalled) {

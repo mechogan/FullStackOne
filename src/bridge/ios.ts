@@ -8,7 +8,8 @@ import {
 
 const requests = new Map<number, (data: Uint8Array) => void>();
 
-export const BridgeIOS: typeof ipc.bridge = async (
+// ASYNC
+export const BridgeIOS: typeof ipc.bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {

@@ -47,12 +47,17 @@ func vfs(this js.Value, args []js.Value) interface{} {
 	return js.ValueOf(string(jsonString))
 } 
 
+func callback(projectId string, message string) {
+	js.Global().Call("onmessage", js.ValueOf(message))
+}
+
 func main() {
 	c := make(chan struct{}, 0)
 
 	fmt.Println("FullStacked WASM")
 	fs.WASM = true
 
+	setup.Callback = callback
 	js.Global().Set("directories", js.FuncOf(directories))
 	js.Global().Set("call", js.FuncOf(call))
 	js.Global().Set("vfs", js.FuncOf(vfs))

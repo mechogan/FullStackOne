@@ -1,6 +1,7 @@
 import type { ipc } from "../ipc";
 import { deserializeArgs } from "../serialization";
 
+// ASYNC
 export const BridgeNode: typeof ipc.bridge = async (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
@@ -23,5 +24,7 @@ export function initCallbackNode() {
     const url = new URL(globalThis.location.href);
     url.protocol = "ws:";
     const ws = new WebSocket(url.toString());
-    ws.onmessage = (e) => console.log(e);
+    ws.onmessage = (e) => {
+        (globalThis as any).onmessage(e.data)
+    };
 }
