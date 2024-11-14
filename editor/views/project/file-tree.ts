@@ -23,26 +23,17 @@ export function FileTree(project: Project) {
 
     container.append(topActions, scrollableTree);
 
-    let isAddingItem = false;
-    const onAddingItemChange = (addingItem: {
-        parentDirectory: string;
-        isDirectory: boolean;
-    }) => {
-        if (project.id === addingItem?.parentDirectory) {
-            isAddingItem = true;
-        } else {
-            if (isAddingItem) {
-                treeRecursive?.refresh(project.id);
-            }
-            isAddingItem = false;
+    const onOpenedDirectoryChange = (directories: Set<string>) => {
+        if(directories.has(project.id)) {
+            treeRecursive.refresh(project.id)
         }
     };
-    Store.editor.fileTree.addingItem.subscribe(onAddingItemChange);
+    Store.editor.fileTree.openedDirectories.subscribe(onOpenedDirectoryChange);
 
     container.ondestroy = () => {
         treeRecursive.element.destroy();
         topActions.destroy();
-        Store.editor.fileTree.addingItem.unsubscribe(onAddingItemChange);
+        Store.editor.fileTree.openedDirectories.unsubscribe(onOpenedDirectoryChange);
     };
 
     return container;
@@ -67,21 +58,25 @@ function TopActions(project: Project) {
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () =>
+    newFileButton.onclick = () => {
         Store.editor.fileTree.setAddingItem({
             parentDirectory,
             isDirectory: false
         });
+        Store.editor.fileTree.setDirectoryOpen(parentDirectory, true);
+    }
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () =>
+    newDirectoryButton.onclick = () => {
         Store.editor.fileTree.setAddingItem({
             parentDirectory,
             isDirectory: true
         });
+        Store.editor.fileTree.setDirectoryOpen(parentDirectory, true);
+    }
 
     const uploadButton = Button({
         style: "icon-small",
@@ -94,9 +89,9 @@ function TopActions(project: Project) {
     fileInput.onchange = async () => {
         const file = fileInput.files[0];
         if (!file) return;
-
-        
-
+        const data = new Uint8Array(await file.arrayBuffer());
+        ipcEditor.fs.writeFile(`${parentDirectory}/${file.name}`, data)
+            .then(() => Store.editor.fileTree.setDirectoryOpen(parentDirectory, true));
         form.reset();
     };
     form.append(fileInput);
@@ -131,36 +126,32 @@ function TopActions(project: Project) {
     return container;
 }
 
-function TreeRecursive(directory: string) {
+async function TreeRecursive(directory: string) {
     const container = createElement("ul");
 
     let children: ReturnType<typeof Item>[] = null;
-    ipcEditor.fs.readdir(directory, { withFileTypes: true }).then((items) => {
-        children = items
-            .filter(
-                ({ name }) =>
-                    !name.startsWith(".build") && !name.startsWith(".git")
-            )
-            .sort((a, b) => {
-                if (a.isDirectory && !b.isDirectory) {
-                    return -1;
-                } else if (!a.isDirectory && b.isDirectory) {
-                    return 1;
-                }
+    const items = await ipcEditor.fs.readdir(directory, { withFileTypes: true })
+    children = items
+        .filter(
+            ({ name }) =>
+                !name.startsWith(".build") && !name.startsWith(".git")
+        )
+        .sort((a, b) => {
+            if (a.isDirectory && !b.isDirectory) {
+                return -1;
+            } else if (!a.isDirectory && b.isDirectory) {
+                return 1;
+            }
 
-                return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
-            })
-            .map((dirent) => ({
-                ...dirent,
-                parentDirectory: directory
-            }))
-            .map(Item);
+            return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
+        })
+        .map((dirent) => ({
+            ...dirent,
+            parentDirectory: directory
+        }))
+        .map(Item);
 
-        container.append(...children);
-        if (addingItemForm) {
-            container.append(addingItemForm);
-        }
-    });
+    container.append(...children);
 
     let addingItemForm: HTMLElement;
     const onAddingItemChange = (addingItem: {
@@ -251,10 +242,11 @@ function Item(item: Dirent & { parentDirectory: string }) {
     let onOpenedDirectoryChange = (openedDirectories: Set<string>) => {
         if (openedDirectories.has(path)) {
             container.classList.add("opened");
-            if (children) return;
-            children = createRefresheable(TreeRecursive);
+            if (!children) {
+                children = createRefresheable(TreeRecursive);
+                container.append(children.element);
+            }
             children.refresh(path);
-            container.append(children.element);
         } else {
             container.classList.remove("opened");
             children?.element.remove();
@@ -264,31 +256,11 @@ function Item(item: Dirent & { parentDirectory: string }) {
     };
     Store.editor.fileTree.openedDirectories.subscribe(onOpenedDirectoryChange);
 
-    let isAddingItem = false;
-    const onAddingItemChange = (addingItem: {
-        parentDirectory: string;
-        isDirectory: boolean;
-    }) => {
-        if (!item.isDirectory) return;
-
-        if (path === addingItem?.parentDirectory) {
-            isAddingItem = true;
-            Store.editor.fileTree.setDirectoryOpen(path, true);
-        } else {
-            if (isAddingItem) {
-                children?.refresh(path);
-            }
-            isAddingItem = false;
-        }
-    };
-    Store.editor.fileTree.addingItem.subscribe(onAddingItemChange);
-
     container.ondestroy = () => {
         Store.editor.fileTree.activeItem.unsubscribe(onActiveItemChange);
         Store.editor.fileTree.openedDirectories.unsubscribe(
             onOpenedDirectoryChange
         );
-        Store.editor.fileTree.addingItem.unsubscribe(onAddingItemChange);
         children?.element.destroy();
     };
 
@@ -376,6 +348,7 @@ function createItemForm(addingItem: {
             } else {
                 ipcEditor.fs.writeFile(path, "\n");
             }
+            Store.editor.fileTree.setDirectoryOpen(addingItem.parentDirectory, true);
         }
 
         Store.editor.fileTree.setAddingItem(null);
