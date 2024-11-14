@@ -3,6 +3,7 @@ This file must follow the figma design
 https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=6-67
 */
 
+import { createElement } from "../element";
 import { Icon } from "./icon";
 
 type ButtonOpts = {
@@ -14,7 +15,7 @@ type ButtonOpts = {
 };
 
 export function Button(opts?: Partial<ButtonOpts>) {
-    const button = document.createElement("button");
+    const button = createElement("button");
 
     if (!opts?.style?.startsWith("icon")) {
         button.innerText = opts?.text || "";

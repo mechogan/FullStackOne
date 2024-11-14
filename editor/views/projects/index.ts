@@ -11,6 +11,7 @@ import { List } from "./list";
 import { SearchAdd } from "./search-add";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { PeersWidget } from "./peers-widget";
+import { Settings } from "../settings";
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();
@@ -38,7 +39,7 @@ function TopBar() {
         iconLeft: "Settings"
     });
     settings.id = SETTINGS_BUTTON_ID;
-    // settings.onclick = Settings
+    settings.onclick = Settings
 
     const peersWidget = PeersWidget();
 

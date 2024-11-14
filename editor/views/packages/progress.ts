@@ -13,7 +13,6 @@ export function PackagesInstallProgress(
     >[0]
 ) {
     if (installingPackages.size === 0) {
-        console.log("REMOVING DIALOG");
         packageInstallView?.remove();
         packageInstallView = null;
         installingPackageViews.clear();
@@ -21,7 +20,6 @@ export function PackagesInstallProgress(
     }
 
     if (!packageInstallView) {
-        console.log("ADDING DIALOG");
         const { container, packagesList } = CreatePackagesInstallView();
         packageInstallView = {
             remove: Dialog(container).remove,

@@ -5,6 +5,7 @@ import { TopBar } from "../../components/top-bar";
 import { Store } from "../../store";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
+import { ipcEditor } from "../../ipc";
 
 export function CreateEmpty() {
     const container = document.createElement("div");
@@ -41,16 +42,17 @@ export function CreateEmpty() {
         e.preventDefault();
         createButton.disabled = true;
 
-        const id = slugify(inputIdentifier.input.value, {
-            lower: true
-        });
+        let id = inputIdentifier.input.value 
+            ? slugify(inputIdentifier.input.value, {lower: true})
+            : slugify(inputTitle.input.value, {lower: true});
+        id = id || "no-identifier";
 
-        Store.projects
-            .create({
-                title: inputTitle.input.value,
-                id
-            })
-            .then(() => stackNavigation.back());
+        const title = inputTitle.input.value || "Empty Project";
+
+        Promise.all([
+            ipcEditor.fs.mkdir(id),
+            Store.projects.create({title, id})
+        ]).then(() => stackNavigation.back());
     };
 
     form.append(inputTitle.container, inputIdentifier.container, createButton);

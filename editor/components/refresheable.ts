@@ -4,8 +4,8 @@ export function createRefresheable<T>(
     elementRenderer: (args: T) => ElementComponent | Promise<ElementComponent>
 ) {
     const refresheable = {
-        element: createElement("div"),
-        refresh: (newArgs: T) => {
+        element: createElement("div") as ElementComponent<any>,
+        refresh: (newArgs?: T) => {
             refresheable.element.destroy();
             const updatedElement = elementRenderer(newArgs);
             if(updatedElement instanceof Promise) {

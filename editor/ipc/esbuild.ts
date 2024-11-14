@@ -9,7 +9,10 @@ export const esbuild = {
 };
 
 // 55
-function version() {}
+function version() : Promise<string> {
+    const payload = new Uint8Array([55]);
+    return ipc.bridge(payload, ([str]) => str);
+}
 
 // 56
 function build(project: Project): Promise<Message[]> {

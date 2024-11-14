@@ -5,7 +5,7 @@ import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Button } from "../../components/primitives/button";
 import { FileTree } from "./file-tree";
 import { Store } from "../../store";
-import { createElement } from "../../components/element";
+import { createElement, ElementComponent } from "../../components/element";
 import { Editor } from "./editor";
 import { WorkerTS } from "../../typescript";
 import { ipcEditor } from "../../ipc";
@@ -27,7 +27,7 @@ export function Project(project: ProjectType) {
 
     lastOpenedProjectId = project.id;
 
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.id = PROJECT_VIEW_ID;
     container.classList.add("view");
 
@@ -50,53 +50,80 @@ export function Project(project: ProjectType) {
             Store.packages.installingPackages.unsubscribe(autoRun);
             topBar.destroy();
             fileTreeAndEditor.destroy();
+            container.destroy();
         }
     });
+    
+    return container;
 }
 
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
-    const gitButton = Button({
-        style: "icon-large",
-        iconLeft: "Git"
-    });
+    
+    const actions: ElementComponent[] = [];
 
-    const tsButton = Button({
-        style: "icon-large",
-        iconLeft: "TypeScript"
-    });
+    if(project.id === "node_modules") {
+        const deleteAllButton = Button({
+            text: "Delete All",
+            color: "red"
+        });
 
-    tsButton.disabled = true;
-    const flashOnWorking = (request: Map<number, Function>) => {
-        if (request.size > 0) {
-            tsButton.disabled = false;
-            tsButton.classList.add("working");
-        } else {
-            tsButton.classList.remove("working");
+        deleteAllButton.onclick = async () => {
+            deleteAllButton.disabled = true;
+            await ipcEditor.fs.rmdir("node_modules");
+            await ipcEditor.fs.mkdir("node_modules");
+            stackNavigation.back();
         }
-    };
-    WorkerTS.working.subscribe(flashOnWorking);
-    tsButton.onclick = () => {
-        WorkerTS.restart();
-    };
 
-    const runButton = Button({
-        style: "icon-large",
-        iconLeft: "Play"
-    });
+        actions.push(deleteAllButton);
+    } else {
+        const gitButton = Button({
+            style: "icon-large",
+            iconLeft: "Git"
+        });
+    
+        const tsButton = Button({
+            style: "icon-large",
+            iconLeft: "TypeScript"
+        });
+    
+        tsButton.disabled = true;
+        const flashOnWorking = (request: Map<number, Function>) => {
+            if (request.size > 0) {
+                tsButton.disabled = false;
+                tsButton.classList.add("working");
+            } else {
+                tsButton.classList.remove("working");
+            }
+        };
+        WorkerTS.working.subscribe(flashOnWorking);
+        tsButton.onclick = () => {
+            WorkerTS.restart();
+        };
+        tsButton.ondestroy = () => {
+            WorkerTS.working.unsubscribe(flashOnWorking);
+        }
+    
+        const runButton = Button({
+            style: "icon-large",
+            iconLeft: "Play"
+        });
+    
+        runButton.onclick = async () => {
+            const loaderContainer = document.createElement("div");
+            loaderContainer.classList.add("loader-container");
+            loaderContainer.append(Loader());
+            runButton.replaceWith(loaderContainer);
+            await build(project);
+            loaderContainer.replaceWith(runButton);
+        };
 
-    runButton.onclick = async () => {
-        const loaderContainer = document.createElement("div");
-        loaderContainer.classList.add("loader-container");
-        loaderContainer.append(Loader());
-        runButton.replaceWith(loaderContainer);
-        await build(project);
-        loaderContainer.replaceWith(runButton);
-    };
+        actions.push(gitButton, tsButton, runButton);
+    }
 
     const topBar = TopBarComponent({
         title: project.title,
         subtitle: project.id,
-        actions: [gitButton, tsButton, runButton],
+        actions,
         onBack: () => {
             if (fileTreeAndEditor.classList.contains("closed-panel")) {
                 Store.editor.setSidePanelClosed(false);
@@ -108,8 +135,8 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     });
 
     topBar.ondestroy = () => {
-        WorkerTS.working.unsubscribe(flashOnWorking);
-    };
+        actions.forEach(e => e.destroy());
+    }
 
     return topBar;
 }
