@@ -7,11 +7,8 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using System.Web;
-using Windows.ApplicationModel.Core;
 using Windows.Storage.Streams;
-using Windows.UI.Core;
 
 namespace windows
 {
@@ -103,6 +100,11 @@ namespace windows
             {
                 _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.onmessage(`" + type + "`, `" + message + "`)");
             });
+        }
+
+        public void bringToFront() {
+            this.window.Activate();
+            this.webview.Reload();
         }
     }
 }

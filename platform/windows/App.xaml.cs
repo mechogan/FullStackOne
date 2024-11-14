@@ -35,7 +35,14 @@ namespace windows
             if (!webviews.ContainsKey(projectId)) return;
 
             if (projectId == "" && messageType == "open") {
-                this.webviews[message] = new WebView(new Instance(false, message));
+                if (webviews.ContainsKey(message))
+                {
+                    webviews[message].bringToFront();
+                }
+                else
+                {
+                    this.webviews[message] = new WebView(new Instance(false, message));
+                }
                 return;
             }
 
