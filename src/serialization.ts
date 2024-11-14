@@ -10,7 +10,7 @@ enum DataType {
 }
 
 function serializeNumber(n: number) {
-    const view = new DataView(new ArrayBuffer(8))
+    const view = new DataView(new ArrayBuffer(8));
     view.setFloat64(0, n);
     return new Uint8Array(view.buffer);
 }

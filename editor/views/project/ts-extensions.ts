@@ -43,6 +43,7 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
             ipcEditor.packages.install(`@types/${moduleName}`);
         });
         await WorkerTS.restart();
+        tsErrors = await getAllTsError();
     }
 
     return tsErrors

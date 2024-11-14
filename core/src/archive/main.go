@@ -14,6 +14,13 @@ func Unzip(dest string, data []byte) bool {
 		return false
 	}
 
+	exists, isFile := fs.Exists(dest)
+	if exists && isFile {
+		fs.Unlink(dest)
+	} else if exists && !isFile {
+		fs.Rmdir(dest)
+	}
+
 	fs.Mkdir(dest)
 
 	for _, zipFile := range zipReader.File {

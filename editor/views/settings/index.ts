@@ -26,10 +26,10 @@ export function Settings() {
     container.prepend(topBar);
 
     scrollable.append(
-        Packages(),
-        Connectivity(),
-        GitAuthentications(),
-        Version()
+        Packages()
+        // Connectivity(),
+        // GitAuthentications(),
+        // Version()
     );
 
     stackNavigation.navigate(container, {

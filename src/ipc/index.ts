@@ -1,3 +1,4 @@
+import { ipcMethods } from "../fullstacked";
 import { fs } from "./fs";
 
 export const ipc = {
@@ -9,5 +10,5 @@ export const ipc = {
         fs
         // fetch: () => any
         // broadcast: () => null
-    }
+    } as ipcMethods
 };

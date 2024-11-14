@@ -8,7 +8,12 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import { Diagnostic, linter, lintGutter, setDiagnostics } from "@codemirror/lint";
+import {
+    Diagnostic,
+    linter,
+    lintGutter,
+    setDiagnostics
+} from "@codemirror/lint";
 import prettier from "prettier";
 import prettierPluginHTML from "prettier/plugins/html";
 import prettierPluginCSS from "prettier/plugins/postcss";
@@ -29,19 +34,21 @@ import { BuildError } from "../../store/editor";
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
 
-let workingDirectory: string, buildErrors: BuildError[] = [];;
+let workingDirectory: string,
+    buildErrors: BuildError[] = [];
 export function CodeEditor(project: Project) {
     workingDirectory = project.id;
 
     const container = createElement("div");
 
     const onBuildErrors = (errors: BuildError[]) => {
+        clearBuildErrors();
         buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
-        buildErrors.forEach(err => {
+        buildErrors.forEach((err) => {
             Store.editor.codeEditor.openFile(err.file);
             Store.editor.codeEditor.focusFile(err.file);
-        })
-    }
+        });
+    };
 
     const refresheable = createRefresheable(focusFile);
     Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
@@ -63,6 +70,15 @@ type View = {
 };
 
 const views = new Map<string, View>();
+
+export function saveAllViews() {
+    const promises = [];
+    for (const view of views.values()) {
+        if (!view.editorView) continue;
+        promises.push(view.editorView.save(false));
+    }
+    return Promise.all(promises);
+}
 
 function createViews(filesPaths: Set<string>) {
     const pathToClose = new Set<string>();
@@ -110,7 +126,8 @@ function displayBuildErrors(path: string, view: View) {
     if (errors.length === 0) return;
 
     const diagnostics: Diagnostic[] = errors.map((fileError) => {
-        const from = view.editorView.state.doc.line(fileError.line).from + fileError.col;
+        const from =
+            view.editorView.state.doc.line(fileError.line).from + fileError.col;
         return {
             from,
             to: from + fileError.length,
@@ -119,7 +136,15 @@ function displayBuildErrors(path: string, view: View) {
         };
     });
 
-    view.editorView.dispatch(setDiagnostics(view.editorView.state, diagnostics));
+    view.editorView.dispatch(
+        setDiagnostics(view.editorView.state, diagnostics)
+    );
+}
+
+function clearBuildErrors() {
+    for (const view of views.values()) {
+        view.editorView?.dispatch(setDiagnostics(view.editorView?.state, []));
+    }
 }
 
 function createView(filePath: string): View {

@@ -33,8 +33,8 @@ func vUnlink(path string) error {
 
 func vMkdir(path string) error {
 	// no trailing slash
-	if(strings.HasSuffix(path, "/")) {
-		path = path[:len(path) - 1]
+	if strings.HasSuffix(path, "/") {
+		path = path[:len(path)-1]
 	}
 
 	for _, dir := range VirtDirs {

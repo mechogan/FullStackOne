@@ -5,11 +5,11 @@ import { PackagesInstallProgress } from "./progress";
 
 export function Packages() {
     Store.editor.codeEditor.buildErrors.subscribe(checkForPackageToInstall);
-    Store.packages.installingPackages.subscribe(PackagesInstallProgress)
+    Store.packages.installingPackages.subscribe(PackagesInstallProgress);
 }
 
-function checkForPackageToInstall(buildErrors: BuildError[]){
-    buildErrors.forEach(({message}) => {
+function checkForPackageToInstall(buildErrors: BuildError[]) {
+    buildErrors.forEach(({ message }) => {
         if (!message.startsWith("Could not resolve")) return;
 
         const packageName: string = message
@@ -19,6 +19,6 @@ function checkForPackageToInstall(buildErrors: BuildError[]){
 
         if (packageName.startsWith(".") || !packageName) return;
 
-        ipcEditor.packages.install(packageName)
+        ipcEditor.packages.install(packageName);
     });
 }

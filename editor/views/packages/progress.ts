@@ -3,30 +3,41 @@ import { Dialog } from "../../components/dialog";
 import { Store } from "../../store";
 import { Progress } from "../../store/packages";
 
-
 let packageInstallView: {
     remove: ReturnType<typeof Dialog>["remove"];
-    updateList: ([string, Progress]) => void
-}
-export function PackagesInstallProgress(installingPackages: Parameters<Parameters<typeof Store.packages.installingPackages.subscribe>[0]>[0]) {
+    updateList: ([string, Progress]) => void;
+};
+export function PackagesInstallProgress(
+    installingPackages: Parameters<
+        Parameters<typeof Store.packages.installingPackages.subscribe>[0]
+    >[0]
+) {
     if (installingPackages.size === 0) {
-        packageInstallView?.remove()
+        console.log("REMOVING DIALOG");
+        packageInstallView?.remove();
         packageInstallView = null;
-        installingPackageViews.clear()
+        installingPackageViews.clear();
         return;
     }
 
     if (!packageInstallView) {
-        const { container, packagesList } = CreatePackagesInstallView()
+        console.log("ADDING DIALOG");
+        const { container, packagesList } = CreatePackagesInstallView();
         packageInstallView = {
             remove: Dialog(container).remove,
             updateList: ([packageName, progress]) => {
-                UpdatePackageInstallProgress(packagesList, packageName, progress)
+                UpdatePackageInstallProgress(
+                    packagesList,
+                    packageName,
+                    progress
+                );
             }
-        }
+        };
     }
 
-    installingPackages.entries().forEach(packageInstallView.updateList)
+    for (const installingPackage of installingPackages.entries()) {
+        packageInstallView.updateList(installingPackage);
+    }
 }
 
 function CreatePackagesInstallView() {
@@ -40,21 +51,27 @@ function CreatePackagesInstallView() {
     return { container, packagesList };
 }
 
-const installingPackageViews = new Map<string, ReturnType<typeof CreatePackageInstallProgressView>>();
-function UpdatePackageInstallProgress(list: HTMLUListElement, packageName: string, progress: Progress) {
+const installingPackageViews = new Map<
+    string,
+    ReturnType<typeof CreatePackageInstallProgressView>
+>();
+function UpdatePackageInstallProgress(
+    list: HTMLUListElement,
+    packageName: string,
+    progress: Progress
+) {
     let progressView = installingPackageViews.get(packageName);
 
-    if(!progressView) {
+    if (!progressView) {
         progressView = CreatePackageInstallProgressView(packageName);
-        list.append(progressView.container)
-        installingPackageViews.set(packageName, progressView)
+        list.append(progressView.container);
+        installingPackageViews.set(packageName, progressView);
     }
 
     progressView.setProgress(progress);
 }
 
-
-function CreatePackageInstallProgressView(packageName: string){
+function CreatePackageInstallProgressView(packageName: string) {
     const container = document.createElement("li");
 
     const name = document.createElement("div");
@@ -70,18 +87,18 @@ function CreatePackageInstallProgressView(packageName: string){
     const setProgress = (progress: Progress) => {
         let statusText = progress.Stage as string;
 
-        if(progress.Stage === "downloading" && progress.Loaded !== 0) {
-            statusText = `(${prettyBytes(progress.Loaded)}/${prettyBytes(progress.Total)}) ${statusText}`
-        }else if(progress.Stage === "unpacking" && progress.Loaded !== 0) {
-            statusText = `(${progress.Loaded}/${progress.Total}) ${statusText}`
-        }else if(progress.Stage === "done") {
+        if (progress.Stage === "downloading" && progress.Loaded !== 0) {
+            statusText = `(${prettyBytes(progress.Loaded)}/${prettyBytes(progress.Total)}) ${statusText}`;
+        } else if (progress.Stage === "unpacking" && progress.Loaded !== 0) {
+            statusText = `(${progress.Loaded}/${progress.Total}) ${statusText}`;
+        } else if (progress.Stage === "done") {
             statusText = "installed";
         }
 
         status.innerText = statusText;
         progressLine.style.width =
-                    ((progress.Loaded / progress.Total) * 100).toFixed(2) + "%";
-    }
+            ((progress.Loaded / progress.Total) * 100).toFixed(2) + "%";
+    };
 
     return { container, setProgress };
 }

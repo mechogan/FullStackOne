@@ -40,6 +40,8 @@ const (
 	ESBUILD_BUILD   = 56
 
 	PACKAGES_INSTALL = 60
+
+	OPEN = 100
 )
 
 func Call(payload []byte) []byte {
@@ -77,7 +79,12 @@ func Call(payload []byte) []byte {
 }
 
 func fsSwitch(method int, baseDir string, args []any) []byte {
-	filePath := path.Join(baseDir, args[0].(string))
+	fileName := ""
+	if args[0] != nil {
+		fileName = args[0].(string)
+	}
+
+	filePath := path.Join(baseDir, fileName)
 
 	switch method {
 	case FS_READFILE:
@@ -128,6 +135,9 @@ func editorSwitch(method int, args []any) []byte {
 		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
 	case PACKAGES_INSTALL:
 		packages.Install(args[0].(string))
+		return nil
+	case OPEN:
+		setup.Callback("", "open", args[0].(string))
 		return nil
 	}
 

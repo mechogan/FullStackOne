@@ -26,9 +26,9 @@ type ResponseNPM struct {
 }
 
 type DownloadProgress struct {
-	Name string
+	Name   string
 	Loaded int
-	Total int
+	Total  int
 }
 
 func (dlProgress *DownloadProgress) Write(p []byte) (int, error) {
@@ -44,7 +44,7 @@ func (dlProgress *DownloadProgress) Write(p []byte) (int, error) {
 }
 
 func Install(name string) {
-	packageDir := path.Join(setup.Directories.NodeModules, name);
+	packageDir := path.Join(setup.Directories.NodeModules, name)
 
 	exists, _ := fs.Exists(packageDir)
 	if exists {
@@ -62,7 +62,7 @@ func Install(name string) {
 
 	// get tarball url
 	npmRes, err := http.Get("https://registry.npmjs.org/" + name + "/latest")
-	if(err != nil) {
+	if err != nil {
 		return
 	}
 	defer npmRes.Body.Close()
@@ -71,7 +71,7 @@ func Install(name string) {
 	json.NewDecoder(npmRes.Body).Decode(npmResJSON)
 
 	packageRes, err := http.Get(npmResJSON.Dist["tarball"])
-	if(err != nil) {
+	if err != nil {
 		fs.Rmdir(packageDir)
 		notifyProgress(Progress{
 			Name:   name,
@@ -86,18 +86,18 @@ func Install(name string) {
 	// download tarball
 	dlTotal, _ := strconv.Atoi(packageRes.Header.Get("content-length"))
 	dlProgress := DownloadProgress{
-		Name: name,
+		Name:   name,
 		Loaded: 0,
-		Total: dlTotal,
+		Total:  dlTotal,
 	}
 	dlReader := io.TeeReader(packageRes.Body, &dlProgress)
 	packageDataGZIP, _ := io.ReadAll(dlReader)
 
 	notifyProgress(Progress{
-		Name: name,
-		Stage: "unpacking",
+		Name:   name,
+		Stage:  "unpacking",
 		Loaded: 0,
-		Total: 0,
+		Total:  0,
 	})
 
 	// get item count
@@ -109,18 +109,17 @@ func Install(name string) {
 	totalItemCount := 0
 	for {
 		_, err := tarReaderCount.Next()
-		if(err == io.EOF) {
+		if err == io.EOF {
 			break
 		}
 		totalItemCount += 1
 	}
 	notifyProgress(Progress{
-		Name: name,
-		Stage: "unpacking",
+		Name:   name,
+		Stage:  "unpacking",
 		Loaded: 0,
-		Total: totalItemCount,
+		Total:  totalItemCount,
 	})
-
 
 	// untar
 	packageDataGZIPBuffer := bytes.NewBuffer(packageDataGZIP)
@@ -132,46 +131,46 @@ func Install(name string) {
 	for {
 		header, err := tarReader.Next()
 
-		if(err == io.EOF) {
+		if err == io.EOF {
 			break
 		}
 
-		if(header != nil) {
+		if header != nil {
 
 			// strip 1
 			filePath := strings.Join(strings.Split(header.Name, "/")[1:], "/")
 
 			target := path.Join(packageDir, filePath)
 
-			if(header.Typeflag == tar.TypeDir) {
+			if header.Typeflag == tar.TypeDir {
 				fs.Mkdir(target)
-			} else if(header.Typeflag == tar.TypeReg) {
-				dir, fileName := path.Split(target);
-				fs.Mkdir(dir);
+			} else if header.Typeflag == tar.TypeReg {
+				dir, fileName := path.Split(target)
+				fs.Mkdir(dir)
 				fileData, _ := io.ReadAll(tarReader)
 				fs.WriteFile(target, fileData)
 
-				if(fileName == "package.json") {
+				if fileName == "package.json" {
 					processPackageJSON(fileData)
 				}
 			}
 		}
-		
+
 		itemCount += 1
 
 		notifyProgress(Progress{
-			Name: name,
-			Stage: "unpacking",
+			Name:   name,
+			Stage:  "unpacking",
 			Loaded: itemCount,
-			Total: totalItemCount,
+			Total:  totalItemCount,
 		})
 	}
-	
+
 	notifyProgress(Progress{
-		Name: name,
-		Stage: "done",
+		Name:   name,
+		Stage:  "done",
 		Loaded: 1,
-		Total: 1,
+		Total:  1,
 	})
 }
 

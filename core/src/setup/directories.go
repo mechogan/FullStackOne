@@ -9,7 +9,7 @@ type DirectoriesStruct struct {
 	Root        string
 	Config      string
 	NodeModules string
-	Tmp 		string
+	Tmp         string
 	Editor      string
 }
 
@@ -20,7 +20,7 @@ func SetupDirectories(root string, config string, editor string) {
 		Root:        root,
 		Config:      config,
 		NodeModules: path.Join(root, "node_modules"),
-		Tmp: 		 path.Join(root, ".tmp"),
+		Tmp:         path.Join(root, ".tmp"),
 		Editor:      editor,
 	}
 

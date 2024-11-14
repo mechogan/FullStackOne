@@ -1,7 +1,8 @@
 import { ipc } from ".";
+import { ipcMethods } from "../fullstacked";
 import { serializeArgs } from "../serialization";
 
-export const fs = {
+export const fs: ipcMethods["fs"] = {
     readFile,
     writeFile,
     unlink,
@@ -16,12 +17,7 @@ export const fs = {
 const te = new TextEncoder();
 
 // 2
-function readFile(path: string): Promise<Uint8Array>;
-function readFile(path: string, options: { encoding: "utf8" }): Promise<string>;
-function readFile(
-    path: string,
-    options?: { encoding: "utf8" }
-): Promise<string | Uint8Array> {
+function readFile(path: string, options?: { encoding: "utf8" }) {
     const payload = new Uint8Array([
         2,
         ...serializeArgs([path, options?.encoding === "utf8"])
@@ -33,7 +29,7 @@ function readFile(
 }
 
 // 3
-function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
+function writeFile(path: string, data: string | Uint8Array) {
     if (typeof data === "string") {
         data = te.encode(data);
     }
@@ -44,7 +40,7 @@ function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
 }
 
 // 4
-function unlink(path: string): Promise<boolean> {
+function unlink(path: string) {
     const payload = new Uint8Array([4, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
@@ -58,16 +54,8 @@ type Dirent = {
 // 5
 function readdir(
     path: string,
-    options?: { recursive?: boolean; withFileTypes?: false }
-): Promise<string[]>;
-function readdir(
-    path: string,
-    options?: { recursive?: boolean; withFileTypes: true }
-): Promise<Dirent[]>;
-function readdir(
-    path: string,
     options?: { recursive?: boolean; withFileTypes?: boolean }
-): Promise<string[] | Dirent[]> {
+) {
     const payload = new Uint8Array([
         5,
         ...serializeArgs([path, !!options?.recursive, !!options?.withFileTypes])
@@ -92,21 +80,21 @@ function readdir(
 }
 
 // 6
-function mkdir(path: string): Promise<boolean> {
+function mkdir(path: string) {
     const payload = new Uint8Array([6, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 7
-function rmdir(path: string): Promise<boolean> {
+function rmdir(path: string) {
     const payload = new Uint8Array([7, ...serializeArgs([path])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 8
-function exists(path: string): Promise<{ isFile: boolean }> {
+function exists(path: string) {
     const payload = new Uint8Array([8, ...serializeArgs([path])]);
 
     const transformer = ([exists, isFile]: [boolean, boolean]) => {
@@ -118,19 +106,14 @@ function exists(path: string): Promise<{ isFile: boolean }> {
 }
 
 // 9
-function rename(oldPath: string, newPath: string): Promise<boolean> {
+function rename(oldPath: string, newPath: string) {
     const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath])]);
 
     return ipc.bridge(payload, ([success]) => success);
 }
 
 // 10
-function stat(path: string): Promise<{
-    name: string;
-    size: number;
-    modTime: number;
-    isDirectory: boolean;
-}> {
+function stat(path: string) {
     const payload = new Uint8Array([10, ...serializeArgs([path])]);
 
     const transformer = (responseArgs: any[]) => {

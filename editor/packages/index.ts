@@ -6,8 +6,8 @@ export function Packages() {
     Store.editor.codeEditor.buildErrors.subscribe(checkForPackageToInstall);
 }
 
-function checkForPackageToInstall(buildErrors: BuildError[]){
-    buildErrors.forEach(({message}) => {
+function checkForPackageToInstall(buildErrors: BuildError[]) {
+    buildErrors.forEach(({ message }) => {
         if (!message.startsWith("Could not resolve")) return;
 
         const packageName: string = message
@@ -17,6 +17,6 @@ function checkForPackageToInstall(buildErrors: BuildError[]){
 
         if (packageName.startsWith(".") || !packageName) return;
 
-        ipcEditor.packages.install(packageName)
+        ipcEditor.packages.install(packageName);
     });
 }

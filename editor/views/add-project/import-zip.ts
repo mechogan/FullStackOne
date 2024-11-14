@@ -126,7 +126,12 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     consoleTerminal.text.innerText += `Creating Project\n`;
     consoleTerminal.text.innerText += `${JSON.stringify(project, null, 2)}\n`;
 
-    await ipcEditor.fs.rename(tmpDir, project.id);
+    let tries = 1,
+        originalProjectId = project.id;
+    while (!(await ipcEditor.fs.rename(tmpDir, project.id))) {
+        tries++;
+        project.id = originalProjectId + "-" + tries;
+    }
 
     Store.projects.create(project);
 

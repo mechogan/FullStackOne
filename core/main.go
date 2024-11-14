@@ -1,6 +1,5 @@
 package main
 
-
 /*
 #include <stdlib.h>
 
@@ -32,15 +31,16 @@ func directories(root *C.char,
 }
 
 var cCallback = (unsafe.Pointer)(nil)
+
 //export callback
 func callback(cb unsafe.Pointer) {
 	cCallback = cb
 
 	setup.Callback = func(projectId string, messageType string, message string) {
 		C.CallMyFunction(
-			cCallback, 
-			C.CString(projectId), 
-			C.CString(messageType),  
+			cCallback,
+			C.CString(projectId),
+			C.CString(messageType),
 			C.CString(message),
 		)
 	}

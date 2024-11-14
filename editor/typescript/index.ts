@@ -67,8 +67,8 @@ let readyPromise: Promise<void>;
 
 function start(workingDirectory: string) {
     directory = workingDirectory;
-    
-    if(!readyPromise){
+
+    if (!readyPromise) {
         readyPromise = new Promise<void>((resolve) => {
             worker = new Worker("worker-ts.js", { type: "module" });
             worker.onmessage = async (message) => {
@@ -81,13 +81,13 @@ function start(workingDirectory: string) {
                     promiseResolve(data);
                     requests.delete(id);
                 }
-    
+
                 tsRequests.notify();
             };
         });
     }
 
-    return readyPromise
+    return readyPromise;
 }
 
 function dispose() {

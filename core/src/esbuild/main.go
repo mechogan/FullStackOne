@@ -32,25 +32,25 @@ func Version() string {
 func findEntryPoint(directory string) *string {
 	possibleEntryPoints := []string{
 		"index.js",
-        "index.jsx",
-        "index.ts",
-        "index.tsx",
+		"index.jsx",
+		"index.ts",
+		"index.tsx",
 	}
 
 	items, _ := fs.ReadDir(directory, false)
 
 	entryPoint := (*string)(nil)
 
-	for _, possibleEntry := range(possibleEntryPoints) {
+	for _, possibleEntry := range possibleEntryPoints {
 
-		for _, item := range(items) {
-			if(strings.HasSuffix(item.Name, possibleEntry)) {
+		for _, item := range items {
+			if strings.HasSuffix(item.Name, possibleEntry) {
 				entryPoint = &item.Name
-				break;
+				break
 			}
 		}
 
-		if(entryPoint != nil){
+		if entryPoint != nil {
 			break
 		}
 	}
@@ -71,9 +71,9 @@ func vResolveFile(filePath string) *string {
 		filePath + "/index.jsx",
 	}
 
-	for _, file := range(possibleFiles) {
+	for _, file := range possibleFiles {
 		exists, isFile := fs.Exists(file)
-		if(exists && isFile) {
+		if exists && isFile {
 			return &file
 		}
 	}
@@ -82,11 +82,11 @@ func vResolveFile(filePath string) *string {
 }
 
 func Build(projectDirectory string) string {
-	setup.Callback("", "log", "WE BUILDING");
+	setup.Callback("", "log", "WE BUILDING")
 
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
-	if(entryPoint == nil) {
+	if entryPoint == nil {
 		return "[]"
 	}
 
@@ -97,69 +97,69 @@ func Build(projectDirectory string) string {
 	baseJS := string(baseJSbytes)
 	tmpFilePath := filepath.ToSlash(setup.Directories.Tmp) + "/" + strconv.Itoa(int(time.Now().UnixMilli())) + ".js"
 	mergedFile := baseJS + "\nimport(\"" + entryPointAbs + "\")\n"
+	fs.Mkdir(setup.Directories.Tmp)
 	fs.WriteFile(tmpFilePath, []byte(mergedFile))
 
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
-	if (fs.WASM) {
+	if fs.WASM {
 		fmt.Println("WE BUILDING WASM")
 		wasmFS := esbuild.Plugin{
 			Name: "wasm-fs",
 			Setup: func(build esbuild.PluginBuild) {
 				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
-				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					filePath := args.Path
+					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+						filePath := args.Path
 
-					if(strings.HasPrefix(filePath, ".")) {
-						filePath = path.Clean(path.Join(args.ResolveDir, args.Path))
-					} else {
-						filePath =  "/" + args.Path
-					}
+						if strings.HasPrefix(filePath, ".") {
+							filePath = path.Clean(path.Join(args.ResolveDir, args.Path))
+						} else {
+							filePath = "/" + args.Path
+						}
 
-					resolved := vResolveFile(filePath[1:])
+						resolved := vResolveFile(filePath[1:])
 
-					if(resolved == nil) {
-						return esbuild.OnResolveResult{}, nil
-					}
-					
-					return esbuild.OnResolveResult{
-						Path: "/" + *resolved,
-					}, nil
-					
-				})
+						if resolved == nil {
+							return esbuild.OnResolveResult{}, nil
+						}
 
+						return esbuild.OnResolveResult{
+							Path: "/" + *resolved,
+						}, nil
+
+					})
 
 				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					fmt.Println(args.Path)
+					func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+						fmt.Println(args.Path)
 
-					pathComponents := strings.Split(args.Path, ".")
-					ext := pathComponents[len(pathComponents)-1]
+						pathComponents := strings.Split(args.Path, ".")
+						ext := pathComponents[len(pathComponents)-1]
 
-					loader := esbuild.LoaderJS
+						loader := esbuild.LoaderJS
 
-					switch(ext) {
-					case "ts":
-						loader = esbuild.LoaderTS
-					case "tsx":
-						loader = esbuild.LoaderTSX
-					case "jsx":
-						loader = esbuild.LoaderJSX
-					}
+						switch ext {
+						case "ts":
+							loader = esbuild.LoaderTS
+						case "tsx":
+							loader = esbuild.LoaderTSX
+						case "jsx":
+							loader = esbuild.LoaderJSX
+						}
 
-					exists, isFile := fs.Exists(args.Path[1:])
+						exists, isFile := fs.Exists(args.Path[1:])
 
-					if(!exists || !isFile) {
-						return esbuild.OnLoadResult{}, nil
-					}
+						if !exists || !isFile {
+							return esbuild.OnLoadResult{}, nil
+						}
 
-					data, _ := fs.ReadFile(args.Path[1:])
-					dataStr := string(data)
-					return esbuild.OnLoadResult{
-						Contents: &dataStr,
-						Loader: loader,
-					  }, nil
-				})
+						data, _ := fs.ReadFile(args.Path[1:])
+						dataStr := string(data)
+						return esbuild.OnLoadResult{
+							Contents: &dataStr,
+							Loader:   loader,
+						}, nil
+					})
 			},
 		}
 		plugins = append(plugins, wasmFS)
@@ -168,17 +168,17 @@ func Build(projectDirectory string) string {
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath: tmpFilePath,
+			InputPath:  tmpFilePath,
 			OutputPath: "index",
 		}},
-		Outdir: projectDirectory + "/.build",
+		Outdir:    projectDirectory + "/.build",
 		Splitting: true,
-		Bundle: true,
-		Format: esbuild.FormatESModule,
+		Bundle:    true,
+		Format:    esbuild.FormatESModule,
 		Sourcemap: esbuild.SourceMapInlineAndExternal,
-		Write: !fs.WASM,
+		Write:     !fs.WASM,
 		NodePaths: []string{setup.Directories.NodeModules},
-		Plugins: plugins,
+		Plugins:   plugins,
 	})
 
 	// delete tmp merged file

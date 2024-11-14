@@ -104,7 +104,7 @@ fs.cpSync("node_modules/typescript/lib", outTsLib, {
 });
 
 child_process.execSync(
-    `tsc --declaration --skipLibCheck --module system --outfile ${outTsLib}/fullstacked.js src/adapter/fullstacked.ts`,
+    `tsc --declaration --skipLibCheck --module system --outfile ${outTsLib}/fullstacked.js src/fullstacked.ts`,
     {
         stdio: "inherit"
     }

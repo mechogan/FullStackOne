@@ -48,13 +48,15 @@ export function setDirectories(directories: {
     });
 }
 
-export function setCallback(cb: (projectId: string, messageType: string, message: string) => void) {
+export function setCallback(
+    cb: (projectId: string, messageType: string, message: string) => void
+) {
     const funcExternal = ffi.createPointer({
         paramsType: [
             ffi.funcConstructor({
                 paramsType: [
-                    ffi.DataType.String, 
-                    ffi.DataType.String, 
+                    ffi.DataType.String,
+                    ffi.DataType.String,
                     ffi.DataType.String
                 ],
                 retType: ffi.DataType.Void
@@ -74,7 +76,7 @@ export function setCallback(cb: (projectId: string, messageType: string, message
     });
 }
 
-export async function call(payload: Uint8Array) {
+export async function callLib(payload: Uint8Array) {
     const responsePtr = ffi.createPointer({
         paramsType: [
             ffi.arrayConstructor({

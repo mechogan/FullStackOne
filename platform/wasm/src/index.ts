@@ -5,11 +5,7 @@ declare global {
         importObject: WebAssembly.Imports;
         run: Function;
     }
-    var directories: (
-        root: string,
-        config: string,
-        editor: string
-    ) => void;
+    var directories: (root: string, config: string, editor: string) => void;
     var call: (payload: Uint8Array) => Uint8Array;
 }
 

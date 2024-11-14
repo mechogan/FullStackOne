@@ -9,7 +9,7 @@ export const esbuild = {
 };
 
 // 55
-function version() { }
+function version() {}
 
 // 56
 function build(project: Project): Promise<Message[]> {
@@ -18,21 +18,19 @@ function build(project: Project): Promise<Message[]> {
     const transformer = ([jsonStr]) => {
         const json = JSON.parse(jsonStr) as Message[];
 
-        console.log(json)
-
-        return json?.map(uncapitalizeKeys)
-            .map((error) => ({
-                ...error,
-                location: error.location
-                    ? {
-                        ...error.location,
-                        file: error.location.file.includes(project.id)
-                            ? project.id + error.location.file.split(project.id).pop()
-                            : error.location.file
-                    }
-                    : null
-            }));
-    }
+        return json?.map(uncapitalizeKeys).map((error) => ({
+            ...error,
+            location: error.location
+                ? {
+                      ...error.location,
+                      file: error.location.file.includes(project.id)
+                          ? project.id +
+                            error.location.file.split(project.id).pop()
+                          : error.location.file
+                  }
+                : null
+        }));
+    };
 
     return ipc.bridge(payload, transformer);
 }

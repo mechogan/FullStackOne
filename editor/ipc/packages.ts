@@ -2,18 +2,14 @@ import { ipcEditor } from ".";
 import ipc from "../../src";
 import { serializeArgs } from "../../src/serialization";
 
-
 export const packages = {
     install
-}
+};
 
 // 60
-function install(packageName: string){
+function install(packageName: string) {
     packageName = parsePackageName(packageName);
-    const payload = new Uint8Array([
-        60,
-        ...serializeArgs([packageName])
-    ]);
+    const payload = new Uint8Array([60, ...serializeArgs([packageName])]);
 
     ipc.bridge(payload);
 }

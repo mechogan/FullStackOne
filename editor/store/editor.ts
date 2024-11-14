@@ -1,4 +1,5 @@
 import { createSubscribable } from ".";
+import { Dirent } from "../../src/fullstacked";
 
 let sidePanelClosed = false;
 const sidePanel = createSubscribable(() => sidePanelClosed);
@@ -6,8 +7,11 @@ const sidePanel = createSubscribable(() => sidePanelClosed);
 const fileTreeOpenedDirectories = new Set<string>();
 const openedDirectories = createSubscribable(() => fileTreeOpenedDirectories);
 
-let fileTreeActiveItem: string;
+let fileTreeActiveItem: Dirent & { parentDirectory: string };
 const activeItem = createSubscribable(() => fileTreeActiveItem);
+
+let fileTreeAddingItem: { parentDirectory: string; isDirectory: boolean };
+const addingItem = createSubscribable(() => fileTreeAddingItem);
 
 const codeEditorOpenedFiles = new Set<string>();
 const openedFiles = createSubscribable(() => codeEditorOpenedFiles);
@@ -32,16 +36,21 @@ export const editor = {
     fileTree: {
         openedDirectories: openedDirectories.subscription,
         toggleDirectory,
+        setDirectoryOpen,
         clearOpenedDirectories,
 
         activeItem: activeItem.subscription,
-        setActiveItem
+        setActiveItem,
+
+        addingItem: addingItem.subscription,
+        setAddingItem
     },
 
     codeEditor: {
         openedFiles: openedFiles.subscription,
         openFile,
         closeFile,
+        closeFilesUnderDirectory,
 
         focusedFile: focusedFile.subscription,
         focusFile,
@@ -68,14 +77,31 @@ function toggleDirectory(directory: string) {
     openedDirectories.notify();
 }
 
+function setDirectoryOpen(directory: string, open: boolean) {
+    if (open) {
+        fileTreeOpenedDirectories.add(directory);
+    } else {
+        fileTreeOpenedDirectories.delete(directory);
+    }
+    openedDirectories.notify();
+}
+
 function clearOpenedDirectories() {
     fileTreeOpenedDirectories.clear();
     openedDirectories.notify();
 }
 
-function setActiveItem(item: string) {
+function setActiveItem(item: Dirent & { parentDirectory: string }) {
     fileTreeActiveItem = item;
     activeItem.notify();
+}
+
+function setAddingItem(item: {
+    parentDirectory: string;
+    isDirectory: boolean;
+}) {
+    fileTreeAddingItem = item;
+    addingItem.notify();
 }
 
 function openFile(path: string) {
@@ -85,6 +111,15 @@ function openFile(path: string) {
 
 function closeFile(path: string) {
     codeEditorOpenedFiles.delete(path);
+    openedFiles.notify();
+}
+
+function closeFilesUnderDirectory(path: string) {
+    for (const openedFile of codeEditorOpenedFiles.values()) {
+        if (openedFile.startsWith(path)) {
+            codeEditorOpenedFiles.delete(openedFile);
+        }
+    }
     openedFiles.notify();
 }
 
