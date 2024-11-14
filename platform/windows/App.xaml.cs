@@ -9,18 +9,57 @@ using System.Collections.Generic;
 
 namespace windows
 {
+
     unsafe public partial class App : Application
     {
-
-        [DllImport("win-x86_64.dll")]
-        public static extern void directories(void* root, void* config, void* editor);
-
         public App()
         {
             this.InitializeComponent();
         }
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
+        {
+            setDirectories();
+
+            cb = new CallbackDelegate(onCallback);
+            callback(cb);
+
+            WebView editor = new WebView(new Instance(true, ""));
+            this.webviews[""] = editor;
+        }
+        private readonly Dictionary<string, WebView> webviews = new();
+        private CallbackDelegate cb;
+
+        public void onCallback(string projectId, string messageType, string message)
+        {
+            if (!webviews.ContainsKey(projectId)) return;
+
+            if (projectId == "" && messageType == "open") {
+                this.webviews[message] = new WebView(new Instance(false, message));
+                return;
+            }
+
+            WebView webview = webviews[projectId];
+            webview.onMessage(messageType, message);
+        }
+
+        // DLL Lib Bridge
+
+
+        [DllImport("win-x86_64.dll")]
+        public static extern void directories(void* root, void* config, void* editor);
+        [DllImport("win-x86_64.dll")]
+        public static extern void callback(CallbackDelegate cb);
+
+        public delegate void CallbackDelegate(string projectId, string messageType, string message);
+
+        [DllImport("win-x86_64.dll")]
+        public static extern int call(byte* payload, int size, byte** response);
+        [DllImport("win-x86_64.dll")]
+        public static extern void freePtr(void* ptr);
+
+
+        public static void setDirectories()
         {
             string userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             string root = Path.Combine(userDir, "FullStacked");
@@ -31,22 +70,39 @@ namespace windows
             byte[] configBytes = Encoding.UTF8.GetBytes(config);
             byte[] editorBytes = Encoding.UTF8.GetBytes(editor);
 
-            fixed (void* rootPtr = rootBytes, 
-                configPtr = configBytes, 
-                editorPtr = editorBytes) {
+            fixed (void* rootPtr = rootBytes,
+                configPtr = configBytes,
+                editorPtr = editorBytes)
+            {
                 directories(
                     rootPtr,
                     configPtr,
                     editorPtr
                     );
             }
-
-            
-
-
-            this.editor = new WebView(new Instance(true, ""));
         }
-        private WebView editor;
+
+        public static byte[] call(byte[] payload)
+        {
+            byte[] responsePtr;
+
+
+            fixed (byte* p = payload, r = responsePtr)
+            {
+                int responseLength = call(p, payload.Length, &r);
+
+                byte[] response = new byte[responseLength];
+                Marshal.Copy((IntPtr)r, response, 0, responseLength);
+
+                freePtr(r);
+
+                return response;
+            }
+        }
+
+
+        // END DLL Lib Bridge
+
 
         public static byte[] numberToByte(int num)
         {
@@ -59,10 +115,18 @@ namespace windows
         }
 
         public static byte[] combineBuffers(byte[][] buffers) {
-            byte[] combined = new byte[buffers.Sum(x => x.Length)];
+            byte[] combined = new byte[buffers.Sum(x => {
+                if (x == null) {
+                    return 0;
+                }
+                return x.Length;
+            })];
             int offset = 0;
             foreach (byte[] buffer in buffers)
             {
+                if (buffer == null) {
+                    continue;
+                }
                 Array.Copy(buffer, 0, combined, offset, buffer.Length);
                 offset += buffer.Length;
             }

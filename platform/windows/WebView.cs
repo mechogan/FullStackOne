@@ -6,15 +6,15 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Web;
+using Windows.ApplicationModel.Core;
 using Windows.Storage.Streams;
+using Windows.UI.Core;
 
 namespace windows
 {
-    [ClassInterface(ClassInterfaceType.AutoDual)]
-    [ComVisible(true)]
     internal class WebView
     {
         private Window window;
@@ -96,6 +96,13 @@ namespace windows
                 args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(resStream, 200, "OK", "Content-Type: " + values[0].str);
             };
             this.webview.Source = new Uri("http://localhost");
+        }
+
+        public void onMessage(string type, string message) {
+            this.window.DispatcherQueue.TryEnqueue(() =>
+            {
+                _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.onmessage(`" + type + "`, `" + message + "`)");
+            });
         }
     }
 }

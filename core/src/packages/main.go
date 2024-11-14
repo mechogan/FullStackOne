@@ -44,6 +44,10 @@ func (dlProgress *DownloadProgress) Write(p []byte) (int, error) {
 }
 
 func Install(name string) {
+	go install(name)
+}
+
+func install(name string) {
 	packageDir := path.Join(setup.Directories.NodeModules, name)
 
 	exists, _ := fs.Exists(packageDir)
