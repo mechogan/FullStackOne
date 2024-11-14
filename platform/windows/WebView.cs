@@ -103,8 +103,11 @@ namespace windows
         }
 
         public void bringToFront() {
-            this.window.Activate();
-            this.webview.Reload();
+            this.window.DispatcherQueue.TryEnqueue(() =>
+            {
+                this.window.Activate();
+                this.webview.Reload();
+            });
         }
     }
 }
