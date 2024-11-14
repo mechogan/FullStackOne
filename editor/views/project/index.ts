@@ -20,8 +20,6 @@ export function Project(project: ProjectType) {
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();
-        Store.editor.fileTree.setActiveItem(null);
-        Store.editor.fileTree.clearOpenedDirectories();
         Store.editor.codeEditor.clearAllBuildErrors();
         WorkerTS.dispose();
         autoRunning = false;
