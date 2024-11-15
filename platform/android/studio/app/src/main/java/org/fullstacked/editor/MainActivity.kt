@@ -9,6 +9,7 @@ import android.os.Looper
 import android.view.ViewGroup
 import android.webkit.ValueCallback
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
             System.loadLibrary("editor-core")
         }
     }
-    val webViews = mutableMapOf<String, WebViewComponent>()
+    val webViews = mutableListOf<Pair<String, WebViewComponent>>()
 
     private external fun directories(
         root: String,
@@ -35,7 +36,7 @@ class MainActivity : ComponentActivity() {
             val handler = Handler(mainLooper)
             handler.post {
                 val webView = WebViewComponent(this, Instance(false, message))
-                this.webViews[message] = webView
+                this.webViews.add(Pair(message, webView))
                 val params =
                     ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 this.addContentView(webView.webView, params)
@@ -44,8 +45,8 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val webView = this.webViews[projectId] ?: return
-        webView.onMessage(messageType, message)
+        val webView = this.webViews.find { it.first == projectId } ?: return
+        webView.second.onMessage(messageType, message)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,11 +68,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
 
-        this.webViews[""] = editorWebview
+        this.webViews.add(Pair("", editorWebview))
 
         this.setContentView(editorWebview.webView)
 
         callback()
+
+
+        this.onBackPressedDispatcher.addCallback {
+            if(webViews.size == 1) {
+                webViews.first().second.back { didGoBack ->
+                    if(!didGoBack) {
+                        moveTaskToBack(true)
+                    }
+                }
+            } else {
+                val lastWebView = webViews.removeAt(webViews.lastIndex)
+                lastWebView.second.back { didGoBack ->
+                    if(!didGoBack) {
+                        (lastWebView.second.webView.parent as ViewGroup).removeView(lastWebView.second.webView)
+                    }
+                }
+            }
+        }.isEnabled = true
     }
 
     private fun extractEditorFiles(instanceEditor: Instance, editorDir: String) {

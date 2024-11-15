@@ -12,6 +12,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
@@ -35,6 +36,12 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         }
     }
 
+    fun back(callback: (didGoBack: Boolean) -> Unit) {
+        this.webView.evaluateJavascript("window.back?.()") { result ->
+            callback(result == "true")
+        }
+    }
+
     override fun shouldInterceptRequest(
         view: WebView?,
         request: WebResourceRequest?
@@ -52,6 +59,18 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
                 "text/plain",
                 "utf-8",
                 "android".byteInputStream()
+            )
+        } else if(this.instance.isEditor && pathname == "/call-sync") {
+            val payloadBase64 = URLDecoder.decode(request.url.getQueryParameter("payload"), "utf-8")
+            val payload = Base64.getDecoder().decode(payloadBase64)
+            val response = this.instance.callLib(payload)
+            return WebResourceResponse(
+                "application/octet-stream",
+                "",
+                200,
+                "OK",
+                mapOf("cache-control" to "no-cache"),
+                response.inputStream()
             )
         }
 
@@ -83,6 +102,9 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         return WebResourceResponse(
             args[0] as String,
             "",
+            200,
+            "OK",
+            mapOf("cache-control" to "no-cache"),
             (args[1] as ByteArray).inputStream()
         )
     }
