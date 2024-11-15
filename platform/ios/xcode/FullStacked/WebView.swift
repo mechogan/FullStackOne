@@ -69,6 +69,14 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
     }
 }
 
+class WebViewDelegate: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        <#code#>
+    }
+    
+    
+}
+
 
 class RequestHandler: NSObject, WKURLSchemeHandler {
     let instance: Instance

@@ -131,14 +131,13 @@ struct Main: View {
 }
 
 struct WebViewRepresentable: UIViewRepresentable {
-    private let webView: WebView
-    
+    private let projectId: String;
     init(webView: WebView) {
-        self.webView = webView
+        self.projectId = webView.requestHandler.instance.id
     }
     
     func makeUIView(context: Context) -> WebView  {
-        return self.webView
+        return (WebViews.singleton?.getView(projectId: self.projectId))!
     }
     
     func updateUIView(_ uiView: WebView, context: Context) {
