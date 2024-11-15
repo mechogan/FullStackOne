@@ -79,7 +79,10 @@ class WebViews: ObservableObject {
         return nil
     }
     func removeView(projectId: String) {
-        self.views = self.views.filter { $0.requestHandler.instance.id != projectId }
+        if let viewIndex = self.views.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
+            let view = self.views.remove(at: viewIndex)
+            view.close()
+        }
     }
 }
 

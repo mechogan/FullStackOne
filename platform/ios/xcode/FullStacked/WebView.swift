@@ -32,6 +32,11 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
         self.load(URLRequest(url: URL(string: "fs://localhost")!))
     }
     
+    func close(){
+        self.navigationDelegate = nil
+        self.configuration.userContentController.removeScriptMessageHandler(forName: "bridge")
+    }
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -67,14 +72,6 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
             self.evaluateJavaScript("window.onmessage(`\(messageType)`,`\(message)`)")
         }
     }
-}
-
-class WebViewDelegate: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        <#code#>
-    }
-    
-    
 }
 
 
