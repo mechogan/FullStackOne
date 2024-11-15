@@ -10,18 +10,17 @@
 let platform = "ios"
 
 class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
-    private var requestHandler: RequestHandler? = nil
+    public let requestHandler: RequestHandler
     
     init(instance: Instance) {
-        let handler = RequestHandler(instance: instance)
+        self.requestHandler = RequestHandler(instance: instance)
         
         let wkWebViewConfig = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
         wkWebViewConfig.userContentController = userContentController
-        wkWebViewConfig.setURLSchemeHandler(handler, forURLScheme: "fs")
+        wkWebViewConfig.setURLSchemeHandler(self.requestHandler, forURLScheme: "fs")
         
         super.init(frame: CGRect(), configuration: wkWebViewConfig)
-        self.requestHandler = handler
         self.navigationDelegate = self
         
         userContentController.add(self, name: "bridge")
@@ -58,9 +57,15 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
         let data = Data(base64Encoded: message.body as! String)!
         var response = data[0...3]
         let payload = data[4...]
-        let responsePayload = self.requestHandler!.instance.callLib(payload: payload)
+        let responsePayload = self.requestHandler.instance.callLib(payload: payload)
         response.append(responsePayload)
         self.evaluateJavaScript("window.respond(`\(response.base64EncodedString())`)")
+    }
+    
+    func onMessage(messageType: String, message: String) {
+        DispatchQueue.main.async() {
+            self.evaluateJavaScript("window.onmessage(`\(messageType)`,`\(message)`)")
+        }
     }
 }
 
@@ -110,6 +115,17 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
                       mimeType: "text/plain",
                       data: data)
             return
+        } else if(self.instance.isEditor && pathname == "call-sync") {
+            let uri = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let payloadBase64 = uri?.queryItems?.first(where: {$0.name == "payload"})?.value?.removingPercentEncoding
+            let payload = Data(base64Encoded: payloadBase64!)
+            let response = self.instance.callLib(payload: payload!)
+            self.send(urlSchemeTask: urlSchemeTask,
+                      url: request.url!,
+                      statusCode: 200,
+                      mimeType: "application/octet-stream",
+                      data: response)
+            return
         }
         
         // static file serving
@@ -124,6 +140,15 @@ class RequestHandler: NSObject, WKURLSchemeHandler {
         
         let response = self.instance.callLib(payload: payload)
         let args = response.deserializeArgs()
+        
+        if(args.count < 2 || args[0] == nil) {
+            send(urlSchemeTask: urlSchemeTask,
+                 url: request.url!,
+                 statusCode: 404,
+                 mimeType: "text/plain",
+                 data: "Not Found".data(using: .utf8)!)
+            return
+        }
         
         send(urlSchemeTask: urlSchemeTask,
              url: request.url!,
@@ -162,21 +187,6 @@ extension Data {
         return Int(value)
     }
     
-    func deserializeToNumber() -> Int {
-        let bytes = [UInt8](self)
-        let negative = bytes[0] == 1;
-                
-        var n: UInt = 0, i = 1;
-        while (i <= bytes.count) {
-            n += UInt(bytes[i]) << ((i - 1) * 8)
-            i += 1
-        }
-        
-        let value = Int(n);
-        
-        return negative ? 0 - value : value;
-    }
-    
     func deserializeArgs() -> [Any?] {
         var args: [Any?] = []
         
@@ -200,7 +210,8 @@ extension Data {
                 args.append(String(data: arg, encoding: .utf8))
                 break
             case .NUMBER:
-                args.append(arg.deserializeToNumber());
+                args.append(nil);
+                print("Deserializing number not implemented in iOS")
                 break
             case .UINT8ARRAY:
                 args.append(arg)

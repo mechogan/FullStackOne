@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
             val mainLooper = Looper.getMainLooper()
             val handler = Handler(mainLooper)
             handler.post {
-                val webView = WebViewComponent(this, Instance(false, message))
+                val webView = WebViewComponent(this, Instance(message))
                 this.webViews.add(Pair(message, webView))
                 val params =
                     ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
             editor
         )
 
-        val editorInstnace = Instance(true, "")
+        val editorInstnace = Instance( "", true)
         val editorWebview = WebViewComponent(this, editorInstnace)
 
         this.extractEditorFiles(editorInstnace, editor)

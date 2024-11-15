@@ -1,9 +1,9 @@
 import { ipc } from "./ipc";
 import { BridgeNode, initCallbackNode } from "./bridge/node";
-import { BridgeIOS } from "./bridge/ios";
+import { BridgeIOS, initRespondIOS } from "./bridge/ios";
 import { BridgeAndroid } from "./bridge/android";
 import { BridgeWasm } from "./bridge/wasm";
-import { BridgeWindows } from "./bridge/windows";
+import { BridgeWindows, initRespondWindows } from "./bridge/windows";
 import { Platform } from "./fullstacked";
 
 const platform = (await (await fetch("/platform")).text()) as Platform;
@@ -15,6 +15,7 @@ switch (platform) {
         break;
     case Platform.IOS:
         ipc.bridge = BridgeIOS;
+        initRespondIOS()
         break;
     case Platform.ANDROID:
         ipc.bridge = BridgeAndroid;
@@ -24,6 +25,7 @@ switch (platform) {
         break;
     case Platform.WINDOWS:
         ipc.bridge = BridgeWindows;
+        initRespondWindows();
         break;
     case Platform.DOCKER:
     case Platform.ELECTRON:

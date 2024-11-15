@@ -38,10 +38,12 @@ export const BridgeWindows: typeof ipc.bridge = (
     });
 };
 
-globalThis.respond = (base64: string) => {
-    const data = toByteArray(base64);
-    const id = bytesToNumber(data.slice(0, 4));
-    const resolver = requests.get(id);
-    resolver(data.slice(4));
-    requests.delete(id);
-};
+export function initRespondWindows(){
+    globalThis.respond = (base64: string) => {
+        const data = toByteArray(base64);
+        const id = bytesToNumber(data.slice(0, 4));
+        const resolver = requests.get(id);
+        resolver(data.slice(4));
+        requests.delete(id);
+    };
+}

@@ -8,25 +8,30 @@
 import SwiftUI
 
 class Instance {
-    private let isEditor: Bool
-    private let projectId: String
+    public let isEditor: Bool
+    public let id: String
+    private var header: Data
     
     
     init (projectId: String, isEditor: Bool = false) {
         self.isEditor = isEditor
-        self.projectId = projectId
+        self.id = projectId
+        
+        self.header = Data()
+        if(isEditor) {
+            self.header.append(Data([1])) // isEditor
+            self.header.append(0.toBytes()) // no project id
+        } else {
+            self.header.append(Data([0]))
+            let projectIdData = self.id.data(using: .utf8)!
+            self.header.append(projectIdData.count.toBytes())
+            self.header.append(projectIdData)
+        }
     }
     
     func callLib(payload: Data) -> Data {
         var data = Data()
-        if(self.isEditor) {
-            data.append(Data([1])) // isEditor
-            data.append(0.toBytes()) // no project id
-        } else {
-            data.append(Data([0])) // not editor
-            // TODO: append serialized project id
-        }
-        
+        data.append(self.header)
         data.append(payload)
         
         var responsePtr = Data().ptr()

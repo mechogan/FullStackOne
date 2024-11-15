@@ -11,6 +11,16 @@ macos-x86_64:
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
 	go build -buildmode=c-shared -o $(OUT)/macos-x86_64 -v ..
 
+# Mac Catalyst
+mac-catalyst-x86_64:
+	CGO_ENABLED=1 \
+	GOOS=darwin \
+	GOARCH=amd64 \
+	SDK=macosx \
+	CC=$(CURDIR)/apple-clang.sh \
+	CGO_CFLAGS="-target x86_64-apple-ios-macabi" \
+	go build -buildmode=c-archive -tags ios -o $(OUT)/mac-catalyst-x86_64.a -v ..
+
 ###### iOS/iPadOS #######
 
 ios-arm64:

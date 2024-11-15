@@ -1,16 +1,17 @@
 import { numberTo4Bytes, serializeArgs } from "../../../src/serialization";
 import { callLib } from "./call";
 
-type InstanceOpts = { isEditor: boolean; id: string };
+type InstanceOpts = { id: string; isEditor: boolean };
 
-export function createInstance(opts: InstanceOpts) {
-    const header = createPayloadHeader(opts);
+export function createInstance(id: InstanceOpts["id"], isEditor: InstanceOpts["isEditor"] = false) {
+    const header = createPayloadHeader({id, isEditor});
 
     const call = (payload: Uint8Array) =>
         callLib(new Uint8Array([...header, ...payload]));
 
     return {
-        ...opts,
+        id,
+        isEditor,
         call
     };
 }

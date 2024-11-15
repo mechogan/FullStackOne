@@ -49,14 +49,14 @@ async function openProject(id: string) {
         return;
     }
 
-    const instance = createInstance({ id, isEditor: false });
+    const instance = createInstance(id);
     webView = await createWebView(instance, () => {
         webViews.delete(id);
     });
     webViews.set(id, webView);
 }
 
-const instanceEditor = createInstance({ id: "", isEditor: true });
+const instanceEditor = createInstance("", true);
 const instanceWebView = await createWebView(instanceEditor);
 webViews.set("", instanceWebView);
 

@@ -11,11 +11,18 @@
 		9C5A1EDD2CDB9AB9009B4A20 /* Instance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */; };
 		9C5A1EDF2CDB9ADB009B4A20 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */; };
 		9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */; };
+		9C9902562CE792810039D1F0 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* Main.swift */; };
+		9C9902572CE792810039D1F0 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */; };
+		9C9902582CE792810039D1F0 /* Instance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */; };
+		9C9902592CE792810039D1F0 /* FullStackedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */; };
+		9C99025D2CE792810039D1F0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */; };
+		9C99025F2CE792810039D1F0 /* editor in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* editor */; };
+		9C9902602CE792810039D1F0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
+		9C9902682CE793140039D1F0 /* mac-catalyst-x86_64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C9902672CE793140039D1F0 /* mac-catalyst-x86_64.a */; };
 		9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */; };
 		9CA03E522B5715AA002D2D9F /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* Main.swift */; };
 		9CA03E542B5715AC002D2D9F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
-		9CB389912B863B0A00FB783E /* build in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* build */; };
-		9CE5E40E2B6FEEC600EDE034 /* js in Resources */ = {isa = PBXBuildFile; fileRef = 9CE5E40D2B6FEEC600EDE034 /* js */; };
+		9CB389912B863B0A00FB783E /* editor in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* editor */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,16 +32,28 @@
 		9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		9C7081332BE6CBA100EF0A6B /* FullStacked.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FullStacked.entitlements; sourceTree = "<group>"; };
 		9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9C9902642CE792810039D1F0 /* FullStacked Catalyst.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FullStacked Catalyst.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C9902652CE792810039D1F0 /* FullStacked Catalyst-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "FullStacked Catalyst-Info.plist"; path = "/Users/cplepage/editor/platform/ios/xcode/FullStacked Catalyst-Info.plist"; sourceTree = "<absolute>"; };
+		9C9902662CE792E80039D1F0 /* mac-catalyst-x86_64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "mac-catalyst-x86_64.a"; path = "../../../core/bin/mac-catalyst-x86_64.a"; sourceTree = "<group>"; };
+		9C9902672CE793140039D1F0 /* mac-catalyst-x86_64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "mac-catalyst-x86_64.a"; path = "/Users/cplepage/editor/core/bin/mac-catalyst-x86_64.a"; sourceTree = "<absolute>"; };
+		9C9902692CE793250039D1F0 /* mac-catalyst-x86_64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "mac-catalyst-x86_64.h"; path = "/Users/cplepage/editor/core/bin/mac-catalyst-x86_64.h"; sourceTree = "<absolute>"; };
 		9CA03E4C2B5715AA002D2D9F /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullStackedApp.swift; sourceTree = "<group>"; };
 		9CA03E512B5715AA002D2D9F /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		9CA03E532B5715AC002D2D9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9CB389902B863B0A00FB783E /* build */ = {isa = PBXFileReference; lastKnownFileType = folder; name = build; path = ../../../../editor/build; sourceTree = "<group>"; };
+		9CB389902B863B0A00FB783E /* editor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = editor; path = ../../../../out/editor; sourceTree = "<group>"; };
 		9CE2142E2B5E17AA00B3F646 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		9CE5E40D2B6FEEC600EDE034 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; name = js; path = ../../../../src/js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9C99025A2CE792810039D1F0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9C9902682CE793140039D1F0 /* mac-catalyst-x86_64.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9CA03E492B5715AA002D2D9F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -49,6 +68,7 @@
 		9C3752D72BE70548001C98D3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9C9902662CE792E80039D1F0 /* mac-catalyst-x86_64.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -56,6 +76,8 @@
 		9C5A1ED82CDB998F009B4A20 /* bin */ = {
 			isa = PBXGroup;
 			children = (
+				9C9902692CE793250039D1F0 /* mac-catalyst-x86_64.h */,
+				9C9902672CE793140039D1F0 /* mac-catalyst-x86_64.a */,
 				9C5A1ED92CDB99BB009B4A20 /* ios-arm64.h */,
 				9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */,
 			);
@@ -68,6 +90,7 @@
 				9CA03E4E2B5715AA002D2D9F /* FullStacked */,
 				9CA03E4D2B5715AA002D2D9F /* Products */,
 				9C3752D72BE70548001C98D3 /* Frameworks */,
+				9C9902652CE792810039D1F0 /* FullStacked Catalyst-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -75,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				9CA03E4C2B5715AA002D2D9F /* FullStacked.app */,
+				9C9902642CE792810039D1F0 /* FullStacked Catalyst.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -84,8 +108,7 @@
 			children = (
 				9C5A1ED82CDB998F009B4A20 /* bin */,
 				9C7081332BE6CBA100EF0A6B /* FullStacked.entitlements */,
-				9CB389902B863B0A00FB783E /* build */,
-				9CE5E40D2B6FEEC600EDE034 /* js */,
+				9CB389902B863B0A00FB783E /* editor */,
 				9CE2142E2B5E17AA00B3F646 /* Info.plist */,
 				9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */,
 				9CA03E512B5715AA002D2D9F /* Main.swift */,
@@ -100,6 +123,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9C9902542CE792810039D1F0 /* FullStacked Catalyst */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9C9902612CE792810039D1F0 /* Build configuration list for PBXNativeTarget "FullStacked Catalyst" */;
+			buildPhases = (
+				9C9902552CE792810039D1F0 /* Sources */,
+				9C99025A2CE792810039D1F0 /* Frameworks */,
+				9C99025C2CE792810039D1F0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "FullStacked Catalyst";
+			packageProductDependencies = (
+			);
+			productName = FullStacked;
+			productReference = 9C9902642CE792810039D1F0 /* FullStacked Catalyst.app */;
+			productType = "com.apple.product-type.application";
+		};
 		9CA03E4B2B5715AA002D2D9F /* FullStacked */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9CA03E5A2B5715AC002D2D9F /* Build configuration list for PBXNativeTarget "FullStacked" */;
@@ -150,18 +192,28 @@
 			projectRoot = "";
 			targets = (
 				9CA03E4B2B5715AA002D2D9F /* FullStacked */,
+				9C9902542CE792810039D1F0 /* FullStacked Catalyst */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9C99025C2CE792810039D1F0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9C99025D2CE792810039D1F0 /* PrivacyInfo.xcprivacy in Resources */,
+				9C99025F2CE792810039D1F0 /* editor in Resources */,
+				9C9902602CE792810039D1F0 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9CA03E4A2B5715AA002D2D9F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */,
-				9CE5E40E2B6FEEC600EDE034 /* js in Resources */,
-				9CB389912B863B0A00FB783E /* build in Resources */,
+				9CB389912B863B0A00FB783E /* editor in Resources */,
 				9CA03E542B5715AC002D2D9F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -169,6 +221,17 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9C9902552CE792810039D1F0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9C9902562CE792810039D1F0 /* Main.swift in Sources */,
+				9C9902572CE792810039D1F0 /* WebView.swift in Sources */,
+				9C9902582CE792810039D1F0 /* Instance.swift in Sources */,
+				9C9902592CE792810039D1F0 /* FullStackedApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9CA03E482B5715AA002D2D9F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -183,6 +246,90 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		9C9902622CE792810039D1F0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 615;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "FullStacked Catalyst-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = FullStacked;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Use camera for file upload";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Peer to peer connection";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/mac-catalyst-x86_64.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		9C9902632CE792810039D1F0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 615;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "FullStacked Catalyst-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = FullStacked;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Use camera for file upload";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Peer to peer connection";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/mac-catalyst-x86_64.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
 		9CA03E582B5715AC002D2D9F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -335,7 +482,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/ios-arm64.h";
@@ -377,7 +524,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/ios-arm64.h";
@@ -389,6 +536,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9C9902612CE792810039D1F0 /* Build configuration list for PBXNativeTarget "FullStacked Catalyst" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9C9902622CE792810039D1F0 /* Debug */,
+				9C9902632CE792810039D1F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		9CA03E472B5715A9002D2D9F /* Build configuration list for PBXProject "FullStacked" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
