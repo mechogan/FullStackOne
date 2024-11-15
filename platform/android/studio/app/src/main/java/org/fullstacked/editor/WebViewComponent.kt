@@ -1,7 +1,10 @@
 package org.fullstacked.editor
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -22,6 +25,14 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         val payload = Base64.getDecoder().decode(payloadBase64)
         val response = instance.callLib(payload)
         return Base64.getEncoder().encodeToString(response)
+    }
+
+    fun onMessage(messageType: String, message: String){
+        val mainLooper = Looper.getMainLooper()
+        val handler = Handler(mainLooper)
+        handler.post {
+            this.webView.evaluateJavascript("window.onmessage(`$messageType`, `$message`)", null)
+        }
     }
 
     override fun shouldInterceptRequest(
@@ -82,8 +93,8 @@ fun createWebView(delegate: WebViewComponent) : WebView {
     WebView.setWebContentsDebuggingEnabled(true)
     val webView = WebView(delegate.ctx)
 
-//    val bgColor = if(isEditor) Color.TRANSPARENT else Color.WHITE
-//    webView.setBackgroundColor(bgColor)
+    val bgColor = if(delegate.instance.isEditor) Color.TRANSPARENT else Color.WHITE
+    webView.setBackgroundColor(bgColor)
     webView.webViewClient = delegate
     webView.webChromeClient = object : WebChromeClient() {
         override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
@@ -118,23 +129,6 @@ private fun bytesToNumber(bytes: ByteArray) : Int {
 
 }
 
-fun deserializeNumber(bytes: ByteArray): Int {
-    val negative = bytes[0].toInt() == 1
-
-    var n = 0u
-    for ((i, byte) in bytes.withIndex()) {
-        if(i != 0) {
-            n += byte.toUByte().toUInt() shl ((i - 1) * 8)
-        }
-    }
-
-    if(negative) {
-        return 0 - n.toInt()
-    } else {
-        return n.toInt()
-    }
-}
-
 fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
     val args = mutableListOf<Any?>()
 
@@ -158,8 +152,10 @@ fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
                 }
             DataType.STRING ->
                 args.add(String(arg, StandardCharsets.UTF_8))
-            DataType.NUMBER ->
-                args.add(deserializeNumber(arg))
+            DataType.NUMBER -> {
+                args.add(null)
+                println("Deserializing number is not implemented on Android")
+            }
             DataType.UINT8ARRAY ->
                 args.add(arg)
         }

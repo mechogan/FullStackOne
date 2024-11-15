@@ -1,13 +1,14 @@
-package setup
+package config
 
 import (
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
+	setup "fullstacked/editor/src/setup"
 	"path"
 )
 
-func ConfigGet(configFile string) []byte {
-	filePath := path.Join(Directories.Config, configFile+".json")
+func Get(configFile string) []byte {
+	filePath := path.Join(setup.Directories.Config, configFile+".json")
 
 	config, err := fs.ReadFile(filePath)
 
@@ -18,8 +19,8 @@ func ConfigGet(configFile string) []byte {
 	return serialize.SerializeString(string(config))
 }
 
-func ConfigSave(configFile string, data string) []byte {
-	filePath := path.Join(Directories.Config, configFile+".json")
+func Save(configFile string, data string) []byte {
+	filePath := path.Join(setup.Directories.Config, configFile+".json")
 
 	fs.Mkdir(path.Dir(filePath))
 

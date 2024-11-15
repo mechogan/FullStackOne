@@ -4,9 +4,10 @@ import (
 	"path"
 
 	archive "fullstacked/editor/src/archive"
+	config "fullstacked/editor/src/config"
 	esbuild "fullstacked/editor/src/esbuild"
 	fs "fullstacked/editor/src/fs"
-	"fullstacked/editor/src/packages"
+	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -115,9 +116,9 @@ func editorSwitch(method int, args []any) []byte {
 
 	switch method {
 	case CONFIG_GET:
-		return setup.ConfigGet(args[0].(string))
+		return config.Get(args[0].(string))
 	case CONFIG_SAVE:
-		return setup.ConfigSave(args[0].(string), args[1].(string))
+		return config.Save(args[0].(string), args[1].(string))
 	case ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
 	case ESBUILD_BUILD:

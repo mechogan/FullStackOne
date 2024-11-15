@@ -2,8 +2,7 @@ import { fromByteArray, toByteArray } from "base64-js";
 import type { ipc } from "../ipc";
 import { deserializeArgs } from "../serialization";
 
-// SYNC
-export const BridgeAndroid: typeof ipc.bridge = (
+export const BridgeAndroid: typeof ipc.bridge = async (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {

@@ -1,7 +1,6 @@
 import type { ipc } from "../ipc";
 import { deserializeArgs } from "../serialization";
 
-// ASYNC
 export const BridgeNode: typeof ipc.bridge = async (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any

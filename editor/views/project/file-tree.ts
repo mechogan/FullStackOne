@@ -445,8 +445,6 @@ async function newFileItemForm(project: Project, forDirectory: boolean) {
         const parentPath = (parent.parent ? parent.parent + "/" : "") + parent.name;
         const path = parentPath + "/" + value;
 
-    console.log(path, parentPath)
-
         if (forDirectory) {
             await ipcEditor.fs.mkdir(path);
         } else {

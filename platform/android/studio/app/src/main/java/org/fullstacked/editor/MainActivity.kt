@@ -4,19 +4,13 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.view.ViewGroup
 import android.webkit.ValueCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.attribute.BasicFileAttributes
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 
 
 class MainActivity : ComponentActivity() {
@@ -25,35 +19,59 @@ class MainActivity : ComponentActivity() {
             System.loadLibrary("editor-core")
         }
     }
+    val webViews = mutableMapOf<String, WebViewComponent>()
 
     private external fun directories(
         root: String,
         config: String,
-        nodeModules: String,
         editor: String,
     )
 
+    private external fun callback()
+
+    fun Callback(projectId: String, messageType: String, message: String) {
+        if(projectId == "" && messageType == "open") {
+            val mainLooper = Looper.getMainLooper()
+            val handler = Handler(mainLooper)
+            handler.post {
+                val webView = WebViewComponent(this, Instance(false, message))
+                this.webViews[message] = webView
+                val params =
+                    ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                this.addContentView(webView.webView, params)
+            }
+
+            return
+        }
+
+        val webView = this.webViews[projectId] ?: return
+        webView.onMessage(messageType, message)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        val root = File(Environment.DIRECTORY_DOCUMENTS + "/FullStacked").absolutePath
+        val root = this.filesDir.absolutePath + "/projects"
         val config = this.filesDir.absolutePath + "/.config"
-        val nodeModules = "$root/node_modules"
         val editor = this.filesDir.absolutePath + "/editor"
 
         this.directories(
             root,
             config,
-            nodeModules,
             editor
         )
 
-        val instanceEditor = Instance(true, "");
+        val editorInstnace = Instance(true, "")
+        val editorWebview = WebViewComponent(this, editorInstnace)
 
-        this.extractEditorFiles(instanceEditor, editor)
+        this.extractEditorFiles(editorInstnace, editor)
 
         super.onCreate(savedInstanceState)
         this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
 
-        this.setContentView(WebViewComponent(this, instanceEditor).webView)
+        this.webViews[""] = editorWebview
+
+        this.setContentView(editorWebview.webView)
+
+        callback()
     }
 
     private fun extractEditorFiles(instanceEditor: Instance, editorDir: String) {

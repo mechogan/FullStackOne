@@ -3,7 +3,7 @@ package main
 /*
 #include <stdlib.h>
 
-typedef const void (*Callback)(char *projectId, char* type, char *msg);
+typedef void (*Callback)(char *projectId, char* type, char *msg);
 static inline void CallMyFunction(void *callback, char *projectId, char * type, char *msg) {
     ((Callback)callback)(projectId, type, msg);
 }
@@ -13,6 +13,7 @@ import "C"
 import (
 	"unsafe"
 
+	"fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
 )
@@ -28,6 +29,12 @@ func directories(root *C.char,
 		C.GoString(config),
 		C.GoString(editor),
 	)
+
+	fs.Mkdir(setup.Directories.Root)
+	fs.Mkdir(setup.Directories.Config)
+	fs.Mkdir(setup.Directories.NodeModules)
+	fs.Mkdir(setup.Directories.Tmp)
+	fs.Mkdir(setup.Directories.Editor)
 }
 
 var cCallback = (unsafe.Pointer)(nil)

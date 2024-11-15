@@ -1,5 +1,7 @@
 package org.fullstacked.editor
 
+import java.util.Arrays
+
 class Instance(val isEditor: Boolean, val projectId: String) {
     private lateinit var headerRequest: ByteArray
 
@@ -12,7 +14,12 @@ class Instance(val isEditor: Boolean, val projectId: String) {
             )
             this.headerRequest += numberToBytes(0) // no project id
         } else {
-            // TODO
+            this.headerRequest = byteArrayOf(
+                0 // is not Editor
+            )
+            val idData = this.projectId.toByteArray()
+            this.headerRequest += numberToBytes(idData.size)
+            this.headerRequest += idData
         }
     }
 

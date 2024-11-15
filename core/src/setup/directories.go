@@ -1,7 +1,6 @@
 package setup
 
 import (
-	fs "fullstacked/editor/src/fs"
 	"path"
 )
 
@@ -23,10 +22,4 @@ func SetupDirectories(root string, config string, editor string) {
 		Tmp:         path.Join(root, ".tmp"),
 		Editor:      editor,
 	}
-
-	fs.Mkdir(root)
-	fs.Mkdir(config)
-	fs.Mkdir(Directories.NodeModules)
-	fs.Mkdir(Directories.Tmp)
-	fs.Mkdir(editor)
 }
