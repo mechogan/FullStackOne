@@ -7,11 +7,11 @@ namespace windows
     internal class Instance
     {
         private Boolean isEditor;
-        private String id;
+        public String id;
 
         private byte[] header;
 
-        public Instance(Boolean isEditor, String id) { 
+        public Instance(String id, Boolean isEditor = false) { 
             this.isEditor = isEditor;
             this.id = id;
 

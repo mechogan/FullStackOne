@@ -24,11 +24,35 @@ namespace windows
             cb = new CallbackDelegate(onCallback);
             callback(cb);
 
-            WebView editor = new WebView(new Instance(true, ""));
-            this.webviews[""] = editor;
+            WebView editor = new WebView(new Instance("", true));
+            this.bringToFront(editor);
+            
         }
-        private readonly Dictionary<string, WebView> webviews = new();
+        private readonly Dictionary<string, (Window, WebView)> webviews = new();
         private CallbackDelegate cb;
+
+        private void bringToFront(WebView webview) {
+            String projectId = webview.instance.id;
+
+            if (this.webviews.ContainsKey(projectId)) {
+                Window window = this.webviews[projectId].Item1;
+                window.DispatcherQueue.TryEnqueue(() =>
+                {
+                    window.Activate();
+                    webview.webview.Reload();
+                });
+                return;
+            }
+
+            Window newWindow = new();
+            newWindow.Content = webview.webview;
+            newWindow.Activate();
+            this.webviews.Add(projectId, (newWindow, webview));
+            newWindow.Closed += delegate (object sender, WindowEventArgs args)
+            {
+                this.webviews.Remove(projectId);
+            };
+        }
 
         public void onCallback(string projectId, string messageType, string message)
         {
@@ -37,16 +61,16 @@ namespace windows
             if (projectId == "" && messageType == "open") {
                 if (webviews.ContainsKey(message))
                 {
-                    webviews[message].bringToFront();
+                    this.bringToFront(webviews[message].Item2);
                 }
                 else
                 {
-                    this.webviews[message] = new WebView(new Instance(false, message));
+                    this.bringToFront(new WebView(new Instance(message)));
                 }
                 return;
             }
 
-            WebView webview = webviews[projectId];
+            WebView webview = webviews[projectId].Item2;
             webview.onMessage(messageType, message);
         }
 

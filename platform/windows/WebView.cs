@@ -14,19 +14,14 @@ namespace windows
 {
     internal class WebView
     {
-        private Window window;
-        private WebView2 webview;
-        private Instance instance;
+        public WebView2 webview;
+        public Instance instance;
 
         public WebView(Instance instance)
         {
             this.instance = instance;
-            this.window = new Window();
             this.webview = new WebView2();
-            window.Content = this.webview;
-            window.Activate();
             this.Init();
-
         }
 
         async public void Init()
@@ -96,17 +91,9 @@ namespace windows
         }
 
         public void onMessage(string type, string message) {
-            this.window.DispatcherQueue.TryEnqueue(() =>
+            this.webview.DispatcherQueue.TryEnqueue(() =>
             {
                 _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.onmessage(`" + type + "`, `" + message + "`)");
-            });
-        }
-
-        public void bringToFront() {
-            this.window.DispatcherQueue.TryEnqueue(() =>
-            {
-                this.window.Activate();
-                this.webview.Reload();
             });
         }
     }
