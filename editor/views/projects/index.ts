@@ -39,7 +39,7 @@ function TopBar() {
         iconLeft: "Settings"
     });
     settings.id = SETTINGS_BUTTON_ID;
-    settings.onclick = Settings
+    settings.onclick = Settings;
 
     const peersWidget = PeersWidget();
 

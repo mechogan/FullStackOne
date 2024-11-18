@@ -1,3 +1,4 @@
+import { ipcEditor } from "./ipc";
 import { Packages } from "./views/packages";
 import { Projects } from "./views/projects";
 

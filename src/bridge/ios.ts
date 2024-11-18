@@ -48,5 +48,3 @@ export function initRespondIOS() {
         requests.delete(id);
     };
 }
-
-

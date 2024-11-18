@@ -53,15 +53,14 @@ export function Project(project: ProjectType) {
             container.destroy();
         }
     });
-    
+
     return container;
 }
 
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
-    
     const actions: ElementComponent[] = [];
 
-    if(project.id === "node_modules") {
+    if (project.id === "node_modules") {
         const deleteAllButton = Button({
             text: "Delete All",
             color: "red"
@@ -72,7 +71,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             await ipcEditor.fs.rmdir("node_modules");
             await ipcEditor.fs.mkdir("node_modules");
             stackNavigation.back();
-        }
+        };
 
         actions.push(deleteAllButton);
     } else {
@@ -80,12 +79,12 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             style: "icon-large",
             iconLeft: "Git"
         });
-    
+
         const tsButton = Button({
             style: "icon-large",
             iconLeft: "TypeScript"
         });
-    
+
         tsButton.disabled = true;
         const flashOnWorking = (request: Map<number, Function>) => {
             if (request.size > 0) {
@@ -101,13 +100,13 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         };
         tsButton.ondestroy = () => {
             WorkerTS.working.unsubscribe(flashOnWorking);
-        }
-    
+        };
+
         const runButton = Button({
             style: "icon-large",
             iconLeft: "Play"
         });
-    
+
         runButton.onclick = async () => {
             const loaderContainer = document.createElement("div");
             loaderContainer.classList.add("loader-container");
@@ -135,8 +134,8 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     });
 
     topBar.ondestroy = () => {
-        actions.forEach(e => e.destroy());
-    }
+        actions.forEach((e) => e.destroy());
+    };
 
     return topBar;
 }

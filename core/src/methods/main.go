@@ -1,11 +1,13 @@
 package methods
 
 import (
+	"encoding/json"
 	"path"
 
 	archive "fullstacked/editor/src/archive"
 	config "fullstacked/editor/src/config"
 	esbuild "fullstacked/editor/src/esbuild"
+	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
 	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
@@ -68,6 +70,20 @@ func Call(payload []byte) []byte {
 			baseDir = setup.Directories.Root
 		}
 		return fsSwitch(method, baseDir, args)
+	case method == FETCH:
+		headers := (map[string]string)(nil)
+		if args[2].(string) != "" {
+			_ = json.Unmarshal([]byte(args[2].(string)), &headers)
+		}
+
+		return fetch.FetchSerialized(
+			args[0].(string),
+			args[1].(string),
+			&headers,
+			args[3].([]byte),
+			int(args[4].(float64)),
+			args[5].(bool),
+		)
 	case method > 20:
 		if !isEditor {
 			return nil

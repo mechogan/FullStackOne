@@ -3,8 +3,11 @@ import { callLib } from "./call";
 
 type InstanceOpts = { id: string; isEditor: boolean };
 
-export function createInstance(id: InstanceOpts["id"], isEditor: InstanceOpts["isEditor"] = false) {
-    const header = createPayloadHeader({id, isEditor});
+export function createInstance(
+    id: InstanceOpts["id"],
+    isEditor: InstanceOpts["isEditor"] = false
+) {
+    const header = createPayloadHeader({ id, isEditor });
 
     const call = (payload: Uint8Array) =>
         callLib(new Uint8Array([...header, ...payload]));

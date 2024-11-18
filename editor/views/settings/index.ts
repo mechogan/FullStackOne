@@ -48,30 +48,29 @@ function Packages() {
     return packages;
 }
 
-async function PackagesButton(onFinished: () => void){
-    const packagesCount = (await ipcEditor.fs.readdir("node_modules")).length
+async function PackagesButton(onFinished: () => void) {
+    const packagesCount = (await ipcEditor.fs.readdir("node_modules")).length;
     const text = packagesCount + " package" + (packagesCount > 1 ? "s" : "");
     const button = Button({
         text,
         iconLeft: "Package"
-    })
+    });
     button.onclick = () => {
         const view = Project({
             id: "node_modules",
             title: "Packages",
             createdDate: null
         });
-        view.ondestroy = onFinished
-    }
+        view.ondestroy = onFinished;
+    };
     button.id = PACKAGES_BUTTON_ID;
 
     return button;
 }
 
-
 function Version() {
     const div = document.createElement("div");
-    ipcEditor.esbuild.version().then(v => div.innerText = v);
+    ipcEditor.esbuild.version().then((v) => (div.innerText = v));
 
     return div;
 }

@@ -15,7 +15,7 @@ switch (platform) {
         break;
     case Platform.IOS:
         ipc.bridge = BridgeIOS;
-        initRespondIOS()
+        initRespondIOS();
         break;
     case Platform.ANDROID:
         ipc.bridge = BridgeAndroid;

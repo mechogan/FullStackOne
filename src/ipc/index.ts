@@ -1,5 +1,6 @@
 import { ipcMethods } from "../fullstacked";
 import { fs } from "./fs";
+import { fetch } from "./fetch";
 
 export const ipc = {
     bridge: null as (
@@ -7,8 +8,8 @@ export const ipc = {
         transformer?: (responseArgs: any[]) => any
     ) => any,
     methods: {
-        fs
-        // fetch: () => any
+        fs,
+        fetch
         // broadcast: () => null
     } as ipcMethods
 };

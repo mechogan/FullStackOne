@@ -15,6 +15,7 @@ declare global {
 
 export type ipcMethods = {
     fs: fs;
+    fetch: http["fetch"];
 };
 
 export type Dirent = {
@@ -53,4 +54,28 @@ type fs = {
         modTime: number;
         isDirectory: boolean;
     }>;
+};
+
+export type FetchOptions = {
+    method: "GET" | "POST" | "PUT" | "DELETE";
+    headers: Record<string, string>;
+    body: string | Uint8Array;
+    timeout: number;
+};
+
+export type FetchResponse = {
+    statusCode: number;
+    statusMessage: string;
+    headers: Record<string, string>;
+};
+
+type http = {
+    fetch(
+        url: string,
+        options?: Partial<FetchOptions>
+    ): Promise<FetchResponse & { body: Uint8Array }>;
+    fetch(
+        url: string,
+        options?: Partial<FetchOptions> & { encoding: "utf8" }
+    ): Promise<FetchResponse & { body: string }>;
 };

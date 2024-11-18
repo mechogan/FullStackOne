@@ -111,9 +111,9 @@ function focusFile(path: string) {
     if (!view) {
         view = createView(path);
         views.set(path, view);
+    } else {
+        displayBuildErrors(path, view);
     }
-
-    displayBuildErrors(path, view);
 
     return view.element;
 }
@@ -147,7 +147,7 @@ function clearBuildErrors() {
     }
 }
 
-function createView(filePath: string): View {
+function createView(filePath: string, onViewReady?: () => void): View {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(BINARY_Ext).find((ext) => ext === fileExtension)) {
         return createBinaryView(filePath);

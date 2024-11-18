@@ -42,16 +42,16 @@ export function CreateEmpty() {
         e.preventDefault();
         createButton.disabled = true;
 
-        let id = inputIdentifier.input.value 
-            ? slugify(inputIdentifier.input.value, {lower: true})
-            : slugify(inputTitle.input.value, {lower: true});
+        let id = inputIdentifier.input.value
+            ? slugify(inputIdentifier.input.value, { lower: true })
+            : slugify(inputTitle.input.value, { lower: true });
         id = id || "no-identifier";
 
         const title = inputTitle.input.value || "Empty Project";
 
         Promise.all([
             ipcEditor.fs.mkdir(id),
-            Store.projects.create({title, id})
+            Store.projects.create({ title, id })
         ]).then(() => stackNavigation.back());
     };
 
