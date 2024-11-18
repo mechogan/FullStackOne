@@ -47,8 +47,8 @@ func vfs(this js.Value, args []js.Value) interface{} {
 	return js.ValueOf(string(jsonString))
 }
 
-func callback(projectId string, message string) {
-	js.Global().Call("onmessage", js.ValueOf(message))
+func callback(projectId string, messageType string, message string) {
+	js.Global().Call("onmessage", js.ValueOf(messageType), js.ValueOf(message))
 }
 
 func main() {

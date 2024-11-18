@@ -12,6 +12,8 @@ var VirtFS = make(map[string][]byte)
 var VirtDirs = []string{}
 
 func vReadFile(path string) ([]byte, error) {
+	path = strings.TrimLeft(path, "/")
+
 	f := VirtFS[path]
 
 	if f == nil {
@@ -34,13 +36,22 @@ func vUnlink(path string) error {
 func vMkdir(path string) error {
 	path = strings.TrimSuffix(path, "/")
 
-	for _, dir := range VirtDirs {
-		if dir == path {
-			return nil
+	pathComponents := strings.Split(path, "/");
+	for i := range(pathComponents) {
+		subdir := strings.Join(pathComponents[:i + 1], "/")
+		exists := false
+		for _, dir := range VirtDirs {
+			if subdir == dir {
+				exists = true
+			}
+		}
+	
+		if(!exists) {
+			VirtDirs = append(VirtDirs, subdir)
 		}
 	}
 
-	VirtDirs = append(VirtDirs, path)
+	
 	return nil
 }
 
@@ -69,6 +80,8 @@ func vRmdir(path string) error {
 }
 
 func vExists(path string) (bool, bool) {
+	path = strings.TrimLeft(path, "/")
+
 	for _, dir := range VirtDirs {
 		if path == dir {
 			return true, false
@@ -151,13 +164,35 @@ func splitPath(filePath string) []string {
 	return reversed
 }
 
+
+func pathIsChildOfPath(childPath string, parentPath string) bool {
+	childPathComponents := strings.Split(childPath, "/")
+	parentPathComponents := strings.Split(parentPath, "/")
+
+	if(len(childPathComponents) < len(parentPathComponents)) {
+		return false
+	}
+
+	for i, parentPathComponent := range(parentPathComponents) {
+		if(parentPathComponent != childPathComponents[i]) {
+			return false
+		}
+	} 
+
+	return true
+}
+
+//       projects/node_modules/react/index.js
+//       projects/node_modules/react-dom/index.js
+// 
+// path: projects/node_modules/react
 func vReadDir(path string, recursive bool) []SmallFileInfo {
 	items := []SmallFileInfo{}
 
 	pathComponents := splitPath(path)
 
 	for _, dir := range VirtDirs {
-		if strings.HasPrefix(dir, path) {
+		if pathIsChildOfPath(dir, path) {
 			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
 			if recursive || len(dirComponents)-len(pathComponents) == 1 {
@@ -170,7 +205,7 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 	}
 
 	for file := range VirtFS {
-		if strings.HasPrefix(file, path) {
+		if pathIsChildOfPath(file, path) {
 			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)
 			if recursive || len(fileComponents)-len(pathComponents) == 1 {

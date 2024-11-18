@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	fs "fullstacked/editor/src/fs"
 	setup "fullstacked/editor/src/setup"
 	"io"
@@ -67,6 +68,7 @@ func install(name string) {
 	// get tarball url
 	npmRes, err := http.Get("https://registry.npmjs.org/" + name + "/latest")
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer npmRes.Body.Close()

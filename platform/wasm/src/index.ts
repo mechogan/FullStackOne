@@ -71,7 +71,12 @@ const [mimeType, contents] = staticFileServing("/");
 const parser = new DOMParser();
 const indexHTML = parser.parseFromString(td.decode(contents), mimeType);
 
+const originalFetch = window.fetch;
 window.fetch = async function (url: string, options: any) {
+    if(url.startsWith("http")) {
+        return originalFetch(url, options);
+    }
+
     if (url === "/platform") {
         return {
             text: () => new Promise<string>((res) => res("wasm"))
