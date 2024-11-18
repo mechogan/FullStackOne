@@ -128,6 +128,10 @@ func LOAD_PACKAGE_EXPORTS(nodeModuleDir string, module string) *string {
 	moduleDirectory := path.Join(nodeModuleDir, strings.Join(modulePathComponents, "/"))
 	match := PACKAGE_EXPORTS_RESOLVE(moduleDirectory, "./" + strings.Join(subpath, "/"), packageJSON.Exports)
 
+	if(match == nil) {
+		return nil
+	}
+
 	return existResolve(*match)
 }
 
@@ -252,6 +256,9 @@ func PACKAGE_EXPORTS_RESOLVE_OBJECT(moduleDirectory string, subpath string, expo
 			err = json.Unmarshal(export, &exportObject)
 			if(err == nil) {
 				exportDefault := exportObject["default"]
+				if(exportDefault == "") {
+					exportDefault = exportObject["import"]
+				}
 				return PACKAGE_EXPORTS_RESOLVE_STRING(moduleDirectory, subpath, exportDefault)
 			}
 		}
@@ -283,6 +290,9 @@ func PACKAGE_EXPORTS_RESOLVE_OBJECT(moduleDirectory string, subpath string, expo
 			err = json.Unmarshal(export, &exportObject)
 			if(err == nil) {
 				exportDefault := exportObject["default"]
+				if(exportDefault == "") {
+					exportDefault = exportObject["import"]
+				}
 				matchString = &exportDefault
 			}
 		}

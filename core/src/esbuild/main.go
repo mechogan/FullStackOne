@@ -123,7 +123,7 @@ func Build(projectDirectory string) string {
 			OutputPath: "index",
 		}},
 		Outdir:    projectDirectory + "/.build",
-		Splitting: true,
+		Splitting: !fs.WASM,
 		Bundle:    true,
 		Format:    esbuild.FormatESModule,
 		Sourcemap: esbuild.SourceMapInlineAndExternal,
@@ -134,6 +134,12 @@ func Build(projectDirectory string) string {
 
 	// delete tmp merged file
 	fs.Unlink(tmpFilePath)
+
+	if fs.WASM {
+		for _, file := range(result.OutputFiles) {
+			fs.WriteFile(file.Path, file.Contents)
+		}
+	}
 
 	// return errors as json string
 	jsonMessages, _ := json.Marshal(result.Errors)

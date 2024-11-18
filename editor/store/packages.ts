@@ -1,5 +1,5 @@
 import { createSubscribable } from ".";
-import { addMessageListener } from "../../src";
+import { addCoreMessageListener } from "../../src";
 
 export type Progress = {
     Stage: "downloading" | "unpacking" | "done";
@@ -14,7 +14,7 @@ export const packages = {
     installingPackages: installingPackages.subscription
 };
 
-addMessageListener("package-install-progress", (dataStr) => {
+addCoreMessageListener("package-install-progress", (dataStr) => {
     const { Name, ...progress } = JSON.parse(dataStr);
     activePackageInstall.set(Name, progress);
 

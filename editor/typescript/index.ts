@@ -1,5 +1,8 @@
 import type { methods } from "./worker";
 import { createSubscribable } from "../store";
+import { Platform } from "../../src/fullstacked";
+import { numberTo4Bytes } from "../../src/serialization";
+import ipc from "../../src"
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
@@ -54,12 +57,19 @@ function postMessage(methodPath: string[], ...args: any) {
     });
 }
 
-function restart() {
+async function restart() {
     if (!directory) {
         throw Error("Tried to restart WorkerTS before calling start");
     }
 
     WorkerTS.dispose();
+    if(globalThis.platform === Platform.WASM) {
+        await WorkerTS.call().preloadFS(
+            globalThis.vfs(`projects/${directory}`), 
+            globalThis.vfs("editor/tsLib"),
+            globalThis.vfs("projects/node_modules")
+        );
+    }
     return WorkerTS.start(directory);
 }
 
@@ -69,10 +79,25 @@ function start(workingDirectory: string) {
     directory = workingDirectory;
 
     if (!readyPromise) {
-        readyPromise = new Promise<void>((resolve) => {
-            worker = new Worker("worker-ts.js", { type: "module" });
+        readyPromise = new Promise<void>(async (resolve) => {
+            let workerPath = "worker-ts.js";
+            
+            if(globalThis.platform === Platform.WASM) {
+                const [mimeType, workerData] = await getWorkerDataWASM("worker-ts.js");
+                const blob = new Blob([workerData], {type: mimeType});
+                workerPath = URL.createObjectURL(blob);
+            } 
+            
+            worker = new Worker(workerPath, { type: "module" });
             worker.onmessage = async (message) => {
                 if (message.data.ready) {
+                    if(globalThis.platform === Platform.WASM) {
+                        await WorkerTS.call().preloadFS(
+                            globalThis.vfs(`projects/${workingDirectory}`), 
+                            globalThis.vfs("editor/tsLib"),
+                            globalThis.vfs("projects/node_modules")
+                        );
+                    }
                     await WorkerTS.call().start(workingDirectory);
                     resolve();
                 } else {
@@ -104,4 +129,16 @@ function dispose() {
     reqsCount = 0;
 
     tsRequests.notify();
+}
+
+const te = new TextEncoder();
+function getWorkerDataWASM(workerPath: string){
+    const workerPathData = te.encode(workerPath);
+    const payload = new Uint8Array([
+        1, // Static File Serving
+        2, // STRING
+        ...numberTo4Bytes(workerPathData.byteLength),
+        ...workerPathData
+    ])
+    return ipc.bridge(payload);
 }

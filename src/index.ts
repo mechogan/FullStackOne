@@ -45,36 +45,39 @@ globalThis.onPush = {};
 
 export default ipc;
 
-const messageListeners = new Map<string, Set<(message: string) => void>>();
-export const addMessageListener = (
+const coreMessageListeners = new Map<string, Set<(message: string) => void>>();
+export const addCoreMessageListener = (
     messageType: string,
     cb: (message: string) => void
 ) => {
-    let listeners = messageListeners.get(messageType);
+    let listeners = coreMessageListeners.get(messageType);
     if (!listeners) {
         listeners = new Set<typeof cb>();
-        messageListeners.set(messageType, listeners);
+        coreMessageListeners.set(messageType, listeners);
     }
     listeners.add(cb);
 };
-export const removeMessageListener = (
+export const removeCoreMessageListener = (
     messageType: string,
     cb: (message: string) => void
 ) => {
-    let listeners = messageListeners.get(messageType);
+    let listeners = coreMessageListeners.get(messageType);
     listeners?.delete(cb);
     if (listeners?.size === 0) {
-        messageListeners.delete(messageType);
+        coreMessageListeners.delete(messageType);
     }
 };
 
-(globalThis as any).onmessage = (messageType: string, message: string) => {
-    const listeners = messageListeners.get(messageType);
+globalThis.oncoremessage = (messageType: string, message: string) => {
+    const listeners = coreMessageListeners.get(messageType);
     if (!listeners?.size) {
-        console.log(`No message listener for message of type [${messageType}]`);
+        console.log(`No core message listener for message of type [${messageType}]`);
     } else {
         listeners.forEach((cb) => cb(message));
     }
 };
 
-addMessageListener("log", console.log);
+addCoreMessageListener("log", console.log);
+
+(globalThis as any).addGoMessageListener = addCoreMessageListener;
+(globalThis as any).removeMessageListener = removeCoreMessageListener;

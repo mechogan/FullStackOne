@@ -289,17 +289,17 @@ async function languageExtensions(filePath: string) {
 async function loadJsTsExtensions(filePath: string) {
     const extensions = [];
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
+
+    const langJs = await import("@codemirror/lang-javascript");
+
+    const jsDefaultExtension = langJs.javascript({
+        typescript: typescriptExtensions.includes(fileExtension),
+        jsx: fileExtension.endsWith("x")
+    });
+
+    extensions.push(jsDefaultExtension, lintGutter());
    
     if (javascriptExtensions.includes(fileExtension)) {
-        const langJs = await import("@codemirror/lang-javascript");
-
-        const jsDefaultExtension = langJs.javascript({
-            typescript: typescriptExtensions.includes(fileExtension),
-            jsx: fileExtension.endsWith("x")
-        });
-    
-        extensions.push(jsDefaultExtension, lintGutter());
-
         const jsAutocomplete = langJs.javascriptLanguage.data.of({
             autocomplete: langJs.scopeCompletionSource(globalThis)
         });
@@ -314,17 +314,16 @@ async function loadJsTsExtensions(filePath: string) {
 }
 
 async function loadTypeScript(filePath: string) {
-    return []
-    // await WorkerTS.start(workingDirectory);
+    await WorkerTS.start(workingDirectory);
 
-    // return [
-    //     EditorView.updateListener.of((ctx) =>
-    //         WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
-    //     ),
-    //     linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
-    //     autocompletion({ override: [tsAutocomplete(filePath)] }),
-    //     hoverTooltip(tsTypeDefinition(filePath))
-    // ];
+    return [
+        EditorView.updateListener.of((ctx) =>
+            WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
+        ),
+        linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
+        autocompletion({ override: [tsAutocomplete(filePath)] }),
+        hoverTooltip(tsTypeDefinition(filePath))
+    ];
 }
 
 const prettierPlugins = [

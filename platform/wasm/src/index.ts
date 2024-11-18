@@ -1,4 +1,9 @@
+import "winbox/dist/css/winbox.min.css";
+import wb from "winbox/src/js/winbox";
+import type WinBoxType from "winbox";
 import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
+
+const WinBox = wb as WinBoxType.WinBoxConstructor
 
 declare global {
     class Go {
@@ -7,6 +12,41 @@ declare global {
     }
     var directories: (root: string, config: string, editor: string) => void;
     var call: (payload: Uint8Array) => Uint8Array;
+}
+
+type FullStackedWindow = Window & {
+    originalFetch?: typeof fetch;
+    oncoremessage?: (messageType: string, message: string) => void
+    lib?: {
+        call: (payload: Uint8Array) => Uint8Array;
+    }
+}
+
+const webviews = new Map<string, {
+    window: FullStackedWindow,
+    winbox?: WinBoxType
+}>()
+
+function createWindow(projectId: string) {
+    const iframe = document.createElement("iframe");
+    iframe.style.height = "100%";
+    iframe.style.width = "100%";
+    const winbox = new WinBox(projectId, { mount: iframe })
+    webviews.set(projectId, {
+        window: iframe.contentWindow,
+        winbox
+    });
+    initProjectWindow(projectId);
+}
+
+globalThis.onmessageWASM = function (projectId: string, messageType: string, message: string) {
+    if (projectId === "" && messageType === "open") {
+        createWindow(message);
+        return;
+    }
+
+    const webview = webviews.get(projectId);
+    webview.window.oncoremessage(messageType, message)
 }
 
 const go = new Go();
@@ -49,114 +89,145 @@ if (!unzipResult) {
     console.error("Failed to unzip editor");
 }
 
-function staticFileServing(pathname: string) {
+function staticFileServing(projectId: string, pathname: string) {
+    const projectIdData = te.encode(projectId)
     const pathnameData = te.encode(pathname);
     let payload = new Uint8Array([
-        1, // isEditor
-        ...numberTo4Bytes(0), // no project id,
+        projectId === "" ? 1 : 0,
+        ...numberTo4Bytes(projectIdData.byteLength),
+        ...projectIdData,
         1, // Static File serving
         2, // STRING
         ...numberTo4Bytes(pathnameData.length),
         ...pathnameData
     ]);
-
-    const response = deserializeArgs(call(payload));
+    const responseRaw = call(payload);
+    const response = deserializeArgs(responseRaw);
     return response;
 }
 
-const td = new TextDecoder();
+webviews.set("", { window });
+initProjectWindow("");
 
-const [mimeType, contents] = staticFileServing("/");
+function initProjectWindow(projectId: string) {
+    globalThis.td = new window.TextDecoder();
 
-const parser = new DOMParser();
-const indexHTML = parser.parseFromString(td.decode(contents), mimeType);
+    const webview = webviews.get(projectId);
+    if (!webview) return;
 
-const originalFetch = window.fetch;
-window.fetch = async function (url: string, options: any) {
-    if(url.startsWith("http")) {
-        return originalFetch(url, options);
-    }
+    webview.window.originalFetch = webview.window.fetch;
+    webview.window.fetch = async function (url: string, options: any) {
+        if (url.startsWith("http")) {
+            return webview.window.originalFetch(url, options);
+        }
 
-    if (url === "/platform") {
+        if (url === "/platform") {
+            return {
+                text: () => new Promise<string>((res) => res("wasm"))
+            };
+        }
+
+        const [_, contents] = staticFileServing(projectId, url);
         return {
-            text: () => new Promise<string>((res) => res("wasm"))
+            text: () => new Promise<string>((res) => res(globalThis.td.decode(contents))),
+            arrayBuffer: () =>
+                new Promise<ArrayBuffer>((res) => res(contents.buffer))
+        };
+    } as any;
+
+    if (projectId === "") {
+        (window as any).lib = {
+            call(payload: Uint8Array) {
+                const data = new Uint8Array([
+                    1, // isEditor
+                    ...numberTo4Bytes(0), // no project id
+                    ...payload
+                ]);
+                return call(data);
+            }
+        };
+    } else {
+        const projectIdData = te.encode(projectId);
+        const header = new Uint8Array([
+            0,
+            ...numberTo4Bytes(projectIdData.byteLength),
+            ...projectIdData
+        ])
+        webview.window.lib = {
+            call(payload: Uint8Array) {
+                const data = new Uint8Array([
+                    ...header,
+                    ...payload
+                ]);
+                return call(data);
+            }
         };
     }
 
-    const [_, contents] = staticFileServing(url);
-    return {
-        text: () => new Promise<string>((res) => res(td.decode(contents))),
-        arrayBuffer: () =>
-            new Promise<ArrayBuffer>((res) => res(contents.buffer))
-    };
-} as any;
 
-globalThis.lib = {
-    call(payload: Uint8Array) {
-        const data = new Uint8Array([
-            1, // isEditor
-            ...numberTo4Bytes(0), // no project id
-            ...payload
-        ]);
-        return call(data);
-    }
-};
+    const [mimeType, contents] = staticFileServing(projectId, "/");
 
-document.body.innerText = "";
+    const parser = new DOMParser();
+    const indexHTML = parser.parseFromString(globalThis.td.decode(contents), mimeType);
 
-// HEAD (link => style, title => title)
-indexHTML.head
-    .querySelectorAll<HTMLElement>(":scope > *")
-    .forEach((element) => {
-        if (element instanceof HTMLTitleElement) {
-            document.title = element.innerText;
-            return;
-        }
+    webview.window.document.body.innerText = "";
 
-        if (
-            element instanceof HTMLLinkElement &&
-            element.rel === "stylesheet"
-        ) {
-            const url = new URL(element.href);
-            const [type, content] = staticFileServing(url.pathname);
-            const blob = new Blob([content], { type });
-            element.href = URL.createObjectURL(blob);
-        }
-
-        document.head.append(element);
-    });
-
-globalThis.fsWasm = globalThis.fs;
-
-// BODY (script => script, img => img)
-indexHTML.body
-    .querySelectorAll<HTMLElement>(":scope > *")
-    .forEach((element) => {
-        if (element instanceof HTMLScriptElement) {
-            const script = document.createElement("script");
-            script.type = element.type;
-
-            const url = new URL(element.src);
-            const [type, content] = staticFileServing(url.pathname);
-            const blob = new Blob([content], { type });
-            script.src = URL.createObjectURL(blob);
-            element = script;
-        } else {
-            element
-                .querySelectorAll<HTMLImageElement>("img")
-                .forEach(replaceImageWithObjectURL);
-
-            if (element instanceof HTMLImageElement) {
-                replaceImageWithObjectURL(element);
+    // HEAD (link => style, title => title)
+    indexHTML.head
+        .querySelectorAll<HTMLElement>(":scope > *")
+        .forEach((element) => {
+            if (element instanceof HTMLTitleElement) {
+                if(projectId == "") {
+                    webview.window.document.title = element.innerText;
+                } else {
+                    webview.winbox.setTitle(element.innerText);
+                }
+                return;
             }
-        }
 
-        document.body.append(element);
-    });
+            if (
+                element instanceof HTMLLinkElement &&
+                element.rel === "stylesheet"
+            ) {
+                const url = new URL(element.href);
+                const [type, content] = staticFileServing(projectId, url.pathname);
+                const blob = new Blob([content], { type });
+                element.href = window.URL.createObjectURL(blob);
+            }
 
-function replaceImageWithObjectURL(img: HTMLImageElement) {
+            webview.window.document.head.append(element);
+        });
+
+    // BODY (script => script, img => img)
+    indexHTML.body
+        .querySelectorAll<HTMLElement>(":scope > *")
+        .forEach((element) => {
+            if (element instanceof HTMLScriptElement) {
+                const script = window.document.createElement("script");
+                script.type = element.type;
+
+                const url = new URL(element.src);
+                const [type, content] = staticFileServing(projectId, url.pathname);
+                const blob = new Blob([content], { type });
+                script.src = URL.createObjectURL(blob);
+                element = script;
+            } else {
+                element
+                    .querySelectorAll<HTMLImageElement>("img")
+                    .forEach(e => replaceImageWithObjectURL(projectId, e));
+
+                if (element instanceof HTMLImageElement) {
+                    replaceImageWithObjectURL(projectId, element);
+                }
+            }
+
+            webview.window.document.body.append(element);
+        });
+}
+
+function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
     const url = new URL(img.src);
-    const [type, imageData] = staticFileServing(url.pathname);
+    const [type, imageData] = staticFileServing(projectId, url.pathname);
     const blob = new Blob([imageData], { type });
     const objURL = URL.createObjectURL(blob);
     img.src = objURL;

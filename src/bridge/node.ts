@@ -25,6 +25,6 @@ export function initCallbackNode() {
     const ws = new WebSocket(url.toString());
     ws.onmessage = (e) => {
         const [type, message] = JSON.parse(e.data);
-        (globalThis as any).onmessage(type, message);
+        globalThis.oncoremessage(type, message);
     };
 }

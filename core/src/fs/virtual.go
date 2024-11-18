@@ -24,6 +24,8 @@ func vReadFile(path string) ([]byte, error) {
 }
 
 func vWriteFile(path string, data []byte) error {
+	path = strings.TrimLeft(path, "/")
+	
 	VirtFS[path] = data
 	return nil
 }

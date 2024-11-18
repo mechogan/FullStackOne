@@ -61,6 +61,37 @@ export let methods = {
     version() {
         return version;
     },
+    preloadFS(
+        files: {[path: string]: Uint8Array}, 
+        tsLib: {[path: string]: Uint8Array}, 
+        node_modules: {[path: string]: Uint8Array}
+    ){
+        console.log(files, tsLib, node_modules);
+
+        sourceFiles = {}
+
+        const td = new TextDecoder();
+        for(const [path, data] of Object.entries(files)) {
+            if(data === null) continue;
+
+            sourceFiles[path.slice("projects/".length)] = {
+                contents: td.decode(data),
+                version: 1
+            }
+        }
+
+        for(const [path, data] of Object.entries(tsLib)) {
+            if(data === null) continue;
+
+            scriptSnapshotCache[path.slice("editor/".length)] = ScriptSnapshot.fromString(td.decode(data));
+        }
+
+        for(const [path, data] of Object.entries(node_modules)) {
+            if(data === null) continue;
+
+            scriptSnapshotCache[path] = ScriptSnapshot.fromString(td.decode(data));
+        }
+    },
     start(currentDirectory: string) {
         if (services) return;
 

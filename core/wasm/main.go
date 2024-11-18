@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
+	"strings"
 
 	"syscall/js"
 )
@@ -32,23 +32,39 @@ func call(this js.Value, args []js.Value) interface{} {
 }
 
 func vfs(this js.Value, args []js.Value) interface{} {
-	fileMap := make(map[string]int)
+	fileMap := make(map[string] interface{})
+
+	prefix := ""
+	if(len(args) == 1) {
+		prefix = args[0].String()
+	}
+
+	arrayConstructor := js.Global().Get("Uint8Array")
 
 	for file, data := range fs.VirtFS {
-		fileMap[file] = len(data)
+		if(!strings.HasPrefix(file, prefix)){ 
+			continue;
+		}
+
+		dataJS := arrayConstructor.New(len(data))
+		js.CopyBytesToJS(dataJS, data)
+
+		fileMap[file] = dataJS
 	}
 
 	for _, dir := range fs.VirtDirs {
-		fileMap[dir] = 0
+		if(!strings.HasPrefix(dir, prefix)){ 
+			continue;
+		}
+
+		fileMap[dir] = nil
 	}
 
-	jsonString, _ := json.Marshal(fileMap)
-
-	return js.ValueOf(string(jsonString))
+	return js.ValueOf(fileMap)
 }
 
 func callback(projectId string, messageType string, message string) {
-	js.Global().Call("onmessage", js.ValueOf(messageType), js.ValueOf(message))
+	js.Global().Call("onmessageWASM", js.ValueOf(projectId), js.ValueOf(messageType), js.ValueOf(message))
 }
 
 func main() {
