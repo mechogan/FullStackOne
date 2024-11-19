@@ -79,5 +79,5 @@ globalThis.oncoremessage = (messageType: string, message: string) => {
 
 addCoreMessageListener("log", console.log);
 
-(globalThis as any).addGoMessageListener = addCoreMessageListener;
-(globalThis as any).removeMessageListener = removeCoreMessageListener;
+(globalThis as any).addCoreMessageListener = addCoreMessageListener;
+(globalThis as any).removeCoreMessageListener = removeCoreMessageListener;

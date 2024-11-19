@@ -4,6 +4,7 @@ import { config } from "./config";
 import { esbuild } from "./esbuild";
 import { packages } from "./packages";
 import { open } from "./open";
+import { git } from "./git";
 
 export const ipcEditor = {
     ...ipc.methods,
@@ -11,5 +12,6 @@ export const ipcEditor = {
     archive,
     esbuild,
     packages,
+    git,
     open
 };

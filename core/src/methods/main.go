@@ -9,6 +9,7 @@ import (
 	esbuild "fullstacked/editor/src/esbuild"
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/git"
 	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
@@ -43,6 +44,8 @@ const (
 	ESBUILD_BUILD   = 56
 
 	PACKAGES_INSTALL = 60
+
+	GIT_CLONE = 70
 
 	OPEN = 100
 )
@@ -156,6 +159,13 @@ func editorSwitch(method int, args []any) []byte {
 	case OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil
+	case GIT_CLONE:
+		if(len(args) > 1) {
+			username := args[1].(string)
+			password := args[2].(string)
+			return git.Clone(args[0].(string), &username, &password)
+		} 
+		return git.Clone(args[0].(string), nil, nil)
 	}
 
 	return nil

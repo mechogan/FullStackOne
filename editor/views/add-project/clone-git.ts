@@ -8,6 +8,8 @@ import { ConsoleTerminal, CreateLoader } from "./import-zip";
 import { createProjectFromFullStackedFile } from "../../api/projects";
 import { GitProgressEvent } from "isomorphic-git";
 import { Project } from "../../api/config/types";
+import stackNavigation from "../../stack-navigation";
+import { BG_COLOR } from "../../constants";
 
 type CloneGitOpts = {
     didCloneProject: (project: Project) => void;
@@ -16,7 +18,7 @@ type CloneGitOpts = {
     repoUrl?: string;
 };
 
-export function CloneGit(opts: CloneGitOpts) {
+export function CloneGit() {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -56,9 +58,9 @@ export function CloneGit(opts: CloneGitOpts) {
         const tmpDirectory = "tmp";
         consoleTerminal.logger(`Cloning into ${tmpDirectory} directory`);
 
-        await api.git.clone(repoUrlInput.input.value, tmpDirectory, {
-            onProgress: gitLogger(consoleTerminal.text)
-        });
+        // await api.git.clone(repoUrlInput.input.value, tmpDirectory, {
+        //     onProgress: gitLogger(consoleTerminal.text)
+        // });
         consoleTerminal.logger(``);
 
         const project = await createProjectFromFullStackedFile({
@@ -86,17 +88,19 @@ export function CloneGit(opts: CloneGitOpts) {
         consoleTerminal.logger(`Moved tmp to ${project.location}`);
         consoleTerminal.logger(`Done`);
 
-        opts.didCloneProject(project);
+        // opts.didCloneProject(project);
     };
 
     scrollable.append(form);
 
-    if (opts.repoUrl) {
-        repoUrlInput.input.value = opts.repoUrl;
-        setTimeout(() => cloneButton.click(), 1);
-    }
+    // if (opts.repoUrl) {
+    //     repoUrlInput.input.value = opts.repoUrl;
+    //     setTimeout(() => cloneButton.click(), 1);
+    // }
 
-    return container;
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    })
 }
 
 export function gitLogger(el: HTMLElement) {
