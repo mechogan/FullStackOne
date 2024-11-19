@@ -14,6 +14,7 @@ import {
     version
 } from "typescript";
 import { fsSync } from "../ipc/fsSync";
+import { parsePackageName } from "./utils";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -62,17 +63,15 @@ export let methods = {
         return version;
     },
     preloadFS(
-        files: {[path: string]: Uint8Array}, 
-        tsLib: {[path: string]: Uint8Array}, 
-        node_modules: {[path: string]: Uint8Array}
-    ){
-        console.log(files, tsLib, node_modules);
-
+        files: { [path: string]: Uint8Array },
+        tsLib: { [path: string]: Uint8Array },
+        node_modules: { [path: string]: Uint8Array }
+    ) {
         sourceFiles = {}
 
         const td = new TextDecoder();
-        for(const [path, data] of Object.entries(files)) {
-            if(data === null) continue;
+        for (const [path, data] of Object.entries(files)) {
+            if (data === null) continue;
 
             sourceFiles[path.slice("projects/".length)] = {
                 contents: td.decode(data),
@@ -80,16 +79,28 @@ export let methods = {
             }
         }
 
-        for(const [path, data] of Object.entries(tsLib)) {
-            if(data === null) continue;
+        for (const [path, data] of Object.entries(tsLib)) {
+            if (data === null) continue;
 
             scriptSnapshotCache[path.slice("editor/".length)] = ScriptSnapshot.fromString(td.decode(data));
         }
 
-        for(const [path, data] of Object.entries(node_modules)) {
-            if(data === null) continue;
+        for (const [path, data] of Object.entries(node_modules)) {
+            if (data === null) continue;
 
-            scriptSnapshotCache[path] = ScriptSnapshot.fromString(td.decode(data));
+            const modulePath = path.slice("projects/node_modules/".length);
+            const moduleName = parsePackageName(modulePath);
+
+            let files = nodeModules.get(moduleName);
+            if (!files) {
+                files = []
+                nodeModules.set(moduleName, files);
+            }
+            if(modulePath != moduleName) {
+                files.push(`node_modules/${modulePath}`);
+            }
+
+            scriptSnapshotCache[`node_modules/${modulePath}`] = ScriptSnapshot.fromString(td.decode(data));
         }
     },
     start(currentDirectory: string) {
@@ -252,10 +263,8 @@ function initLanguageServiceHost(): LanguageServiceHost {
             // console.log("fileExists", path);
 
             if (path.startsWith("node_modules")) {
-                const pathComponents = path.split("/");
-                const moduleName = pathComponents.at(1).startsWith("@")
-                    ? pathComponents.at(1) + "/" + pathComponents.at(2)
-                    : pathComponents.at(1);
+                const modulePath = path.slice("node_modules/".length);
+                const moduleName = parsePackageName(modulePath)
 
                 let moduleFiles = nodeModules.get(moduleName);
 

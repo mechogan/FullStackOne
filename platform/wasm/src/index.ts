@@ -27,11 +27,51 @@ const webviews = new Map<string, {
     winbox?: WinBoxType
 }>()
 
+const aspectRatio = 16 / 11
+const isLandscape = () => window.innerWidth > window.innerHeight;
+const newWinboxHeight = () => {
+    let height = window.innerHeight;
+    if(isLandscape()) {
+        height = window.innerHeight * 0.6;
+    } else {
+        height = newWinboxWidth() * aspectRatio
+    }
+    if(height > window.innerHeight) {
+        return window.innerHeight;
+    }
+    return height
+}
+const newWinboxWidth = () => {
+    let width = window.innerWidth;
+    if(isLandscape()) {
+        width = newWinboxHeight() * aspectRatio
+    }else {
+        width = window.innerWidth * 0.6;
+        if(width < 450) {
+            width = window.innerWidth;
+        }
+    }
+    if(width > window.innerWidth) {
+        return window.innerWidth
+    }
+    return width;
+}
+
 function createWindow(projectId: string) {
     const iframe = document.createElement("iframe");
     iframe.style.height = "100%";
     iframe.style.width = "100%";
-    const winbox = new WinBox(projectId, { mount: iframe })
+    const height = newWinboxHeight();
+    console.log(height)
+    const width = newWinboxWidth();
+    console.log(height, width);
+    const winbox = new WinBox(projectId, {
+        mount: iframe,
+        height,
+        width,
+        x: window.innerWidth / 2 - width / 2,
+        y: window.innerHeight / 2 - height / 2,
+    })
     webviews.set(projectId, {
         window: iframe.contentWindow,
         winbox
@@ -116,7 +156,11 @@ function initProjectWindow(projectId: string) {
     if (!webview) return;
 
     webview.window.originalFetch = webview.window.fetch;
-    webview.window.fetch = async function (url: string, options: any) {
+    webview.window.fetch = async function (url: string | Request, options: any) {
+        if(typeof url === "object") {
+            return webview.window.originalFetch(url);;
+        }
+
         if (url.startsWith("http")) {
             return webview.window.originalFetch(url, options);
         }
@@ -193,6 +237,20 @@ function initProjectWindow(projectId: string) {
                 const [type, content] = staticFileServing(projectId, url.pathname);
                 const blob = new Blob([content], { type });
                 element.href = window.URL.createObjectURL(blob);
+                element.onload = () => {
+                    const bgColor = webview.window.getComputedStyle(webview.window.document.documentElement).backgroundColor;
+                    const hexColor = RGBAToHexA(bgColor, true);
+                    if(hexColor === "#000000" || !webview.winbox) return;
+                    webview.winbox?.setBackground(hexColor);
+                    if(isBgColorDark(hexColor)) {
+                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-header").style.color = "white";
+                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-control").style.filter = "invert(0)";
+                    } else {
+
+                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-header").style.color = "black";
+                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-control").style.filter = "invert(1)";
+                    }
+                }
             }
 
             webview.window.document.head.append(element);
@@ -231,4 +289,19 @@ function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
     const blob = new Blob([imageData], { type });
     const objURL = URL.createObjectURL(blob);
     img.src = objURL;
+}
+
+function RGBAToHexA(rgba: string, forceRemoveAlpha = false) {
+    return "#" + rgba.replace(/^rgba?\(|\s+|\)$/g, '') // Get's rgba / rgb string values
+      .split(',') // splits them at ","
+      .filter((string, index) => !forceRemoveAlpha || index !== 3)
+      .map(string => parseFloat(string)) // Converts them to numbers
+      .map((number, index) => index === 3 ? Math.round(number * 255) : number) // Converts alpha to 255 number
+      .map(number => number.toString(16)) // Converts numbers to hex
+      .map(string => string.length === 1 ? "0" + string : string) // Adds 0 when length of one number is 1
+      .join("") // Puts the array to togehter to a string
+  }
+
+function isBgColorDark(bgColor: string) {
+    return parseInt(bgColor.replace("#", ""), 16) < 0xffffff / 2
 }

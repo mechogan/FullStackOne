@@ -8,14 +8,14 @@ type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-        ? (
-              ...args: T[K] extends (...args: infer P) => any ? P : never[]
-          ) => OnlyOnePromise<
-              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-          >
-        : T[K] extends object
-          ? AwaitAll<T[K]>
-          : () => Promise<T[K]>;
+    ? (
+        ...args: T[K] extends (...args: infer P) => any ? P : never[]
+    ) => OnlyOnePromise<
+        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+    >
+    : T[K] extends object
+    ? AwaitAll<T[K]>
+    : () => Promise<T[K]>;
 };
 
 function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
@@ -63,12 +63,8 @@ async function restart() {
     }
 
     WorkerTS.dispose();
-    if(globalThis.platform === Platform.WASM) {
-        await WorkerTS.call().preloadFS(
-            globalThis.vfs(`projects/${directory}`), 
-            globalThis.vfs("editor/tsLib"),
-            globalThis.vfs("projects/node_modules")
-        );
+    if (globalThis.platform === Platform.WASM) {
+        await preloadFS();
     }
     return WorkerTS.start(directory);
 }
@@ -81,22 +77,18 @@ function start(workingDirectory: string) {
     if (!readyPromise) {
         readyPromise = new Promise<void>(async (resolve) => {
             let workerPath = "worker-ts.js";
-            
-            if(globalThis.platform === Platform.WASM) {
+
+            if (globalThis.platform === Platform.WASM) {
                 const [mimeType, workerData] = await getWorkerDataWASM("worker-ts.js");
-                const blob = new Blob([workerData], {type: mimeType});
+                const blob = new Blob([workerData], { type: mimeType });
                 workerPath = URL.createObjectURL(blob);
-            } 
-            
+            }
+
             worker = new Worker(workerPath, { type: "module" });
             worker.onmessage = async (message) => {
                 if (message.data.ready) {
-                    if(globalThis.platform === Platform.WASM) {
-                        await WorkerTS.call().preloadFS(
-                            globalThis.vfs(`projects/${workingDirectory}`), 
-                            globalThis.vfs("editor/tsLib"),
-                            globalThis.vfs("projects/node_modules")
-                        );
+                    if (globalThis.platform === Platform.WASM) {
+                        await preloadFS();
                     }
                     await WorkerTS.call().start(workingDirectory);
                     resolve();
@@ -123,7 +115,7 @@ function dispose() {
     for (const promiseResolve of requests.values()) {
         try {
             promiseResolve(undefined);
-        } catch (e) {}
+        } catch (e) { }
     }
     requests.clear();
     reqsCount = 0;
@@ -131,8 +123,10 @@ function dispose() {
     tsRequests.notify();
 }
 
+///// WASM //////
+
 const te = new TextEncoder();
-function getWorkerDataWASM(workerPath: string){
+function getWorkerDataWASM(workerPath: string) {
     const workerPathData = te.encode(workerPath);
     const payload = new Uint8Array([
         1, // Static File Serving
@@ -141,4 +135,12 @@ function getWorkerDataWASM(workerPath: string){
         ...workerPathData
     ])
     return ipc.bridge(payload);
+}
+
+function preloadFS() {
+    return WorkerTS.call().preloadFS(
+        globalThis.vfs(`projects/${directory}`),
+        globalThis.vfs("editor/tsLib"),
+        globalThis.vfs("projects/node_modules")
+    );
 }

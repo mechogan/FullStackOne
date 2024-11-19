@@ -53,5 +53,5 @@ const hanlder = (req, res) => {
     readStream.pipe(res);
 };
 
-http.createServer(hanlder).listen(9000);
+http.createServer(hanlder).listen(9000, "0.0.0.0");
 open("http://localhost:9000");

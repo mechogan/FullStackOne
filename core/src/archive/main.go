@@ -29,11 +29,11 @@ func Unzip(dest string, data []byte) bool {
 		} else {
 			data, err := readZipFile(zipFile)
 			if err != nil {
-				return false
+				continue;
 			}
 			err = fs.WriteFile(dest+"/"+zipFile.Name, data)
 			if err != nil {
-				return false
+				continue;
 			}
 		}
 	}

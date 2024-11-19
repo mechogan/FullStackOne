@@ -1,6 +1,6 @@
-import { ipcEditor } from ".";
 import ipc from "../../src";
 import { serializeArgs } from "../../src/serialization";
+import { parsePackageName } from "../typescript/utils";
 
 export const packages = {
     install
@@ -12,16 +12,4 @@ function install(packageName: string) {
     const payload = new Uint8Array([60, ...serializeArgs([packageName])]);
 
     ipc.bridge(payload);
-}
-
-function parsePackageName(packageName: string) {
-    const packageNameComponents = packageName.split("/");
-    // @some/package
-    if (packageNameComponents.at(0).startsWith("@")) {
-        return packageNameComponents.slice(0, 2).join("/");
-    }
-    // react-dom/client
-    else {
-        return packageNameComponents.at(0);
-    }
 }
