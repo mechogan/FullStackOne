@@ -69,7 +69,7 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
     
     func onMessage(messageType: String, message: String) {
         DispatchQueue.main.async() {
-            self.evaluateJavaScript("window.onmessage(`\(messageType)`,`\(message)`)")
+            self.evaluateJavaScript("window.oncoremessage(`\(messageType)`,`\(message)`)")
         }
     }
 }

@@ -32,7 +32,7 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         val mainLooper = Looper.getMainLooper()
         val handler = Handler(mainLooper)
         handler.post {
-            this.webView.evaluateJavascript("window.onmessage(`$messageType`, `$message`)", null)
+            this.webView.evaluateJavascript("window.oncoremessage(`$messageType`, `$message`)", null)
         }
     }
 

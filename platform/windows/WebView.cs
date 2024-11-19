@@ -92,7 +92,7 @@ namespace windows
         public void onMessage(string type, string message) {
             this.webview.DispatcherQueue.TryEnqueue(() =>
             {
-                _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.onmessage(`" + type + "`, `" + message + "`)");
+                _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.oncoremessage(`" + type + "`, `" + message + "`)");
             });
         }
     }
