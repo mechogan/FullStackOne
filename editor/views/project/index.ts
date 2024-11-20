@@ -13,6 +13,7 @@ import { Loader } from "../../components/loader";
 import * as sass from "sass";
 import type { Message } from "esbuild";
 import { saveAllViews } from "./code-editor";
+import { Git } from "./git";
 
 let lastOpenedProjectId: string,
     autoRunning = false;
@@ -75,10 +76,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
 
         actions.push(deleteAllButton);
     } else {
-        const gitButton = Button({
-            style: "icon-large",
-            iconLeft: "Git"
-        });
+        const gitButton = GitWidget(project);
 
         const tsButton = Button({
             style: "icon-large",
@@ -223,8 +221,8 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                              ? "scss"
-                              : "css",
+                                ? "scss"
+                                : "css",
                         contents
                     };
                 },
@@ -255,4 +253,35 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
     await ipcEditor.fs.mkdir(buildDirectory);
     await ipcEditor.fs.writeFile(buildDirectory + "/index.css", result.css);
     return null;
+}
+
+function GitWidget(project: ProjectType) {
+    const container = createElement("div");
+    container.classList.add("git-widget");
+
+    const hasGit = Boolean(project.gitRepository?.url);
+    const gitButton = Button({
+        style: "icon-large",
+        iconLeft: "Git"
+    });
+    gitButton.disabled = !hasGit;
+    gitButton.onclick = () => Git(project);
+    container.append(gitButton);
+
+    if (!hasGit) return container
+
+    const branchAndCommitContainer = document.createElement("div");
+
+    ipcEditor.git.head(project.id)
+        .then((result) => {
+            console.log(result)
+            branchAndCommitContainer.innerHTML = `
+                <div><b>${result.Name.split("/").pop()}</b></div>
+                <div>${result.Hash.slice(0, 7)}<div>
+            `;
+        });
+
+    container.prepend(branchAndCommitContainer);
+
+    return container;
 }

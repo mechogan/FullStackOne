@@ -46,6 +46,8 @@ const (
 	PACKAGES_INSTALL = 60
 
 	GIT_CLONE = 70
+	GIT_HEAD = 71
+	GIT_STATUS = 72
 
 	OPEN = 100
 )
@@ -133,17 +135,17 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 
 func editorSwitch(method int, args []any) []byte {
 
-	switch method {
-	case CONFIG_GET:
+	switch {
+	case method == CONFIG_GET:
 		return config.Get(args[0].(string))
-	case CONFIG_SAVE:
+	case method == CONFIG_SAVE:
 		return config.Save(args[0].(string), args[1].(string))
-	case ESBUILD_VERSION:
+	case method == ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
-	case ESBUILD_BUILD:
+	case method == ESBUILD_BUILD:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		return serialize.SerializeString(esbuild.Build(projectDirectory))
-	case ARCHIVE_UNZIP:
+	case method == ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 
 		// the unzip methood is useful for Android and WASM
@@ -153,19 +155,38 @@ func editorSwitch(method int, args []any) []byte {
 		}
 
 		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
-	case PACKAGES_INSTALL:
+	case method == PACKAGES_INSTALL:
 		packages.Install(args[0].(string))
 		return nil
-	case OPEN:
+	case method == OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil
+	case method >= 70 && method <= 80:
+		return gitSwitch(method, args)
+	}
+
+	return nil
+}
+
+
+func gitSwitch(method int, args []any) []byte {
+	switch method {
 	case GIT_CLONE:
-		if(len(args) > 1) {
-			username := args[1].(string)
-			password := args[2].(string)
-			return git.Clone(args[0].(string), &username, &password)
-		} 
-		return git.Clone(args[0].(string), nil, nil)
+		destination := path.Join(setup.Directories.Root, args[1].(string))
+
+		if(len(args) > 2) {
+			username := args[2].(string)
+			password := args[3].(string)
+			return git.Clone(args[0].(string), destination, &username, &password)
+		}
+
+		return git.Clone(args[0].(string), destination, nil, nil)
+	case GIT_HEAD:
+		directory := path.Join(setup.Directories.Root, args[0].(string))
+		return git.Head(directory)
+	case GIT_STATUS:
+		directory := path.Join(setup.Directories.Root, args[0].(string))
+		return git.Status(directory)
 	}
 
 	return nil

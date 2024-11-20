@@ -3,11 +3,9 @@ import { Loader } from "../../components/loader";
 import { InputFile } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { createProjectFromFullStackedFile } from "../../api/projects";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { ipcEditor } from "../../ipc";
-import { title } from "process";
 import slugify from "slugify";
 import { Store } from "../../store";
 
@@ -81,50 +79,61 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     scrollable.append(loader, consoleTerminal.container);
 
     consoleTerminal.logger(`Importing file: ${file.name}`);
-
     const zipData = new Uint8Array(await file.arrayBuffer());
-
     consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
-
-    const tmpDir = ".tmp";
-
-    consoleTerminal.text.innerText += `Unpacking\n`;
+    consoleTerminal.logger(`Unpacking`);
     await ipcEditor.archive.unzip(tmpDir, zipData);
 
-    consoleTerminal.text.innerText += `Looking for .fullstacked file\n`;
+    // remove .zip extension
+    let defaultProjectTitle = file.name;
+    const fileNameComponents = file.name.split(".");
+    if(fileNameComponents.at(-1) === "zip") {
+        defaultProjectTitle = fileNameComponents.slice(0, -1).join(".");
+    }
+
+    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, null)
+
+    consoleTerminal.logger(`Finished importing ${file.name}`);
+    consoleTerminal.logger("Done");
+}
+
+export const tmpDir = ".tmp";
+export async function createAndMoveProjectFromTmp(
+    consoleTerminal: ReturnType<typeof ConsoleTerminal>, 
+    defaultProjectTitle: string,
+    defaultGitRepoUrl: string,
+) {
+    consoleTerminal.logger(`Looking for .fullstacked file`);
     const contents = await ipcEditor.fs.readdir(tmpDir);
 
-    // remove .zip extension
-    const defaultName = file.name.split(".").slice(0, -1).join(".");
-
     const project: Parameters<typeof Store.projects.create>[0] = {
-        title: defaultName,
-        id: slugify(defaultName, { lower: true })
+        title: defaultProjectTitle,
+        id: slugify(defaultProjectTitle, { lower: true })
     };
 
     if (contents.includes(".fullstacked")) {
         try {
             const fullstackedFile = await ipcEditor.fs.readFile(
-                ".tmp/.fullstacked",
+                `${tmpDir}/.fullstacked`,
                 { encoding: "utf8" }
             );
             const fullstackedProjectData = JSON.parse(fullstackedFile);
-            consoleTerminal.text.innerText += `Found valid .fullstacked file\n`;
-            consoleTerminal.text.innerText += `${JSON.stringify(fullstackedFile, null, 2)}\n`;
+            consoleTerminal.logger(`Found valid .fullstacked file`);
+            consoleTerminal.logger(`${JSON.stringify(fullstackedFile, null, 2)}`);
             project.title = fullstackedProjectData.title || project.title;
             project.id = fullstackedProjectData.id || project.id;
-            if (fullstackedProjectData.git?.url) {
+            if (fullstackedProjectData.git?.url || defaultGitRepoUrl) {
                 project.gitRepository = {
-                    url: fullstackedProjectData.git?.url
+                    url: fullstackedProjectData.git?.url || defaultGitRepoUrl
                 };
             }
         } catch (e) {
-            consoleTerminal.text.innerText += `Found invalid .fullstacked file\n`;
+            consoleTerminal.logger(`Found invalid .fullstacked file`);
         }
     }
 
-    consoleTerminal.text.innerText += `Creating Project\n`;
-    consoleTerminal.text.innerText += `${JSON.stringify(project, null, 2)}\n`;
+    consoleTerminal.logger(`Creating Project`);
+    consoleTerminal.logger(`${JSON.stringify(project, null, 2)}`);
 
     let tries = 1,
         originalProjectId = project.id;
@@ -134,7 +143,4 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     }
 
     Store.projects.create(project);
-
-    consoleTerminal.logger(`Finished importing ${file.name}`);
-    consoleTerminal.logger("Done");
 }

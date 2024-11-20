@@ -1,22 +1,13 @@
-import api from "../../api";
-import rpc from "../../rpc";
 import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { ConsoleTerminal, CreateLoader } from "./import-zip";
+import { ConsoleTerminal, createAndMoveProjectFromTmp, CreateLoader, tmpDir } from "./import-zip";
 import { createProjectFromFullStackedFile } from "../../api/projects";
-import { GitProgressEvent } from "isomorphic-git";
 import { Project } from "../../api/config/types";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
-
-type CloneGitOpts = {
-    didCloneProject: (project: Project) => void;
-
-    // for deeplinks
-    repoUrl?: string;
-};
+import { ipcEditor } from "../../ipc";
 
 export function CloneGit() {
     const { container, scrollable } = ViewScrollable();
@@ -42,82 +33,73 @@ export function CloneGit() {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-
         cloneButton.disabled = true;
-
-        const loader = CreateLoader({
-            text: "Cloning from remote..."
-        });
-
-        const consoleTerminal = ConsoleTerminal();
-
-        scrollable.append(loader, consoleTerminal.container);
-
-        consoleTerminal.logger(`Cloning ${repoUrlInput.input.value}`);
-
-        const tmpDirectory = "tmp";
-        consoleTerminal.logger(`Cloning into ${tmpDirectory} directory`);
-
-        // await api.git.clone(repoUrlInput.input.value, tmpDirectory, {
-        //     onProgress: gitLogger(consoleTerminal.text)
-        // });
-        consoleTerminal.logger(``);
-
-        const project = await createProjectFromFullStackedFile({
-            getDirectoryContents: () =>
-                rpc().fs.readdir(tmpDirectory, {
-                    absolutePath: true
-                }) as Promise<string[]>,
-            getFileContents: (filename) =>
-                rpc().fs.readFile(tmpDirectory + "/" + filename, {
-                    absolutePath: true,
-                    encoding: "utf8"
-                }) as Promise<string>,
-            alternateTitle: repoUrlInput.input.value
-                .split("/")
-                .pop()
-                .split(".")
-                .shift(),
-            alternateRepo: repoUrlInput.input.value,
-            logger: consoleTerminal.logger
-        });
-
-        await rpc().fs.rename(tmpDirectory, project.location, {
-            absolutePath: true
-        });
-        consoleTerminal.logger(`Moved tmp to ${project.location}`);
-        consoleTerminal.logger(`Done`);
-
-        // opts.didCloneProject(project);
+        cloneGitRepo(repoUrlInput.input.value, scrollable)
+            .then(() => stackNavigation.back())
+            .catch(() => {});
     };
 
     scrollable.append(form);
 
-    // if (opts.repoUrl) {
-    //     repoUrlInput.input.value = opts.repoUrl;
-    //     setTimeout(() => cloneButton.click(), 1);
-    // }
-
     stackNavigation.navigate(container, {
-        bgColor: BG_COLOR
+        bgColor: BG_COLOR,
+        onDestroy: () => {
+            removeCoreMessageListener("git-clone", logProgress)
+        }
     })
 }
 
-export function gitLogger(el: HTMLElement) {
+let logProgress: (log: string) => void;
+async function cloneGitRepo(url: string, scrollable: HTMLElement) {
+    const consoleTerminal = ConsoleTerminal();
+
+    logProgress = gitLogger(consoleTerminal);
+
+    addCoreMessageListener("git-clone", logProgress);
+
+    const loader = CreateLoader({
+        text: "Cloning from remote..."
+    });
+
+    scrollable.append(loader, consoleTerminal.container);
+
+    consoleTerminal.logger(`Cloning ${url}`);
+    let result: Awaited<ReturnType<typeof ipcEditor.git.clone>>;
+    try {
+        result = await ipcEditor.git.clone(url, tmpDir);
+    } catch(e) {
+        consoleTerminal.logger(e.Error);
+        throw e
+    }
+
+    const repoUrl = new URL(url);
+    let defaultProjectTitle = repoUrl.pathname.slice(1); // remove forward slash
+    // remove .git
+    const pathnameComponents = repoUrl.pathname.split(".");
+    if(pathnameComponents.at(-1) === "git") {
+        defaultProjectTitle = pathnameComponents.slice(0, -1).join(".");
+    }
+
+    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, url);
+
+    consoleTerminal.logger(`Finished cloning ${url}`);
+    consoleTerminal.logger(`Done`);
+
+    removeCoreMessageListener("git-clone", logProgress);
+}
+
+
+export function gitLogger(consoleTerminal: ReturnType<typeof ConsoleTerminal>) {
     let currentPhase: string, currentHTMLElement: HTMLDivElement;
-    return (progress: GitProgressEvent) => {
-        if (progress.phase !== currentPhase) {
-            currentPhase = progress.phase;
+    return (progress: string) => {
+        const phase = progress.split(":").at(0);
+        if (phase !== currentPhase) {
+            currentPhase = phase;
             currentHTMLElement = document.createElement("div");
-            el.append(currentHTMLElement);
+            consoleTerminal.text.append(currentHTMLElement)
         }
 
-        if (progress.total) {
-            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}/${progress.total} (${((progress.loaded / progress.total) * 100).toFixed(2)}%)`;
-        } else {
-            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}`;
-        }
-
-        el.scrollIntoView(false);
+        currentHTMLElement.innerText = progress
+        consoleTerminal.text.scrollIntoView(false);
     };
 }
