@@ -10,6 +10,7 @@ import {
 import { createRefresheable } from "../../components/refresheable";
 import { ipcEditor } from "../../ipc";
 import { Project } from "../project";
+import { Version } from "./version";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -66,11 +67,4 @@ async function PackagesButton(onFinished: () => void) {
     button.id = PACKAGES_BUTTON_ID;
 
     return button;
-}
-
-function Version() {
-    const div = document.createElement("div");
-    ipcEditor.esbuild.version().then((v) => (div.innerText = v));
-
-    return div;
 }

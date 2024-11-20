@@ -14,6 +14,8 @@ import * as sass from "sass";
 import type { Message } from "esbuild";
 import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
+import { Icon } from "../../components/primitives/icon";
+import { createRefresheable } from "../../components/refresheable";
 
 let lastOpenedProjectId: string,
     autoRunning = false;
@@ -61,6 +63,7 @@ export function Project(project: ProjectType) {
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     const actions: ElementComponent[] = [];
 
+    let gitWidget: ReturnType<typeof GitWidget>;
     if (project.id === "node_modules") {
         const deleteAllButton = Button({
             text: "Delete All",
@@ -76,7 +79,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
 
         actions.push(deleteAllButton);
     } else {
-        const gitButton = GitWidget(project);
+        gitWidget = GitWidget(project);
 
         const tsButton = Button({
             style: "icon-large",
@@ -114,7 +117,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             loaderContainer.replaceWith(runButton);
         };
 
-        actions.push(gitButton, tsButton, runButton);
+        actions.push(gitWidget, tsButton, runButton);
     }
 
     const topBar = TopBarComponent({
@@ -133,6 +136,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
 
     topBar.ondestroy = () => {
         actions.forEach((e) => e.destroy());
+        gitWidget?.destroy();
     };
 
     return topBar;
@@ -270,18 +274,52 @@ function GitWidget(project: ProjectType) {
 
     if (!hasGit) return container
 
-    const branchAndCommitContainer = document.createElement("div");
-
-    ipcEditor.git.head(project.id)
-        .then((result) => {
-            console.log(result)
-            branchAndCommitContainer.innerHTML = `
+    const branchAndCommitRender = async () => {
+        const result = await ipcEditor.git.head(project.id)
+        const branchAndCommitContainer = createElement("div");
+        branchAndCommitContainer.innerHTML = `
                 <div><b>${result.Name.split("/").pop()}</b></div>
                 <div>${result.Hash.slice(0, 7)}<div>
             `;
-        });
+        return branchAndCommitContainer;
+    }
 
-    container.prepend(branchAndCommitContainer);
+    const branchAndCommit = createRefresheable(branchAndCommitRender)
+    container.prepend(branchAndCommit.element);
+    branchAndCommit.refresh()
+
+    const statusArrow = Icon("Arrow 2");
+    statusArrow.classList.add("git-status-arrow");
+    statusArrow.style.display = "none";
+    container.append(statusArrow);
+
+    const pullEvent = (progress: string) => {
+        statusArrow.style.display = "flex";
+        statusArrow.classList.remove("red");
+        if(progress.endsWith("done")) {
+            statusArrow.style.display = "none";
+            branchAndCommit.refresh()
+        }
+    }
+
+    const pushEvent = (progress: string) => {
+        statusArrow.style.display = "flex";
+        statusArrow.classList.add("red");
+        if(progress.endsWith("done")) {
+            statusArrow.style.display = "none";
+            branchAndCommit.refresh()
+        }
+    }
+
+    addCoreMessageListener("git-pull", pullEvent);
+    addCoreMessageListener("git-push", pushEvent);
+
+    container.ondestroy = () => {
+        removeCoreMessageListener("git-pull", pullEvent);
+        removeCoreMessageListener("git-push", pushEvent);
+    }
+
+    ipcEditor.git.pull(project.id)
 
     return container;
 }

@@ -14,26 +14,58 @@ type GitError struct {
 	Error string
 }
 
-func errorFmt(e string) string {
+func errorFmt(e error) *[]byte {
 	gitError := GitError{
-		Error: e,
+		Error: e.Error(),
 	}
 	jsonData, _ := json.Marshal(gitError)
 	jsonStr := string(jsonData)
-	return jsonStr
+	jsonSerialized := serialize.SerializeString(jsonStr)
+	return &jsonSerialized
 }
 
-type CloneProgress struct {
-	Url string
+func getRepo(directory string) (*git.Repository, *[]byte) {
+	repo, err := git.PlainOpen(directory)
+
+	if(err != nil) {
+		return nil, errorFmt(err)
+	}
+
+	return repo, nil
+}
+
+func getWorktree(directory string) (*git.Worktree, *[]byte) {
+	repo, err := getRepo(directory)
+
+	if(err != nil){
+		return nil, err
+	}
+
+	worktree, err2 := repo.Worktree()
+
+	if(err2 != nil) {
+		return nil, errorFmt(err2)
+	}
+
+	// always ignore FullStacked artifacts
+	worktree.Excludes = append(worktree.Excludes, 
+		gitignore.ParsePattern("/.build", []string{}),
+		gitignore.ParsePattern("/data", []string{}))
+
+	return worktree, nil
+}
+
+type GitProgress struct {
+	Name string
 	Progress string
 }
-func (cloneProgess *CloneProgress) Write(p []byte) (int, error) {
+func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 	n := len(p)
-	setup.Callback("", "git-clone", string(p))
+	setup.Callback("", gitProgress.Name, string(p))
 	return n, nil
 }
 
-func Clone(url string, into string, username *string, password *string) []byte {
+func Clone(into string, url string, username *string, password *string) []byte {
 	auth := (*http.BasicAuth)(nil)
 	if(username != nil && password != nil) {
 		auth = &http.BasicAuth{
@@ -42,19 +74,18 @@ func Clone(url string, into string, username *string, password *string) []byte {
 		}
 	}
 
-	progess := CloneProgress{
-		Url: url,
-	}
 	_, err := git.PlainClone(into, false, &git.CloneOptions{
 		Auth: auth,
 		URL: url,
-		Progress: &progess,
+		Progress: &GitProgress{
+			Name: "git-clone",
+		},
 		SingleBranch: true,
 
 	});
 
 	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+		return *errorFmt(err)
 	}
 
 	return nil
@@ -66,16 +97,16 @@ type HeadObj struct {
 }
 
 func Head(directory string) []byte {
-	repo, err := git.PlainOpen(directory)
+	repo, err := getRepo(directory)
 
 	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+		return *err
 	}
 
-	head, err := repo.Head()
+	head, err2 := repo.Head()
 
-	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+	if(err2 != nil) {
+		return *errorFmt(err2)
 	}
 
 	headObj := HeadObj{
@@ -95,28 +126,20 @@ type GitStatus struct {
 }
 
 func Status(directory string) []byte {
-	repo, err := git.PlainOpen(directory)
-	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
-	}
+	worktree, err := getWorktree(directory)
 
-	worktree, err := repo.Worktree()
 	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+		return *err
 	}
-
-	worktree.Excludes = append(worktree.Excludes, 
-		gitignore.ParsePattern("/.build", []string{}),
-		gitignore.ParsePattern("/data", []string{}))
 	
-	err = worktree.AddGlob(".")
-	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+	err2 := worktree.AddGlob(".")
+	if(err2 != nil) {
+		return *errorFmt(err2)
 	}
 
-	status, err := worktree.Status()
-	if(err != nil) {
-		return serialize.SerializeString(errorFmt(err.Error()))
+	status, err2 := worktree.Status()
+	if(err2 != nil) {
+		return *errorFmt(err2)
 	}
 
 	gitStatus := GitStatus{
@@ -138,4 +161,78 @@ func Status(directory string) []byte {
 	jsonData, _ := json.Marshal(gitStatus)
 	jsonStr := string(jsonData)
 	return serialize.SerializeString(jsonStr)
+}
+
+func Pull(directory string, username *string, password *string) []byte {
+	worktree, err := getWorktree(directory)
+
+	if(err != nil) {
+		return *err
+	}
+
+	auth := (*http.BasicAuth)(nil)
+	if(username != nil && password != nil) {
+		auth = &http.BasicAuth{
+			Username: *username,
+			Password: *password,
+		}
+	}
+
+	progress := GitProgress{
+		Name: "git-pull",
+	}
+
+	progress.Write([]byte("start"))
+
+	err2 := worktree.Pull(&git.PullOptions{
+		Auth: auth,
+		Progress: &progress,
+		SingleBranch: true,
+	})
+
+	progress.Write([]byte("done"))
+
+	if(err2 != nil && err2.Error() != "already up-to-date") {
+		return *errorFmt(err2)
+	}
+
+	return nil
+}
+
+
+func Push(directory string, username *string, password *string) []byte {
+	repo, err := getRepo(directory)
+
+	if(err != nil) {
+		return *err
+	}
+
+	auth := (*http.BasicAuth)(nil)
+	if(username != nil && password != nil) {
+		auth = &http.BasicAuth{
+			Username: *username,
+			Password: *password,
+		}
+	}
+
+	progress := GitProgress{
+		Name: "git-push",
+	}
+
+	progress.Write([]byte("start"))
+
+	err2 := repo.Push(&git.PushOptions{
+		Auth: auth,
+		Progress: &GitProgress{
+			Name: "git-push",
+		},
+	})
+
+	progress.Write([]byte("done"))
+
+	if(err2 != nil) {
+		return *errorFmt(err2)
+	}
+
+	return nil
 }

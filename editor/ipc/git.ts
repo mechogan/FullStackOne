@@ -4,7 +4,8 @@ import ipc from "../../src";
 export const git = {
     clone,
     head,
-    status
+    status,
+    pull
 }
 
 type ErrorObj = {
@@ -28,7 +29,7 @@ const errorChecker = ([error]) => {
 function clone(url: string, into: string) : Promise<void> {
     const payload = new Uint8Array([
         70,
-        ...serializeArgs([url, into])
+        ...serializeArgs([into, url])
     ])
 
     return ipc.bridge(payload, errorChecker);
@@ -50,7 +51,11 @@ function head(projectId: string) : Promise<{ Name: string, Hash: string }> {
 }
 
 // 72
-function status(projectId: string) : Promise<any> {
+function status(projectId: string) : Promise<{
+    Added: string[],
+    Modified: string[],
+    Deleted: string[]
+}> {
     const payload = new Uint8Array([
         72,
         ...serializeArgs([projectId])
@@ -62,4 +67,14 @@ function status(projectId: string) : Promise<any> {
     }
 
     return ipc.bridge(payload, transformer);
+}
+
+// 73
+function pull(projectId: string) : Promise<void> {
+    const payload = new Uint8Array([
+        73,
+        ...serializeArgs([projectId])
+    ])
+
+    return ipc.bridge(payload, errorChecker);
 }

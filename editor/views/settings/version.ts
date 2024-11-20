@@ -1,7 +1,9 @@
+import { serializeArgs } from "../../../src/serialization";
 import { Badge } from "../../components/primitives/badge";
-import rpc from "../../rpc";
+import { ipcEditor } from "../../ipc";
 import { WorkerTS } from "../../typescript";
 import semver from "semver";
+import ipc from "../../../src";
 
 export function Version() {
     const container = document.createElement("div");
@@ -21,12 +23,10 @@ function EditorVersion() {
         <label>Editor</label>
     `;
 
-    rpc()
-        .fs.readFile("version.json", { encoding: "utf8" })
-        .then((versionFileContent: string) => {
-            const { version, branch, commit, commitNumber } =
-                JSON.parse(versionFileContent);
 
+
+    getVersionJSON()
+        .then(({version, branch, commit, commitNumber}) => {
             const editorVersionContainer = document.createElement("div");
             editorVersionContainer.classList.add("editor-version");
 
@@ -69,9 +69,8 @@ function EditorVersion() {
 }
 
 async function getLatestVersionTag() {
-    const response = await rpc().fetch(
+    const response = await ipcEditor.fetch(
         "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
-        null,
         {
             encoding: "utf8"
         }
@@ -86,10 +85,9 @@ function EsbuildVersion() {
         <label>Esbuild</label>
     `;
 
-    rpc()
-        .esbuild.version()
+   ipcEditor.esbuild.version()
         .then((v) => {
-            container.innerHTML += `<div>${v}</div>`;
+            container.innerHTML += `<div>${v.slice(1)}</div>`;
         });
 
     return container;
@@ -111,4 +109,20 @@ function TypescriptVersion() {
     WorkerTS.start("").then(appendTypeScriptVersion);
 
     return container;
+}
+
+const td = new TextDecoder();
+
+function getVersionJSON() : Promise<{
+    version: string,
+    branch: string,
+    commit: string,
+    commitNumber: string
+}> {
+    const payload = new Uint8Array([
+        1, // static file serving,
+        ...serializeArgs(["/version.json"])
+    ])
+
+    return ipc.bridge(payload, ([_, jsonData]) => JSON.parse(td.decode(jsonData)))
 }

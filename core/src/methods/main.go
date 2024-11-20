@@ -48,6 +48,7 @@ const (
 	GIT_CLONE = 70
 	GIT_HEAD = 71
 	GIT_STATUS = 72
+	GIT_PULL = 73
 
 	OPEN = 100
 )
@@ -170,23 +171,29 @@ func editorSwitch(method int, args []any) []byte {
 
 
 func gitSwitch(method int, args []any) []byte {
+	directory := path.Join(setup.Directories.Root, args[0].(string))
+
 	switch method {
 	case GIT_CLONE:
-		destination := path.Join(setup.Directories.Root, args[1].(string))
-
 		if(len(args) > 2) {
 			username := args[2].(string)
 			password := args[3].(string)
-			return git.Clone(args[0].(string), destination, &username, &password)
+			return git.Clone(directory, args[1].(string), &username, &password)
 		}
 
-		return git.Clone(args[0].(string), destination, nil, nil)
+		return git.Clone(directory, args[1].(string), nil, nil)
 	case GIT_HEAD:
-		directory := path.Join(setup.Directories.Root, args[0].(string))
 		return git.Head(directory)
 	case GIT_STATUS:
-		directory := path.Join(setup.Directories.Root, args[0].(string))
 		return git.Status(directory)
+	case GIT_PULL:
+		if(len(args) > 1) {
+			username := args[1].(string)
+			password := args[2].(string)
+			return git.Pull(directory, &username, &password)
+		}
+
+		return git.Pull(directory, nil, nil)
 	}
 
 	return nil

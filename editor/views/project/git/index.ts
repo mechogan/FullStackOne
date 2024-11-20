@@ -34,8 +34,8 @@ export function Git(project: Project) {
     };
 
     top.append(
-        Icon("Git"), 
-        RepoInfos(project), 
+        Icon("Git"),
+        RepoInfos(project),
         branchButton
     );
 
@@ -75,7 +75,7 @@ export function Git(project: Project) {
         buttonRow
     );
 
-    const {remove} = Dialog(container);
+    const { remove } = Dialog(container);
 }
 
 function RepoInfos(project: Project) {
@@ -90,7 +90,7 @@ function RepoInfos(project: Project) {
     container.append(webLink);
 
     ipcEditor.git.head(project.id)
-        .then(({Name, Hash}) => {
+        .then(({ Name, Hash }) => {
             container.innerHTML += `
                 <div>${Name.split("/").at(-1)}</div>
                 <div>${Hash}</div>
@@ -154,7 +154,7 @@ function Author(project: Project) {
         saveButton.type = "submit";
 
         const updateAuthor = async () => {
-            
+
         };
 
         saveButton.onclick = updateAuthor;
@@ -189,8 +189,19 @@ function Status(project: Project) {
 
     saveAllViews().then(async () => {
 
-        console.log(await ipcEditor.git.status(project.id))
+        const changes = await ipcEditor.git.status(project.id);
+        const hasChanges =
+            changes.Added.length ||
+            changes.Modified.length ||
+            changes.Deleted.length;
 
+        container.innerText = "";
+
+        if (hasChanges) {
+            container.append(ChangesList(changes, project));
+        } else {
+            container.innerText = "Nothing to commit";
+        }
 
 
 
@@ -204,25 +215,11 @@ function Status(project: Project) {
         //         toPush = await findCommitCountToPush(opts.project);
         //     }
 
-        //     const hasChanges =
-        //         changes.added.length ||
-        //         changes.modified.length ||
-        //         changes.deleted.length;
-        //     const hasGitUserName = opts.project.gitRepository.name;
+        // const hasGitUserName = opts.project.gitRepository.name;
 
         //     container.innerText = "";
 
-        //     if (hasChanges) {
-        //         container.append(
-        //             ChangesList({
-        //                 changes,
-        //                 project: opts.project,
-        //                 didRevertChange: opts.didRevertChange
-        //             })
-        //         );
-        //     } else {
-        //         container.innerText = "Nothing to commit";
-        //     }
+
 
         //     const commit = async () => {
         //         if (!commitMessageInput?.input.value) return;
@@ -318,29 +315,27 @@ function Status(project: Project) {
     return container;
 }
 
-function ChangesList(status) {
+type Changes = Awaited<ReturnType<typeof ipcEditor.git.status>>
+
+function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
     container.classList.add("git-changes");
 
-    const addSection = (subtitle: string, filesList: string[]) => {
-        if (filesList.length === 0) return;
+    const addSection = (subtitle: string, files: string[]) => {
+        if (files.length === 0) return;
 
         const subtitleEl = document.createElement("div");
         subtitleEl.innerText = subtitle;
 
         container.append(
             subtitleEl,
-            FilesList({
-                files: filesList,
-                project: opts.project,
-                didRevertChange: opts.didRevertChange
-            })
+            FilesList(files)
         );
     };
 
-    addSection("Added", opts.changes.added);
-    addSection("Modified", opts.changes.modified);
-    addSection("Deleted", opts.changes.deleted);
+    addSection("Added", changes.Added);
+    addSection("Modified", changes.Modified);
+    addSection("Deleted", changes.Deleted);
 
     return container;
 }
