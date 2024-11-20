@@ -26,7 +26,6 @@ namespace windows
 
             WebView editor = new WebView(new Instance("", true));
             this.bringToFront(editor);
-            
         }
         private readonly Dictionary<string, (Window, WebView)> webviews = new();
         private CallbackDelegate cb;

@@ -178,10 +178,10 @@ func gitSwitch(method int, args []any) []byte {
 		if(len(args) > 2) {
 			username := args[2].(string)
 			password := args[3].(string)
-			return git.Clone(directory, args[1].(string), &username, &password)
+			go git.Clone(directory, args[1].(string), &username, &password)
+		} else {
+			go git.Clone(directory, args[1].(string), nil, nil)
 		}
-
-		return git.Clone(directory, args[1].(string), nil, nil)
 	case GIT_HEAD:
 		return git.Head(directory)
 	case GIT_STATUS:

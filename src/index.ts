@@ -38,6 +38,7 @@ globalThis.ipc = ipc.methods;
 // DEPRECATED 2024-11-13
 
 (ipc.methods as any).platform = async () => platform;
+//@ts-ignore
 globalThis.rpc = () => ipc.methods;
 globalThis.onPush = {};
 

@@ -1,10 +1,14 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
 using System.Web;
 using Windows.Storage.Streams;
@@ -26,7 +30,7 @@ namespace windows
         async public void Init()
         {
             await this.webview.EnsureCoreWebView2Async();
-            this.webview.CoreWebView2.WebMessageReceived += async delegate (CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+            this.webview.CoreWebView2.WebMessageReceived += delegate (CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
             {
                 string base64 = args.TryGetWebMessageAsString();
                 byte[] data = Convert.FromBase64String(base64);
@@ -34,7 +38,7 @@ namespace windows
                 byte[] payload = data[new Range(4, data.Length)];
                 byte[] libResponse = this.instance.callLib(payload);
                 byte[] response = App.combineBuffers([id, libResponse]);
-                _ = await this.webview.CoreWebView2.ExecuteScriptAsync("window.respond(`" + Convert.ToBase64String(response) + "`)");
+                _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.respond(`" + Convert.ToBase64String(response) + "`)");
             };
             this.webview.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
             this.webview.CoreWebView2.WebResourceRequested += delegate (CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs args)
@@ -46,8 +50,13 @@ namespace windows
 
                 if (pathname == "/platform")
                 {
-                    IRandomAccessStream stream = new MemoryStream(Encoding.UTF8.GetBytes("windows")).AsRandomAccessStream();
-                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html");
+                    byte[] platformData = Encoding.UTF8.GetBytes("windows");
+                    IRandomAccessStream stream = new MemoryStream(platformData).AsRandomAccessStream();
+                    string[] headersPlatform = {
+                        "Content-Type: text/html",
+                        "Content-Length: " + platformData.Length
+                    };
+                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(stream, 200, "OK", string.Join("\r\n", headersPlatform));
                     return;
                 }
                 else if (pathname == "/call-sync")
@@ -56,7 +65,17 @@ namespace windows
                     byte[] syncPayload = Convert.FromBase64String(HttpUtility.UrlDecode(queryDictionary.Get("payload")));
                     byte[] libResponse = this.instance.callLib(syncPayload);
                     IRandomAccessStream syncResStream = new MemoryStream(libResponse).AsRandomAccessStream();
-                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(syncResStream, 200, "OK", "Content-Type: application/octet-stream");
+                    string[] headersSync = {
+                        "Content-Type: application/octet-stream",
+                        "Content-Length: " + libResponse.Length,
+                        "Cache-Control: no-cache"
+                    };
+                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(
+                        syncResStream,
+                        200,
+                        "OK",
+                        string.Join("\r\n", headersSync)
+                    );
                     return;
                 }
 
@@ -78,19 +97,30 @@ namespace windows
 
                 if (values.Count == 0)
                 {
-                    IRandomAccessStream notFoundStream = new MemoryStream(Encoding.UTF8.GetBytes("Not Found")).AsRandomAccessStream();
-                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(notFoundStream, 404, "OK", "Content-Type: text/plain");
+                    byte[] notFoundData = Encoding.UTF8.GetBytes("Not Found");
+                    string[] headersNotFound = {
+                        "Content-Type: text/plain",
+                        "Content-Length: " + notFoundData.Length,
+                        "Cache-Control: no-cache"
+                    };
+                    IRandomAccessStream notFoundStream = new MemoryStream(notFoundData).AsRandomAccessStream();
+                    args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(notFoundStream, 404, "OK", string.Join("\r\n", headersNotFound));
                     return;
                 }
 
+                string[] headers = {
+                    "Content-Type: " + values[0].str,
+                    "Content-Length: " + values[1].buffer.Length,
+                    "Cache-Control: no-cache"
+                };
                 IRandomAccessStream resStream = new MemoryStream(values[1].buffer).AsRandomAccessStream();
-                args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(resStream, 200, "OK", "Content-Type: " + values[0].str);
+                args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(resStream, 200, "OK", string.Join("\r\n", headers));
             };
             this.webview.Source = new Uri("http://localhost");
         }
 
         public void onMessage(string type, string message) {
-            this.webview.DispatcherQueue.TryEnqueue(() =>
+            this.webview.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, () =>
             {
                 _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.oncoremessage(`" + type + "`, `" + message + "`)");
             });

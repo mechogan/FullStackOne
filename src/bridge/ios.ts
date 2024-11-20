@@ -12,7 +12,7 @@ export const BridgeIOS: typeof ipc.bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
-    const currentIds = Array.from(requests.keys()).sort();
+    const currentIds = Array.from(requests.keys()).sort((a, b) => a - b);
     let requestId = 0;
     for (const id of currentIds) {
         if (requestId !== id) break;

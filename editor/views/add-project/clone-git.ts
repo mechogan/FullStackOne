@@ -44,18 +44,27 @@ export function CloneGit() {
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
-            removeCoreMessageListener("git-clone", logProgress)
+            removeCoreMessageListener("git-clone", checkForDone)
         }
     })
 }
 
-let logProgress: (log: string) => void;
+let checkForDone: (progress: string) => void;
 async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     const consoleTerminal = ConsoleTerminal();
 
-    logProgress = gitLogger(consoleTerminal);
+    const logProgress = gitLogger(consoleTerminal);
 
-    addCoreMessageListener("git-clone", logProgress);
+    const donePromise = new Promise<void>(resolve => {
+        checkForDone = (progress: string) => {
+            if(progress.trim().endsWith("done")) {
+                resolve();
+            }
+            logProgress(progress)
+        }
+    })
+
+    addCoreMessageListener("git-clone", checkForDone);
 
     const loader = CreateLoader({
         text: "Cloning from remote..."
@@ -64,18 +73,19 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     scrollable.append(loader, consoleTerminal.container);
 
     consoleTerminal.logger(`Cloning ${url}`);
-    let result: Awaited<ReturnType<typeof ipcEditor.git.clone>>;
     try {
-        result = await ipcEditor.git.clone(url, tmpDir);
+        await ipcEditor.git.clone(url, tmpDir);
     } catch(e) {
         consoleTerminal.logger(e.Error);
         throw e
     }
 
+    await donePromise;
+
     const repoUrl = new URL(url);
     let defaultProjectTitle = repoUrl.pathname.slice(1); // remove forward slash
     // remove .git
-    const pathnameComponents = repoUrl.pathname.split(".");
+    const pathnameComponents = defaultProjectTitle.split(".");
     if(pathnameComponents.at(-1) === "git") {
         defaultProjectTitle = pathnameComponents.slice(0, -1).join(".");
     }
@@ -85,21 +95,26 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     consoleTerminal.logger(`Finished cloning ${url}`);
     consoleTerminal.logger(`Done`);
 
-    removeCoreMessageListener("git-clone", logProgress);
+    removeCoreMessageListener("git-clone", checkForDone);
 }
 
 
 export function gitLogger(consoleTerminal: ReturnType<typeof ConsoleTerminal>) {
     let currentPhase: string, currentHTMLElement: HTMLDivElement;
     return (progress: string) => {
-        const phase = progress.split(":").at(0);
-        if (phase !== currentPhase) {
-            currentPhase = phase;
-            currentHTMLElement = document.createElement("div");
-            consoleTerminal.text.append(currentHTMLElement)
-        }
+        const progressLines = progress.split("\n");
+        progressLines.forEach(line => {
+            if(!line.trim()) return;
 
-        currentHTMLElement.innerText = progress
-        consoleTerminal.text.scrollIntoView(false);
+            const phase = line.split(":").at(0);
+            if (phase !== currentPhase) {
+                currentPhase = phase;
+                currentHTMLElement = document.createElement("div");
+                consoleTerminal.text.append(currentHTMLElement)
+            }
+    
+            currentHTMLElement.innerText = line.trim();
+            consoleTerminal.text.scrollIntoView(false);
+        });
     };
 }

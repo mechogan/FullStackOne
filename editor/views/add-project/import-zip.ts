@@ -63,7 +63,7 @@ export function ConsoleTerminal() {
     container.append(text);
 
     const logger = (message: string) => {
-        (text.innerText += `${message}\n`), text.scrollIntoView(false);
+        (text.innerHTML += `${message.trim()}<br/>`), text.scrollIntoView(false);
     };
 
     return { container, text, logger };
@@ -106,9 +106,11 @@ export async function createAndMoveProjectFromTmp(
     consoleTerminal.logger(`Looking for .fullstacked file`);
     const contents = await ipcEditor.fs.readdir(tmpDir);
 
+    console.log(contents);
+
     const project: Parameters<typeof Store.projects.create>[0] = {
         title: defaultProjectTitle,
-        id: slugify(defaultProjectTitle, { lower: true })
+        id: slugify(defaultProjectTitle.replace(/\//g, "."), { lower: true })
     };
 
     if (contents.includes(".fullstacked")) {
@@ -122,13 +124,19 @@ export async function createAndMoveProjectFromTmp(
             consoleTerminal.logger(`${JSON.stringify(fullstackedFile, null, 2)}`);
             project.title = fullstackedProjectData.title || project.title;
             project.id = fullstackedProjectData.id || project.id;
-            if (fullstackedProjectData.git?.url || defaultGitRepoUrl) {
+            if (fullstackedProjectData.git?.url) {
                 project.gitRepository = {
-                    url: fullstackedProjectData.git?.url || defaultGitRepoUrl
+                    url: fullstackedProjectData.git?.url
                 };
             }
         } catch (e) {
             consoleTerminal.logger(`Found invalid .fullstacked file`);
+        }
+    }
+
+    if(defaultGitRepoUrl) {
+        project.gitRepository = {
+            url: defaultGitRepoUrl
         }
     }
 

@@ -42,7 +42,7 @@ export function CodeEditor(project: Project) {
     const container = createElement("div");
 
     const onBuildErrors = (errors: BuildError[]) => {
-        clearBuildErrors();
+        clearBuildErrors();1
         buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
         buildErrors.forEach((err) => {
             Store.editor.codeEditor.openFile(err.file);
@@ -147,7 +147,7 @@ function clearBuildErrors() {
     }
 }
 
-function createView(filePath: string, onViewReady?: () => void): View {
+function createView(filePath: string): View {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(BINARY_Ext).find((ext) => ext === fileExtension)) {
         return createBinaryView(filePath);
