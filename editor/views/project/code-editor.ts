@@ -42,7 +42,8 @@ export function CodeEditor(project: Project) {
     const container = createElement("div");
 
     const onBuildErrors = (errors: BuildError[]) => {
-        clearBuildErrors();1
+        clearBuildErrors();
+        1;
         buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
         buildErrors.forEach((err) => {
             Store.editor.codeEditor.openFile(err.file);
@@ -71,13 +72,13 @@ type View = {
 
 const views = new Map<string, View>();
 
-export function saveAllViews() {
-    const promises = [];
-    for (const view of views.values()) {
-        if (!view.editorView) continue;
-        promises.push(view.editorView.save(false));
-    }
-    return Promise.all(promises);
+export async function saveAllViews() {
+    await Promise.all(
+        Array.from(views.values())
+            .filter((v) => v.editorView)
+            .map((v) => v.editorView.save(false))
+    );
+    console.log("all saved");
 }
 
 function createViews(filesPaths: Set<string>) {
@@ -219,26 +220,27 @@ function createViewEditor(filePath: string) {
             }) as any;
 
             let throttler: ReturnType<typeof setTimeout>;
-            view.editorView.save = (throttled = true) =>
-                new Promise<void>((resolve) => {
-                    if (throttler) {
-                        clearTimeout(throttler);
-                    }
+            view.editorView.save = (throttled = true) => {
+                if (throttler) {
+                    clearTimeout(throttler);
+                }
 
-                    throttler = setTimeout(
-                        async () => {
-                            throttler = null;
-                            const exists = await ipcEditor.fs.exists(filePath);
-                            if (!exists?.isFile) return resolve();
-                            await ipcEditor.fs.writeFile(
-                                filePath,
-                                view.editorView.state.doc.toString()
-                            );
-                            resolve();
-                        },
-                        throttled ? 2000 : 0
+                const saveFile = async () => {
+                    throttler = null;
+                    const exists = await ipcEditor.fs.exists(filePath);
+                    if (!exists?.isFile) return;
+                    await ipcEditor.fs.writeFile(
+                        filePath,
+                        view.editorView.state.doc.toString()
                     );
-                });
+                };
+
+                if (throttled) {
+                    throttler = setTimeout(saveFile, 2000);
+                } else {
+                    return saveFile();
+                }
+            };
 
             displayBuildErrors(filePath, view);
         });
@@ -298,7 +300,7 @@ async function loadJsTsExtensions(filePath: string) {
     });
 
     extensions.push(jsDefaultExtension, lintGutter());
-   
+
     if (javascriptExtensions.includes(fileExtension)) {
         const jsAutocomplete = langJs.javascriptLanguage.data.of({
             autocomplete: langJs.scopeCompletionSource(globalThis)

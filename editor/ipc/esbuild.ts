@@ -21,7 +21,7 @@ function build(project: Project): Promise<Message[]> {
     const transformer = ([jsonStr]) => {
         const json = JSON.parse(jsonStr) as Message[];
 
-        console.log(json)
+        console.log(json);
 
         return json?.map(uncapitalizeKeys).map((error) => ({
             ...error,

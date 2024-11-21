@@ -25,7 +25,7 @@ export function AddProject() {
         text: "Clone git repository",
         iconLeft: "Git"
     });
-    cloneGitButton.onclick = CloneGit
+    cloneGitButton.onclick = CloneGit;
 
     const importZipButton = Button({
         text: "Import zip",
@@ -40,11 +40,7 @@ export function AddProject() {
     });
     createEmptyButton.onclick = CreateEmpty;
 
-    buttonsContainer.append(
-        cloneGitButton,
-        importZipButton,
-        createEmptyButton
-    );
+    buttonsContainer.append(cloneGitButton, importZipButton, createEmptyButton);
     container.append(buttonsContainer);
 
     // on project list update (most probably new project created)

@@ -32,18 +32,18 @@ func call(this js.Value, args []js.Value) interface{} {
 }
 
 func vfs(this js.Value, args []js.Value) interface{} {
-	fileMap := make(map[string] interface{})
+	fileMap := make(map[string]interface{})
 
 	prefix := ""
-	if(len(args) == 1) {
+	if len(args) == 1 {
 		prefix = args[0].String()
 	}
 
 	arrayConstructor := js.Global().Get("Uint8Array")
 
 	for file, data := range fs.VirtFS {
-		if(!strings.HasPrefix(file, prefix)){ 
-			continue;
+		if !strings.HasPrefix(file, prefix) {
+			continue
 		}
 
 		dataJS := arrayConstructor.New(len(data))
@@ -53,8 +53,8 @@ func vfs(this js.Value, args []js.Value) interface{} {
 	}
 
 	for _, dir := range fs.VirtDirs {
-		if(!strings.HasPrefix(dir, prefix)){ 
-			continue;
+		if !strings.HasPrefix(dir, prefix) {
+			continue
 		}
 
 		fileMap[dir] = nil

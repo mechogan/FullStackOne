@@ -2,20 +2,20 @@ import type { methods } from "./worker";
 import { createSubscribable } from "../store";
 import { Platform } from "../../src/fullstacked";
 import { numberTo4Bytes } from "../../src/serialization";
-import ipc from "../../src"
+import ipc from "../../src";
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-    ? (
-        ...args: T[K] extends (...args: infer P) => any ? P : never[]
-    ) => OnlyOnePromise<
-        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-    >
-    : T[K] extends object
-    ? AwaitAll<T[K]>
-    : () => Promise<T[K]>;
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => OnlyOnePromise<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : T[K] extends object
+          ? AwaitAll<T[K]>
+          : () => Promise<T[K]>;
 };
 
 function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
@@ -79,7 +79,8 @@ function start(workingDirectory: string) {
             let workerPath = "worker-ts.js";
 
             if (globalThis.platform === Platform.WASM) {
-                const [mimeType, workerData] = await getWorkerDataWASM("worker-ts.js");
+                const [mimeType, workerData] =
+                    await getWorkerDataWASM("worker-ts.js");
                 const blob = new Blob([workerData], { type: mimeType });
                 workerPath = URL.createObjectURL(blob);
             }
@@ -115,7 +116,7 @@ function dispose() {
     for (const promiseResolve of requests.values()) {
         try {
             promiseResolve(undefined);
-        } catch (e) { }
+        } catch (e) {}
     }
     requests.clear();
     reqsCount = 0;
@@ -133,7 +134,7 @@ function getWorkerDataWASM(workerPath: string) {
         2, // STRING
         ...numberTo4Bytes(workerPathData.byteLength),
         ...workerPathData
-    ])
+    ]);
     return ipc.bridge(payload);
 }
 

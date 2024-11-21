@@ -33,11 +33,7 @@ export function Git(project: Project) {
         // container.replaceWith(branches);
     };
 
-    top.append(
-        Icon("Git"),
-        RepoInfos(project),
-        branchButton
-    );
+    top.append(Icon("Git"), RepoInfos(project), branchButton);
 
     const buttonRow = document.createElement("div");
     buttonRow.classList.add("git-buttons");
@@ -68,12 +64,7 @@ export function Git(project: Project) {
     commitAndPushButtons.append(commitButton, pushButton);
     buttonRow.append(closeButton, commitAndPushButtons);
 
-    container.append(
-        top,
-        Author(project),
-        Status(project),
-        buttonRow
-    );
+    container.append(top, Author(project), Status(project), buttonRow);
 
     const { remove } = Dialog(container);
 }
@@ -89,17 +80,15 @@ function RepoInfos(project: Project) {
 
     container.append(webLink);
 
-    ipcEditor.git.head(project.id)
-        .then(({ Name, Hash }) => {
-            container.innerHTML += `
+    ipcEditor.git.head(project.id).then(({ Name, Hash }) => {
+        container.innerHTML += `
                 <div>${Name.split("/").at(-1)}</div>
                 <div>${Hash}</div>
             `;
-        });
+    });
 
     return container;
 }
-
 
 function Author(project: Project) {
     const container = document.createElement("div");
@@ -153,9 +142,7 @@ function Author(project: Project) {
         });
         saveButton.type = "submit";
 
-        const updateAuthor = async () => {
-
-        };
+        const updateAuthor = async () => {};
 
         saveButton.onclick = updateAuthor;
 
@@ -188,7 +175,6 @@ function Status(project: Project) {
     // opts.buttons.push.disabled = true;
 
     saveAllViews().then(async () => {
-
         const changes = await ipcEditor.git.status(project.id);
         const hasChanges =
             changes.Added.length ||
@@ -203,8 +189,6 @@ function Status(project: Project) {
             container.innerText = "Nothing to commit";
         }
 
-
-
         // Promise.all([
         //     api.git.changes(opts.project),
         //     api.git.testRemote(opts.project)
@@ -218,8 +202,6 @@ function Status(project: Project) {
         // const hasGitUserName = opts.project.gitRepository.name;
 
         //     container.innerText = "";
-
-
 
         //     const commit = async () => {
         //         if (!commitMessageInput?.input.value) return;
@@ -315,7 +297,7 @@ function Status(project: Project) {
     return container;
 }
 
-type Changes = Awaited<ReturnType<typeof ipcEditor.git.status>>
+type Changes = Awaited<ReturnType<typeof ipcEditor.git.status>>;
 
 function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
@@ -327,10 +309,7 @@ function ChangesList(changes: Changes, project: Project) {
         const subtitleEl = document.createElement("div");
         subtitleEl.innerText = subtitle;
 
-        container.append(
-            subtitleEl,
-            FilesList(files)
-        );
+        container.append(subtitleEl, FilesList(files));
     };
 
     addSection("Added", changes.Added);

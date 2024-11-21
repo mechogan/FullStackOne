@@ -23,47 +23,44 @@ function EditorVersion() {
         <label>Editor</label>
     `;
 
+    getVersionJSON().then(({ version, branch, commit, commitNumber }) => {
+        const editorVersionContainer = document.createElement("div");
+        editorVersionContainer.classList.add("editor-version");
 
+        const topRow = document.createElement("div");
+        topRow.innerText = version;
+        editorVersionContainer.append(topRow);
 
-    getVersionJSON()
-        .then(({version, branch, commit, commitNumber}) => {
-            const editorVersionContainer = document.createElement("div");
-            editorVersionContainer.classList.add("editor-version");
+        container.append(editorVersionContainer);
 
-            const topRow = document.createElement("div");
-            topRow.innerText = version;
-            editorVersionContainer.append(topRow);
+        getLatestVersionTag().then((latestVersion) => {
+            const isDev = semver.gt(version, latestVersion);
 
-            container.append(editorVersionContainer);
+            const badge = isDev
+                ? Badge({
+                      text: "Development",
+                      type: "info"
+                  })
+                : semver.eq(version, latestVersion)
+                  ? Badge({
+                        text: "Latest",
+                        type: "info-2"
+                    })
+                  : Badge({
+                        text: "Update Available",
+                        type: "warning"
+                    });
 
-            getLatestVersionTag().then((latestVersion) => {
-                const isDev = semver.gt(version, latestVersion);
+            topRow.prepend(badge);
 
-                const badge = isDev
-                    ? Badge({
-                          text: "Development",
-                          type: "info"
-                      })
-                    : semver.eq(version, latestVersion)
-                      ? Badge({
-                            text: "Latest",
-                            type: "info-2"
-                        })
-                      : Badge({
-                            text: "Update Available",
-                            type: "warning"
-                        });
-
-                topRow.prepend(badge);
-
-                if (isDev) {
-                    topRow.append(` (${commitNumber})`);
-                    const bottomRow = document.createElement("div");
-                    bottomRow.innerHTML = `<small>${commit.slice(0, 8)} (${branch})</small>`;
-                    editorVersionContainer.append(bottomRow);
-                }
-            });
+            if (isDev) {
+                topRow.append(` (${commitNumber})`);
+                const bottomRow = document.createElement("div");
+                bottomRow.innerHTML = `<small>${commit.slice(0, 8)} (${branch})</small>`;
+                editorVersionContainer.append(bottomRow);
+            }
         });
+    });
 
     return container;
 }
@@ -85,10 +82,9 @@ function EsbuildVersion() {
         <label>Esbuild</label>
     `;
 
-   ipcEditor.esbuild.version()
-        .then((v) => {
-            container.innerHTML += `<div>${v.slice(1)}</div>`;
-        });
+    ipcEditor.esbuild.version().then((v) => {
+        container.innerHTML += `<div>${v.slice(1)}</div>`;
+    });
 
     return container;
 }
@@ -113,16 +109,18 @@ function TypescriptVersion() {
 
 const td = new TextDecoder();
 
-function getVersionJSON() : Promise<{
-    version: string,
-    branch: string,
-    commit: string,
-    commitNumber: string
+function getVersionJSON(): Promise<{
+    version: string;
+    branch: string;
+    commit: string;
+    commitNumber: string;
 }> {
     const payload = new Uint8Array([
         1, // static file serving,
         ...serializeArgs(["/version.json"])
-    ])
+    ]);
 
-    return ipc.bridge(payload, ([_, jsonData]) => JSON.parse(td.decode(jsonData)))
+    return ipc.bridge(payload, ([_, jsonData]) =>
+        JSON.parse(td.decode(jsonData))
+    );
 }

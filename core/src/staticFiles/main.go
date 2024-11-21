@@ -30,12 +30,16 @@ func Serve(baseDir string, filePath string) []byte {
 	ext := fileExtComponents[len(fileExtComponents)-1]
 
 	// file types fix
-	switch(ext) {
+	switch ext {
 	case "mjs", "cjs":
 		ext = "js"
 	}
 
 	mimeType := strings.Split(mime.TypeByExtension("."+ext), ";")[0]
+
+	if mimeType == "" {
+		mimeType = "text/plain"
+	}
 
 	data := serialize.SerializeString(mimeType)
 	data = append(data, fs.ReadFileSerialized(*filePathAbs, false)...)

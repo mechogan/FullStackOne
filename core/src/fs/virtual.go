@@ -25,7 +25,7 @@ func vReadFile(path string) ([]byte, error) {
 
 func vWriteFile(path string, data []byte) error {
 	path = strings.TrimLeft(path, "/")
-	
+
 	VirtFS[path] = data
 	return nil
 }
@@ -38,22 +38,21 @@ func vUnlink(path string) error {
 func vMkdir(path string) error {
 	path = strings.TrimSuffix(path, "/")
 
-	pathComponents := strings.Split(path, "/");
-	for i := range(pathComponents) {
-		subdir := strings.Join(pathComponents[:i + 1], "/")
+	pathComponents := strings.Split(path, "/")
+	for i := range pathComponents {
+		subdir := strings.Join(pathComponents[:i+1], "/")
 		exists := false
 		for _, dir := range VirtDirs {
 			if subdir == dir {
 				exists = true
 			}
 		}
-	
-		if(!exists) {
+
+		if !exists {
 			VirtDirs = append(VirtDirs, subdir)
 		}
 	}
 
-	
 	return nil
 }
 
@@ -166,27 +165,26 @@ func splitPath(filePath string) []string {
 	return reversed
 }
 
-
 func pathIsChildOfPath(childPath string, parentPath string) bool {
 	childPathComponents := strings.Split(childPath, "/")
 	parentPathComponents := strings.Split(parentPath, "/")
 
-	if(len(childPathComponents) < len(parentPathComponents)) {
+	if len(childPathComponents) < len(parentPathComponents) {
 		return false
 	}
 
-	for i, parentPathComponent := range(parentPathComponents) {
-		if(parentPathComponent != childPathComponents[i]) {
+	for i, parentPathComponent := range parentPathComponents {
+		if parentPathComponent != childPathComponents[i] {
 			return false
 		}
-	} 
+	}
 
 	return true
 }
 
-//       projects/node_modules/react/index.js
-//       projects/node_modules/react-dom/index.js
-// 
+//	projects/node_modules/react/index.js
+//	projects/node_modules/react-dom/index.js
+//
 // path: projects/node_modules/react
 func vReadDir(path string, recursive bool) []SmallFileInfo {
 	items := []SmallFileInfo{}

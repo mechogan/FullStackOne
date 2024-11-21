@@ -2,7 +2,12 @@ import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { ConsoleTerminal, createAndMoveProjectFromTmp, CreateLoader, tmpDir } from "./import-zip";
+import {
+    ConsoleTerminal,
+    createAndMoveProjectFromTmp,
+    CreateLoader,
+    tmpDir
+} from "./import-zip";
 import { createProjectFromFullStackedFile } from "../../api/projects";
 import { Project } from "../../api/config/types";
 import stackNavigation from "../../stack-navigation";
@@ -44,9 +49,9 @@ export function CloneGit() {
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
-            removeCoreMessageListener("git-clone", checkForDone)
+            removeCoreMessageListener("git-clone", checkForDone);
         }
-    })
+    });
 }
 
 let checkForDone: (progress: string) => void;
@@ -55,14 +60,14 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
 
     const logProgress = gitLogger(consoleTerminal);
 
-    const donePromise = new Promise<void>(resolve => {
+    const donePromise = new Promise<void>((resolve) => {
         checkForDone = (progress: string) => {
-            if(progress.trim().endsWith("done")) {
+            if (progress.trim().endsWith("done")) {
                 resolve();
             }
-            logProgress(progress)
-        }
-    })
+            logProgress(progress);
+        };
+    });
 
     addCoreMessageListener("git-clone", checkForDone);
 
@@ -75,9 +80,9 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     consoleTerminal.logger(`Cloning ${url}`);
     try {
         await ipcEditor.git.clone(url, tmpDir);
-    } catch(e) {
+    } catch (e) {
         consoleTerminal.logger(e.Error);
-        throw e
+        throw e;
     }
 
     await donePromise;
@@ -86,7 +91,7 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     let defaultProjectTitle = repoUrl.pathname.slice(1); // remove forward slash
     // remove .git
     const pathnameComponents = defaultProjectTitle.split(".");
-    if(pathnameComponents.at(-1) === "git") {
+    if (pathnameComponents.at(-1) === "git") {
         defaultProjectTitle = pathnameComponents.slice(0, -1).join(".");
     }
 
@@ -98,21 +103,20 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     removeCoreMessageListener("git-clone", checkForDone);
 }
 
-
 export function gitLogger(consoleTerminal: ReturnType<typeof ConsoleTerminal>) {
     let currentPhase: string, currentHTMLElement: HTMLDivElement;
     return (progress: string) => {
         const progressLines = progress.split("\n");
-        progressLines.forEach(line => {
-            if(!line.trim()) return;
+        progressLines.forEach((line) => {
+            if (!line.trim()) return;
 
             const phase = line.split(":").at(0);
             if (phase !== currentPhase) {
                 currentPhase = phase;
                 currentHTMLElement = document.createElement("div");
-                consoleTerminal.text.append(currentHTMLElement)
+                consoleTerminal.text.append(currentHTMLElement);
             }
-    
+
             currentHTMLElement.innerText = line.trim();
             consoleTerminal.text.scrollIntoView(false);
         });

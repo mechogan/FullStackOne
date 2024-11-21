@@ -88,7 +88,7 @@ func Build(projectDirectory string) string {
 					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
 
 						resolved := vResolve(args.ResolveDir, args.Path)
-						
+
 						if resolved == nil {
 							return esbuild.OnResolveResult{}, nil
 						}
@@ -108,7 +108,7 @@ func Build(projectDirectory string) string {
 
 						return esbuild.OnLoadResult{
 							Contents: &contentsStr,
-							Loader: loader,
+							Loader:   loader,
 						}, nil
 					})
 			},
@@ -136,7 +136,7 @@ func Build(projectDirectory string) string {
 	fs.Unlink(tmpFilePath)
 
 	if fs.WASM {
-		for _, file := range(result.OutputFiles) {
+		for _, file := range result.OutputFiles {
 			fs.WriteFile(file.Path, file.Contents)
 		}
 	}

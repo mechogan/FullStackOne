@@ -174,6 +174,7 @@ function FileTreeAndEditor(project: ProjectType) {
 async function build(project: ProjectType) {
     Store.editor.codeEditor.clearAllBuildErrors();
     await saveAllViews();
+    console.log("ICICIC");
     const buildErrors = (
         await Promise.all([
             buildSASS(project),
@@ -225,8 +226,8 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                                ? "scss"
-                                : "css",
+                              ? "scss"
+                              : "css",
                         contents
                     };
                 },
@@ -272,21 +273,21 @@ function GitWidget(project: ProjectType) {
     gitButton.onclick = () => Git(project);
     container.append(gitButton);
 
-    if (!hasGit) return container
+    if (!hasGit) return container;
 
     const branchAndCommitRender = async () => {
-        const result = await ipcEditor.git.head(project.id)
+        const result = await ipcEditor.git.head(project.id);
         const branchAndCommitContainer = createElement("div");
         branchAndCommitContainer.innerHTML = `
                 <div><b>${result.Name.split("/").pop()}</b></div>
                 <div>${result.Hash.slice(0, 7)}<div>
             `;
         return branchAndCommitContainer;
-    }
+    };
 
-    const branchAndCommit = createRefresheable(branchAndCommitRender)
+    const branchAndCommit = createRefresheable(branchAndCommitRender);
     container.prepend(branchAndCommit.element);
-    branchAndCommit.refresh()
+    branchAndCommit.refresh();
 
     const statusArrow = Icon("Arrow 2");
     statusArrow.classList.add("git-status-arrow");
@@ -296,20 +297,20 @@ function GitWidget(project: ProjectType) {
     const pullEvent = (progress: string) => {
         statusArrow.style.display = "flex";
         statusArrow.classList.remove("red");
-        if(progress.endsWith("done")) {
+        if (progress.endsWith("done")) {
             statusArrow.style.display = "none";
-            branchAndCommit.refresh()
+            branchAndCommit.refresh();
         }
-    }
+    };
 
     const pushEvent = (progress: string) => {
         statusArrow.style.display = "flex";
         statusArrow.classList.add("red");
-        if(progress.endsWith("done")) {
+        if (progress.endsWith("done")) {
             statusArrow.style.display = "none";
-            branchAndCommit.refresh()
+            branchAndCommit.refresh();
         }
-    }
+    };
 
     addCoreMessageListener("git-pull", pullEvent);
     addCoreMessageListener("git-push", pushEvent);
@@ -317,9 +318,9 @@ function GitWidget(project: ProjectType) {
     container.ondestroy = () => {
         removeCoreMessageListener("git-pull", pullEvent);
         removeCoreMessageListener("git-push", pushEvent);
-    }
+    };
 
-    ipcEditor.git.pull(project.id)
+    ipcEditor.git.pull(project.id);
 
     return container;
 }

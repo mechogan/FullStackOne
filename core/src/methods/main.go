@@ -45,10 +45,10 @@ const (
 
 	PACKAGES_INSTALL = 60
 
-	GIT_CLONE = 70
-	GIT_HEAD = 71
+	GIT_CLONE  = 70
+	GIT_HEAD   = 71
 	GIT_STATUS = 72
-	GIT_PULL = 73
+	GIT_PULL   = 73
 
 	OPEN = 100
 )
@@ -169,13 +169,12 @@ func editorSwitch(method int, args []any) []byte {
 	return nil
 }
 
-
 func gitSwitch(method int, args []any) []byte {
 	directory := path.Join(setup.Directories.Root, args[0].(string))
 
 	switch method {
 	case GIT_CLONE:
-		if(len(args) > 2) {
+		if len(args) > 2 {
 			username := args[2].(string)
 			password := args[3].(string)
 			go git.Clone(directory, args[1].(string), &username, &password)
@@ -187,7 +186,7 @@ func gitSwitch(method int, args []any) []byte {
 	case GIT_STATUS:
 		return git.Status(directory)
 	case GIT_PULL:
-		if(len(args) > 1) {
+		if len(args) > 1 {
 			username := args[1].(string)
 			password := args[2].(string)
 			return git.Pull(directory, &username, &password)

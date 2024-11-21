@@ -63,7 +63,8 @@ export function ConsoleTerminal() {
     container.append(text);
 
     const logger = (message: string) => {
-        (text.innerHTML += `${message.trim()}<br/>`), text.scrollIntoView(false);
+        (text.innerHTML += `${message.trim()}<br/>`),
+            text.scrollIntoView(false);
     };
 
     return { container, text, logger };
@@ -87,11 +88,11 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     // remove .zip extension
     let defaultProjectTitle = file.name;
     const fileNameComponents = file.name.split(".");
-    if(fileNameComponents.at(-1) === "zip") {
+    if (fileNameComponents.at(-1) === "zip") {
         defaultProjectTitle = fileNameComponents.slice(0, -1).join(".");
     }
 
-    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, null)
+    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, null);
 
     consoleTerminal.logger(`Finished importing ${file.name}`);
     consoleTerminal.logger("Done");
@@ -99,9 +100,9 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
 
 export const tmpDir = ".tmp";
 export async function createAndMoveProjectFromTmp(
-    consoleTerminal: ReturnType<typeof ConsoleTerminal>, 
+    consoleTerminal: ReturnType<typeof ConsoleTerminal>,
     defaultProjectTitle: string,
-    defaultGitRepoUrl: string,
+    defaultGitRepoUrl: string
 ) {
     consoleTerminal.logger(`Looking for .fullstacked file`);
     const contents = await ipcEditor.fs.readdir(tmpDir);
@@ -121,7 +122,9 @@ export async function createAndMoveProjectFromTmp(
             );
             const fullstackedProjectData = JSON.parse(fullstackedFile);
             consoleTerminal.logger(`Found valid .fullstacked file`);
-            consoleTerminal.logger(`${JSON.stringify(fullstackedFile, null, 2)}`);
+            consoleTerminal.logger(
+                `${JSON.stringify(fullstackedFile, null, 2)}`
+            );
             project.title = fullstackedProjectData.title || project.title;
             project.id = fullstackedProjectData.id || project.id;
             if (fullstackedProjectData.git?.url) {
@@ -134,10 +137,10 @@ export async function createAndMoveProjectFromTmp(
         }
     }
 
-    if(defaultGitRepoUrl) {
+    if (defaultGitRepoUrl) {
         project.gitRepository = {
             url: defaultGitRepoUrl
-        }
+        };
     }
 
     consoleTerminal.logger(`Creating Project`);

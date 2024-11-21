@@ -114,23 +114,24 @@ function TopActions(project: Project) {
     fileInput.type = "file";
     fileInput.onchange = async () => {
         const file = fileInput.files[0];
-        if(!file) {
+        if (!file) {
             form.reset();
             return;
         }
 
-        const activeItem = tree.get(activeItemPath)
-        const parentPath = activeItem 
+        const activeItem = tree.get(activeItemPath);
+        const parentPath = activeItem
             ? activeItem.type === "file"
                 ? activeItem.parent
                 : activeItemPath
-            : project.id
+            : project.id;
         const path = parentPath + "/" + file.name;
-        const data = new Uint8Array(await file.arrayBuffer())
+        const data = new Uint8Array(await file.arrayBuffer());
 
-        ipcEditor.fs.writeFile(path, data)
+        ipcEditor.fs
+            .writeFile(path, data)
             .then(() => OpenDirectory(parentPath));
-        form.reset()
+        form.reset();
     };
     form.append(fileInput);
     uploadButton.append(form);
@@ -202,7 +203,7 @@ async function OpenDirectory(
             });
         }
 
-        if(activeItemPath === childPath) {
+        if (activeItemPath === childPath) {
             setActiveItem(childPath);
         }
 

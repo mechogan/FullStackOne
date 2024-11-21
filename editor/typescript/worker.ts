@@ -67,7 +67,7 @@ export let methods = {
         tsLib: { [path: string]: Uint8Array },
         node_modules: { [path: string]: Uint8Array }
     ) {
-        sourceFiles = {}
+        sourceFiles = {};
 
         const td = new TextDecoder();
         for (const [path, data] of Object.entries(files)) {
@@ -76,13 +76,14 @@ export let methods = {
             sourceFiles[path.slice("projects/".length)] = {
                 contents: td.decode(data),
                 version: 1
-            }
+            };
         }
 
         for (const [path, data] of Object.entries(tsLib)) {
             if (data === null) continue;
 
-            scriptSnapshotCache[path.slice("editor/".length)] = ScriptSnapshot.fromString(td.decode(data));
+            scriptSnapshotCache[path.slice("editor/".length)] =
+                ScriptSnapshot.fromString(td.decode(data));
         }
 
         for (const [path, data] of Object.entries(node_modules)) {
@@ -93,14 +94,15 @@ export let methods = {
 
             let files = nodeModules.get(moduleName);
             if (!files) {
-                files = []
+                files = [];
                 nodeModules.set(moduleName, files);
             }
-            if(modulePath != moduleName) {
+            if (modulePath != moduleName) {
                 files.push(`node_modules/${modulePath}`);
             }
 
-            scriptSnapshotCache[`node_modules/${modulePath}`] = ScriptSnapshot.fromString(td.decode(data));
+            scriptSnapshotCache[`node_modules/${modulePath}`] =
+                ScriptSnapshot.fromString(td.decode(data));
         }
     },
     start(currentDirectory: string) {
@@ -264,7 +266,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
 
             if (path.startsWith("node_modules")) {
                 const modulePath = path.slice("node_modules/".length);
-                const moduleName = parsePackageName(modulePath)
+                const moduleName = parsePackageName(modulePath);
 
                 let moduleFiles = nodeModules.get(moduleName);
 

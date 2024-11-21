@@ -11,8 +11,14 @@ export enum Platform {
 declare global {
     var platform: Platform;
     var ipc: ipcMethods;
-    var addCoreMessageListener: (messageType: string, cb: (message: string) => void) => void;
-    var removeCoreMessageListener: (messageType: string, cb: (message: string) => void) => void;
+    var addCoreMessageListener: (
+        messageType: string,
+        cb: (message: string) => void
+    ) => void;
+    var removeCoreMessageListener: (
+        messageType: string,
+        cb: (message: string) => void
+    ) => void;
 }
 
 export type ipcMethods = {

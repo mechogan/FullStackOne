@@ -3,7 +3,7 @@ import wb from "winbox/src/js/winbox";
 import type WinBoxType from "winbox";
 import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
 
-const WinBox = wb as WinBoxType.WinBoxConstructor
+const WinBox = wb as WinBoxType.WinBoxConstructor;
 
 declare global {
     class Go {
@@ -16,53 +16,56 @@ declare global {
 
 type FullStackedWindow = Window & {
     originalFetch?: typeof fetch;
-    oncoremessage?: (messageType: string, message: string) => void
+    oncoremessage?: (messageType: string, message: string) => void;
     lib?: {
         call: (payload: Uint8Array) => Uint8Array;
+    };
+};
+
+const webviews = new Map<
+    string,
+    {
+        window: FullStackedWindow;
+        winbox?: WinBoxType;
     }
-}
+>();
 
-const webviews = new Map<string, {
-    window: FullStackedWindow,
-    winbox?: WinBoxType
-}>()
-
-const aspectRatio = 16 / 11
+const aspectRatio = 16 / 11;
 const isLandscape = () => window.innerWidth > window.innerHeight;
 const newWinboxHeight = () => {
     let height = window.innerHeight;
-    if(isLandscape()) {
+    if (isLandscape()) {
         height = window.innerHeight * 0.6;
     } else {
-        height = newWinboxWidth() * aspectRatio
+        height = newWinboxWidth() * aspectRatio;
     }
-    if(height > window.innerHeight) {
+    if (height > window.innerHeight) {
         return window.innerHeight;
     }
-    return height
-}
+    return height;
+};
 const newWinboxWidth = () => {
     let width = window.innerWidth;
-    if(isLandscape()) {
-        width = newWinboxHeight() * aspectRatio
-    }else {
+    if (isLandscape()) {
+        width = newWinboxHeight() * aspectRatio;
+    } else {
         width = window.innerWidth * 0.6;
-        if(width < 450) {
+        if (width < 450) {
             width = window.innerWidth;
         }
     }
-    if(width > window.innerWidth) {
-        return window.innerWidth
+    if (width > window.innerWidth) {
+        return window.innerWidth;
     }
     return width;
-}
+};
 
 function createWindow(projectId: string) {
     const iframe = document.createElement("iframe");
     iframe.style.height = "100%";
     iframe.style.width = "100%";
     const height = newWinboxHeight();
-    console.log(height)
+    console.log(height);
     const width = newWinboxWidth();
     console.log(height, width);
     const winbox = new WinBox(projectId, {
@@ -70,8 +73,8 @@ function createWindow(projectId: string) {
         height,
         width,
         x: window.innerWidth / 2 - width / 2,
-        y: window.innerHeight / 2 - height / 2,
-    })
+        y: window.innerHeight / 2 - height / 2
+    });
     webviews.set(projectId, {
         window: iframe.contentWindow,
         winbox
@@ -79,15 +82,19 @@ function createWindow(projectId: string) {
     initProjectWindow(projectId);
 }
 
-globalThis.onmessageWASM = function (projectId: string, messageType: string, message: string) {
+globalThis.onmessageWASM = function (
+    projectId: string,
+    messageType: string,
+    message: string
+) {
     if (projectId === "" && messageType === "open") {
         createWindow(message);
         return;
     }
 
     const webview = webviews.get(projectId);
-    webview.window.oncoremessage(messageType, message)
-}
+    webview.window.oncoremessage(messageType, message);
+};
 
 const go = new Go();
 const result = await WebAssembly.instantiateStreaming(
@@ -130,7 +137,7 @@ if (!unzipResult) {
 }
 
 function staticFileServing(projectId: string, pathname: string) {
-    const projectIdData = te.encode(projectId)
+    const projectIdData = te.encode(projectId);
     const pathnameData = te.encode(pathname);
     let payload = new Uint8Array([
         projectId === "" ? 1 : 0,
@@ -156,9 +163,12 @@ function initProjectWindow(projectId: string) {
     if (!webview) return;
 
     webview.window.originalFetch = webview.window.fetch;
-    webview.window.fetch = async function (url: string | Request, options: any) {
-        if(typeof url === "object") {
-            return webview.window.originalFetch(url);;
+    webview.window.fetch = async function (
+        url: string | Request,
+        options: any
+    ) {
+        if (typeof url === "object") {
+            return webview.window.originalFetch(url);
         }
 
         if (url.startsWith("http")) {
@@ -173,7 +183,10 @@ function initProjectWindow(projectId: string) {
 
         const [_, contents] = staticFileServing(projectId, url);
         return {
-            text: () => new Promise<string>((res) => res(globalThis.td.decode(contents))),
+            text: () =>
+                new Promise<string>((res) =>
+                    res(globalThis.td.decode(contents))
+                ),
             arrayBuffer: () =>
                 new Promise<ArrayBuffer>((res) => res(contents.buffer))
         };
@@ -196,23 +209,22 @@ function initProjectWindow(projectId: string) {
             0,
             ...numberTo4Bytes(projectIdData.byteLength),
             ...projectIdData
-        ])
+        ]);
         webview.window.lib = {
             call(payload: Uint8Array) {
-                const data = new Uint8Array([
-                    ...header,
-                    ...payload
-                ]);
+                const data = new Uint8Array([...header, ...payload]);
                 return call(data);
             }
         };
     }
 
-
     const [mimeType, contents] = staticFileServing(projectId, "/");
 
     const parser = new DOMParser();
-    const indexHTML = parser.parseFromString(globalThis.td.decode(contents), mimeType);
+    const indexHTML = parser.parseFromString(
+        globalThis.td.decode(contents),
+        mimeType
+    );
 
     webview.window.document.body.innerText = "";
 
@@ -221,7 +233,7 @@ function initProjectWindow(projectId: string) {
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach((element) => {
             if (element instanceof HTMLTitleElement) {
-                if(projectId == "") {
+                if (projectId == "") {
                     webview.window.document.title = element.innerText;
                 } else {
                     webview.winbox.setTitle(element.innerText);
@@ -234,23 +246,43 @@ function initProjectWindow(projectId: string) {
                 element.rel === "stylesheet"
             ) {
                 const url = new URL(element.href);
-                const [type, content] = staticFileServing(projectId, url.pathname);
+                const [type, content] = staticFileServing(
+                    projectId,
+                    url.pathname
+                );
                 const blob = new Blob([content], { type });
                 element.href = window.URL.createObjectURL(blob);
                 element.onload = () => {
-                    const bgColor = webview.window.getComputedStyle(webview.window.document.documentElement).backgroundColor;
+                    const bgColor = webview.window.getComputedStyle(
+                        webview.window.document.documentElement
+                    ).backgroundColor;
                     const hexColor = RGBAToHexA(bgColor, true);
-                    if(hexColor === "#000000" || !webview.winbox) return;
+                    if (hexColor === "#000000" || !webview.winbox) return;
                     webview.winbox?.setBackground(hexColor);
-                    if(isBgColorDark(hexColor)) {
-                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-header").style.color = "white";
-                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-control").style.filter = "invert(0)";
+                    if (isBgColorDark(hexColor)) {
+                        (
+                            webview.winbox?.dom as HTMLElement
+                        ).querySelector<HTMLDivElement>(
+                            ".wb-header"
+                        ).style.color = "white";
+                        (
+                            webview.winbox?.dom as HTMLElement
+                        ).querySelector<HTMLDivElement>(
+                            ".wb-control"
+                        ).style.filter = "invert(0)";
                     } else {
-
-                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-header").style.color = "black";
-                        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(".wb-control").style.filter = "invert(1)";
+                        (
+                            webview.winbox?.dom as HTMLElement
+                        ).querySelector<HTMLDivElement>(
+                            ".wb-header"
+                        ).style.color = "black";
+                        (
+                            webview.winbox?.dom as HTMLElement
+                        ).querySelector<HTMLDivElement>(
+                            ".wb-control"
+                        ).style.filter = "invert(1)";
                     }
-                }
+                };
             }
 
             webview.window.document.head.append(element);
@@ -265,14 +297,17 @@ function initProjectWindow(projectId: string) {
                 script.type = element.type;
 
                 const url = new URL(element.src);
-                const [type, content] = staticFileServing(projectId, url.pathname);
+                const [type, content] = staticFileServing(
+                    projectId,
+                    url.pathname
+                );
                 const blob = new Blob([content], { type });
                 script.src = URL.createObjectURL(blob);
                 element = script;
             } else {
                 element
                     .querySelectorAll<HTMLImageElement>("img")
-                    .forEach(e => replaceImageWithObjectURL(projectId, e));
+                    .forEach((e) => replaceImageWithObjectURL(projectId, e));
 
                 if (element instanceof HTMLImageElement) {
                     replaceImageWithObjectURL(projectId, element);
@@ -292,16 +327,22 @@ function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
 }
 
 function RGBAToHexA(rgba: string, forceRemoveAlpha = false) {
-    return "#" + rgba.replace(/^rgba?\(|\s+|\)$/g, '') // Get's rgba / rgb string values
-      .split(',') // splits them at ","
-      .filter((string, index) => !forceRemoveAlpha || index !== 3)
-      .map(string => parseFloat(string)) // Converts them to numbers
-      .map((number, index) => index === 3 ? Math.round(number * 255) : number) // Converts alpha to 255 number
-      .map(number => number.toString(16)) // Converts numbers to hex
-      .map(string => string.length === 1 ? "0" + string : string) // Adds 0 when length of one number is 1
-      .join("") // Puts the array to togehter to a string
-  }
+    return (
+        "#" +
+        rgba
+            .replace(/^rgba?\(|\s+|\)$/g, "") // Get's rgba / rgb string values
+            .split(",") // splits them at ","
+            .filter((string, index) => !forceRemoveAlpha || index !== 3)
+            .map((string) => parseFloat(string)) // Converts them to numbers
+            .map((number, index) =>
+                index === 3 ? Math.round(number * 255) : number
+            ) // Converts alpha to 255 number
+            .map((number) => number.toString(16)) // Converts numbers to hex
+            .map((string) => (string.length === 1 ? "0" + string : string)) // Adds 0 when length of one number is 1
+            .join("")
+    ); // Puts the array to togehter to a string
+}
 
 function isBgColorDark(bgColor: string) {
-    return parseInt(bgColor.replace("#", ""), 16) < 0xffffff / 2
+    return parseInt(bgColor.replace("#", ""), 16) < 0xffffff / 2;
 }
