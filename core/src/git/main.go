@@ -151,7 +151,7 @@ func Status(directory string) []byte {
 	}
 
 	for file, fileStatus := range status {
-		if fileStatus.Staging == git.Added {
+		if fileStatus.Staging == git.Added || fileStatus.Staging == git.Copied {
 			gitStatus.Added = append(gitStatus.Added, file)
 		} else if fileStatus.Staging == git.Deleted {
 			gitStatus.Deleted = append(gitStatus.Deleted, file)

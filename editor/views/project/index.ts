@@ -174,7 +174,6 @@ function FileTreeAndEditor(project: ProjectType) {
 async function build(project: ProjectType) {
     Store.editor.codeEditor.clearAllBuildErrors();
     await saveAllViews();
-    console.log("ICICIC");
     const buildErrors = (
         await Promise.all([
             buildSASS(project),

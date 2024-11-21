@@ -7,6 +7,7 @@ import { ipcEditor } from "../../ipc";
 import { Project } from "../../types";
 import { Popover } from "../../components/popover";
 import { InputText } from "../../components/primitives/inputs";
+import { createRefresheable } from "../../components/refresheable";
 
 type FileTreeItemCommon = {
     name: string;
@@ -29,6 +30,8 @@ type FileTreeItem = FileTreeItemFile | FileTreeItemDirectory;
 
 type FileTree = Map<string, FileTreeItem>;
 
+export let refreshFullFileTree: () => void;
+
 let tree: FileTree,
     activeItemPath: string,
     openedFileTreeItemDirectoryPath = new Set<string>();
@@ -36,27 +39,40 @@ export function FileTree(project: Project) {
     const container = createElement("div");
     container.classList.add("file-tree");
 
-    const root = createElement("ul");
-    tree = new Map([
-        [
-            project.id,
-            {
-                type: "directory",
-                name: project.id,
-                parent: "",
-                element: createElement("li"),
-                elementName: null,
-                childrenList: root,
-                children: null
-            }
-        ]
-    ]);
-    OpenDirectory(project.id, true).then((rootItems) =>
+    const renderFileTree = async () => {
+        const maybeUpdateRoot = (tree?.get(project.id) as FileTreeItemDirectory)?.childrenList
+        if(maybeUpdateRoot) {
+            refresheableFileTree.element = maybeUpdateRoot
+        }
+
+        const root = createElement("ul");
+
+        tree = new Map([
+            [
+                project.id,
+                {
+                    type: "directory",
+                    name: project.id,
+                    parent: "",
+                    element: createElement("li"),
+                    elementName: null,
+                    childrenList: root,
+                    children: null
+                }
+            ]
+        ]);
+
+        const rootItems = await OpenDirectory(project.id, true)
         root.append(...rootItems)
-    );
+
+        return root
+    }
 
     const scrollableTree = document.createElement("div");
-    scrollableTree.append(root);
+    const refresheableFileTree = createRefresheable(renderFileTree);
+    scrollableTree.append(refresheableFileTree.element);
+    refreshFullFileTree = () => refresheableFileTree.refresh()
+    refreshFullFileTree();
 
     const topActions = TopActions(project);
 
@@ -216,33 +232,34 @@ async function OpenDirectory(
         .sort(sortFilesAndDirectories)
         .map((child) => child.element);
 
-    if (returnChildren) {
-        return childrenElements;
-    }
+    fileTreeItemDirectory.element?.classList?.add("opened");
 
-    fileTreeItemDirectory.element.classList.add("opened");
+    if (!returnChildren) {
+        const childrenList = createElement("ul");
+        childrenList.onclick = (e) => e.stopPropagation();
+        childrenList.append(...childrenElements);
 
-    const childrenList = createElement("ul");
-    childrenList.onclick = (e) => e.stopPropagation();
-    childrenList.append(...childrenElements);
-
-    if (fileTreeItemDirectory.childrenList === null) {
-        fileTreeItemDirectory.element.append(childrenList);
-    } else {
-        fileTreeItemDirectory.childrenList.replaceWith(childrenList);
-    }
-
-    fileTreeItemDirectory.childrenList = childrenList;
-
-    fileTreeItemDirectory.children.forEach((childPath) => {
-        const fileTreeItem = tree.get(childPath);
-
-        if (!fileTreeItem || fileTreeItem.type === "file") return;
-
-        if (openedFileTreeItemDirectoryPath.has(childPath)) {
-            OpenDirectory(childPath);
+        if (fileTreeItemDirectory.childrenList === null) {
+            fileTreeItemDirectory.element.append(childrenList);
+        } else {
+            fileTreeItemDirectory.childrenList.replaceWith(childrenList);
         }
-    });
+
+        fileTreeItemDirectory.childrenList = childrenList;
+    }
+
+    const openSubDirectoriesPromises = fileTreeItemDirectory.children
+        .filter(childPath => {
+            const fileTreeItem = tree.get(childPath);
+            return fileTreeItem && fileTreeItem.type === "directory" && openedFileTreeItemDirectoryPath.has(childPath)
+        })
+        .map(childPath => OpenDirectory(childPath))
+
+    await Promise.all(openSubDirectoriesPromises);
+
+    if(returnChildren) {
+        return childrenElements
+    }
 }
 
 function filterFilesAndDirectories(fileTreeItem: FileTreeItem) {

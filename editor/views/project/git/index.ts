@@ -1,14 +1,42 @@
 import { Dialog } from "../../../components/dialog";
+import { createElement } from "../../../components/element";
 import { Popover } from "../../../components/popover";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import { InputText } from "../../../components/primitives/inputs";
+import { createRefresheable } from "../../../components/refresheable";
 import { ipcEditor } from "../../../ipc";
+import { Store } from "../../../store";
 import { Project } from "../../../types";
 import { saveAllViews } from "../code-editor";
+import { refreshFullFileTree } from "../file-tree";
 
+let closeDialog: ReturnType<typeof Dialog>["remove"], refreshView: () => void
 export function Git(project: Project) {
-    const container = document.createElement("div");
+    const refresheable = createRefresheable(GitView);
+    const { remove } = Dialog(refresheable.element);
+
+    refreshView = () => {
+        refresheable.refresh(project);
+    }
+
+    const refreshViewAfterProjectUpdate = (projectList: Project[]) => {
+        project = projectList.find(({ id }) => id === project.id)
+        refreshView
+    }
+
+    Store.projects.list.subscribe(refreshViewAfterProjectUpdate)
+
+    closeDialog = () => {
+        Store.projects.list.unsubscribe(refreshViewAfterProjectUpdate)
+        remove();
+    };
+
+    refreshView();
+}
+
+function GitView(project: Project) {
+    const container = createElement("div");
     container.classList.add("git-dialog");
 
     const top = document.createElement("div");
@@ -42,9 +70,7 @@ export function Git(project: Project) {
         text: "Close",
         style: "text"
     });
-    closeButton.onclick = () => {
-        remove();
-    };
+    closeButton.onclick = closeDialog;
 
     const commitAndPushButtons = document.createElement("div");
 
@@ -64,9 +90,14 @@ export function Git(project: Project) {
     commitAndPushButtons.append(commitButton, pushButton);
     buttonRow.append(closeButton, commitAndPushButtons);
 
-    container.append(top, Author(project), Status(project), buttonRow);
+    container.append(
+        top,
+        Author(project),
+        Status(project),
+        buttonRow
+    );
 
-    const { remove } = Dialog(container);
+    return container
 }
 
 function RepoInfos(project: Project) {
@@ -142,7 +173,20 @@ function Author(project: Project) {
         });
         saveButton.type = "submit";
 
-        const updateAuthor = async () => {};
+        const updateAuthor = async () => {
+            saveButton.disabled = true;
+
+            const updatedProject: Project = {
+                ...project,
+                gitRepository: {
+                    ...project.gitRepository,
+                    email: emailInput.input.value,
+                    name: nameInput.input.value
+                }
+            }
+
+            Store.projects.update(project, updatedProject);
+        };
 
         saveButton.onclick = updateAuthor;
 
@@ -188,6 +232,8 @@ function Status(project: Project) {
         } else {
             container.innerText = "Nothing to commit";
         }
+
+
 
         // Promise.all([
         //     api.git.changes(opts.project),
@@ -303,23 +349,42 @@ function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
     container.classList.add("git-changes");
 
-    const addSection = (subtitle: string, files: string[]) => {
+    const addSection = (subtitle: string, files: string[], revertFile: Parameters<typeof FilesList>[1]) => {
         if (files.length === 0) return;
 
         const subtitleEl = document.createElement("div");
         subtitleEl.innerText = subtitle;
 
-        container.append(subtitleEl, FilesList(files));
+        container.append(subtitleEl, FilesList(files, revertFile));
     };
 
-    addSection("Added", changes.Added);
-    addSection("Modified", changes.Modified);
-    addSection("Deleted", changes.Deleted);
+    addSection(
+        "Added", 
+        changes.Added,
+        async (file: string) => {
+            await ipcEditor.fs.unlink(project.id + "/" + file);
+            refreshFullFileTree();
+        }
+    );
+    addSection(
+        "Modified", 
+        changes.Modified, 
+        async (file: string) => {
+            await ipcEditor.git.checkoutFile(project.id, file);
+        }
+    );
+    addSection(
+        "Deleted", 
+        changes.Deleted, 
+        async (file: string) => {
+            await ipcEditor.git.checkoutFile(project.id, file);
+        }
+    );
 
     return container;
 }
 
-function FilesList(files: string[]) {
+function FilesList(files: string[], revert: (file: string) => Promise<void>) {
     const list = document.createElement("ul");
 
     const items = files.map((file) => {
@@ -339,9 +404,7 @@ function FilesList(files: string[]) {
             });
 
             revertButton.onclick = () => {
-                // api.git
-                //     .revertFileChanges(opts.project, [file])
-                //     .then(opts.didRevertChange);
+                revert(file).then(refreshView)
             };
 
             const buttonGroup = ButtonGroup([revertButton]);

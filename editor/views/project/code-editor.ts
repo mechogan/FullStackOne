@@ -72,13 +72,12 @@ type View = {
 
 const views = new Map<string, View>();
 
-export async function saveAllViews() {
-    await Promise.all(
+export function saveAllViews() {
+    return Promise.all(
         Array.from(views.values())
             .filter((v) => v.editorView)
             .map((v) => v.editorView.save(false))
     );
-    console.log("all saved");
 }
 
 function createViews(filesPaths: Set<string>) {
