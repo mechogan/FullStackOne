@@ -6,6 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
+using Windows.UI;
 
 namespace windows
 {
@@ -44,6 +47,15 @@ namespace windows
             }
 
             Window newWindow = new();
+
+            // TODO: set all of this by project
+            newWindow.Title = "FullStacked";
+            AppWindowTitleBar titleBar = newWindow.AppWindow.TitleBar;
+            Color primarycolor = ColorHelper.FromArgb(1, 30, 41, 59);
+            titleBar.BackgroundColor = primarycolor;
+            titleBar.ButtonBackgroundColor = primarycolor;
+            titleBar.ButtonHoverBackgroundColor = ColorHelper.FromArgb(1, 64, 73, 88);
+
             newWindow.Content = webview.webview;
             newWindow.Activate();
             this.webviews.Add(projectId, (newWindow, webview));

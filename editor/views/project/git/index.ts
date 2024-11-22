@@ -115,8 +115,8 @@ async function _projectChanges(project: Project) {
     await saveAllViews();
     const changes = await ipcEditor.git.status(project.id);
     const hasChanges =
-        changes.Added.length !== 0 &&
-        changes.Modified.length !== 0 &&
+        changes.Added.length !== 0 ||
+        changes.Modified.length !== 0 ||
         changes.Deleted.length !== 0;
 
     changesPromise = null;
@@ -266,6 +266,8 @@ async function Status(project: Project) {
     container.innerText = "Calculating diffs...";
 
     const { changes, hasChanges } = await projectChanges(project);
+
+    console.log(changes)
 
     container.innerText = "";
 
