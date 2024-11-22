@@ -2,6 +2,7 @@ import prettyBytes from "pretty-bytes";
 import { Dialog } from "../../components/dialog";
 import { Store } from "../../store";
 import { Progress } from "../../store/packages";
+import { createElement } from "../../components/element";
 
 let packageInstallView: {
     remove: ReturnType<typeof Dialog>["remove"];
@@ -39,7 +40,7 @@ export function PackagesInstallProgress(
 }
 
 function CreatePackagesInstallView() {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("packages-install-progress");
     const title = document.createElement("h3");
     title.innerText = "Dependencies";

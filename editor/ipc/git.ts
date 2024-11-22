@@ -11,7 +11,8 @@ export const git = {
     restore,
     checkout,
     fetch,
-    commit
+    commit,
+    branches
 };
 
 type ErrorObj = {
@@ -84,8 +85,8 @@ function restore(projectId: string, files: string[]): Promise<void> {
 }
 
 // 75
-function checkout(projectId: string, branch: string): Promise<void> {
-    const payload = new Uint8Array([75, ...serializeArgs([projectId, branch])]);
+function checkout(projectId: string, branch: string, create: boolean): Promise<void> {
+    const payload = new Uint8Array([75, ...serializeArgs([projectId, branch, create])]);
 
     return ipc.bridge(payload, errorChecker);
 }
@@ -107,4 +108,16 @@ function commit(project: Project, commitMessage: string): Promise<void> {
     ])]);
 
     return ipc.bridge(payload, errorChecker);
+}
+
+// 78
+function branches(projectId: string): Promise<string[]> {
+    const payload = new Uint8Array([78, ...serializeArgs([projectId])]);
+
+    const transformer = (branches: string[]) => {
+        errorChecker(branches as any);
+        return branches;
+    }
+
+    return ipc.bridge(payload, transformer);
 }

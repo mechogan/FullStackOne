@@ -60,20 +60,19 @@ class MainActivity : ComponentActivity() {
             editor
         )
 
-        val editorInstnace = Instance( "", true)
-        val editorWebview = WebViewComponent(this, editorInstnace)
+        val editorInstance = Instance( "", true)
+        val editorWebView = WebViewComponent(this, editorInstance)
 
-        this.extractEditorFiles(editorInstnace, editor)
+        this.extractEditorFiles(editorInstance, editor)
 
         super.onCreate(savedInstanceState)
         this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
 
-        this.webViews.add(Pair("", editorWebview))
+        this.webViews.add(Pair("", editorWebView))
 
-        this.setContentView(editorWebview.webView)
+        this.setContentView(editorWebView.webView)
 
         callback()
-
 
         this.onBackPressedDispatcher.addCallback {
             if(webViews.size == 1) {

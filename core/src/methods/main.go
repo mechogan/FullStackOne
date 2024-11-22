@@ -53,6 +53,7 @@ const (
 	GIT_CHECKOUT = 75
 	GIT_FETCH	 = 76
 	GIT_COMMIT	 = 77
+	GIT_BRANCHES = 78
 
 	OPEN = 100
 )
@@ -204,7 +205,7 @@ func gitSwitch(method int, args []any) []byte {
 		}
 		return git.Restore(directory, files)
 	case GIT_CHECKOUT:
-		return nil
+		return git.Checkout(directory, args[1].(string), args[2].(bool))
 	case GIT_FETCH:
 		if len(args) > 1 {
 			username := args[1].(string)
@@ -215,6 +216,8 @@ func gitSwitch(method int, args []any) []byte {
 		return git.Fetch(directory, nil, nil)
 	case GIT_COMMIT:
 		return git.Commit(directory, args[1].(string), args[2].(string), args[3].(string))
+	case GIT_BRANCHES:
+		return git.Branches(directory)
 	}
 
 	return nil

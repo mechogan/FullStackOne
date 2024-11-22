@@ -44,24 +44,19 @@
         padding: spacing.$small;
         border-radius: spacing.$x-small;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         gap: spacing.$small;
 
-        &.with-form {
-            align-items: flex-start;
-            > button {
-                display: none;
-            }
-        }
-
-        > div:nth-child(2) {
-            flex: 1;
-            font-size: typography.$small;
-        }
-
-        > .icon {
-            width: 24px;
+        .icon {
             height: 30px;
+        }
+
+        .git-author-infos {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            font-size: typography.$small;
+            align-items: center;
         }
 
         .git-author-form {
@@ -121,6 +116,9 @@
 
         form {
             padding-top: spacing.$small;
+            .message {
+                padding-top: spacing.$small;
+            }
         }
 
         .git-buttons {

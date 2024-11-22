@@ -1,6 +1,7 @@
 import stackNavigation from "../stack-navigation";
+import { ElementComponent } from "./element";
 
-export function Dialog(content: HTMLElement) {
+export function Dialog(content: ElementComponent) {
     const container = document.createElement("div");
     container.classList.add("dialog");
 
@@ -16,6 +17,7 @@ export function Dialog(content: HTMLElement) {
 
     return {
         remove: () => {
+            content?.destroy();
             stackNavigation.lock = false;
             overlay.remove();
         }

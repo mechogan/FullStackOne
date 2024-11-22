@@ -177,7 +177,7 @@ func install(name string) {
 		Stage:  "done",
 		Loaded: 1,
 		Total:  1,
-	})
+	});
 }
 
 func notifyProgress(progress Progress) {

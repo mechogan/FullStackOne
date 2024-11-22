@@ -6,6 +6,7 @@ import (
 	setup "fullstacked/editor/src/setup"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -113,7 +114,7 @@ func Head(directory string) []byte {
 	}
 
 	headObj := HeadObj{
-		Name: head.Name().String(),
+		Name: head.Name().Short(),
 		Hash: head.Hash().String(),
 	}
 
@@ -298,6 +299,48 @@ func Commit(directory string, commitMessage string, authorName string, authorEma
 			Name: authorName,
 			Email: authorEmail,
 		},
+	})
+
+	if(err2 != nil) {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	return nil
+}
+
+func Branches(directory string) []byte {
+	repo, err := getRepo(directory)
+
+	if(err != nil) {
+		return serialize.SerializeString(*err)
+	}
+
+	branches, err2 := repo.Branches()
+
+	if(err2 != nil) {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	branchesSerialized := []byte{}
+
+	branches.ForEach(func(r *plumbing.Reference) error {
+		branchesSerialized = append(branchesSerialized, serialize.SerializeString(string(r.Name().Short()))...)
+		return nil
+	})
+
+	return branchesSerialized
+}
+
+func Checkout(directory string, branch string, create bool) []byte {
+	worktree, err := getWorktree(directory)
+
+	if(err != nil) {
+		return serialize.SerializeString(*err)
+	}
+
+	err2 := worktree.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(branch),
+		Create: create,
 	})
 
 	if(err2 != nil) {

@@ -1,3 +1,4 @@
+import { create } from "domain";
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { Dialog } from "../../../components/dialog";
 import { createElement } from "../../../components/element";
@@ -12,6 +13,43 @@ import { Store } from "../../../store";
 import { Project } from "../../../types";
 import { refreshCodeEditorView, saveAllViews } from "../code-editor";
 import { refreshFullFileTree } from "../file-tree";
+import { Branches } from "./branches";
+
+let branchView = false;
+let refreshMainView: () => void
+export const toggleCommitAndBranchView = () => {
+    branchView = !branchView;
+    refreshMainView()
+}
+
+export function Git(project: Project){
+    branchView = false;
+
+    const container = createElement("div");
+    container.classList.add("git-dialog");
+
+    const { remove } = Dialog(container);
+
+    const closeButton = Button({
+        text: "Close",
+        style: "text"
+    });
+    closeButton.onclick = () => remove();
+
+    const renderCommitOrBranchView = () => {
+        if(branchView) {
+            return Branches(project, closeButton);
+        } else {
+            return CommitView(project, closeButton);
+        }
+    }
+
+    const viewsRefresheable = createRefresheable(renderCommitOrBranchView);
+    refreshMainView = viewsRefresheable.refresh;
+    refreshMainView();
+
+    container.append(viewsRefresheable.element)
+}
 
 let refresh: {
     repoInfo: () => void;
@@ -20,9 +58,8 @@ let refresh: {
     commitAndPush: () => void;
 };
 
-export function Git(project: Project) {
+function CommitView(project: Project, closeButton: HTMLButtonElement) {
     const container = createElement("div");
-    container.classList.add("git-dialog");
 
     const repoInfosRefresheable = createRefresheable(RepoInfos);
     const authorRefresheable = createRefresheable(Author);
@@ -32,12 +69,6 @@ export function Git(project: Project) {
     const statusRefresheable = createRefresheable(Status, statusPlaceholder);
 
     const commitAndPushRefresheable = createRefresheable(CommitAndPushButtons);
-
-    const closeButton = Button({
-        text: "Close",
-        style: "text"
-    });
-    closeButton.onclick = () => closeDialog();
 
     refresh = {
         repoInfo: () => repoInfosRefresheable.refresh(project),
@@ -54,9 +85,8 @@ export function Git(project: Project) {
     };
 
     Store.projects.list.subscribe(refreshOnProjectUpdate);
-    const closeDialog = () => {
+    container.ondestroy = () => {
         Store.projects.list.unsubscribe(refreshOnProjectUpdate);
-        remove();
     };
 
     const top = document.createElement("div");
@@ -66,20 +96,7 @@ export function Git(project: Project) {
         style: "icon-large",
         iconLeft: "Git Branch"
     });
-    branchButton.onclick = () => {
-        // const branches = Branches({
-        //     project: opts.project,
-        //     didChangeBranch: () => {
-        //         WorkerTS.call().invalidateWorkingDirectory();
-        //         CodeEditor.reloadActiveFilesContent();
-        //         opts.didUpdateFiles();
-        //         opts.didChangeCommitOrBranch();
-        //     },
-        //     goBack: () => branches.replaceWith(GitView(opts, objRemove)),
-        //     removeDialog: () => objRemove.remove()
-        // });
-        // container.replaceWith(branches);
-    };
+    branchButton.onclick = toggleCommitAndBranchView
 
     top.append(Icon("Git"), repoInfosRefresheable.element, branchButton);
 
@@ -90,12 +107,12 @@ export function Git(project: Project) {
         commitAndPushRefresheable.element
     );
 
-    const { remove } = Dialog(container);
-
     refresh.repoInfo();
     refresh.author();
     refresh.status();
     refresh.commitAndPush();
+
+    return container;
 }
 
 let changesPromise: Promise<{
@@ -177,7 +194,13 @@ async function CommitAndPushButtons(
             reacheable = true;
             toggleButtonsDisabled()
         })
-        .catch(() => {})
+        .catch(() => {
+            const message = Message({
+                style: "warning",
+                text: "Remote is unreachable"
+            })
+            form.append(message);
+        })
 
     const form = document.createElement("form");
 
@@ -238,7 +261,7 @@ function RepoInfos(project: Project) {
 
     ipcEditor.git.head(project.id).then(({ Name, Hash }) => {
         container.innerHTML += `
-                <div>${Name.split("/").at(-1)}</div>
+                <div>${Name}</div>
                 <div>${Hash}</div>
             `;
     });
@@ -248,12 +271,101 @@ function RepoInfos(project: Project) {
 
 function Author(project: Project) {
     const container = createElement("div");
-    container.classList.add("git-author");
+    container.classList.add("git-author")
+    
+    let formView = false;
+    const render = () => {
+        if(formView) {
+            return AuthorForm(project, () => {
+                formView = false;
+                refresheable.refresh()
+            });
+        } else {
+            return AuthorInfos(project, () => {
+                formView = true;
+                refresheable.refresh()
+            });
+        }
+    }
+
+    const refresheable = createRefresheable(render);
+    refresheable.refresh();
+    container.append(Icon("User"), refresheable.element);
+
+    return container;
+}
+
+function AuthorForm(project: Project, toggleView: () => void){
+    const form = createElement("form");
+    form.classList.add("git-author-form");
+
+    const nameInput = InputText({
+        label: "Name"
+    });
+    nameInput.input.value = project.gitRepository.name || "";
+    form.append(nameInput.container);
+
+    const emailInput = InputText({
+        label: "Email"
+    });
+    emailInput.input.type = "email";
+    emailInput.input.value = project.gitRepository.email || "";
+    form.append(emailInput.container);
+
+    const buttons = document.createElement("div");
+
+    const cancelButton = Button({
+        text: "Cancel",
+        style: "text"
+    });
+    cancelButton.onclick = toggleView;
+    cancelButton.type = "button";
+
+    const saveButton = Button({
+        text: "Save"
+    });
+    saveButton.type = "submit";
+
+    const updateAuthor = async () => {
+        saveButton.disabled = true;
+
+        const updatedProject: Project = {
+            ...project,
+            gitRepository: {
+                ...project.gitRepository,
+                email: emailInput.input.value,
+                name: nameInput.input.value
+            }
+        };
+
+        Store.projects.update(project, updatedProject);
+    };
+
+    saveButton.onclick = updateAuthor;
+
+    buttons.append(cancelButton, saveButton);
+
+    form.append(buttons);
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        updateAuthor();
+    };
+
+    return form;
+}
+
+function AuthorInfos(project: Project, toggleView: () => void) {
+    const container = createElement("div");
+    container.classList.add("git-author-infos")
 
     const editButton = Button({
         style: "icon-small",
         iconLeft: "Edit"
     });
+    editButton.onclick = toggleView;
 
     const infos = document.createElement("div");
     infos.innerHTML = `
@@ -261,75 +373,7 @@ function Author(project: Project) {
         <div>${project.gitRepository.email || "No Email"}</div>
     `;
 
-    editButton.onclick = () => {
-        container.classList.add("with-form");
-
-        const form = document.createElement("form");
-        form.classList.add("git-author-form");
-
-        const nameInput = InputText({
-            label: "Name"
-        });
-        nameInput.input.value = project.gitRepository.name || "";
-        form.append(nameInput.container);
-
-        const emailInput = InputText({
-            label: "Email"
-        });
-        emailInput.input.type = "email";
-        emailInput.input.value = project.gitRepository.email || "";
-        form.append(emailInput.container);
-
-        const buttons = document.createElement("div");
-
-        const cancelButton = Button({
-            text: "Cancel",
-            style: "text"
-        });
-        const closeForm = () => {
-            form.replaceWith(infos);
-            container.classList.remove("with-form");
-        };
-        cancelButton.type = "button";
-        cancelButton.onclick = closeForm;
-
-        const saveButton = Button({
-            text: "Save"
-        });
-        saveButton.type = "submit";
-
-        const updateAuthor = async () => {
-            saveButton.disabled = true;
-
-            const updatedProject: Project = {
-                ...project,
-                gitRepository: {
-                    ...project.gitRepository,
-                    email: emailInput.input.value,
-                    name: nameInput.input.value
-                }
-            };
-
-            Store.projects.update(project, updatedProject);
-        };
-
-        saveButton.onclick = updateAuthor;
-
-        buttons.append(cancelButton, saveButton);
-
-        form.append(buttons);
-
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            updateAuthor();
-        };
-
-        infos.replaceWith(form);
-    };
-
-    container.append(Icon("User"), infos, editButton);
+    container.append(infos, editButton);
 
     return container;
 }

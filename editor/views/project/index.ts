@@ -282,7 +282,7 @@ function GitWidget(project: ProjectType) {
         const result = await ipcEditor.git.head(project.id);
         const branchAndCommitContainer = createElement("div");
         branchAndCommitContainer.innerHTML = `
-                <div><b>${result.Name.split("/").pop()}</b></div>
+                <div><b>${result.Name}</b></div>
                 <div>${result.Hash.slice(0, 7)}<div>
             `;
         return branchAndCommitContainer;
