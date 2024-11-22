@@ -1,5 +1,7 @@
 import { serializeArgs } from "../../src/serialization";
 import ipc from "../../src";
+import { ipcEditor } from ".";
+import { Project } from "../types";
 
 export const git = {
     clone,
@@ -7,7 +9,9 @@ export const git = {
     status,
     pull,
     restore,
-    checkout
+    checkout,
+    fetch,
+    commit
 };
 
 type ErrorObj = {
@@ -82,6 +86,25 @@ function restore(projectId: string, files: string[]): Promise<void> {
 // 75
 function checkout(projectId: string, branch: string): Promise<void> {
     const payload = new Uint8Array([75, ...serializeArgs([projectId, branch])]);
+
+    return ipc.bridge(payload, errorChecker);
+}
+
+// 76
+function fetch(projectId: string): Promise<void> {
+    const payload = new Uint8Array([76, ...serializeArgs([projectId])]);
+
+    return ipc.bridge(payload, errorChecker);
+}
+
+// 77
+function commit(project: Project, commitMessage: string): Promise<void> {
+    const payload = new Uint8Array([77, ...serializeArgs([
+        project.id, 
+        commitMessage, 
+        project.gitRepository.name || "",
+        project.gitRepository.email || ""
+    ])]);
 
     return ipc.bridge(payload, errorChecker);
 }

@@ -1,5 +1,7 @@
+import { refreshGitWidgetBranchAndCommit } from "..";
 import { Dialog } from "../../../components/dialog";
-import { createElement, ElementComponent } from "../../../components/element";
+import { createElement } from "../../../components/element";
+import { Message } from "../../../components/message";
 import { Popover } from "../../../components/popover";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
@@ -45,14 +47,15 @@ export function Git(project: Project) {
             commitAndPushRefresheable.refresh(project, closeButton)
     };
 
-    const refreshAuthorOnProjectUpdate = (projects: Project[]) => {
+    const refreshOnProjectUpdate = (projects: Project[]) => {
         project = projects.find(({ id }) => project.id === id);
         refresh.author();
+        refresh.commitAndPush();
     };
 
-    Store.projects.list.subscribe(refreshAuthorOnProjectUpdate);
+    Store.projects.list.subscribe(refreshOnProjectUpdate);
     const closeDialog = () => {
-        Store.projects.list.unsubscribe(refreshAuthorOnProjectUpdate);
+        Store.projects.list.unsubscribe(refreshOnProjectUpdate);
         remove();
     };
 
@@ -128,25 +131,97 @@ async function CommitAndPushButtons(
     closeButton: HTMLButtonElement
 ) {
     const container = createElement("div");
+    container.classList.add("git-form");
 
-    const { hasChanges } = await projectChanges(project);
+    const buttonsRow = document.createElement("div");
+    buttonsRow.classList.add("git-buttons");
 
-    if (hasChanges) {
-    }
-
-    container.append(closeButton);
+    const commitAndPushButtons = document.createElement("div");
 
     const commitButton = Button({
         text: "Commit",
         style: "text"
     });
     commitButton.type = "button";
+    commitButton.disabled = true;
 
     const pushButton = Button({
         text: "Push"
     });
     pushButton.type = "button";
+    pushButton.disabled = true;
 
+    commitAndPushButtons.append(commitButton, pushButton);
+
+    buttonsRow.append(closeButton, commitAndPushButtons);
+    container.append(buttonsRow);
+
+    const hasAuthor = project.gitRepository?.name;
+    if (!hasAuthor) {
+        container.prepend(Message({
+            style: "warning",
+            text: "No git user.name"
+        }));
+        return container;
+    }
+
+    const { hasChanges } = await projectChanges(project);
+
+    if (!hasChanges) {
+        return container;
+    }
+
+    let reacheable = false;
+    ipcEditor.git.fetch(project.id)
+        .then(() => {
+            reacheable = true;
+            toggleButtonsDisabled()
+        })
+        .catch(() => {})
+
+    const form = document.createElement("form");
+
+    const commitMessageInput = InputText({
+        label: "Commit Message"
+    })
+
+    form.append(commitMessageInput.container);
+
+    container.prepend(form);
+
+    form.onsubmit = async e => {
+        e.preventDefault();
+        await commit();
+    }
+
+    const toggleButtonsDisabled = () => {
+        if(commitMessageInput.input.value) {
+            commitButton.disabled = false
+            pushButton.disabled = !reacheable
+        } else {
+            commitButton.disabled = true
+            pushButton.disabled = true
+        }
+    }
+
+    commitMessageInput.input.onkeyup = toggleButtonsDisabled;
+
+    setTimeout(() => commitMessageInput.input.focus(), 1);
+
+    const commit = async () => {
+        commitButton.disabled = true;
+        const commitMessage = commitMessageInput.input.value;
+        form.reset();
+        await ipcEditor.git.commit(project, commitMessage);
+        commitButton.disabled = false;
+        refresh.repoInfo();
+        refresh.status();
+        refresh.commitAndPush();
+        refreshGitWidgetBranchAndCommit();
+    }
+
+    commitButton.onclick = commit;
+    
     return container;
 }
 
@@ -263,13 +338,7 @@ async function Status(project: Project) {
     const container = createElement("div");
     container.classList.add("git-status");
 
-    container.innerText = "Calculating diffs...";
-
     const { changes, hasChanges } = await projectChanges(project);
-
-    console.log(changes)
-
-    container.innerText = "";
 
     if (hasChanges) {
         container.append(ChangesList(changes, project));
@@ -336,7 +405,10 @@ function FilesList(files: string[], revert: (file: string) => Promise<void>) {
             });
 
             revertButton.onclick = () => {
-                revert(file).then(refresh.status);
+                revert(file).then(() => {
+                    refresh.status();
+                    refresh.commitAndPush();
+                });
             };
 
             const buttonGroup = ButtonGroup([revertButton]);

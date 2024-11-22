@@ -259,6 +259,10 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
     return null;
 }
 
+let refreshBranchAndCommit: ReturnType<typeof createRefresheable>["refresh"];
+export const refreshGitWidgetBranchAndCommit = () => {
+    refreshBranchAndCommit?.();
+}
 function GitWidget(project: ProjectType) {
     const container = createElement("div");
     container.classList.add("git-widget");
@@ -286,7 +290,8 @@ function GitWidget(project: ProjectType) {
 
     const branchAndCommit = createRefresheable(branchAndCommitRender);
     container.prepend(branchAndCommit.element);
-    branchAndCommit.refresh();
+    refreshBranchAndCommit = branchAndCommit.refresh;
+    refreshBranchAndCommit();
 
     const statusArrow = Icon("Arrow 2");
     statusArrow.classList.add("git-status-arrow");

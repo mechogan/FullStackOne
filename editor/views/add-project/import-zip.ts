@@ -107,8 +107,6 @@ export async function createAndMoveProjectFromTmp(
     consoleTerminal.logger(`Looking for .fullstacked file`);
     const contents = await ipcEditor.fs.readdir(tmpDir);
 
-    console.log(contents);
-
     const project: Parameters<typeof Store.projects.create>[0] = {
         title: defaultProjectTitle,
         id: slugify(defaultProjectTitle.replace(/\//g, "."), { lower: true })

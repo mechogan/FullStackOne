@@ -113,22 +113,26 @@
             padding-top: spacing.$small;
             padding-bottom: spacing.$small;
         }
+    }
+
+    .git-form {
+        display: flex;
+        flex-direction: column;
+
+        form {
+            padding-top: spacing.$small;
+        }
+
+        .git-buttons {
+            display: flex;
+            justify-content: space-between;
+            padding-top: spacing.$small;
+        }
 
         .message {
             justify-content: flex-end;
         }
-    }
-
-    .git-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: spacing.$small;
-
-        > div {
-            display: flex;
-            gap: spacing.$x-small;
-        }
+        
     }
 }
 

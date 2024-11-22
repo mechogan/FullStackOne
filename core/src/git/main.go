@@ -7,6 +7,7 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
@@ -189,7 +190,6 @@ func Pull(directory string, username *string, password *string) []byte {
 	err2 := worktree.Pull(&git.PullOptions{
 		Auth:         auth,
 		Progress:     &progress,
-		SingleBranch: true,
 	})
 
 	progress.Write([]byte("done"))
@@ -252,6 +252,55 @@ func Restore(directory string, files []string) []byte {
 	})
 
 	if err2 != nil {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	return nil
+}
+
+func Fetch(directory string, username *string, password *string) []byte {
+	repo, err := getRepo(directory)
+
+	if(err != nil) {
+		return serialize.SerializeString(*err)
+	}
+
+	auth := (*http.BasicAuth)(nil)
+	if username != nil && password != nil {
+		auth = &http.BasicAuth{
+			Username: *username,
+			Password: *password,
+		}
+	}
+
+	err2 := repo.Fetch(&git.FetchOptions{
+		Auth: auth,
+	})
+
+	if(err2 != nil && err2.Error() != "already up-to-date") {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	return nil
+}
+
+func Commit(directory string, commitMessage string, authorName string, authorEmail string) []byte {
+	worktree, err := getWorktree(directory)
+
+	if(err != nil) {
+		return serialize.SerializeString(*err)
+	}
+
+
+	_, err2 := worktree.Commit(commitMessage, &git.CommitOptions{
+		All: true,
+		Author: &object.Signature{
+			Name: authorName,
+			Email: authorEmail,
+		},
+	})
+
+	if(err2 != nil) {
 		return serialize.SerializeString(*errorFmt(err2))
 	}
 
