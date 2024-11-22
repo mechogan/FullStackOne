@@ -45,10 +45,12 @@ const (
 
 	PACKAGES_INSTALL = 60
 
-	GIT_CLONE  = 70
-	GIT_HEAD   = 71
-	GIT_STATUS = 72
-	GIT_PULL   = 73
+	GIT_CLONE    = 70
+	GIT_HEAD     = 71
+	GIT_STATUS   = 72
+	GIT_PULL     = 73
+	GIT_RESTORE  = 74
+	GIT_CHECKOUT = 75
 
 	OPEN = 100
 )
@@ -193,6 +195,12 @@ func gitSwitch(method int, args []any) []byte {
 		}
 
 		return git.Pull(directory, nil, nil)
+	case GIT_RESTORE:
+		files := []string{}
+		for _, file := range args[1:] {
+			files = append(files, file.(string))
+		}
+		return git.Restore(directory, files)
 	}
 
 	return nil

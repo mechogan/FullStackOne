@@ -65,8 +65,7 @@ export function CodeEditor(project: Project) {
     return container;
 }
 
-type View = {
-    element: ElementComponent;
+type View = ReturnType<typeof createRefresheable> & {
     editorView?: EditorView & { save: (throttled?: boolean) => Promise<void> };
 };
 
@@ -78,6 +77,12 @@ export function saveAllViews() {
             .filter((v) => v.editorView)
             .map((v) => v.editorView.save(false))
     );
+}
+
+export function refreshCodeEditorView(filePath: string) {
+    const view = views.get(filePath);
+    if (!view) return;
+    view.refresh();
 }
 
 function createViews(filesPaths: Set<string>) {
@@ -104,18 +109,23 @@ let focusedViewPath: string;
 function focusFile(path: string) {
     focusedViewPath = path;
 
-    if (!path) return createElement("div");
+    const container = createElement("div");
+
+    if (!path) return container;
 
     let view = views.get(path);
 
     if (!view) {
         view = createView(path);
+        view.refresh();
         views.set(path, view);
     } else {
         displayBuildErrors(path, view);
     }
 
-    return view.element;
+    container.append(view.element);
+
+    return container;
 }
 
 function displayBuildErrors(path: string, view: View) {
@@ -159,35 +169,41 @@ function createView(filePath: string): View {
 }
 
 function createBinaryView(filePath: string) {
-    const container = createElement("div");
-    container.classList.add("binary-view");
+    const render = async () => {
+        const container = createElement("div");
+        container.classList.add("binary-view");
 
-    ipcEditor.fs
-        .stat(filePath)
-        .then((stats) => (container.innerText = prettyBytes(stats.size)));
+        const stats = await ipcEditor.fs.stat(filePath);
+        container.innerText = prettyBytes(stats.size);
 
-    return { element: container };
+        return container;
+    };
+
+    return createRefresheable(render);
 }
 
 function createImageView(filePath: string) {
-    const container = createElement("div");
-    container.classList.add("image-view");
-    const img = document.createElement("img");
-    container.append(img);
+    const render = async () => {
+        const container = createElement("div");
+        container.classList.add("image-view");
+        const img = document.createElement("img");
+        container.append(img);
 
-    let imageURL: string;
+        let imageURL: string;
 
-    container.ondestroy = () => {
-        URL.revokeObjectURL(imageURL);
-    };
+        container.ondestroy = () => {
+            URL.revokeObjectURL(imageURL);
+        };
 
-    ipcEditor.fs.readFile(filePath).then((imageData) => {
+        const imageData = await ipcEditor.fs.readFile(filePath);
         const blob = new Blob([imageData]);
         imageURL = URL.createObjectURL(blob);
         img.src = imageURL;
-    });
 
-    return { element: container };
+        return container;
+    };
+
+    return createRefresheable(render);
 }
 
 const defaultExtensions = [
@@ -198,51 +214,58 @@ const defaultExtensions = [
 ];
 
 function createViewEditor(filePath: string) {
-    const container = createElement("div");
+    let throttler: ReturnType<typeof setTimeout>, view: View;
 
-    const view: View = {
-        element: container,
-        editorView: null
-    };
+    const render = async () => {
+        if (throttler) {
+            clearTimeout(throttler);
+            throttler = null;
+        }
 
-    ipcEditor.fs
-        .readFile(filePath, { encoding: "utf8" })
-        .then(async (content) => {
-            view.editorView = new EditorView({
-                doc: content,
-                extensions: [
-                    ...defaultExtensions,
-                    ...(await languageExtensions(filePath)),
-                    EditorView.updateListener.of(() => view.editorView.save())
-                ],
-                parent: container
-            }) as any;
+        const container = createElement("div");
 
-            let throttler: ReturnType<typeof setTimeout>;
-            view.editorView.save = (throttled = true) => {
-                if (throttler) {
-                    clearTimeout(throttler);
-                }
+        const content = await ipcEditor.fs.readFile(filePath, {
+            encoding: "utf8"
+        });
 
-                const saveFile = async () => {
-                    throttler = null;
-                    const exists = await ipcEditor.fs.exists(filePath);
-                    if (!exists?.isFile) return;
-                    await ipcEditor.fs.writeFile(
-                        filePath,
-                        view.editorView.state.doc.toString()
-                    );
-                };
+        view.editorView = new EditorView({
+            doc: content,
+            extensions: [
+                ...defaultExtensions,
+                ...(await languageExtensions(filePath)),
+                EditorView.updateListener.of(() => view.editorView.save())
+            ],
+            parent: container
+        }) as any;
 
-                if (throttled) {
-                    throttler = setTimeout(saveFile, 2000);
-                } else {
-                    return saveFile();
-                }
+        view.editorView.save = (throttled = true) => {
+            if (throttler) {
+                clearTimeout(throttler);
+            }
+
+            const saveFile = async () => {
+                throttler = null;
+                const exists = await ipcEditor.fs.exists(filePath);
+                if (!exists?.isFile) return;
+                await ipcEditor.fs.writeFile(
+                    filePath,
+                    view.editorView.state.doc.toString()
+                );
             };
 
-            displayBuildErrors(filePath, view);
-        });
+            if (throttled) {
+                throttler = setTimeout(saveFile, 2000);
+            } else {
+                return saveFile();
+            }
+        };
+
+        displayBuildErrors(filePath, view);
+
+        return container;
+    };
+
+    view = createRefresheable(render);
 
     return view;
 }

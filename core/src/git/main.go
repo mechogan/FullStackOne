@@ -237,3 +237,23 @@ func Push(directory string, username *string, password *string) []byte {
 
 	return nil
 }
+
+func Restore(directory string, files []string) []byte {
+	worktree, err := getWorktree(directory)
+
+	if err != nil {
+		return serialize.SerializeString(*err)
+	}
+
+	err2 := worktree.Restore(&git.RestoreOptions{
+		Staged:   true,
+		Worktree: true,
+		Files:    files,
+	})
+
+	if err2 != nil {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	return nil
+}

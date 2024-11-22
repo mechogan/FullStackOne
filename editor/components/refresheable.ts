@@ -1,13 +1,19 @@
 import { createElement, ElementComponent } from "./element";
 
-export function createRefresheable<T>(
-    elementRenderer: (args: T) => ElementComponent | Promise<ElementComponent>
+export function createRefresheable<
+    T extends (...args: any) => ElementComponent | Promise<ElementComponent>,
+    P extends Parameters<T>
+>(
+    elementRenderer: (
+        ...args: P
+    ) => ElementComponent | Promise<ElementComponent>,
+    placeholder?: ElementComponent
 ) {
     const refresheable = {
-        element: createElement("div") as ElementComponent<any>,
-        refresh: (newArgs?: T) => {
+        element: placeholder || (createElement("div") as ElementComponent<any>),
+        refresh: (...newArgs: P) => {
             refresheable.element.destroy();
-            const updatedElement = elementRenderer(newArgs);
+            const updatedElement = elementRenderer(...newArgs);
             if (updatedElement instanceof Promise) {
                 updatedElement.then((e) => {
                     refresheable.element.replaceWith(e);

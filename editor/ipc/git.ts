@@ -6,8 +6,8 @@ export const git = {
     head,
     status,
     pull,
-    checkoutFile,
-    checkoutBranch
+    restore,
+    checkout
 };
 
 type ErrorObj = {
@@ -20,7 +20,7 @@ const errorChecker = ([error]) => {
     let errorObj: ErrorObj;
     try {
         errorObj = JSON.parse(error);
-    } catch (e) { }
+    } catch (e) {}
 
     if (!errorObj) return;
 
@@ -70,14 +70,17 @@ function pull(projectId: string): Promise<void> {
 }
 
 // 74
-function checkoutFile(projectId: string, file: string): Promise<void> {
-    const payload = new Uint8Array([74, ...serializeArgs([projectId, file])]);
+function restore(projectId: string, files: string[]): Promise<void> {
+    const payload = new Uint8Array([
+        74,
+        ...serializeArgs([projectId, ...files])
+    ]);
 
     return ipc.bridge(payload, errorChecker);
 }
 
 // 75
-function checkoutBranch(projectId: string, branch: string): Promise<void> {
+function checkout(projectId: string, branch: string): Promise<void> {
     const payload = new Uint8Array([75, ...serializeArgs([projectId, branch])]);
 
     return ipc.bridge(payload, errorChecker);

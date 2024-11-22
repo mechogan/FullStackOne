@@ -40,9 +40,10 @@ export function FileTree(project: Project) {
     container.classList.add("file-tree");
 
     const renderFileTree = async () => {
-        const maybeUpdateRoot = (tree?.get(project.id) as FileTreeItemDirectory)?.childrenList
-        if(maybeUpdateRoot) {
-            refresheableFileTree.element = maybeUpdateRoot
+        const maybeUpdateRoot = (tree?.get(project.id) as FileTreeItemDirectory)
+            ?.childrenList;
+        if (maybeUpdateRoot) {
+            refresheableFileTree.element = maybeUpdateRoot;
         }
 
         const root = createElement("ul");
@@ -62,16 +63,16 @@ export function FileTree(project: Project) {
             ]
         ]);
 
-        const rootItems = await OpenDirectory(project.id, true)
-        root.append(...rootItems)
+        const rootItems = await OpenDirectory(project.id, true);
+        root.append(...rootItems);
 
-        return root
-    }
+        return root;
+    };
 
     const scrollableTree = document.createElement("div");
     const refresheableFileTree = createRefresheable(renderFileTree);
     scrollableTree.append(refresheableFileTree.element);
-    refreshFullFileTree = () => refresheableFileTree.refresh()
+    refreshFullFileTree = () => refresheableFileTree.refresh();
     refreshFullFileTree();
 
     const topActions = TopActions(project);
@@ -249,16 +250,20 @@ async function OpenDirectory(
     }
 
     const openSubDirectoriesPromises = fileTreeItemDirectory.children
-        .filter(childPath => {
+        .filter((childPath) => {
             const fileTreeItem = tree.get(childPath);
-            return fileTreeItem && fileTreeItem.type === "directory" && openedFileTreeItemDirectoryPath.has(childPath)
+            return (
+                fileTreeItem &&
+                fileTreeItem.type === "directory" &&
+                openedFileTreeItemDirectoryPath.has(childPath)
+            );
         })
-        .map(childPath => OpenDirectory(childPath))
+        .map((childPath) => OpenDirectory(childPath));
 
     await Promise.all(openSubDirectoriesPromises);
 
-    if(returnChildren) {
-        return childrenElements
+    if (returnChildren) {
+        return childrenElements;
     }
 }
 

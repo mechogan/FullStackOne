@@ -1,5 +1,5 @@
 import { Dialog } from "../../../components/dialog";
-import { createElement } from "../../../components/element";
+import { createElement, ElementComponent } from "../../../components/element";
 import { Popover } from "../../../components/popover";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
@@ -8,36 +8,53 @@ import { createRefresheable } from "../../../components/refresheable";
 import { ipcEditor } from "../../../ipc";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
-import { saveAllViews } from "../code-editor";
+import { refreshCodeEditorView, saveAllViews } from "../code-editor";
 import { refreshFullFileTree } from "../file-tree";
 
-let closeDialog: ReturnType<typeof Dialog>["remove"], refreshView: () => void
+let refresh: {
+    repoInfo: () => void;
+    author: () => void;
+    status: () => void;
+    commitAndPush: () => void;
+};
+
 export function Git(project: Project) {
-    const refresheable = createRefresheable(GitView);
-    const { remove } = Dialog(refresheable.element);
-
-    refreshView = () => {
-        refresheable.refresh(project);
-    }
-
-    const refreshViewAfterProjectUpdate = (projectList: Project[]) => {
-        project = projectList.find(({ id }) => id === project.id)
-        refreshView
-    }
-
-    Store.projects.list.subscribe(refreshViewAfterProjectUpdate)
-
-    closeDialog = () => {
-        Store.projects.list.unsubscribe(refreshViewAfterProjectUpdate)
-        remove();
-    };
-
-    refreshView();
-}
-
-function GitView(project: Project) {
     const container = createElement("div");
     container.classList.add("git-dialog");
+
+    const repoInfosRefresheable = createRefresheable(RepoInfos);
+    const authorRefresheable = createRefresheable(Author);
+
+    const statusPlaceholder = createElement("div");
+    statusPlaceholder.innerText = "Calculating diffs...";
+    const statusRefresheable = createRefresheable(Status, statusPlaceholder);
+
+    const commitAndPushRefresheable = createRefresheable(CommitAndPushButtons);
+
+    const closeButton = Button({
+        text: "Close",
+        style: "text"
+    });
+    closeButton.onclick = () => closeDialog();
+
+    refresh = {
+        repoInfo: () => repoInfosRefresheable.refresh(project),
+        author: () => authorRefresheable.refresh(project),
+        status: () => statusRefresheable.refresh(project),
+        commitAndPush: () =>
+            commitAndPushRefresheable.refresh(project, closeButton)
+    };
+
+    const refreshAuthorOnProjectUpdate = (projects: Project[]) => {
+        project = projects.find(({ id }) => project.id === id);
+        refresh.author();
+    };
+
+    Store.projects.list.subscribe(refreshAuthorOnProjectUpdate);
+    const closeDialog = () => {
+        Store.projects.list.unsubscribe(refreshAuthorOnProjectUpdate);
+        remove();
+    };
 
     const top = document.createElement("div");
     top.classList.add("git-top");
@@ -61,47 +78,80 @@ function GitView(project: Project) {
         // container.replaceWith(branches);
     };
 
-    top.append(Icon("Git"), RepoInfos(project), branchButton);
+    top.append(Icon("Git"), repoInfosRefresheable.element, branchButton);
 
-    const buttonRow = document.createElement("div");
-    buttonRow.classList.add("git-buttons");
+    container.append(
+        top,
+        authorRefresheable.element,
+        statusRefresheable.element,
+        commitAndPushRefresheable.element
+    );
 
-    const closeButton = Button({
-        text: "Close",
-        style: "text"
-    });
-    closeButton.onclick = closeDialog;
+    const { remove } = Dialog(container);
 
-    const commitAndPushButtons = document.createElement("div");
+    refresh.repoInfo();
+    refresh.author();
+    refresh.status();
+    refresh.commitAndPush();
+}
+
+let changesPromise: Promise<{
+    changes: {
+        Added: string[];
+        Modified: string[];
+        Deleted: string[];
+    };
+    hasChanges: boolean;
+}>;
+
+function projectChanges(project: Project) {
+    if (!changesPromise) {
+        changesPromise = _projectChanges(project);
+    }
+    return changesPromise;
+}
+
+async function _projectChanges(project: Project) {
+    await saveAllViews();
+    const changes = await ipcEditor.git.status(project.id);
+    const hasChanges =
+        changes.Added.length !== 0 &&
+        changes.Modified.length !== 0 &&
+        changes.Deleted.length !== 0;
+
+    changesPromise = null;
+    return { changes, hasChanges };
+}
+
+async function CommitAndPushButtons(
+    project: Project,
+    closeButton: HTMLButtonElement
+) {
+    const container = createElement("div");
+
+    const { hasChanges } = await projectChanges(project);
+
+    if (hasChanges) {
+    }
+
+    container.append(closeButton);
 
     const commitButton = Button({
         text: "Commit",
         style: "text"
     });
     commitButton.type = "button";
+
     const pushButton = Button({
         text: "Push"
     });
     pushButton.type = "button";
 
-    commitButton.disabled = true;
-    pushButton.disabled = true;
-
-    commitAndPushButtons.append(commitButton, pushButton);
-    buttonRow.append(closeButton, commitAndPushButtons);
-
-    container.append(
-        top,
-        Author(project),
-        Status(project),
-        buttonRow
-    );
-
-    return container
+    return container;
 }
 
 function RepoInfos(project: Project) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("git-info");
 
     const webLink = document.createElement("a");
@@ -122,7 +172,7 @@ function RepoInfos(project: Project) {
 }
 
 function Author(project: Project) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("git-author");
 
     const editButton = Button({
@@ -183,7 +233,7 @@ function Author(project: Project) {
                     email: emailInput.input.value,
                     name: nameInput.input.value
                 }
-            }
+            };
 
             Store.projects.update(project, updatedProject);
         };
@@ -209,136 +259,21 @@ function Author(project: Project) {
     return container;
 }
 
-function Status(project: Project) {
-    const container = document.createElement("div");
+async function Status(project: Project) {
+    const container = createElement("div");
     container.classList.add("git-status");
 
     container.innerText = "Calculating diffs...";
 
-    // opts.buttons.commit.disabled = true;
-    // opts.buttons.push.disabled = true;
+    const { changes, hasChanges } = await projectChanges(project);
 
-    saveAllViews().then(async () => {
-        const changes = await ipcEditor.git.status(project.id);
-        const hasChanges =
-            changes.Added.length ||
-            changes.Modified.length ||
-            changes.Deleted.length;
+    container.innerText = "";
 
-        container.innerText = "";
-
-        if (hasChanges) {
-            container.append(ChangesList(changes, project));
-        } else {
-            container.innerText = "Nothing to commit";
-        }
-
-
-
-        // Promise.all([
-        //     api.git.changes(opts.project),
-        //     api.git.testRemote(opts.project)
-        // ]).then(async ([changes, reacheable]) => {
-        //     let toPush: Awaited<ReturnType<typeof findCommitCountToPush>> =
-        //         null;
-        //     if (reacheable) {
-        //         toPush = await findCommitCountToPush(opts.project);
-        //     }
-
-        // const hasGitUserName = opts.project.gitRepository.name;
-
-        //     container.innerText = "";
-
-        //     const commit = async () => {
-        //         if (!commitMessageInput?.input.value) return;
-
-        //         await api.git.commit(
-        //             opts.project,
-        //             commitMessageInput.input.value
-        //         );
-        //         opts.didCommit();
-        //     };
-
-        //     const push = () => {
-        //         opts.didPushEvent("start");
-        //         api.git.push(opts.project).then(() => opts.didPushEvent("end"));
-        //     };
-
-        //     let commitMessageInput: ReturnType<typeof InputText>;
-        //     if (hasChanges && hasGitUserName) {
-        //         const form = document.createElement("form");
-
-        //         commitMessageInput = InputText({
-        //             label: "Commit Message"
-        //         });
-        //         form.append(commitMessageInput.container);
-        //         container.append(form);
-
-        //         commitMessageInput.input.onkeyup = () => {
-        //             if (commitMessageInput.input.value) {
-        //                 opts.buttons.commit.disabled = false;
-        //                 opts.buttons.push.disabled = !reacheable;
-        //             } else {
-        //                 opts.buttons.commit.disabled = true;
-        //                 opts.buttons.push.disabled = !(
-        //                     toPush?.commitCount || toPush?.pushBranch
-        //                 );
-        //             }
-        //         };
-
-        //         form.onsubmit = async (e) => {
-        //             e.preventDefault();
-
-        //             if (!commitMessageInput.input.value) return;
-
-        //             await commit();
-        //             if (reacheable) {
-        //                 push();
-        //             }
-        //         };
-
-        //         setTimeout(() => commitMessageInput.input.focus(), 1);
-        //     }
-
-        //     let message: ReturnType<typeof Message>;
-        //     if (!hasGitUserName) {
-        //         message = Message({
-        //             text: "No git user.name",
-        //             style: "warning"
-        //         });
-        //     } else if (!reacheable) {
-        //         message = Message({
-        //             text: "Remote is unreachable",
-        //             style: "warning"
-        //         });
-        //     } else if (toPush?.pushBranch) {
-        //         message = Message({
-        //             text: "Push new branch to remote"
-        //         });
-        //         opts.buttons.push.disabled = false;
-        //     } else if (toPush?.commitCount) {
-        //         const count =
-        //             toPush.commitCount > 10
-        //                 ? "10+"
-        //                 : toPush.commitCount.toString();
-        //         message = Message({
-        //             text: `Push ${count} commit${toPush.commitCount > 1 ? "s" : ""} to remote`
-        //         });
-        //         opts.buttons.push.disabled = false;
-        //     }
-
-        //     opts.buttons.commit.onclick = commit;
-
-        //     opts.buttons.push.onclick = async () => {
-        //         await commit();
-        //         push();
-        //     };
-
-        //     if (message) {
-        //         container.append(message);
-        //     }
-        // });
-    });
+    if (hasChanges) {
+        container.append(ChangesList(changes, project));
+    } else {
+        container.innerText = "Nothing to commit";
+    }
 
     return container;
 }
@@ -349,7 +284,11 @@ function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
     container.classList.add("git-changes");
 
-    const addSection = (subtitle: string, files: string[], revertFile: Parameters<typeof FilesList>[1]) => {
+    const addSection = (
+        subtitle: string,
+        files: string[],
+        revertFile: Parameters<typeof FilesList>[1]
+    ) => {
         if (files.length === 0) return;
 
         const subtitleEl = document.createElement("div");
@@ -358,28 +297,19 @@ function ChangesList(changes: Changes, project: Project) {
         container.append(subtitleEl, FilesList(files, revertFile));
     };
 
-    addSection(
-        "Added", 
-        changes.Added,
-        async (file: string) => {
-            await ipcEditor.fs.unlink(project.id + "/" + file);
-            refreshFullFileTree();
-        }
-    );
-    addSection(
-        "Modified", 
-        changes.Modified, 
-        async (file: string) => {
-            await ipcEditor.git.checkoutFile(project.id, file);
-        }
-    );
-    addSection(
-        "Deleted", 
-        changes.Deleted, 
-        async (file: string) => {
-            await ipcEditor.git.checkoutFile(project.id, file);
-        }
-    );
+    addSection("Added", changes.Added, async (file: string) => {
+        await ipcEditor.git.restore(project.id, [file]);
+        refreshFullFileTree();
+        Store.editor.codeEditor.closeFile(project.id + "/" + file);
+    });
+    addSection("Modified", changes.Modified, async (file: string) => {
+        await ipcEditor.git.restore(project.id, [file]);
+        refreshCodeEditorView(project.id + "/" + file);
+    });
+    addSection("Deleted", changes.Deleted, async (file: string) => {
+        await ipcEditor.git.restore(project.id, [file]);
+        refreshFullFileTree();
+    });
 
     return container;
 }
@@ -404,7 +334,7 @@ function FilesList(files: string[], revert: (file: string) => Promise<void>) {
             });
 
             revertButton.onclick = () => {
-                revert(file).then(refreshView)
+                revert(file).then(refresh.status);
             };
 
             const buttonGroup = ButtonGroup([revertButton]);
