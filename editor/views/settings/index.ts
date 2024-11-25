@@ -11,6 +11,7 @@ import { createRefresheable } from "../../components/refresheable";
 import { ipcEditor } from "../../ipc";
 import { Project } from "../project";
 import { Version } from "./version";
+import { GitAuthentications } from "./git-authentications";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -26,7 +27,7 @@ export function Settings() {
     scrollable.append(
         Packages(),
         // Connectivity(),
-        // GitAuthentications(),
+        GitAuthentications(),
         Version()
     );
 
@@ -35,6 +36,7 @@ export function Settings() {
     });
 }
 
+let refreshPackageButton: ReturnType<typeof createRefresheable>["refresh"];
 function Packages() {
     const packages = document.createElement("div");
     packages.classList.add("packages");
@@ -44,12 +46,13 @@ function Packages() {
     `;
     const packageButton = createRefresheable(PackagesButton);
     packages.append(packageButton.element);
-    packageButton.refresh(packageButton.refresh);
+    refreshPackageButton = packageButton.refresh
+    packageButton.refresh();
 
     return packages;
 }
 
-async function PackagesButton(onFinished: () => void) {
+async function PackagesButton() {
     const packagesCount = (await ipcEditor.fs.readdir("node_modules")).length;
     const text = packagesCount + " package" + (packagesCount > 1 ? "s" : "");
     const button = Button({
@@ -62,7 +65,7 @@ async function PackagesButton(onFinished: () => void) {
             title: "Packages",
             createdDate: null
         });
-        view.ondestroy = onFinished;
+        view.ondestroy = refreshPackageButton;
     };
     button.id = PACKAGES_BUTTON_ID;
 

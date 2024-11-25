@@ -1,9 +1,15 @@
-import api from "../../api";
-import { CONFIG_TYPE, GitAuths } from "../../api/config/types";
+import { createElement } from "../../components/element";
 import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
+import { createRefresheable } from "../../components/refresheable";
+import { ipcEditor } from "../../ipc";
+import { CONFIG_TYPE, GitAuths } from "../../types";
 
+let gitAuthRefresh: ReturnType<typeof createRefresheable>["refresh"]
+const refreshGitAuthsList = () => {
+    gitAuthRefresh?.();
+}
 export function GitAuthentications() {
     const container = document.createElement("div");
     container.classList.add("git-authentications");
@@ -19,175 +25,186 @@ export function GitAuthentications() {
 
     top.append(addButton);
 
-    addButton.onclick = () => {
-        addButton.disabled = true;
-
-        const form = GitAuthForm("Add");
-
-        const remove = () => {
-            addButton.disabled = false;
-            form.form.remove();
-        };
-
-        form.cancelButton.onclick = remove;
-
-        form.form.onsubmit = (e) => {
-            e.preventDefault();
-            remove();
-            api.git
-                .saveGitAuth(form.hostnameInput.input.value, {
-                    username: form.usernameInput.input.value,
-                    email: form.emailInput.input.value,
-                    password: form.passwordInput.input.value
-                })
-                .then(reloadGitAuths);
-        };
-
-        top.insertAdjacentElement("afterend", form.form);
-    };
-
-    container.append(top);
-
-    let list: HTMLUListElement;
-    const reloadGitAuths = () => {
-        const updatedList = document.createElement("ul");
-
-        api.config.load(CONFIG_TYPE.GIT).then((gitAuths) => {
-            updatedList.append(
-                ...Object.entries(gitAuths).map(([hostname, gitAuth]) =>
-                    GitAuthItem({
-                        hostname,
-                        gitAuth,
-                        didUpdateOrDelete: reloadGitAuths
-                    })
-                )
-            );
-
-            list.replaceWith(updatedList);
-            list = updatedList;
-        });
-
-        if (!list) {
-            container.append(updatedList);
-            list = updatedList;
+    let create = false;
+    const renderForm = () => {
+        if (create) {
+            addButton.style.display = "none";
+            return GitAuthCreateForm((refreshList: boolean) => {
+                create = false;
+                createFormRefresheable.refresh();
+                if (refreshList) {
+                    gitAuthListRefresheable.refresh();
+                }
+            })
+        } else {
+            addButton.style.display = "flex";
+            return createElement("div");
         }
+    }
+
+    const createFormRefresheable = createRefresheable(renderForm)
+
+    addButton.onclick = () => {
+        create = true;
+        createFormRefresheable.refresh();
     };
-    reloadGitAuths();
+
+    container.append(top, createFormRefresheable.element);
+
+    const gitAuthListRefresheable = createRefresheable(GitAuthsList);
+    container.append(gitAuthListRefresheable.element);
+    gitAuthRefresh = gitAuthListRefresheable.refresh;
+    gitAuthRefresh();
 
     return container;
 }
 
-type GitAuthOpts = {
-    hostname: string;
-    gitAuth: GitAuths[""];
-    didUpdateOrDelete: () => void;
-};
+async function GitAuthsList() {
+    const container = createElement("ul");
 
-function GitAuthItem(opts: GitAuthOpts) {
-    const item = document.createElement("li");
+    const gitAuths = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+    const items = Object.entries(gitAuths).map(GitAuthItem);
 
-    const top = document.createElement("div");
+    container.append(...items);
 
-    top.innerHTML = `<div>${opts.hostname}</div>`;
+    return container;
+}
 
-    const optionsButton = Button({
-        style: "icon-small",
-        iconLeft: "Options"
-    });
+function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
+    const item = createElement("li");
 
-    optionsButton.onclick = () => {
-        const updateButton = Button({
-            text: "Update",
-            iconLeft: "Edit"
+    let update = false;
+
+    const renderInfos = () => {
+        const container = createElement("div");
+
+        const top = document.createElement("div");
+
+        top.innerHTML = `<div>${gitAuth[0]}</div>`;
+
+        const optionsButton = Button({
+            style: "icon-small",
+            iconLeft: "Options"
         });
 
-        updateButton.onclick = () => {
-            const form = GitAuthForm("Save");
+        optionsButton.onclick = () => {
+            const updateButton = Button({
+                text: "Update",
+                iconLeft: "Edit"
+            });
 
-            form.hostnameInput.input.value = opts.hostname;
-            form.usernameInput.input.value = opts.gitAuth.username;
-            form.emailInput.input.value = opts.gitAuth.email;
-
-            const passwordContainer = document.createElement("div");
-            passwordContainer.innerHTML = `
-                <div><label>Password</label></div>
-                <div>To change password, delete and re-create</div>
-            `;
-
-            form.passwordInput.container.replaceWith(passwordContainer);
-
-            form.cancelButton.onclick = opts.didUpdateOrDelete;
-
-            form.form.onsubmit = (e) => {
-                e.preventDefault();
-
-                if (form.hostnameInput.input.value !== opts.hostname) {
-                    api.git.deleteAuthForHost(opts.hostname);
-                }
-
-                api.git
-                    .saveGitAuth(form.hostnameInput.input.value, {
-                        username: form.usernameInput.input.value,
-                        email: form.emailInput.input.value,
-                        password: opts.gitAuth.password
-                    })
-                    .then(opts.didUpdateOrDelete);
+            updateButton.onclick = () => {
+                update = true;
+                refresheable.refresh()
             };
 
-            setTimeout(() => item.replaceWith(form.form), 1);
+            const deleteButton = Button({
+                text: "Delete",
+                color: "red",
+                iconLeft: "Trash"
+            });
+            deleteButton.onclick = async () => {
+                const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+                delete gitAuthConfigs[gitAuth[0]];
+                await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+                refreshGitAuthsList();
+            };
+
+            const buttonGroup = ButtonGroup([updateButton, deleteButton]);
+
+            Popover({
+                anchor: optionsButton,
+                content: buttonGroup,
+                align: {
+                    x: "right",
+                    y: "top"
+                }
+            });
         };
 
-        const deleteButton = Button({
-            text: "Delete",
-            color: "red",
-            iconLeft: "Trash"
-        });
-        deleteButton.onclick = () => {
-            api.git
-                .deleteAuthForHost(opts.hostname)
-                .then(opts.didUpdateOrDelete);
-        };
+        top.append(optionsButton);
+        container.append(top);
 
-        const buttonGroup = ButtonGroup([updateButton, deleteButton]);
+        const username = document.createElement("div");
+        username.innerHTML = `
+            <label>Username</label>
+            <div>${gitAuth[1].username || "-"}</div>
+        `;
 
-        Popover({
-            anchor: optionsButton,
-            content: buttonGroup,
-            align: {
-                x: "right",
-                y: "top"
-            }
-        });
-    };
-
-    top.append(optionsButton);
-    item.append(top);
-
-    const username = document.createElement("div");
-    username.innerHTML = `
-        <label>Username</label>
-        <div>${opts.gitAuth.username || "-"}</div>
-    `;
-
-    const email = document.createElement("div");
-    email.innerHTML = `
+        const email = document.createElement("div");
+        email.innerHTML = `
         <label>Email</label>
-        <div>${opts.gitAuth.email || "-"}</div>
+        <div>${gitAuth[1].email || "-"}</div>
     `;
 
-    const password = document.createElement("div");
-    password.innerHTML = `
+        const password = document.createElement("div");
+        password.innerHTML = `
         <label>Password</label>
         <div>********</div>
     `;
 
-    item.append(username, email, password);
+        container.append(username, email, password);
+
+        return container;
+
+    }
+
+    const renderForm = () => {
+        const formComponents = GitAuthForm("Update");
+
+        formComponents.cancelButton.onclick = () => {
+            update = false;
+            refresheable.refresh();
+        }
+
+        formComponents.hostnameInput.input.value = gitAuth[0];
+        formComponents.usernameInput.input.value = gitAuth[1].username;
+        formComponents.emailInput.input.value = gitAuth[1].email;
+
+        const noPasswordShown = createElement("div");
+        noPasswordShown.innerText = "To change password, delete and re-create"
+        formComponents.passwordInput.input.replaceWith(noPasswordShown);
+
+        formComponents.form.onsubmit = async e => {
+            e.preventDefault();
+
+            formComponents.submitButton.disabled = true;
+
+            const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+            gitAuthConfigs[formComponents.hostnameInput.input.value] = {
+                username: formComponents.usernameInput.input.value,
+                email: formComponents.emailInput.input.value,
+                password: gitAuth[1].password
+            }
+
+            if(formComponents.hostnameInput.input.value !== gitAuth[0]) {
+                delete gitAuthConfigs[gitAuth[0]];
+            }
+            
+            await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+            refreshGitAuthsList();
+        }
+
+        return formComponents.form;
+    }
+
+    const renderItem = () => {
+        if (update) {
+            return renderForm();
+        } else {
+            return renderInfos();
+        }
+    }
+
+    const refresheable = createRefresheable(renderItem);
+    item.append(refresheable.element)
+    refresheable.refresh();
 
     return item;
 }
 
 function GitAuthForm(submitLabel: string) {
-    const form = document.createElement("form");
+    const form = createElement("form");
 
     const hostnameInput = InputText({
         label: "Hostname"
@@ -232,4 +249,32 @@ function GitAuthForm(submitLabel: string) {
         submitButton,
         form
     };
+}
+
+function GitAuthCreateForm(close: (refreshList: boolean) => void) {
+    const formComponents = GitAuthForm("Add");
+
+    formComponents.cancelButton.onclick = () => close(false);
+
+    formComponents.form.onsubmit = async e => {
+        e.preventDefault();
+
+        if (!formComponents.hostnameInput.input.value) {
+            close(false);
+            return
+        }
+
+        formComponents.submitButton.disabled = true;
+
+        const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+        gitAuthConfigs[formComponents.hostnameInput.input.value] = {
+            username: formComponents.usernameInput.input.value,
+            password: formComponents.passwordInput.input.value,
+            email: formComponents.emailInput.input.value
+        }
+        await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs)
+        close(true);
+    }
+
+    return formComponents.form;
 }

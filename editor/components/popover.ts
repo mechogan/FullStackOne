@@ -51,7 +51,7 @@ export function Popover(opts: PopoverOpts) {
     const remove = () => {
         overlay.remove();
         container.remove();
-        unlockScroll(opts.anchor);
+        unlockScroll(lockedElements);
     };
 
     container.addEventListener("click", (e) => {
@@ -69,7 +69,7 @@ export function Popover(opts: PopoverOpts) {
         remove();
     };
 
-    lockScroll(opts.anchor);
+    let lockedElements = lockScroll(opts.anchor);
     opts.anchor.append(overlay, container);
 }
 
@@ -86,22 +86,23 @@ const lockedKeys = (e: KeyboardEvent) => {
     }
 };
 
-function lockScroll(el: HTMLElement) {
+function lockScroll(el: HTMLElement, lockedElements: HTMLElement[] = []) {
+    lockedElements.push(el)
     el.addEventListener("scroll", lockedScroll);
     el.addEventListener("wheel", lockedScroll);
     el.addEventListener("touchmove", lockedScroll);
     el.addEventListener("keydown", lockedKeys);
     if (el.parentElement) {
-        lockScroll(el.parentElement);
+        lockScroll(el.parentElement, lockedElements);
     }
+    return lockedElements
 }
 
-function unlockScroll(el: HTMLElement) {
-    el.removeEventListener("scroll", lockedScroll);
-    el.removeEventListener("wheel", lockedScroll);
-    el.removeEventListener("touchmove", lockedScroll);
-    el.removeEventListener("keydown", lockedKeys);
-    if (el.parentElement) {
-        unlockScroll(el.parentElement);
-    }
+function unlockScroll(els: HTMLElement[]) {
+    els.forEach(el => {
+        el.removeEventListener("scroll", lockedScroll);
+        el.removeEventListener("wheel", lockedScroll);
+        el.removeEventListener("touchmove", lockedScroll);
+        el.removeEventListener("keydown", lockedKeys);
+    })
 }

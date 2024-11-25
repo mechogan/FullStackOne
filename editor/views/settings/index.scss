@@ -133,28 +133,30 @@
             gap: spacing.$small;
 
             li {
-                background-color: colors.$gray-dark;
-                border: 1px solid colors.$gray;
-                padding: spacing.$small;
-                border-radius: spacing.$x-small;
-                display: flex;
-                flex-direction: column;
-                gap: spacing.$small;
-
-                > div:first-child {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-
-                    > button > .icon {
-                        color: colors.$light;
-                    }
-                }
-
-                > div:not(:first-child) {
+                > div {
+                    background-color: colors.$gray-dark;
+                    border: 1px solid colors.$gray;
+                    padding: spacing.$small;
+                    border-radius: spacing.$x-small;
                     display: flex;
                     flex-direction: column;
-                    gap: 3px;
+                    gap: spacing.$small;
+
+                    > div:first-child {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+    
+                        > button > .icon {
+                            color: colors.$light;
+                        }
+                    }
+    
+                    > div:not(:first-child) {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 3px;
+                    }
                 }
             }
         }
