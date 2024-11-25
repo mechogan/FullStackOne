@@ -1,4 +1,8 @@
-import { deserializeArgs, getLowestKeyIdAvailable, serializeArgs } from "../serialization";
+import {
+    deserializeArgs,
+    getLowestKeyIdAvailable,
+    serializeArgs
+} from "../serialization";
 import { ipc } from ".";
 import { FetchOptions, FetchResponse } from "../fullstacked";
 import { fromBase64 } from "../../editor/api/connectivity/cryptoUtils";
@@ -6,24 +10,25 @@ import { fromBase64 } from "../../editor/api/connectivity/cryptoUtils";
 const te = new TextEncoder();
 
 type Response = {
-    statusCode: number
-    statusMessage: string
-    headers: Record<string, string>
-    body: string | Uint8Array
-}
+    statusCode: number;
+    statusMessage: string;
+    headers: Record<string, string>;
+    body: string | Uint8Array;
+};
 
 const activeFetchRequest = new Map<number, (response: Response) => void>();
 let addedListener = false;
 function receivedResponse(base64Data: string) {
     const data = fromBase64(base64Data);
-    const [id, statusCode, statusMessage, headersStr, body] = deserializeArgs(data);
+    const [id, statusCode, statusMessage, headersStr, body] =
+        deserializeArgs(data);
     const fetchRequest = activeFetchRequest.get(id);
     fetchRequest({
         statusCode,
         statusMessage,
         headers: headersStr ? JSON.parse(headersStr) : {},
         body
-    })
+    });
     activeFetchRequest.delete(id);
 }
 
@@ -64,13 +69,13 @@ export function fetch(
         ])
     ]);
 
-    if(!addedListener) {
+    if (!addedListener) {
         addCoreMessageListener("fetch-response", receivedResponse);
         addedListener = true;
     }
 
     return new Promise<Response>((resolve) => {
-        activeFetchRequest.set(requestId, resolve)
+        activeFetchRequest.set(requestId, resolve);
         ipc.bridge(payload);
-    })
+    });
 }

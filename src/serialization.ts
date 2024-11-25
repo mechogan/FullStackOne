@@ -146,5 +146,5 @@ export function getLowestKeyIdAvailable(map: Map<number, any>) {
         if (requestId !== id) break;
         requestId++;
     }
-    return requestId
+    return requestId;
 }

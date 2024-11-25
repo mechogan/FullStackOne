@@ -144,7 +144,7 @@ function ProjectTile(project: ProjectType) {
         shareButton.onclick = async () => {
             const zipData = await ipcEditor.archive.zip(project);
             const blob = new Blob([zipData]);
-            const a = document.createElement('a');
+            const a = document.createElement("a");
             document.body.appendChild(a);
             const url = window.URL.createObjectURL(blob);
             a.href = url;
@@ -153,7 +153,7 @@ function ProjectTile(project: ProjectType) {
             setTimeout(() => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-            }, 0)
+            }, 0);
         };
 
         const projectSettingsButton = Button({

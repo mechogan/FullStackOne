@@ -55,6 +55,7 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 type inMemoryZipData struct {
 	data []byte
 }
+
 func (w *inMemoryZipData) Write(chunk []byte) (n int, err error) {
 	w.data = append(w.data, chunk...)
 	return len(chunk), nil
@@ -66,18 +67,18 @@ func Zip(directory string) []byte {
 
 	files, _ := fs.ReadDir(directory, true)
 
-	for _, f := range(files) {
-		if(strings.HasPrefix(f.Name, "data") || 
-		strings.HasPrefix(f.Name, ".build") || 
-		strings.HasPrefix(f.Name, ".git")) {
-			continue;
+	for _, f := range files {
+		if strings.HasPrefix(f.Name, "data") ||
+			strings.HasPrefix(f.Name, ".build") ||
+			strings.HasPrefix(f.Name, ".git") {
+			continue
 		}
 
 		if f.IsDir {
 			w.Create(f.Name + "/")
 		} else {
 			zipFile, _ := w.Create(f.Name)
-			data, _ := fs.ReadFile(path.Join(directory, f.Name));
+			data, _ := fs.ReadFile(path.Join(directory, f.Name))
 			zipFile.Write(data)
 		}
 	}
