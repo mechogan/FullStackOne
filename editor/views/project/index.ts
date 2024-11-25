@@ -173,7 +173,12 @@ function FileTreeAndEditor(project: ProjectType) {
 
 async function build(project: ProjectType) {
     Store.editor.codeEditor.clearAllBuildErrors();
-    await saveAllViews();
+
+    await Promise.all([
+        saveAllViews(),
+        ipcEditor.fs.rmdir(project.id + "/.build")
+    ]);
+
     const buildErrors = (
         await Promise.all([
             buildSASS(project),
@@ -262,7 +267,7 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
 let refreshBranchAndCommit: ReturnType<typeof createRefresheable>["refresh"];
 export const refreshGitWidgetBranchAndCommit = () => {
     refreshBranchAndCommit?.();
-}
+};
 function GitWidget(project: ProjectType) {
     const container = createElement("div");
     container.classList.add("git-widget");
@@ -324,7 +329,7 @@ function GitWidget(project: ProjectType) {
         removeCoreMessageListener("git-push", pushEvent);
     };
 
-    ipcEditor.git.pull(project.id);
+    ipcEditor.git.pull(project);
 
     return container;
 }

@@ -16,13 +16,13 @@ import { refreshFullFileTree } from "../file-tree";
 import { Branches } from "./branches";
 
 let branchView = false;
-let refreshMainView: () => void
+let refreshMainView: () => void;
 export const toggleCommitAndBranchView = () => {
     branchView = !branchView;
-    refreshMainView()
-}
+    refreshMainView();
+};
 
-export function Git(project: Project){
+export function Git(project: Project) {
     branchView = false;
 
     const container = createElement("div");
@@ -37,18 +37,22 @@ export function Git(project: Project){
     closeButton.onclick = () => remove();
 
     const renderCommitOrBranchView = () => {
-        if(branchView) {
+        if (branchView) {
             return Branches(project, closeButton);
         } else {
             return CommitView(project, closeButton);
         }
-    }
+    };
 
     const viewsRefresheable = createRefresheable(renderCommitOrBranchView);
     refreshMainView = viewsRefresheable.refresh;
     refreshMainView();
 
-    container.append(viewsRefresheable.element)
+    container.append(viewsRefresheable.element);
+
+    container.ondestroy = () => {
+        viewsRefresheable.element.destroy();
+    };
 }
 
 let refresh: {
@@ -96,7 +100,7 @@ function CommitView(project: Project, closeButton: HTMLButtonElement) {
         style: "icon-large",
         iconLeft: "Git Branch"
     });
-    branchButton.onclick = toggleCommitAndBranchView
+    branchButton.onclick = toggleCommitAndBranchView;
 
     top.append(Icon("Git"), repoInfosRefresheable.element, branchButton);
 
@@ -124,7 +128,7 @@ let changesPromise: Promise<{
     hasChanges: boolean;
 }>;
 
-function projectChanges(project: Project) {
+export function projectChanges(project: Project) {
     if (!changesPromise) {
         changesPromise = _projectChanges(project);
     }
@@ -175,10 +179,12 @@ async function CommitAndPushButtons(
 
     const hasAuthor = project.gitRepository?.name;
     if (!hasAuthor) {
-        container.prepend(Message({
-            style: "warning",
-            text: "No git user.name"
-        }));
+        container.prepend(
+            Message({
+                style: "warning",
+                text: "No git user.name"
+            })
+        );
         return container;
     }
 
@@ -189,43 +195,39 @@ async function CommitAndPushButtons(
     }
 
     let reacheable = false;
-    ipcEditor.git.fetch(project.id)
+    ipcEditor.git
+        .fetch(project)
         .then(() => {
             reacheable = true;
-            toggleButtonsDisabled()
+            toggleButtonsDisabled();
         })
         .catch(() => {
             const message = Message({
                 style: "warning",
                 text: "Remote is unreachable"
-            })
+            });
             form.append(message);
-        })
+        });
 
     const form = document.createElement("form");
 
     const commitMessageInput = InputText({
         label: "Commit Message"
-    })
+    });
 
     form.append(commitMessageInput.container);
 
     container.prepend(form);
 
-    form.onsubmit = async e => {
-        e.preventDefault();
-        await commit();
-    }
-
     const toggleButtonsDisabled = () => {
-        if(commitMessageInput.input.value) {
-            commitButton.disabled = false
-            pushButton.disabled = !reacheable
+        if (commitMessageInput.input.value) {
+            commitButton.disabled = false;
+            pushButton.disabled = !reacheable;
         } else {
-            commitButton.disabled = true
-            pushButton.disabled = true
+            commitButton.disabled = true;
+            pushButton.disabled = true;
         }
-    }
+    };
 
     commitMessageInput.input.onkeyup = toggleButtonsDisabled;
 
@@ -241,10 +243,25 @@ async function CommitAndPushButtons(
         refresh.status();
         refresh.commitAndPush();
         refreshGitWidgetBranchAndCommit();
-    }
+    };
+
+    const push = async () => {
+        pushButton.disabled = true;
+        await commit();
+        if (reacheable) {
+            ipcEditor.git.push(project);
+            closeButton.click();
+        }
+        pushButton.disabled = false;
+    };
 
     commitButton.onclick = commit;
-    
+    pushButton.onclick = push;
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        push();
+    };
+
     return container;
 }
 
@@ -271,22 +288,22 @@ function RepoInfos(project: Project) {
 
 function Author(project: Project) {
     const container = createElement("div");
-    container.classList.add("git-author")
-    
+    container.classList.add("git-author");
+
     let formView = false;
     const render = () => {
-        if(formView) {
+        if (formView) {
             return AuthorForm(project, () => {
                 formView = false;
-                refresheable.refresh()
+                refresheable.refresh();
             });
         } else {
             return AuthorInfos(project, () => {
                 formView = true;
-                refresheable.refresh()
+                refresheable.refresh();
             });
         }
-    }
+    };
 
     const refresheable = createRefresheable(render);
     refresheable.refresh();
@@ -295,7 +312,7 @@ function Author(project: Project) {
     return container;
 }
 
-function AuthorForm(project: Project, toggleView: () => void){
+function AuthorForm(project: Project, toggleView: () => void) {
     const form = createElement("form");
     form.classList.add("git-author-form");
 
@@ -359,7 +376,7 @@ function AuthorForm(project: Project, toggleView: () => void){
 
 function AuthorInfos(project: Project, toggleView: () => void) {
     const container = createElement("div");
-    container.classList.add("git-author-infos")
+    container.classList.add("git-author-infos");
 
     const editButton = Button({
         style: "icon-small",

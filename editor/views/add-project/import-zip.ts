@@ -8,6 +8,7 @@ import stackNavigation from "../../stack-navigation";
 import { ipcEditor } from "../../ipc";
 import slugify from "slugify";
 import { Store } from "../../store";
+import { CONFIG_TYPE } from "../../types";
 
 export function ImportZip() {
     const { container, scrollable } = ViewScrollable();
@@ -139,6 +140,19 @@ export async function createAndMoveProjectFromTmp(
         project.gitRepository = {
             url: defaultGitRepoUrl
         };
+    }
+
+    if (project.gitRepository?.url) {
+        const url = new URL(project.gitRepository.url);
+        const hostname = url.hostname;
+        const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+        const gitAuth = gitAuthConfigs[hostname];
+        if (gitAuth?.username) {
+            project.gitRepository.name = gitAuth.username;
+        }
+        if (gitAuth?.email) {
+            project.gitRepository.email = gitAuth.email;
+        }
     }
 
     consoleTerminal.logger(`Creating Project`);

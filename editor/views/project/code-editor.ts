@@ -82,7 +82,18 @@ export function saveAllViews() {
 export function refreshCodeEditorView(filePath: string) {
     const view = views.get(filePath);
     if (!view) return;
-    view.refresh();
+    return view.refresh();
+}
+
+export function refreshAllCodeEditorView() {
+    const promises = [];
+    for (const filePath of views.keys()) {
+        const maybePromise = refreshCodeEditorView(filePath);
+        if (maybePromise) {
+            promises.push(maybePromise);
+        }
+    }
+    return Promise.all(promises);
 }
 
 function createViews(filesPaths: Set<string>) {

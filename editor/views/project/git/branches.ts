@@ -1,4 +1,5 @@
-import { toggleCommitAndBranchView } from ".";
+import { projectChanges, toggleCommitAndBranchView } from ".";
+import { refreshGitWidgetBranchAndCommit } from "..";
 import { createElement } from "../../../components/element";
 import { Loader } from "../../../components/loader";
 import { Message } from "../../../components/message";
@@ -10,6 +11,9 @@ import { InputText } from "../../../components/primitives/inputs";
 import { createRefresheable } from "../../../components/refresheable";
 import { ipcEditor } from "../../../ipc";
 import { Project } from "../../../types";
+import { refreshAllCodeEditorView } from "../code-editor";
+
+let refreshBranches: ReturnType<typeof createRefresheable>["refresh"];
 
 export function Branches(project: Project, closeButton: HTMLButtonElement) {
     const container = createElement("div");
@@ -31,41 +35,38 @@ export function Branches(project: Project, closeButton: HTMLButtonElement) {
         iconLeft: "Plus"
     });
 
-    top.append(
-        backButton, 
-        title, 
-        createButton
-    );
+    top.append(backButton, title, createButton);
 
     let showCreateBranchForm = false;
 
     createButton.onclick = () => {
         showCreateBranchForm = true;
-        createBranchRefresheable.refresh()
+        createBranchRefresheable.refresh();
     };
-    
+
     const renderBranchForm = () => {
-        if(showCreateBranchForm) {
+        if (showCreateBranchForm) {
             createButton.style.display = "none";
             return CreateBranchForm(project, () => {
                 showCreateBranchForm = false;
                 createBranchRefresheable.refresh();
-            })
+            });
         } else {
             createButton.style.display = null;
             return createElement("div");
         }
-    }
+    };
 
-    const createBranchRefresheable = createRefresheable(renderBranchForm)
+    const createBranchRefresheable = createRefresheable(renderBranchForm);
     createBranchRefresheable.refresh();
 
-    const renderBranchesList = () => BranchesList(project)
+    const renderBranchesList = () => BranchesList(project);
     const branchesListRefresheable = createRefresheable(renderBranchesList);
-    branchesListRefresheable.refresh();
+    refreshBranches = branchesListRefresheable.refresh;
+    refreshBranches();
 
     container.append(
-        top, 
+        top,
         createBranchRefresheable.element,
         branchesListRefresheable.element,
         closeButton
@@ -78,32 +79,110 @@ async function BranchesList(project: Project) {
     const container = createElement("ul");
     container.classList.add("git-branch-list");
 
-    const [branches, head] = await Promise.all([
-        ipcEditor.git.branches(project.id),
-        ipcEditor.git.head(project.id)
-    ])
+    const [branches, head, { hasChanges }] = await Promise.all([
+        ipcEditor.git.branches(project),
+        ipcEditor.git.head(project.id),
+        projectChanges(project)
+    ]);
 
+    const checkoutButtons: HTMLButtonElement[] = [];
 
     const items = branches
-        .sort()
-        .map(branch => {
+        .sort((a, b) => (a.name < b.name ? -1 : 1))
+        .map((branch) => {
             const item = document.createElement("li");
 
-            const isCurrent = branch === head.Name;
-    
             const branchName = document.createElement("div");
-            branchName.innerText = branch;
+            branchName.innerText = branch.name;
             item.append(branchName);
 
+            const isCurrent = branch.name === head.Name;
+
+            if (isCurrent) {
+                const icon = Icon("Arrow 2");
+                item.prepend(icon);
+            } else if (!hasChanges) {
+                const checkoutButton = Button({
+                    style: "icon-small",
+                    iconLeft: "Arrow Corner"
+                });
+
+                checkoutButtons.push(checkoutButton);
+
+                checkoutButton.onclick = async () => {
+                    checkoutButton.replaceWith(Loader());
+                    checkoutButtons.forEach((button) => {
+                        button.replaceWith(document.createElement("div"));
+                    });
+
+                    await ipcEditor.git.checkout(project, branch.name, false);
+                    refreshGitWidgetBranchAndCommit();
+                    await refreshAllCodeEditorView();
+                    refreshBranches();
+                };
+
+                item.prepend(checkoutButton);
+            } else {
+                item.prepend(createElement("div"));
+            }
+
+            if (branch.local && !branch.remote) {
+                item.append(
+                    Badge({
+                        text: "local-only",
+                        type: "info"
+                    })
+                );
+            } else if (!branch.local && branch.remote) {
+                item.append(
+                    Badge({
+                        text: "remote-only"
+                    })
+                );
+            }
+
+            if (!isCurrent && branch.local) {
+                const deleteButton = Button({
+                    text: "Delete",
+                    iconLeft: "Trash",
+                    color: "red"
+                });
+
+                const optionsButton = Button({
+                    style: "icon-small",
+                    iconLeft: "Options"
+                });
+
+                deleteButton.onclick = async () => {
+                    await ipcEditor.git.branchDelete(project, branch.name);
+                    refreshBranches();
+                };
+
+                optionsButton.onclick = () => {
+                    Popover({
+                        anchor: optionsButton,
+                        content: ButtonGroup([deleteButton]),
+                        align: {
+                            x: "right",
+                            y: "center"
+                        }
+                    });
+                };
+
+                item.append(optionsButton);
+            } else {
+                item.append(createElement("div"));
+            }
+
             return item;
-        })
+        });
 
     container.append(...items);
 
     return container;
 }
 
-function CreateBranchForm(project: Project, cancel: () => void) {
+function CreateBranchForm(project: Project, close: () => void) {
     const form = createElement("form");
     form.classList.add("create-branch-form");
 
@@ -116,7 +195,7 @@ function CreateBranchForm(project: Project, cancel: () => void) {
         text: "Cancel"
     });
     cancelButton.type = "button";
-    cancelButton.onclick = cancel;
+    cancelButton.onclick = close;
 
     const createButton = Button({
         text: "Create"
@@ -125,8 +204,17 @@ function CreateBranchForm(project: Project, cancel: () => void) {
     const buttons = document.createElement("div");
     buttons.append(cancelButton, createButton);
 
-    form.onsubmit = (e) => {
+    form.onsubmit = async (e) => {
         e.preventDefault();
+
+        await ipcEditor.git.checkout(
+            project,
+            branchNameInput.input.value,
+            true
+        );
+        close();
+        refreshGitWidgetBranchAndCommit();
+        refreshBranches();
     };
 
     form.append(branchNameInput.container, buttons);

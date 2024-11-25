@@ -6,6 +6,7 @@ import (
 	setup "fullstacked/editor/src/setup"
 
 	git "github.com/go-git/go-git/v5"
+	gitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -167,46 +168,18 @@ func Status(directory string) []byte {
 	return serialize.SerializeString(jsonStr)
 }
 
-func Pull(directory string, username *string, password *string) []byte {
-	worktree, err := getWorktree(directory)
-
-	if err != nil {
-		return serialize.SerializeString(*err)
-	}
-
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
-		}
-	}
-
+func Pull(directory string, username *string, password *string) {
 	progress := GitProgress{
 		Name: "git-pull",
 	}
 
 	progress.Write([]byte("start"))
 
-	err2 := worktree.Pull(&git.PullOptions{
-		Auth:         auth,
-		Progress:     &progress,
-	})
-
-	progress.Write([]byte("done"))
-
-	if err2 != nil && err2.Error() != "already up-to-date" {
-		return serialize.SerializeString(*errorFmt(err2))
-	}
-
-	return nil
-}
-
-func Push(directory string, username *string, password *string) []byte {
-	repo, err := getRepo(directory)
+	worktree, err := getWorktree(directory)
 
 	if err != nil {
-		return serialize.SerializeString(*err)
+		progress.Write([]byte(*err))
+		return
 	}
 
 	auth := (*http.BasicAuth)(nil)
@@ -217,11 +190,47 @@ func Push(directory string, username *string, password *string) []byte {
 		}
 	}
 
+	err2 := worktree.AddGlob(".")
+	if err2 != nil {
+		progress.Write([]byte(*errorFmt(err2)))
+		return
+	}
+
+	err3 := worktree.Pull(&git.PullOptions{
+		Auth:         auth,
+		Progress:     &progress,
+		SingleBranch: true,
+	})
+
+	if err3 != nil && err3.Error() != "already up-to-date" {
+		progress.Write([]byte(*errorFmt(err2)))
+		return
+	}
+
+	progress.Write([]byte("done"))
+}
+
+func Push(directory string, username *string, password *string) {
 	progress := GitProgress{
 		Name: "git-push",
 	}
 
 	progress.Write([]byte("start"))
+
+	repo, err := getRepo(directory)
+
+	if err != nil {
+		progress.Write([]byte(*err))
+		return
+	}
+
+	auth := (*http.BasicAuth)(nil)
+	if username != nil && password != nil {
+		auth = &http.BasicAuth{
+			Username: *username,
+			Password: *password,
+		}
+	}
 
 	err2 := repo.Push(&git.PushOptions{
 		Auth: auth,
@@ -230,13 +239,12 @@ func Push(directory string, username *string, password *string) []byte {
 		},
 	})
 
-	progress.Write([]byte("done"))
-
 	if err2 != nil {
-		return serialize.SerializeString(*errorFmt(err2))
+		progress.Write([]byte(*errorFmt(err2)))
+		return
 	}
 
-	return nil
+	progress.Write([]byte("done"))
 }
 
 func Restore(directory string, files []string) []byte {
@@ -262,7 +270,7 @@ func Restore(directory string, files []string) []byte {
 func Fetch(directory string, username *string, password *string) []byte {
 	repo, err := getRepo(directory)
 
-	if(err != nil) {
+	if err != nil {
 		return serialize.SerializeString(*err)
 	}
 
@@ -278,7 +286,7 @@ func Fetch(directory string, username *string, password *string) []byte {
 		Auth: auth,
 	})
 
-	if(err2 != nil && err2.Error() != "already up-to-date") {
+	if err2 != nil && err2.Error() != "already up-to-date" {
 		return serialize.SerializeString(*errorFmt(err2))
 	}
 
@@ -288,62 +296,228 @@ func Fetch(directory string, username *string, password *string) []byte {
 func Commit(directory string, commitMessage string, authorName string, authorEmail string) []byte {
 	worktree, err := getWorktree(directory)
 
-	if(err != nil) {
+	if err != nil {
 		return serialize.SerializeString(*err)
 	}
-
 
 	_, err2 := worktree.Commit(commitMessage, &git.CommitOptions{
 		All: true,
 		Author: &object.Signature{
-			Name: authorName,
+			Name:  authorName,
 			Email: authorEmail,
 		},
 	})
 
-	if(err2 != nil) {
+	if err2 != nil {
 		return serialize.SerializeString(*errorFmt(err2))
 	}
 
 	return nil
 }
 
-func Branches(directory string) []byte {
+func getRemoteBranches(directory string, username *string, password *string) ([]plumbing.Reference, *string) {
 	repo, err := getRepo(directory)
 
-	if(err != nil) {
+	if err != nil {
+		return nil, err
+	}
+
+	remote, err2 := repo.Remote("origin")
+
+	if err2 != nil {
+		return nil, errorFmt(err2)
+	}
+
+	auth := (*http.BasicAuth)(nil)
+	if username != nil && password != nil {
+		auth = &http.BasicAuth{
+			Username: *username,
+			Password: *password,
+		}
+	}
+
+	remoteRefs, err3 := remote.List(&git.ListOptions{
+		Auth: auth,
+	})
+
+	if err3 != nil {
+		return nil, errorFmt(err3)
+	}
+
+	remoteBranches := []plumbing.Reference{}
+	for _, r := range remoteRefs {
+		if r.Name().IsBranch() {
+			remoteBranches = append(remoteBranches, *r)
+		}
+	}
+
+	return remoteBranches, nil
+}
+
+type Branch struct {
+	Name   string
+	Local  bool
+	Remote bool
+}
+
+func Branches(directory string, username *string, password *string) []byte {
+	repo, err := getRepo(directory)
+
+	if err != nil {
 		return serialize.SerializeString(*err)
 	}
 
-	branches, err2 := repo.Branches()
+	remoteBranches, err := getRemoteBranches(directory, username, password)
 
-	if(err2 != nil) {
+	if err != nil {
+		return serialize.SerializeString(*err)
+	}
+
+	branches := []Branch{}
+
+	for _, r := range remoteBranches {
+		branches = append(branches, Branch{
+			Name:   r.Name().Short(),
+			Remote: true,
+			Local:  false,
+		})
+	}
+
+	localRefs, err2 := repo.Branches()
+	if err2 != nil {
 		return serialize.SerializeString(*errorFmt(err2))
 	}
 
-	branchesSerialized := []byte{}
+	localRefs.ForEach(func(r *plumbing.Reference) error {
+		for i := range branches {
+			if branches[i].Name == r.Name().Short() {
+				branches[i].Local = true
+				return nil
+			}
+		}
 
-	branches.ForEach(func(r *plumbing.Reference) error {
-		branchesSerialized = append(branchesSerialized, serialize.SerializeString(string(r.Name().Short()))...)
+		branches = append(branches, Branch{
+			Name:   r.Name().Short(),
+			Remote: false,
+			Local:  true,
+		})
 		return nil
 	})
+
+	branchesSerialized := []byte{}
+
+	for _, b := range branches {
+		branchesSerialized = append(branchesSerialized, serialize.SerializeString(b.Name)...)
+		branchesSerialized = append(branchesSerialized, serialize.SerializeBoolean(b.Remote)...)
+		branchesSerialized = append(branchesSerialized, serialize.SerializeBoolean(b.Local)...)
+	}
 
 	return branchesSerialized
 }
 
-func Checkout(directory string, branch string, create bool) []byte {
-	worktree, err := getWorktree(directory)
+func Checkout(
+	directory string,
+	branch string,
+	create bool,
+	username *string,
+	password *string,
+) []byte {
+	branchRefName := (*plumbing.ReferenceName)(nil)
 
-	if(err != nil) {
+	repo, err := getRepo(directory)
+
+	if err != nil {
 		return serialize.SerializeString(*err)
 	}
 
-	err2 := worktree.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branch),
+	localBranches, err2 := repo.Branches()
+
+	if err2 != nil {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	localBranches.ForEach(func(r *plumbing.Reference) error {
+		if r.Name().Short() == branch {
+			rName := r.Name()
+			branchRefName = &rName
+		}
+		return nil
+	})
+
+	remoteBranches, err := getRemoteBranches(directory, username, password)
+
+	if err != nil {
+		return serialize.SerializeString(*err)
+	}
+
+	refOnRemote := false
+	for _, r := range remoteBranches {
+		if r.Name().IsBranch() && r.Name().Short() == branch {
+			rName := r.Name()
+			branchRefName = &rName
+			refOnRemote = true
+			break
+		}
+	}
+
+	if refOnRemote {
+		auth := (*http.BasicAuth)(nil)
+		if username != nil && password != nil {
+			auth = &http.BasicAuth{
+				Username: *username,
+				Password: *password,
+			}
+		}
+
+		remote, err2 := repo.Remote("origin")
+
+		if err2 != nil {
+			return serialize.SerializeString(*errorFmt(err2))
+		}
+
+		err2 = remote.Fetch(&git.FetchOptions{
+			Auth:     auth,
+			RefSpecs: []gitConfig.RefSpec{gitConfig.RefSpec(branchRefName.String() + ":" + branchRefName.String())},
+		})
+
+		if err2 != nil && err2.Error() != "already up-to-date" {
+			return serialize.SerializeString(*errorFmt(err2))
+		}
+	}
+
+	worktree, err := getWorktree(directory)
+
+	if err != nil {
+		return serialize.SerializeString(*err)
+	}
+
+	if branchRefName == nil {
+		rName := plumbing.NewBranchReferenceName(branch)
+		branchRefName = &rName
+	}
+
+	err2 = worktree.Checkout(&git.CheckoutOptions{
+		Branch: *branchRefName,
 		Create: create,
 	})
 
-	if(err2 != nil) {
+	if err2 != nil {
+		return serialize.SerializeString(*errorFmt(err2))
+	}
+
+	return nil
+}
+
+func BranchDelete(directory string, branch string) []byte {
+	repo, err := getRepo(directory)
+
+	if err != nil {
+		return serialize.SerializeString(*err)
+	}
+
+	err2 := repo.Storer.RemoveReference(plumbing.NewBranchReferenceName(branch))
+
+	if err2 != nil {
 		return serialize.SerializeString(*errorFmt(err2))
 	}
 

@@ -15,9 +15,12 @@ export function createRefresheable<
             refresheable.element.destroy();
             const updatedElement = elementRenderer(...newArgs);
             if (updatedElement instanceof Promise) {
-                updatedElement.then((e) => {
-                    refresheable.element.replaceWith(e);
-                    refresheable.element = e;
+                return new Promise<void>((resolve) => {
+                    updatedElement.then((e) => {
+                        refresheable.element.replaceWith(e);
+                        refresheable.element = e;
+                        resolve();
+                    });
                 });
             } else {
                 refresheable.element.replaceWith(updatedElement);

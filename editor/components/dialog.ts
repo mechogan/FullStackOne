@@ -17,7 +17,7 @@ export function Dialog(content: ElementComponent) {
 
     return {
         remove: () => {
-            content?.destroy();
+            content?.destroy?.();
             stackNavigation.lock = false;
             overlay.remove();
         }

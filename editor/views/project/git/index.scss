@@ -130,7 +130,6 @@
         .message {
             justify-content: flex-end;
         }
-        
     }
 }
 
@@ -146,59 +145,49 @@
     }
 
     .git-branch-list {
-        .message {
-            padding-top: spacing.$small;
-        }
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
 
-        .message + ul {
-            padding-top: spacing.$small;
-        }
+        padding: spacing.$medium 0;
 
-        ul {
+        li {
+            background-color: colors.$gray-dark;
+            border: 1px solid colors.$gray;
+
             display: flex;
-            flex-direction: column;
-            gap: spacing.$small;
+            align-items: center;
+            justify-content: space-between;
+            gap: spacing.$x-small;
+            border-radius: spacing.$x-small;
 
-            padding: spacing.$medium 0;
+            padding: spacing.$small;
 
-            li {
-                background-color: colors.$gray-dark;
-                border: 1px solid colors.$gray;
+            > div:first-child {
+                height: 24px;
+                width: 24px;
 
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                gap: spacing.$x-small;
-                border-radius: spacing.$x-small;
+                justify-content: center;
 
-                padding: spacing.$small;
-
-                > div:first-child {
-                    height: 24px;
-                    width: 24px;
-
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-
-                    > svg {
-                        height: 20px;
-                        width: 20px;
-                    }
+                > svg {
+                    height: 20px;
+                    width: 20px;
                 }
+            }
 
-                > div:nth-child(2) {
-                    flex: 1;
-                }
+            > div:nth-child(2) {
+                flex: 1;
+            }
 
-                > div:nth-child(4) {
-                    height: 24px;
-                    width: 24px;
-                }
+            > div:nth-child(4) {
+                height: 24px;
+                width: 24px;
+            }
 
-                > button:last-child {
-                    color: colors.$light;
-                }
+            > button:last-child {
+                color: colors.$light;
             }
         }
     }

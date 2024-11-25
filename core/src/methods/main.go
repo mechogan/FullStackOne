@@ -45,15 +45,17 @@ const (
 
 	PACKAGES_INSTALL = 60
 
-	GIT_CLONE    = 70
-	GIT_HEAD     = 71
-	GIT_STATUS   = 72
-	GIT_PULL     = 73
-	GIT_RESTORE  = 74
-	GIT_CHECKOUT = 75
-	GIT_FETCH	 = 76
-	GIT_COMMIT	 = 77
-	GIT_BRANCHES = 78
+	GIT_CLONE         = 70
+	GIT_HEAD          = 71
+	GIT_STATUS        = 72
+	GIT_PULL          = 73
+	GIT_RESTORE       = 74
+	GIT_CHECKOUT      = 75
+	GIT_FETCH         = 76
+	GIT_COMMIT        = 77
+	GIT_BRANCHES      = 78
+	GIT_PUSH          = 79
+	GIT_BRANCH_DELETE = 80
 
 	OPEN = 100
 )
@@ -179,7 +181,7 @@ func gitSwitch(method int, args []any) []byte {
 
 	switch method {
 	case GIT_CLONE:
-		if len(args) > 2 {
+		if len(args) > 2 && args[2] != nil && args[3] != nil {
 			username := args[2].(string)
 			password := args[3].(string)
 			go git.Clone(directory, args[1].(string), &username, &password)
@@ -191,13 +193,21 @@ func gitSwitch(method int, args []any) []byte {
 	case GIT_STATUS:
 		return git.Status(directory)
 	case GIT_PULL:
-		if len(args) > 1 {
+		if len(args) > 1 && args[1] != nil && args[2] != nil {
 			username := args[1].(string)
 			password := args[2].(string)
-			return git.Pull(directory, &username, &password)
+			go git.Pull(directory, &username, &password)
+		} else {
+			go git.Pull(directory, nil, nil)
 		}
-
-		return git.Pull(directory, nil, nil)
+	case GIT_PUSH:
+		if len(args) > 1 && args[1] != nil && args[2] != nil {
+			username := args[1].(string)
+			password := args[2].(string)
+			go git.Push(directory, &username, &password)
+		} else {
+			go git.Push(directory, nil, nil)
+		}
 	case GIT_RESTORE:
 		files := []string{}
 		for _, file := range args[1:] {
@@ -205,9 +215,15 @@ func gitSwitch(method int, args []any) []byte {
 		}
 		return git.Restore(directory, files)
 	case GIT_CHECKOUT:
-		return git.Checkout(directory, args[1].(string), args[2].(bool))
+		if len(args) > 3 && args[3] != nil && args[4] != nil {
+			username := args[3].(string)
+			password := args[4].(string)
+			return git.Checkout(directory, args[1].(string), args[2].(bool), &username, &password)
+		}
+
+		return git.Checkout(directory, args[1].(string), args[2].(bool), nil, nil)
 	case GIT_FETCH:
-		if len(args) > 1 {
+		if len(args) > 1 && args[1] != nil && args[2] != nil {
 			username := args[1].(string)
 			password := args[2].(string)
 			return git.Fetch(directory, &username, &password)
@@ -217,7 +233,15 @@ func gitSwitch(method int, args []any) []byte {
 	case GIT_COMMIT:
 		return git.Commit(directory, args[1].(string), args[2].(string), args[3].(string))
 	case GIT_BRANCHES:
-		return git.Branches(directory)
+		if len(args) > 1 && args[1] != nil && args[2] != nil {
+			username := args[1].(string)
+			password := args[2].(string)
+			return git.Branches(directory, &username, &password)
+		}
+
+		return git.Branches(directory, nil, nil)
+	case GIT_BRANCH_DELETE:
+		return git.BranchDelete(directory, args[1].(string))
 	}
 
 	return nil

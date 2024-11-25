@@ -1,29 +1,21 @@
-import { text } from "stream/consumers";
-import { GitAuths } from "../../../../api/config/types";
 import { Dialog } from "../../../../components/dialog";
 import { InputText } from "../../../../components/primitives/inputs";
 import { GitHubDeviceFlow } from "./github";
 import { Button } from "../../../../components/primitives/button";
+import { createElement } from "../../../../components/element";
+import { ipcEditor } from "../../../../ipc";
+import { CONFIG_TYPE } from "../../../../types";
 
-type GitAuthOpts = {
-    hostname: string;
-    didSubmit: (credentials: GitAuths[""]) => void;
-    didCancel: () => void;
-};
-
-export function GitAuth(opts: GitAuthOpts) {
-    if (opts.hostname === "github.com") {
-        return GitHubDeviceFlow({
-            didCancel: opts.didCancel,
-            onSuccess: opts.didSubmit
-        });
+export function GitAuth(hostname: string): Promise<boolean> {
+    if (hostname === "github.com") {
+        return GitHubDeviceFlow();
     }
 
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("git-auth");
 
     container.innerHTML = `<h3>Git Authentication</h3>
-    <p>Authenticate for <b>${opts.hostname}</b></p>`;
+    <p>Authenticate for <b>${hostname}</b></p>`;
 
     const form = document.createElement("form");
 
@@ -46,10 +38,6 @@ export function GitAuth(opts: GitAuthOpts) {
         style: "text"
     });
     cancelButton.type = "button";
-    cancelButton.onclick = () => {
-        opts.didCancel();
-        remove();
-    };
 
     const authButton = Button({
         text: "Authenticate"
@@ -62,17 +50,31 @@ export function GitAuth(opts: GitAuthOpts) {
         buttons
     );
 
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        opts.didSubmit({
-            username: usernameInput.input.value,
-            email: emailInput.input.value,
-            password: passwordInput.input.value
-        });
-        remove();
-    };
-
     container.append(form);
 
     const { remove } = Dialog(container);
+
+    return new Promise<boolean>((resolve) => {
+        cancelButton.onclick = () => {
+            resolve(false);
+            remove();
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+
+            authButton.disabled = true;
+
+            const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+            gitAuthConfigs[hostname] = {
+                username: usernameInput.input.value,
+                email: emailInput.input.value,
+                password: passwordInput.input.value
+            };
+            await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+
+            resolve(true);
+            remove();
+        };
+    });
 }
