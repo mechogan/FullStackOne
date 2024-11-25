@@ -9,7 +9,7 @@ enum DataType {
     UINT8ARRAY = 4
 }
 
-function serializeNumber(n: number) {
+function serializeNumber(n) {
     const view = new DataView(new ArrayBuffer(8));
     view.setFloat64(0, n);
     return new Uint8Array(view.buffer);
@@ -18,7 +18,7 @@ function serializeNumber(n: number) {
 function deserializeNumber(bytes: Uint8Array) {
     const buffer = new ArrayBuffer(8);
     new Uint8Array(buffer).set(bytes);
-    return new DataView(buffer).getFloat64(0, false);
+    return new DataView(buffer).getFloat64(0);
 }
 
 export function numberTo4Bytes(n: number) {
@@ -137,4 +137,14 @@ export function convertArrayToObject(arr: any[]) {
         obj[arr[i]] = arr[i + 1];
     }
     return obj;
+}
+
+export function getLowestKeyIdAvailable(map: Map<number, any>) {
+    const currentIds = Array.from(map.keys()).sort((a, b) => a - b);
+    let requestId = 0;
+    for (const id of currentIds) {
+        if (requestId !== id) break;
+        requestId++;
+    }
+    return requestId
 }

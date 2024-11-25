@@ -8,8 +8,9 @@
 @preconcurrency import WebKit
 
 let platform = "ios"
+let downloadDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first! + "/downloads";
 
-class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
+class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownloadDelegate {
     public let requestHandler: RequestHandler
     
     init(instance: Instance) {
@@ -46,7 +47,9 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
     }
         
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if navigationAction.navigationType == .linkActivated  {
+        if(navigationAction.shouldPerformDownload) {
+            decisionHandler(.download)
+        }else if navigationAction.navigationType == .linkActivated  {
             if let url = navigationAction.request.url, "localhost" != url.host, UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
                 decisionHandler(.cancel)
@@ -71,6 +74,30 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler {
         DispatchQueue.main.async() {
             self.evaluateJavaScript("window.oncoremessage(`\(messageType)`,`\(message)`)")
         }
+    }
+    
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+        
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+    
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor @Sendable (URL?) -> Void) {
+        try! FileManager.default.createDirectory(at: URL(fileURLWithPath: downloadDirectory), withIntermediateDirectories: true)
+        let downloadPath = downloadDirectory + "/" + suggestedFilename
+        
+        if(FileManager.default.fileExists(atPath: downloadPath)) {
+            try! FileManager.default.removeItem(atPath: downloadPath)
+        }
+        
+        let url = URL(fileURLWithPath: downloadPath)
+        completionHandler(url)
+    }
+    
+    func downloadDidFinish(_ download: WKDownload) {
+        UIApplication.shared.open(URL(string: "shareddocuments://" + downloadDirectory)!)
     }
 }
 

@@ -2,22 +2,25 @@ package fetch
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	serialize "fullstacked/editor/src/serialize"
+	"fullstacked/editor/src/setup"
 	"io"
 	"net/http"
 	"time"
 )
 
 func FetchSerialized(
+	projectId string,
+	id int,
 	method string,
 	url string,
 	headers *map[string]string,
 	body []byte,
 	timeout int,
 	asString bool,
-) []byte {
-
+) {
 	requestBody := (io.Reader)(http.NoBody)
 	if len(body) > 0 {
 		requestBody = bytes.NewReader(body)
@@ -46,6 +49,7 @@ func FetchSerialized(
 
 	bytes := []byte{}
 
+	bytes = append(bytes, serialize.SerializeNumber(float64(id))...)
 	bytes = append(bytes, serialize.SerializeNumber(float64(response.StatusCode))...)
 	bytes = append(bytes, serialize.SerializeString(response.Status)...)
 	bytes = append(bytes, serialize.SerializeString(string(headersJSON))...)
@@ -56,5 +60,5 @@ func FetchSerialized(
 		bytes = append(bytes, serialize.SerializeBuffer(responseBody)...)
 	}
 
-	return bytes
+	setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 }

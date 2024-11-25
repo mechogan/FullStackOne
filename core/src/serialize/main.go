@@ -65,7 +65,7 @@ func SerializeBuffer(buffer []byte) []byte {
 }
 
 func DeserializeNumber(bytes []byte) float64 {
-	bits := binary.LittleEndian.Uint64(bytes)
+	bits := binary.BigEndian.Uint64(bytes)
 	float := math.Float64frombits(bits)
 	return float
 }

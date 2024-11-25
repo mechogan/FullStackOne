@@ -3,6 +3,7 @@ import type { ipc } from "../ipc";
 import {
     bytesToNumber,
     deserializeArgs,
+    getLowestKeyIdAvailable,
     numberTo4Bytes
 } from "../serialization";
 
@@ -12,12 +13,7 @@ export const BridgeWindows: typeof ipc.bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
-    const currentIds = Array.from(requests.keys()).sort((a, b) => a - b);
-    let requestId = 0;
-    for (const id of currentIds) {
-        if (requestId !== id) break;
-        requestId++;
-    }
+    const requestId = getLowestKeyIdAvailable(requests);
 
     requests.set(requestId, null);
 

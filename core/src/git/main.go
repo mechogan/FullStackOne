@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
-
+	
 	git "github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -203,7 +203,7 @@ func Pull(directory string, username *string, password *string) {
 	})
 
 	if err3 != nil && err3.Error() != "already up-to-date" {
-		progress.Write([]byte(*errorFmt(err2)))
+		progress.Write([]byte(*errorFmt(err3)))
 		return
 	}
 
