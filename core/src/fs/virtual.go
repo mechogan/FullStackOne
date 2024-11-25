@@ -24,7 +24,7 @@ func vReadFile(path string) ([]byte, error) {
 }
 
 func vWriteFile(path string, data []byte) error {
-	path = strings.TrimLeft(path, "/")
+	path = strings.TrimPrefix(path, "/")
 
 	VirtFS[path] = data
 	return nil
@@ -36,7 +36,10 @@ func vUnlink(path string) error {
 }
 
 func vMkdir(path string) error {
-	path = strings.TrimSuffix(path, "/")
+	path = strings.TrimSpace(path)
+	for string(path[len(path)-1]) == "/" {
+		path = strings.Trim(path, "/")
+	}
 
 	pathComponents := strings.Split(path, "/")
 	for i := range pathComponents {

@@ -2,7 +2,6 @@ package methods
 
 import (
 	"encoding/json"
-	"fmt"
 	"path"
 
 	archive "fullstacked/editor/src/archive"
@@ -91,7 +90,6 @@ func Call(payload []byte) []byte {
 			_ = json.Unmarshal([]byte(args[3].(string)), &headers)
 		}
 
-		fmt.Println(args[0].(float64))
 		go fetch.FetchSerialized(
 			projectId,
 			int(args[0].(float64)),

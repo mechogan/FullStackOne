@@ -1,3 +1,4 @@
+import { Platform } from "../../../src/fullstacked";
 import { Button } from "../../components/primitives/button";
 import { TopBar } from "../../components/top-bar";
 import { BG_COLOR, IMPORT_ZIP_ID } from "../../constants";
@@ -26,6 +27,7 @@ export function AddProject() {
         iconLeft: "Git"
     });
     cloneGitButton.onclick = CloneGit;
+    cloneGitButton.disabled = platform === Platform.WASM;
 
     const importZipButton = Button({
         text: "Import zip",

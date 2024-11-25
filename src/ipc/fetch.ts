@@ -16,19 +16,31 @@ type Response = {
     body: string | Uint8Array;
 };
 
-const activeFetchRequest = new Map<number, (response: Response) => void>();
+const activeFetchRequest = new Map<
+    number,
+    {
+        resolve: (response: Response) => void;
+        reject: (error: string) => void;
+    }
+>();
 let addedListener = false;
 function receivedResponse(base64Data: string) {
     const data = fromBase64(base64Data);
     const [id, statusCode, statusMessage, headersStr, body] =
         deserializeArgs(data);
     const fetchRequest = activeFetchRequest.get(id);
-    fetchRequest({
-        statusCode,
-        statusMessage,
-        headers: headersStr ? JSON.parse(headersStr) : {},
-        body
-    });
+
+    if (statusCode >= 400) {
+        fetchRequest.reject(body);
+    } else {
+        fetchRequest.resolve({
+            statusCode,
+            statusMessage,
+            headers: headersStr ? JSON.parse(headersStr) : {},
+            body
+        });
+    }
+
     activeFetchRequest.delete(id);
 }
 
@@ -74,8 +86,11 @@ export function fetch(
         addedListener = true;
     }
 
-    return new Promise<Response>((resolve) => {
-        activeFetchRequest.set(requestId, resolve);
+    return new Promise<Response>((resolve, reject) => {
+        activeFetchRequest.set(requestId, {
+            resolve,
+            reject
+        });
         ipc.bridge(payload);
     });
 }

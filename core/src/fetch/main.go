@@ -39,15 +39,21 @@ func FetchSerialized(
 	client.Timeout = time.Duration(timeout) * time.Second
 
 	response, err := client.Do(request)
+	bytes := []byte{}
 	if err != nil {
+		bytes = append(bytes, serialize.SerializeNumber(float64(id))...)
+		bytes = append(bytes, serialize.SerializeNumber(float64(500))...)
+		bytes = append(bytes, serialize.SerializeString("Failed fecth")...)
+		bytes = append(bytes, serialize.SerializeString("{}")...)
+		bytes = append(bytes, serialize.SerializeString(err.Error())...)
 
+		setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
+		return
 	}
 	defer response.Body.Close()
 
 	headersJSON, _ := json.Marshal(response.Header)
 	responseBody, _ := io.ReadAll(response.Body)
-
-	bytes := []byte{}
 
 	bytes = append(bytes, serialize.SerializeNumber(float64(id))...)
 	bytes = append(bytes, serialize.SerializeNumber(float64(response.StatusCode))...)

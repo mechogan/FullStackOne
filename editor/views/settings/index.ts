@@ -12,6 +12,7 @@ import { ipcEditor } from "../../ipc";
 import { Project } from "../project";
 import { Version } from "./version";
 import { GitAuthentications } from "./git-authentications";
+import { Platform } from "../../../src/fullstacked";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -24,12 +25,13 @@ export function Settings() {
 
     container.prepend(topBar);
 
-    scrollable.append(
-        Packages(),
-        // Connectivity(),
-        GitAuthentications(),
-        Version()
-    );
+    scrollable.append(Packages());
+
+    if (platform !== Platform.WASM) {
+        scrollable.append(GitAuthentications());
+    }
+
+    scrollable.append(Version());
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR

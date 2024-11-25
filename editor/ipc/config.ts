@@ -8,12 +8,15 @@ export const config = {
 };
 
 function get<T extends CONFIG_TYPE>(
-    configType: T
+    configType: T,
+    checkExists: boolean = false
 ): Promise<CONFIG_DATA_TYPE[T]> {
     const payload = new Uint8Array([50, ...serializeArgs([configType])]);
 
     const transformer = ([string]) => {
-        if (!string) return {};
+        if (!string) {
+            return checkExists ? null : {};
+        }
 
         // MIGRATION 0.9.0 -> 0.10.0 | 08-10-2024
         // no array at json root
