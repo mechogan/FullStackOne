@@ -46,7 +46,7 @@ function Packages() {
     `;
     const packageButton = createRefresheable(PackagesButton);
     packages.append(packageButton.element);
-    refreshPackageButton = packageButton.refresh
+    refreshPackageButton = packageButton.refresh;
     packageButton.refresh();
 
     return packages;

@@ -6,10 +6,10 @@ import { createRefresheable } from "../../components/refresheable";
 import { ipcEditor } from "../../ipc";
 import { CONFIG_TYPE, GitAuths } from "../../types";
 
-let gitAuthRefresh: ReturnType<typeof createRefresheable>["refresh"]
+let gitAuthRefresh: ReturnType<typeof createRefresheable>["refresh"];
 const refreshGitAuthsList = () => {
     gitAuthRefresh?.();
-}
+};
 export function GitAuthentications() {
     const container = document.createElement("div");
     container.classList.add("git-authentications");
@@ -35,14 +35,14 @@ export function GitAuthentications() {
                 if (refreshList) {
                     gitAuthListRefresheable.refresh();
                 }
-            })
+            });
         } else {
             addButton.style.display = "flex";
             return createElement("div");
         }
-    }
+    };
 
-    const createFormRefresheable = createRefresheable(renderForm)
+    const createFormRefresheable = createRefresheable(renderForm);
 
     addButton.onclick = () => {
         create = true;
@@ -95,7 +95,7 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
 
             updateButton.onclick = () => {
                 update = true;
-                refresheable.refresh()
+                refresheable.refresh();
             };
 
             const deleteButton = Button({
@@ -104,7 +104,9 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 iconLeft: "Trash"
             });
             deleteButton.onclick = async () => {
-                const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+                const gitAuthConfigs = await ipcEditor.config.get(
+                    CONFIG_TYPE.GIT
+                );
                 delete gitAuthConfigs[gitAuth[0]];
                 await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
                 refreshGitAuthsList();
@@ -146,8 +148,7 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
         container.append(username, email, password);
 
         return container;
-
-    }
+    };
 
     const renderForm = () => {
         const formComponents = GitAuthForm("Update");
@@ -155,17 +156,17 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
         formComponents.cancelButton.onclick = () => {
             update = false;
             refresheable.refresh();
-        }
+        };
 
         formComponents.hostnameInput.input.value = gitAuth[0];
         formComponents.usernameInput.input.value = gitAuth[1].username;
         formComponents.emailInput.input.value = gitAuth[1].email;
 
         const noPasswordShown = createElement("div");
-        noPasswordShown.innerText = "To change password, delete and re-create"
+        noPasswordShown.innerText = "To change password, delete and re-create";
         formComponents.passwordInput.input.replaceWith(noPasswordShown);
 
-        formComponents.form.onsubmit = async e => {
+        formComponents.form.onsubmit = async (e) => {
             e.preventDefault();
 
             formComponents.submitButton.disabled = true;
@@ -175,18 +176,18 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 username: formComponents.usernameInput.input.value,
                 email: formComponents.emailInput.input.value,
                 password: gitAuth[1].password
-            }
+            };
 
-            if(formComponents.hostnameInput.input.value !== gitAuth[0]) {
+            if (formComponents.hostnameInput.input.value !== gitAuth[0]) {
                 delete gitAuthConfigs[gitAuth[0]];
             }
-            
+
             await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
             refreshGitAuthsList();
-        }
+        };
 
         return formComponents.form;
-    }
+    };
 
     const renderItem = () => {
         if (update) {
@@ -194,10 +195,10 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
         } else {
             return renderInfos();
         }
-    }
+    };
 
     const refresheable = createRefresheable(renderItem);
-    item.append(refresheable.element)
+    item.append(refresheable.element);
     refresheable.refresh();
 
     return item;
@@ -256,12 +257,12 @@ function GitAuthCreateForm(close: (refreshList: boolean) => void) {
 
     formComponents.cancelButton.onclick = () => close(false);
 
-    formComponents.form.onsubmit = async e => {
+    formComponents.form.onsubmit = async (e) => {
         e.preventDefault();
 
         if (!formComponents.hostnameInput.input.value) {
             close(false);
-            return
+            return;
         }
 
         formComponents.submitButton.disabled = true;
@@ -271,10 +272,10 @@ function GitAuthCreateForm(close: (refreshList: boolean) => void) {
             username: formComponents.usernameInput.input.value,
             password: formComponents.passwordInput.input.value,
             email: formComponents.emailInput.input.value
-        }
-        await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs)
+        };
+        await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
         close(true);
-    }
+    };
 
     return formComponents.form;
 }

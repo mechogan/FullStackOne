@@ -87,7 +87,7 @@ const lockedKeys = (e: KeyboardEvent) => {
 };
 
 function lockScroll(el: HTMLElement, lockedElements: HTMLElement[] = []) {
-    lockedElements.push(el)
+    lockedElements.push(el);
     el.addEventListener("scroll", lockedScroll);
     el.addEventListener("wheel", lockedScroll);
     el.addEventListener("touchmove", lockedScroll);
@@ -95,14 +95,14 @@ function lockScroll(el: HTMLElement, lockedElements: HTMLElement[] = []) {
     if (el.parentElement) {
         lockScroll(el.parentElement, lockedElements);
     }
-    return lockedElements
+    return lockedElements;
 }
 
 function unlockScroll(els: HTMLElement[]) {
-    els.forEach(el => {
+    els.forEach((el) => {
         el.removeEventListener("scroll", lockedScroll);
         el.removeEventListener("wheel", lockedScroll);
         el.removeEventListener("touchmove", lockedScroll);
         el.removeEventListener("keydown", lockedKeys);
-    })
+    });
 }
