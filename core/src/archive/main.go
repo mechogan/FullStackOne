@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
+	"path"
+	"strings"
 
 	fs "fullstacked/editor/src/fs"
 )
@@ -48,4 +50,38 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	}
 	defer f.Close()
 	return io.ReadAll(f)
+}
+
+type inMemoryZipData struct {
+	data []byte
+}
+func (w *inMemoryZipData) Write(chunk []byte) (n int, err error) {
+	w.data = append(w.data, chunk...)
+	return len(chunk), nil
+}
+
+func Zip(directory string) []byte {
+	acc := inMemoryZipData{}
+	w := zip.NewWriter(&acc)
+
+	files, _ := fs.ReadDir(directory, true)
+
+	for _, f := range(files) {
+		if(strings.HasPrefix(f.Name, "data") || 
+		strings.HasPrefix(f.Name, ".build") || 
+		strings.HasPrefix(f.Name, ".git")) {
+			continue;
+		}
+
+		if f.IsDir {
+			w.Create(f.Name + "/")
+		} else {
+			zipFile, _ := w.Create(f.Name)
+			data, _ := fs.ReadFile(path.Join(directory, f.Name));
+			zipFile.Write(data)
+		}
+	}
+	w.Close()
+
+	return acc.data
 }

@@ -36,6 +36,7 @@ const (
 	// EDITOR ONLY
 
 	ARCHIVE_UNZIP = 30
+	ARCHIVE_ZIP = 31
 
 	CONFIG_GET  = 50
 	CONFIG_SAVE = 51
@@ -163,6 +164,9 @@ func editorSwitch(method int, args []any) []byte {
 		}
 
 		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
+	case method == ARCHIVE_ZIP:
+		directory := path.Join(setup.Directories.Root, args[0].(string))
+		return serialize.SerializeBuffer(archive.Zip(directory))
 	case method == PACKAGES_INSTALL:
 		packages.Install(args[0].(string))
 		return nil

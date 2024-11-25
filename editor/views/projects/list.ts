@@ -9,6 +9,7 @@ import { Store } from "../../store";
 import { Project as ProjectType } from "../../types";
 import { Project } from "../project";
 import { ProjectSettings } from "../project-settings";
+import { ipcEditor } from "../../ipc";
 
 export function List() {
     const container = createElement("div");
@@ -106,7 +107,7 @@ function ProjectTile(project: ProjectType) {
             color: "red"
         });
         deleteButton.onclick = () => {
-            const confirm = document.createElement("div");
+            const confirm = createElement("div");
             confirm.classList.add("confirm");
 
             confirm.innerHTML = `<p>Are you sure you want to delete <b>${project.title}</b>?</p>`;
@@ -140,9 +141,20 @@ function ProjectTile(project: ProjectType) {
             iconLeft: "Export"
         });
 
-        // shareButton.onclick = () => {
-        //     api.projects.export(opts.project);
-        // };
+        shareButton.onclick = async () => {
+            const zipData = await ipcEditor.archive.zip(project);
+            const blob = new Blob([zipData]);
+            const a = document.createElement('a');
+            document.body.appendChild(a);
+            const url = window.URL.createObjectURL(blob);
+            a.href = url;
+            a.download = project.id + ".zip";
+            a.click();
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 0)
+        };
 
         const projectSettingsButton = Button({
             text: "Settings",
