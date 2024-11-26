@@ -15,19 +15,21 @@ export async function deeplink(fullstackedUrl: string) {
     url = protocol + (protocol.endsWith(":") ? "" : ":") + "//" + hostAndPath;
 
     const runProjectIfFound = (projects: ProjectType[]) => {
-        const existingProject = projects?.find(p => p.gitRepository?.url === url);
-        if(existingProject) {
+        const existingProject = projects?.find(
+            (p) => p.gitRepository?.url === url
+        );
+        if (existingProject) {
             Project(existingProject, true);
             Store.projects.list.unsubscribe(runProjectIfFound);
             return true;
         }
 
-        return false
-    }
+        return false;
+    };
 
     const { projects } = await ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
 
-    if(runProjectIfFound(projects)) return;
+    if (runProjectIfFound(projects)) return;
 
     Store.projects.list.subscribe(runProjectIfFound);
     CloneGit(url);

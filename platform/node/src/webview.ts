@@ -14,7 +14,7 @@ type Instance = ReturnType<typeof createInstance>;
 const te = new TextEncoder();
 
 export async function createWebView(
-    instance: Instance, 
+    instance: Instance,
     onClose?: () => void,
     onFirstConnection?: () => void
 ) {
@@ -28,9 +28,10 @@ export async function createWebView(
         }
     };
 
-    let closeTimeout: ReturnType<typeof setTimeout>, connectedOnce = false;
+    let closeTimeout: ReturnType<typeof setTimeout>,
+        connectedOnce = false;
     const onSocketOpen = () => {
-        if(!connectedOnce) {
+        if (!connectedOnce) {
             connectedOnce = true;
             onFirstConnection?.();
         }

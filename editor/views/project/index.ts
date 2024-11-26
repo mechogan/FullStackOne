@@ -58,17 +58,14 @@ export function Project(project: ProjectType, run = false) {
         }
     });
 
-    if(run) {
-        runFn()
+    if (run) {
+        runFn();
     }
 
     return container;
 }
 
-function TopBar(
-    project: ProjectType, 
-    fileTreeAndEditor: HTMLElement
-) {
+function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     const actions: ElementComponent[] = [];
 
     let gitWidget: ReturnType<typeof GitWidget>;
@@ -124,7 +121,7 @@ function TopBar(
             await build(project);
             loaderContainer.replaceWith(runButton);
         };
-        runButton.onclick = runFn
+        runButton.onclick = runFn;
 
         actions.push(gitWidget, tsButton, runButton);
     }

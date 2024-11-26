@@ -39,7 +39,7 @@ export function CloneGit(repoUrl?: string) {
         cloneGitRepo(repoUrlInput.input.value, scrollable)
             .then(() => stackNavigation.back())
             .catch(() => {});
-    }
+    };
     form.onsubmit = (e) => {
         e.preventDefault();
         submit();
@@ -54,7 +54,7 @@ export function CloneGit(repoUrl?: string) {
         }
     });
 
-    if(repoUrl) {
+    if (repoUrl) {
         repoUrlInput.input.value = repoUrl;
         submit();
     }

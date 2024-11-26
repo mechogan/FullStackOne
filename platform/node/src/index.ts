@@ -19,8 +19,9 @@ if (oldConfigDirExists) {
 
 // end migration
 
-let deeplink: string = null, deeplinkMessaged = false;
-if(process.argv.at(-1).startsWith("http")) {
+let deeplink: string = null,
+    deeplinkMessaged = false;
+if (process.argv.at(-1).startsWith("http")) {
     deeplink = process.argv.at(-1);
 }
 
@@ -55,15 +56,13 @@ async function openProject(id: string) {
     }
 
     const instance = createInstance(id);
-    webView = await createWebView(instance, 
-        () => webViews.delete(id)
-    );
+    webView = await createWebView(instance, () => webViews.delete(id));
     webViews.set(id, webView);
 }
 
 const instanceEditor = createInstance("", true);
 const instanceWebView = await createWebView(instanceEditor, null, () => {
-    if(!deeplink || deeplinkMessaged) return;
+    if (!deeplink || deeplinkMessaged) return;
     instanceWebView.message("deeplink", "fullstacked://" + deeplink);
     deeplinkMessaged = true;
 });

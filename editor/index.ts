@@ -6,10 +6,10 @@ import { Packages } from "./views/packages";
 import { Projects } from "./views/projects";
 
 const launchDeeplink = (url: string) => {
-    deeplink(url)
-}
+    deeplink(url);
+};
 
-addCoreMessageListener("deeplink", launchDeeplink)
+addCoreMessageListener("deeplink", launchDeeplink);
 
 // fix windows scrollbars
 if (navigator.userAgent.includes("Windows")) {
