@@ -90,6 +90,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }.isEnabled = true
+
+
+        val data: Uri? = intent?.data
+        if(data != null && data.toString().isNotEmpty()) {
+            println("LAUNCH URL [$data]")
+            editorWebView.onMessage("deeplink", data.toString())
+        }
     }
 
     private fun extractEditorFiles(instanceEditor: Instance, editorDir: String) {

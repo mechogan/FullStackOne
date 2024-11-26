@@ -3,7 +3,9 @@
 
 #include <cstring>
 #include <string>
+#include <functional>
 
+extern "C" {
 
 JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories
         (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor) {
@@ -13,9 +15,9 @@ JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories
     const char* editorPtr = env->GetStringUTFChars(editor, nullptr);
 
     directories(
-        const_cast<char*>(rootPtr),
-        const_cast<char*>(configPtr),
-        const_cast<char*>(editorPtr)
+            const_cast<char*>(rootPtr),
+            const_cast<char*>(configPtr),
+            const_cast<char*>(editorPtr)
     );
 }
 
@@ -74,9 +76,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved){
 }
 
 JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_callback
-    (JNIEnv * env, jobject thiz)
+        (JNIEnv * env, jobject thiz)
 {
     // cache MainActivity instance
     mainActivity = env->NewGlobalRef(thiz);
     callback((void*)goCallback);
+}
+
 }

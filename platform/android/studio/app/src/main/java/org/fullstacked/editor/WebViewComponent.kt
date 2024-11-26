@@ -14,21 +14,34 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.Base64
 
 class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewClient() {
     val webView = createWebView(this)
+    var firstContact = false
+    val messageToBeSent = mutableListOf<Pair<String, String>>()
 
     // https://stackoverflow.com/a/45506857
     // Bridging with Base64 seems faster...
     @JavascriptInterface
     fun bridge(payloadBase64: String) : String {
+        if(!this.firstContact) {
+            this.firstContact = true
+            this.messageToBeSent.forEach { this.onMessage(it.first, it.second) }
+            this.messageToBeSent.clear()
+        }
+        
         val payload = Base64.getDecoder().decode(payloadBase64)
         val response = instance.callLib(payload)
         return Base64.getEncoder().encodeToString(response)
     }
 
     fun onMessage(messageType: String, message: String){
+        if(!this.firstContact) {
+            this.messageToBeSent.add(Pair(messageType, message))
+            return
+        }
         val mainLooper = Looper.getMainLooper()
         val handler = Handler(mainLooper)
         handler.post {
@@ -85,8 +98,12 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         payload += numberToBytes(pathnameData.size)
         payload += pathnameData
 
+        val start = Instant.now().toEpochMilli()
         val response = this.instance.callLib(payload)
+        val callTime = Instant.now().toEpochMilli()
+        println("DEBUG TIME CALL: " + pathname + " | " + (callTime - start))
         val args = deserializeArgs(response)
+        println("DEBUG TIME DESERIALIZE: " + pathname + " | " + (Instant.now().toEpochMilli() - callTime))
 
         if(args.size == 0) {
             return WebResourceResponse(
@@ -151,16 +168,32 @@ private fun bytesToNumber(bytes: ByteArray) : Int {
 
 }
 
+fun sliceByteArray(data: ByteArray, from: Int, length: Int) : ByteArray  {
+    val buffer = ByteArray(length)
+    var i = 0;
+    for (byte in buffer) {
+        buffer[i] = data[from + i]
+        i += 1
+    }
+    return buffer
+}
+
 fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
     val args = mutableListOf<Any?>()
+
+    val bufferLength = ByteArray(4)
 
     var cursor = 0
     while(cursor < data.size) {
         val type = DataType.from(data[cursor])
         cursor += 1
-        val length = bytesToNumber(data.slice(cursor..< cursor + 4).toByteArray())
+        bufferLength[0] = data[cursor]
+        bufferLength[1] = data[cursor + 1]
+        bufferLength[2] = data[cursor + 2]
+        bufferLength[3] = data[cursor + 3]
+        val length = bytesToNumber(bufferLength)
         cursor += 4
-        val arg = data.slice(cursor..< cursor + length).toByteArray()
+        val arg = sliceByteArray(data, cursor, length)
         cursor += length
 
         when (type) {
@@ -178,7 +211,7 @@ fun deserializeArgs(data: ByteArray) : MutableList<Any?> {
                 args.add(null)
                 println("Deserializing number is not implemented on Android")
             }
-            DataType.UINT8ARRAY ->
+            DataType.BUFFER ->
                 args.add(arg)
         }
     }
@@ -191,7 +224,7 @@ enum class DataType(val type: Byte) {
     BOOLEAN(1),
     STRING(2),
     NUMBER(3),
-    UINT8ARRAY(4);
+    BUFFER(4);
 
     companion object {
         fun from(value: Byte) = entries.first { it.type == value }
