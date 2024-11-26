@@ -105,6 +105,9 @@ struct Main: View {
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
+                        .onOpenURL{ url in
+                            self.webViews.views[webViewIndex].onMessage(messageType: "deeplink", message: url.absoluteString)
+                        }
                 } else {
                     VStack(spacing: 0) {
                         HStack(alignment: .center) {

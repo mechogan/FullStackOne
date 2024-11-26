@@ -12,6 +12,8 @@ let downloadDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, 
 
 class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownloadDelegate {
     public let requestHandler: RequestHandler
+    private var firstContact = false
+    private var messageToBeSent = [(String, String)]()
     
     init(instance: Instance) {
         self.requestHandler = RequestHandler(instance: instance)
@@ -62,6 +64,11 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownlo
     }
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if(!self.firstContact){
+            self.firstContact = true
+            self.messageToBeSent.forEach({ self.onMessage(messageType: $0.0, message: $0.1) })
+            self.messageToBeSent.removeAll()
+        }
         let data = Data(base64Encoded: message.body as! String)!
         var response = data[0...3]
         let payload = data[4...]
@@ -71,6 +78,11 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownlo
     }
     
     func onMessage(messageType: String, message: String) {
+        if(!self.firstContact) {
+            self.messageToBeSent.append((messageType, message))
+            return;
+        }
+        
         DispatchQueue.main.async() {
             self.evaluateJavaScript("window.oncoremessage(`\(messageType)`,`\(message)`)")
         }

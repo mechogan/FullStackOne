@@ -6,7 +6,13 @@ import { Project } from "./views/project";
 
 // fullstacked://http//github.....git
 export async function deeplink(fullstackedUrl: string) {
-    const url = fullstackedUrl.slice("fullstacked://".length);
+    console.log(fullstackedUrl);
+
+    let url = fullstackedUrl.slice("fullstacked://".length);
+
+    const [protocol, ...rest] = url.split("//");
+    const [hostAndPath, queryString] = rest.join("//").split("?");
+    url = protocol + (protocol.endsWith(":") ? "" : ":") + "//" + hostAndPath;
 
     const runProjectIfFound = (projects: ProjectType[]) => {
         const existingProject = projects?.find(p => p.gitRepository?.url === url);
