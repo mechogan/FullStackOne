@@ -18,8 +18,9 @@ import { Icon } from "../../components/primitives/icon";
 import { createRefresheable } from "../../components/refresheable";
 
 let lastOpenedProjectId: string,
-    autoRunning = false;
-export function Project(project: ProjectType) {
+    autoRunning = false,
+    runFn: () => void;
+export function Project(project: ProjectType, run = false) {
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();
@@ -57,10 +58,17 @@ export function Project(project: ProjectType) {
         }
     });
 
+    if(run) {
+        runFn()
+    }
+
     return container;
 }
 
-function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
+function TopBar(
+    project: ProjectType, 
+    fileTreeAndEditor: HTMLElement
+) {
     const actions: ElementComponent[] = [];
 
     let gitWidget: ReturnType<typeof GitWidget>;
@@ -108,7 +116,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             iconLeft: "Play"
         });
 
-        runButton.onclick = async () => {
+        runFn = async () => {
             const loaderContainer = document.createElement("div");
             loaderContainer.classList.add("loader-container");
             loaderContainer.append(Loader());
@@ -116,6 +124,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             await build(project);
             loaderContainer.replaceWith(runButton);
         };
+        runButton.onclick = runFn
 
         actions.push(gitWidget, tsButton, runButton);
     }

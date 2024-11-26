@@ -26,7 +26,7 @@ export function AddProject() {
         text: "Clone git repository",
         iconLeft: "Git"
     });
-    cloneGitButton.onclick = CloneGit;
+    cloneGitButton.onclick = () => CloneGit();
     cloneGitButton.disabled = platform === Platform.WASM;
 
     const importZipButton = Button({

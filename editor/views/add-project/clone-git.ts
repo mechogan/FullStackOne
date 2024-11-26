@@ -8,13 +8,11 @@ import {
     CreateLoader,
     tmpDir
 } from "./import-zip";
-import { createProjectFromFullStackedFile } from "../../api/projects";
-import { Project } from "../../api/config/types";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
 import { ipcEditor } from "../../ipc";
 
-export function CloneGit() {
+export function CloneGit(repoUrl?: string) {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -36,12 +34,15 @@ export function CloneGit() {
 
     form.append(repoUrlInput.container, cloneButton);
 
-    form.onsubmit = async (e) => {
-        e.preventDefault();
+    const submit = async () => {
         cloneButton.disabled = true;
         cloneGitRepo(repoUrlInput.input.value, scrollable)
             .then(() => stackNavigation.back())
             .catch(() => {});
+    }
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        submit();
     };
 
     scrollable.append(form);
@@ -52,6 +53,11 @@ export function CloneGit() {
             removeCoreMessageListener("git-clone", checkForDone);
         }
     });
+
+    if(repoUrl) {
+        repoUrlInput.input.value = repoUrl;
+        submit();
+    }
 }
 
 let checkForDone: (progress: string) => void;
