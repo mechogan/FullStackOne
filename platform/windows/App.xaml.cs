@@ -9,8 +9,11 @@ using System.Collections.Generic;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Windows.UI;
+using Microsoft.Win32;
+using System.Security.Principal;
+using System.Reflection;
 
-namespace windows
+namespace FullStacked
 {
 
     unsafe public partial class App : Application
@@ -18,10 +21,40 @@ namespace windows
         public App()
         {
             this.InitializeComponent();
+            this.registerDeepLinking();
+        }
+
+        private void registerDeepLinking() {
+            WindowsIdentity user = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(user);
+            bool isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
+
+            if (isAdmin) {
+                String directoryLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                RegistryKey key = Registry.ClassesRoot.CreateSubKey("fullstacked", true);
+                key.SetValue("", "url:myprotocol");
+                key.SetValue("URL Protocol", "");
+
+                RegistryKey shell = key.CreateSubKey(@"shell\open\command", true);
+                shell.SetValue("",  "\"" + directoryLocation + "\\FullStacked.exe\"  \"%1\"");
+
+                shell.Close();
+                key.Close();
+            }
         }
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
+            string deeplink = "";
+            string[] launchArgs = Environment.GetCommandLineArgs();
+            for (int i = 0; i < launchArgs.Length; i++)
+            {
+                if (launchArgs[i].StartsWith("fullstacked://"))
+                {
+                    deeplink = launchArgs[i];
+                }
+            }
+
             setDirectories();
 
             cb = new CallbackDelegate(onCallback);
@@ -29,6 +62,10 @@ namespace windows
 
             WebView editor = new WebView(new Instance("", true));
             this.bringToFront(editor);
+            if (deeplink != "")
+            {
+                editor.onMessage("deeplink", deeplink);
+            }
         }
         private readonly Dictionary<string, (Window, WebView)> webviews = new();
         private CallbackDelegate cb;

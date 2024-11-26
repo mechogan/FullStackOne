@@ -8,17 +8,18 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Web;
 using Windows.Storage.Streams;
 
-namespace windows
+namespace FullStacked
 {
     internal class WebView
     {
         public WebView2 webview;
         public Instance instance;
+        private bool firstContact = false;
+        private List<(string, string)> messageToBeSent = [];
 
         public WebView(Instance instance)
         {
@@ -32,6 +33,14 @@ namespace windows
             await this.webview.EnsureCoreWebView2Async();
             this.webview.CoreWebView2.WebMessageReceived += delegate (CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
             {
+                if (!this.firstContact) {
+                    this.firstContact = true;
+                    foreach (var item in this.messageToBeSent)
+                    {
+                        this.onMessage(item.Item1, item.Item2);
+                    }
+                    this.messageToBeSent.Clear();
+                }
                 string base64 = args.TryGetWebMessageAsString();
                 byte[] data = Convert.FromBase64String(base64);
                 byte[] id = data[new Range(0, 4)];
@@ -120,6 +129,10 @@ namespace windows
         }
 
         public void onMessage(string type, string message) {
+            if (!this.firstContact) {
+                this.messageToBeSent.Add((type, message));
+                return;
+            }
             this.webview.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, () =>
             {
                 _ = this.webview.CoreWebView2.ExecuteScriptAsync("window.oncoremessage(`" + type + "`, `" + message + "`)");

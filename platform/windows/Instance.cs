@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text;
 
-namespace windows
+namespace FullStacked
 {
     internal class Instance
     {
