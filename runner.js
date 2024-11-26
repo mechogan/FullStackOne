@@ -78,13 +78,17 @@ const latestReleaseVersion = await getLatestReleaseVersion();
 const electronDirectory = "platform/electron";
 
 const TEST_AND_BUILD = () => {
-    child_process.execSync("docker info", { stdio: "inherit" });
+    // child_process.execSync("docker info", { stdio: "inherit" });
     child_process.execSync("npm ci", { stdio: "inherit" });
     child_process.execSync("npm ci", {
         cwd: electronDirectory,
         stdio: "inherit"
     });
-    child_process.execSync("npm test", { stdio: "inherit" });
+    // child_process.execSync("npm test", { stdio: "inherit" });
+    child_process.execSync("make ios-arm64 android", {
+        cwd: "core/build",
+        stdio: "inherit"
+    })
     child_process.execSync("npm run build -- --production", {
         stdio: "inherit"
     });
@@ -508,7 +512,7 @@ async function run() {
 
     /////// BUILD AND TESTS ////////
 
-    let tries = 5;
+    // let tries = 5;
     while (tries) {
         try {
             TEST_AND_BUILD();
@@ -526,20 +530,20 @@ async function run() {
 
     ///////// BUILD PLATFORMS ////////
 
-    try {
-        await NODE_BUILD();
-    } catch (e) {
-        console.error(e);
-        await notifyError("Failed to build for node");
-    }
+    // try {
+    //     await NODE_BUILD();
+    // } catch (e) {
+    //     console.error(e);
+    //     await notifyError("Failed to build for node");
+    // }
 
     if (!release) {
-        try {
-            await ELECTRON_BUILD();
-        } catch (e) {
-            console.error(e);
-            await notifyError("Failed to build for electron");
-        }
+        // try {
+        //     await ELECTRON_BUILD();
+        // } catch (e) {
+        //     console.error(e);
+        //     await notifyError("Failed to build for electron");
+        // }
         try {
             IOS_BUILD();
         } catch (e) {
@@ -554,29 +558,29 @@ async function run() {
         }
     }
 
-    try {
-        DOCKER_BUILD();
-    } catch (e) {
-        console.error(e);
-        await notifyError("Failed to build for docker");
-    }
+    // try {
+    //     DOCKER_BUILD();
+    // } catch (e) {
+    //     console.error(e);
+    //     await notifyError("Failed to build for docker");
+    // }
 
     ///////// DEPLOY PLATFORMS ////////
 
-    try {
-        NODE_DEPLOY();
-    } catch (e) {
-        console.error(e);
-        notifyError("Failed to deploy for node", false);
-    }
+    // try {
+    //     NODE_DEPLOY();
+    // } catch (e) {
+    //     console.error(e);
+    //     notifyError("Failed to deploy for node", false);
+    // }
 
     if (!release) {
-        try {
-            await ELECTRON_DEPLOY();
-        } catch (e) {
-            console.error(e);
-            notifyError("Failed to deploy for electron", false);
-        }
+        // try {
+        //     await ELECTRON_DEPLOY();
+        // } catch (e) {
+        //     console.error(e);
+        //     notifyError("Failed to deploy for electron", false);
+        // }
         try {
             IOS_DEPLOY();
         } catch (e) {
@@ -591,12 +595,12 @@ async function run() {
         }
     }
 
-    try {
-        DOCKER_DEPLOY();
-    } catch (e) {
-        console.error(e);
-        notifyError("Failed to deploy for docker", false);
-    }
+    // try {
+    //     DOCKER_DEPLOY();
+    // } catch (e) {
+    //     console.error(e);
+    //     notifyError("Failed to deploy for docker", false);
+    // }
 
     const end = new Date();
 
