@@ -1,11 +1,11 @@
-import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
-import { createElement, ElementComponent } from "../../components/element";
+import { EditorView, hoverTooltip, keymap, lineNumbers } from "@codemirror/view";
+import { basicSetup } from "codemirror"
+import { createElement } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
 import { ipcEditor } from "../../ipc";
 import prettyBytes from "pretty-bytes";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import {
@@ -23,6 +23,7 @@ import prettierPluginTypeScript from "prettier/plugins/typescript";
 import { EditorSelection } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
 import {
+    navigateToDefinition,
     tsAutocomplete,
     tsErrorLinter,
     tsTypeDefinition
@@ -219,6 +220,7 @@ function createImageView(filePath: string) {
 
 const defaultExtensions = [
     basicSetup,
+    EditorView.clickAddsSelectionRange.of(e => e.altKey && !e.metaKey),
     oneDark,
     keymap.of([indentWithTab]),
     indentUnit.of(new Array(tabWidth + 1).join(" "))
@@ -355,9 +357,11 @@ async function loadTypeScript(filePath: string) {
         EditorView.updateListener.of((ctx) =>
             WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
         ),
+        EditorView.mouseSelectionStyle.of(navigateToDefinition(filePath)),
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
         autocompletion({ override: [tsAutocomplete(filePath)] }),
-        hoverTooltip(tsTypeDefinition(filePath))
+        hoverTooltip(tsTypeDefinition(filePath)),
+
     ];
 }
 

@@ -2,6 +2,8 @@ import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { ipcEditor } from "../../ipc";
+import { Store } from "../../store";
+import { Project } from "../../types";
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -118,7 +120,7 @@ export const tsAutocomplete =
     };
 
 export const tsTypeDefinition =
-    (filePath: string) => async (view, pos, side) => {
+    (filePath: string) => async (view: EditorView, pos: number, side) => {
         const info = await WorkerTS.call().getQuickInfoAtPosition(
             filePath,
             pos
@@ -140,3 +142,25 @@ export const tsTypeDefinition =
             }
         };
     };
+
+
+export const navigateToDefinition = (filePath: string) => 
+    (view: EditorView, e: MouseEvent) => {
+        if(!e.metaKey && !e.ctrlKey) return null;
+
+        const pos = view.posAtCoords({x: e.clientX, y: e.clientY});
+        
+        if(!pos) return null;
+
+        WorkerTS.call().getDefinitionAtPosition(filePath, pos)
+            .then((defs) => {
+                if(!defs?.length) return;
+
+                console.log(defs);
+
+                Store.editor.codeEditor.openFile(defs.at(0).fileName)
+                Store.editor.codeEditor.focusFile(defs.at(0).fileName)
+            })
+
+        return null;
+    }

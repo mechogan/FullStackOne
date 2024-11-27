@@ -40,7 +40,8 @@ self.onmessage = (message: MessageEvent) => {
     ) as any;
 
     if (typeof method === "function") {
-        const data = removeSourceObjects(method(...args));
+        const response = method(...args);
+        const data = removeSourceObjects(response);
         self.postMessage({
             id,
             data

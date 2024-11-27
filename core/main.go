@@ -12,8 +12,7 @@ import "C"
 
 import (
 	"unsafe"
-
-	"fullstacked/editor/src/fs"
+	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
 )
