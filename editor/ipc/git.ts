@@ -27,7 +27,7 @@ const errorChecker = ([error]) => {
 
     let errorObj: ErrorObj;
     try {
-        errorObj = JSON.parse(error);
+        errorObj = JSON.parse(error.trim().replace(/\n/g, ""));
     } catch (e) {}
 
     if (!errorObj) return;
@@ -57,7 +57,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
 ) {
     const checkForAuthError = (message: string) => {
         try {
-            errorChecker([message.trim()]);
+            errorChecker([message]);
         } catch (e) {
             if (e.Error?.startsWith("authentication required")) {
                 const hostname = getHostnameFromRepoURL(repoUrl);

@@ -134,7 +134,7 @@ fs.writeFileSync(
 
 if (!process.argv.includes("--no-zip")) {
     const outZipDir = `${outDir}/zip`;
-    const outZip = `${outZipDir}/editor.zip`;
+    const outZip = `${outZipDir}/editor-${production ? commitNumber : Date.now()}.zip`;
     const zip = new AdmZip();
     zip.addLocalFolder(outDirEditor);
     fs.mkdirSync(outZipDir, { recursive: true });

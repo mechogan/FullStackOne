@@ -7,13 +7,13 @@ android {
     namespace = "org.fullstacked.editor"
     compileSdk = 34
 
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "26.3.11579264"
 
     defaultConfig {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
         targetSdk = 34
-        versionCode = 615
+        versionCode = 708
         versionName = "0.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -22,7 +22,11 @@ android {
         }
         ndk {
             abiFilters += listOf("armeabi-v7a","arm64-v8a", "x86_64")
-
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += "-DANDROID_STL=c++_static"
+            }
         }
     }
 

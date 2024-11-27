@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import java.io.File
 
 
 class MainActivity : ComponentActivity() {
@@ -91,7 +92,6 @@ class MainActivity : ComponentActivity() {
             }
         }.isEnabled = true
 
-
         val data: Uri? = intent?.data
         if(data != null && data.toString().isNotEmpty()) {
             println("LAUNCH URL [$data]")
@@ -99,12 +99,44 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun shouldExtractEditorFromZip(editorDir: String) : String? {
+        val currentEditorDir = File(editorDir)
+        val currentEditorDirContents = currentEditorDir.listFiles()
+        val currentEditorBuildFile = currentEditorDirContents?.find { it.name == "build.txt" }
+
+        val assetContents = this.assets.list("")
+        assetContents?.forEach { println(it) }
+        val editorZipFileName = assetContents?.find { it.startsWith("editor") }
+        val editorZipNumber = editorZipFileName?.split("-")?.last()?.split(".")?.first()
+        println("EDITOR VERSION BUILD $editorZipNumber")
+
+        if(currentEditorBuildFile == null) {
+            println("EDITOR VERSION NO CURRENT BUILD FILE")
+            return editorZipNumber
+        }
+
+        val currentEditorBuildNumber = currentEditorBuildFile.readText()
+
+        println("EDITOR VERSION CURRENT BUILD $currentEditorBuildNumber")
+
+        if(editorZipNumber != currentEditorBuildNumber) {
+            return editorZipNumber
+        }
+
+        return null
+    }
+
     private fun extractEditorFiles(instanceEditor: Instance, editorDir: String) {
-        // TODO: check extracted version vs current build
-        // extract only if needed
+        val editorZipNumber = this.shouldExtractEditorFromZip(editorDir)
+
+        if(editorZipNumber == null) {
+            println("UNZIPPED SKIPPED !")
+            return
+        }
 
         val destination = editorDir.toByteArray()
-        val zipData = this.assets.open("editor.zip").readBytes()
+        val zipData = this.assets.open("editor-$editorZipNumber.zip").readBytes()
+
         var payload = byteArrayOf(
             30, // UNZIP
             2   // STRING
@@ -129,6 +161,7 @@ class MainActivity : ComponentActivity() {
         val unzipped = deserializeArgs(instanceEditor.callLib(payload))[0] as Boolean
         if(unzipped) {
             println("UNZIPPED !")
+            File("$editorDir/build.txt").writeText(editorZipNumber)
         } else {
             println("FAILED TO UNZIPPED")
         }

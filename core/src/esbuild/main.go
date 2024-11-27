@@ -1,6 +1,7 @@
 package esbuild
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -58,13 +60,21 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
-func Build(projectDirectory string) string {
-	setup.Callback("", "log", "WE BUILDING")
+func Build(
+	projectDirectory string,
+	buildId float64,
+) {
+	payload := serialize.SerializeNumber(buildId)
 
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
 	if entryPoint == nil {
-		return "[]"
+		setup.Callback(
+			"", 
+			"build", 
+			base64.RawStdEncoding.EncodeToString(payload),
+		)
+		return
 	}
 
 	entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
@@ -142,6 +152,9 @@ func Build(projectDirectory string) string {
 	}
 
 	// return errors as json string
-	jsonMessages, _ := json.Marshal(result.Errors)
-	return string(jsonMessages)
+	jsonMessagesData, _ := json.Marshal(result.Errors)
+	jsonMessagesStr := string(jsonMessagesData)
+	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
+	payload = append(payload, jsonMessageSerialized...)
+	setup.Callback("", "build", base64.RawStdEncoding.EncodeToString(payload))
 }

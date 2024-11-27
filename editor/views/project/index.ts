@@ -43,6 +43,7 @@ export function Project(project: ProjectType, run = false) {
     const autoRun = (installingPackages: Map<string, any>) => {
         if (!autoRunning) return;
         if (installingPackages.size === 0) {
+            autoRunning = false;
             build(project);
         }
     };

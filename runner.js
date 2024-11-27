@@ -80,12 +80,12 @@ const electronDirectory = "platform/electron";
 const TEST_AND_BUILD = () => {
     // child_process.execSync("docker info", { stdio: "inherit" });
     child_process.execSync("npm ci", { stdio: "inherit" });
-    child_process.execSync("npm ci", {
-        cwd: electronDirectory,
-        stdio: "inherit"
-    });
+    // child_process.execSync("npm ci", {
+    //     cwd: electronDirectory,
+    //     stdio: "inherit"
+    // });
     // child_process.execSync("npm test", { stdio: "inherit" });
-    child_process.execSync("make ios-arm64 android", {
+    child_process.execSync("make ios-arm64 android -j8", {
         cwd: "core/build",
         stdio: "inherit"
     })
@@ -247,11 +247,11 @@ const releaseFileNames = [
 ];
 
 const electronMakeDirectory = `${electronOutDirectory}/make`;
-const cloudflareKeys = dotenv.parse(
-    fs.readFileSync(`${electronDirectory}/CLOUDFLARE.env`)
-);
+// const cloudflareKeys = dotenv.parse(
+//     fs.readFileSync(`${electronDirectory}/CLOUDFLARE.env`)
+// );
 
-const Bucket = cloudflareKeys.BUCKET;
+// const Bucket = cloudflareKeys.BUCKET;
 
 const tenMB = 10 * 1024 * 1024;
 
@@ -371,10 +371,10 @@ const appleKeys = dotenv.parse(
 );
 
 const IOS_BUILD = () => {
-    child_process.execSync("make ios", {
-        cwd: `${iosDirectory}/esbuild`,
-        stdio: "inherit"
-    });
+    // child_process.execSync("make ios", {
+    //     cwd: `${iosDirectory}/esbuild`,
+    //     stdio: "inherit"
+    // });
 
     const xcodeFile = `${iosDirectory}/xcode/FullStacked.xcodeproj/project.pbxproj`;
     const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
@@ -435,10 +435,10 @@ const androidKeys = dotenv.parse(
 const aabFile = `${process.cwd()}/${androidDirectory}/studio/app/build/outputs/bundle/release/app-release.aab`;
 
 const ANDROID_BUILD = () => {
-    child_process.execSync("make android", {
-        cwd: `${androidDirectory}/esbuild`,
-        stdio: "inherit"
-    });
+    // child_process.execSync("make android", {
+    //     cwd: `${androidDirectory}/esbuild`,
+    //     stdio: "inherit"
+    // });
 
     const gradleFile = `${androidDirectory}/studio/app/build.gradle.kts`;
     const gradleFileContent = fs.readFileSync(gradleFile, {
@@ -512,7 +512,7 @@ async function run() {
 
     /////// BUILD AND TESTS ////////
 
-    // let tries = 5;
+    let tries = 5;
     while (tries) {
         try {
             TEST_AND_BUILD();
