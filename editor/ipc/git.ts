@@ -74,7 +74,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
                 return;
             }
 
-            throw e.Error
+            throw e.Error;
         }
 
         if (message.endsWith("done")) {
@@ -100,7 +100,7 @@ async function checkForAuthRequiredOnResponse<T extends (...args: any) => any>(
             if (e.Error?.startsWith("authentication required")) {
                 retry = await GitAuth(getHostnameFromRepoURL(repoUrl));
             } else {
-                throw e.Error
+                throw e.Error;
             }
         }
     } while (retry);

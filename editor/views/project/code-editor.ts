@@ -1,5 +1,10 @@
-import { EditorView, hoverTooltip, keymap, lineNumbers } from "@codemirror/view";
-import { basicSetup } from "codemirror"
+import {
+    EditorView,
+    hoverTooltip,
+    keymap,
+    lineNumbers
+} from "@codemirror/view";
+import { basicSetup } from "codemirror";
 import { createElement } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
@@ -220,7 +225,7 @@ function createImageView(filePath: string) {
 
 const defaultExtensions = [
     basicSetup,
-    EditorView.clickAddsSelectionRange.of(e => e.altKey && !e.metaKey),
+    EditorView.clickAddsSelectionRange.of((e) => e.altKey && !e.metaKey),
     oneDark,
     keymap.of([indentWithTab]),
     indentUnit.of(new Array(tabWidth + 1).join(" "))
@@ -360,8 +365,7 @@ async function loadTypeScript(filePath: string) {
         EditorView.mouseSelectionStyle.of(navigateToDefinition(filePath)),
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
         autocompletion({ override: [tsAutocomplete(filePath)] }),
-        hoverTooltip(tsTypeDefinition(filePath)),
-
+        hoverTooltip(tsTypeDefinition(filePath))
     ];
 }
 

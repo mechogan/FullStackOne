@@ -143,24 +143,24 @@ export const tsTypeDefinition =
         };
     };
 
+export const navigateToDefinition =
+    (filePath: string) => (view: EditorView, e: MouseEvent) => {
+        if (!e.metaKey && !e.ctrlKey) return null;
 
-export const navigateToDefinition = (filePath: string) => 
-    (view: EditorView, e: MouseEvent) => {
-        if(!e.metaKey && !e.ctrlKey) return null;
+        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
 
-        const pos = view.posAtCoords({x: e.clientX, y: e.clientY});
-        
-        if(!pos) return null;
+        if (!pos) return null;
 
-        WorkerTS.call().getDefinitionAtPosition(filePath, pos)
+        WorkerTS.call()
+            .getDefinitionAtPosition(filePath, pos)
             .then((defs) => {
-                if(!defs?.length) return;
+                if (!defs?.length) return;
 
                 console.log(defs);
 
-                Store.editor.codeEditor.openFile(defs.at(0).fileName)
-                Store.editor.codeEditor.focusFile(defs.at(0).fileName)
-            })
+                Store.editor.codeEditor.openFile(defs.at(0).fileName);
+                Store.editor.codeEditor.focusFile(defs.at(0).fileName);
+            });
 
         return null;
-    }
+    };

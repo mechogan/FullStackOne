@@ -11,10 +11,10 @@ static inline void CallMyFunction(void *callback, char *projectId, char * type, 
 import "C"
 
 import (
-	"unsafe"
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
+	"unsafe"
 )
 
 func main() {}

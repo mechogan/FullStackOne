@@ -84,9 +84,9 @@ func Clone(into string, url string, username *string, password *string) {
 	}
 
 	_, err := git.PlainClone(into, false, &git.CloneOptions{
-		Auth:         auth,
-		URL:          url,
-		Progress:     &progress,
+		Auth:     auth,
+		URL:      url,
+		Progress: &progress,
 	})
 
 	if err != nil {
@@ -212,9 +212,9 @@ func Pull(directory string, username *string, password *string) {
 	}
 
 	err3 := worktree.Pull(&git.PullOptions{
-		Auth:         auth,
+		Auth:          auth,
 		ReferenceName: head.Name(),
-		Progress:     &progress,
+		Progress:      &progress,
 	})
 
 	if err3 != nil && err3.Error() != "already up-to-date" {
@@ -517,7 +517,7 @@ func Checkout(
 	dataPath := path.Join(directory, "data")
 	dataTmpPath := path.Join(setup.Directories.Tmp, "data")
 	dataExists, dataIsFile := fs.Exists(dataPath)
-	if (dataExists && !dataIsFile) {
+	if dataExists && !dataIsFile {
 		fs.Rename(dataPath, dataTmpPath)
 	}
 
@@ -526,7 +526,7 @@ func Checkout(
 		Create: create,
 	})
 
-	if (dataExists && !dataIsFile) {
+	if dataExists && !dataIsFile {
 		fs.Rename(dataTmpPath, dataPath)
 	}
 
