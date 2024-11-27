@@ -88,7 +88,7 @@ const TEST_AND_BUILD = () => {
     child_process.execSync("make ios-arm64 android -j8", {
         cwd: "core/build",
         stdio: "inherit"
-    })
+    });
     child_process.execSync("npm run build -- --production", {
         stdio: "inherit"
     });

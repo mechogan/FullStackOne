@@ -70,8 +70,8 @@ func Build(
 	entryPoint := findEntryPoint(projectDirectory)
 	if entryPoint == nil {
 		setup.Callback(
-			"", 
-			"build", 
+			"",
+			"build",
 			base64.RawStdEncoding.EncodeToString(payload),
 		)
 		return
