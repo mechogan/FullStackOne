@@ -83,10 +83,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                val lastWebView = webViews.removeAt(webViews.lastIndex)
+                val lastWebView = webViews.last()
                 lastWebView.second.back { didGoBack ->
                     if(!didGoBack) {
                         (lastWebView.second.webView.parent as ViewGroup).removeView(lastWebView.second.webView)
+                        webViews.remove(lastWebView)
                     }
                 }
             }

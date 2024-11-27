@@ -2,8 +2,10 @@ package git
 
 import (
 	"encoding/json"
+	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
+	"path"
 
 	git "github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
@@ -85,7 +87,6 @@ func Clone(into string, url string, username *string, password *string) {
 		Auth:         auth,
 		URL:          url,
 		Progress:     &progress,
-		SingleBranch: true,
 	})
 
 	if err != nil {
@@ -182,6 +183,13 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
+	repo, err := getRepo(directory)
+
+	if err != nil {
+		progress.Write([]byte(*err))
+		return
+	}
+
 	auth := (*http.BasicAuth)(nil)
 	if username != nil && password != nil {
 		auth = &http.BasicAuth{
@@ -196,10 +204,17 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
+	head, err2 := repo.Head()
+
+	if err2 != nil {
+		progress.Write([]byte(*errorFmt(err2)))
+		return
+	}
+
 	err3 := worktree.Pull(&git.PullOptions{
 		Auth:         auth,
+		ReferenceName: head.Name(),
 		Progress:     &progress,
-		SingleBranch: true,
 	})
 
 	if err3 != nil && err3.Error() != "already up-to-date" {
@@ -496,10 +511,24 @@ func Checkout(
 		branchRefName = &rName
 	}
 
+	// checkout clears all untracked files
+	// https://github.com/go-git/go-git/issues/970
+	// Keep is not helping
+	dataPath := path.Join(directory, "data")
+	dataTmpPath := path.Join(setup.Directories.Tmp, "data")
+	dataExists, dataIsFile := fs.Exists(dataPath)
+	if (dataExists && !dataIsFile) {
+		fs.Rename(dataPath, dataTmpPath)
+	}
+
 	err2 = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,
 		Create: create,
 	})
+
+	if (dataExists && !dataIsFile) {
+		fs.Rename(dataTmpPath, dataPath)
+	}
 
 	if err2 != nil {
 		return serialize.SerializeString(*errorFmt(err2))
