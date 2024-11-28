@@ -15,23 +15,23 @@ func setDirectories(){
     let root = paths.first!
     let config = root + "/.config"
     let editor = Bundle.main.path(forResource: "editor", ofType: nil)!
-    
-    // MIGRATION 2024-11-06 - 0.9.0 to 0.10.0
-
-    let oldConfigDir = config + "/fullstacked"
-    if(FileManager.default.fileExists(atPath: oldConfigDir)) {
-        let items = try! FileManager.default.contentsOfDirectory(atPath: oldConfigDir)
-        items.filter({!$0.contains("node_modules")}).forEach({ item in
-            let oldPathUrl = URL(fileURLWithPath: oldConfigDir + "/" + item)
-            let newPathUrl = URL(fileURLWithPath: config + "/" + item)
-            if(FileManager.default.fileExists(atPath: config + "/" + item)) {
-                try! FileManager.default.removeItem(at: newPathUrl)
-            }
-            try! FileManager.default.copyItem(at: oldPathUrl, to: newPathUrl)
-        })
-    }
-    
-    // end migration
+//    
+//    // MIGRATION 2024-11-06 - 0.9.0 to 0.10.0
+//
+//    let oldConfigDir = config + "/fullstacked"
+//    if(FileManager.default.fileExists(atPath: oldConfigDir)) {
+//        let items = try! FileManager.default.contentsOfDirectory(atPath: oldConfigDir)
+//        items.filter({!$0.contains("node_modules")}).forEach({ item in
+//            let oldPathUrl = URL(fileURLWithPath: oldConfigDir + "/" + item)
+//            let newPathUrl = URL(fileURLWithPath: config + "/" + item)
+//            if(FileManager.default.fileExists(atPath: config + "/" + item)) {
+//                try! FileManager.default.removeItem(at: newPathUrl)
+//            }
+//            try! FileManager.default.copyItem(at: oldPathUrl, to: newPathUrl)
+//        })
+//    }
+//    
+//    // end migration
     
     directories(
         root.ptr(),
@@ -133,21 +133,6 @@ struct Main: View {
             }
         }
         .background(Color(hex: 0x1e293b))
-    }
-}
-
-struct WebViewRepresentable: UIViewRepresentable {
-    private let projectId: String;
-    init(webView: WebView) {
-        self.projectId = webView.requestHandler.instance.id
-    }
-    
-    func makeUIView(context: Context) -> WebView  {
-        return (WebViews.singleton?.getView(projectId: self.projectId))!
-    }
-    
-    func updateUIView(_ uiView: WebView, context: Context) {
-        
     }
 }
 
