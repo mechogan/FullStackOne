@@ -1,3 +1,5 @@
+xcuserdata
+xcshareddata
 *.xcarchive
 pkg
 exportOptions.plist
