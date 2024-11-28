@@ -9,7 +9,7 @@ import {
 
 const requests = new Map<number, (data: Uint8Array) => void>();
 
-export const BridgeIOS: typeof ipc.bridge = (
+export const BridgeApple: typeof ipc.bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
@@ -33,7 +33,7 @@ export const BridgeIOS: typeof ipc.bridge = (
     });
 };
 
-export function initRespondIOS() {
+export function initRespondApple() {
     globalThis.respond = (base64: string) => {
         const data = toByteArray(base64);
         const id = bytesToNumber(data.slice(0, 4));

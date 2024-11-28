@@ -20,6 +20,19 @@ macos-x86_64-static:
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
 	go build -buildmode=c-archive -o $(OUT)/macos-x86_64.a -v ..
 
+macos-arm64-static:
+	CGO_ENABLED=1 \
+	GOOS=darwin \
+	GOARCH=arm64 \
+	SDK=macosx \
+	CC=$(CURDIR)/apple-clang.sh \
+	CGO_CFLAGS="-target arm64-apple-darwin" \
+	go build -buildmode=c-archive -o $(OUT)/macos-arm64.a -v ..
+
+macos-static: macos-x86_64-static macos-arm64-static
+	lipo $(OUT)/macos-x86_64.a $(OUT)/macos-arm64.a -create -output $(OUT)/macos.a
+	cp $(OUT)/macos-arm64.h $(OUT)/macos.h
+
 ###### iOS/iPadOS #######
 
 ios-arm64:

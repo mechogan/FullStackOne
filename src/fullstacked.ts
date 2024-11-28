@@ -1,6 +1,6 @@
 export enum Platform {
     NODE = "node",
-    IOS = "ios",
+    APPLE = "apple",
     ANDROID = "android",
     ELECTRON = "electron",
     DOCKER = "docker",

@@ -7,10 +7,10 @@
 
 @preconcurrency import WebKit
 
-let platform = "ios"
+let platform = "apple"
 let downloadDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first! + "/downloads";
 
-class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownloadDelegate {
+class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WKDownloadDelegate {
     public let requestHandler: RequestHandler
     private var firstContact = false
     private var messageToBeSent = [(String, String)]()
@@ -43,25 +43,22 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownlo
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
     
-//    override var safeAreaInsets: UIEdgeInsets {
-//        return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
-//    }
-        
-//    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-//        if(navigationAction.shouldPerformDownload) {
-//            decisionHandler(.download)
-//        }else if navigationAction.navigationType == .linkActivated  {
-//            if let url = navigationAction.request.url, "localhost" != url.host, UIApplication.shared.canOpenURL(url) {
-//                UIApplication.shared.open(url)
-//                decisionHandler(.cancel)
-//            } else {
-//                decisionHandler(.allow)
-//            }
-//        } else {
-//            decisionHandler(.allow)
-//        }
-//    }
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if(navigationAction.shouldPerformDownload) {
+            decisionHandler(.download)
+        }else if navigationAction.navigationType == .linkActivated  {
+            if let url = navigationAction.request.url, "localhost" != url.host {
+                self.openBrowserURL(url)
+                decisionHandler(.cancel)
+            } else {
+                decisionHandler(.allow)
+            }
+        } else {
+            decisionHandler(.allow)
+        }
+    }
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if(!self.firstContact){
@@ -109,7 +106,7 @@ class WebView: WKWebView, WKNavigationDelegate, WKScriptMessageHandler, WKDownlo
     }
     
     func downloadDidFinish(_ download: WKDownload) {
-//        UIApplication.shared.open(URL(string: "shareddocuments://" + downloadDirectory)!)
+        self.openDownloadDirectory()
     }
 }
 

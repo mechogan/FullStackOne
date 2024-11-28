@@ -1,6 +1,6 @@
 import { ipc } from "./ipc";
 import { BridgeNode, initCallbackNode } from "./bridge/node";
-import { BridgeIOS, initRespondIOS } from "./bridge/ios";
+import { BridgeApple, initRespondApple } from "./bridge/apple";
 import { BridgeAndroid } from "./bridge/android";
 import { BridgeWasm } from "./bridge/wasm";
 import { BridgeWindows, initRespondWindows } from "./bridge/windows";
@@ -13,9 +13,9 @@ switch (platform) {
         ipc.bridge = BridgeNode;
         initCallbackNode();
         break;
-    case Platform.IOS:
-        ipc.bridge = BridgeIOS;
-        initRespondIOS();
+    case Platform.APPLE:
+        ipc.bridge = BridgeApple;
+        initRespondApple();
         break;
     case Platform.ANDROID:
         ipc.bridge = BridgeAndroid;

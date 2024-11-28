@@ -21,10 +21,10 @@
 		9CDBCDA92CF7F8070035BF46 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */; };
 		9CDBCDAA2CF7F8070035BF46 /* editor in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* editor */; };
 		9CDBCDAB2CF7F8070035BF46 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9CA03E532B5715AC002D2D9F /* Assets.xcassets */; };
-		9CDBCDB32CF7F9BF0035BF46 /* WebViewRepresentableUIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CDBCDB12CF7F9B00035BF46 /* WebViewRepresentableUIKit.swift */; };
-		9CDBCDB82CF7F9F50035BF46 /* WebViewRepresentableAppKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CDBCDB52CF7F9F50035BF46 /* WebViewRepresentableAppKit.swift */; };
+		9CDBCDB32CF7F9BF0035BF46 /* WebViewUIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CDBCDB12CF7F9B00035BF46 /* WebViewUIKit.swift */; };
+		9CDBCDB82CF7F9F50035BF46 /* WebViewAppKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CDBCDB52CF7F9F50035BF46 /* WebViewAppKit.swift */; };
 		9CDBCDB92CF7FAB80035BF46 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* Main.swift */; };
-		9CDBCDC12CF7FC010035BF46 /* macos-x86_64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9CDBCDC02CF7FC010035BF46 /* macos-x86_64.a */; };
+		9CDBCDC82CF819F60035BF46 /* macos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9CDBCDC72CF819F60035BF46 /* macos.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,21 +34,17 @@
 		9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		9C7081332BE6CBA100EF0A6B /* FullStacked.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FullStacked.entitlements; sourceTree = "<group>"; };
 		9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		9C9902652CE792810039D1F0 /* FullStacked Catalyst-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "FullStacked Catalyst-Info.plist"; path = "/Users/cplepage/editor/platform/ios/xcode/FullStacked Catalyst-Info.plist"; sourceTree = "<absolute>"; };
 		9C9902662CE792E80039D1F0 /* mac-catalyst-x86_64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "mac-catalyst-x86_64.a"; path = "../../../core/bin/mac-catalyst-x86_64.a"; sourceTree = "<group>"; };
-		9C9902672CE793140039D1F0 /* mac-catalyst-x86_64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "mac-catalyst-x86_64.a"; path = "/Users/cplepage/editor/core/bin/mac-catalyst-x86_64.a"; sourceTree = "<absolute>"; };
-		9C9902692CE793250039D1F0 /* mac-catalyst-x86_64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "mac-catalyst-x86_64.h"; path = "/Users/cplepage/editor/core/bin/mac-catalyst-x86_64.h"; sourceTree = "<absolute>"; };
-		9CA03E4C2B5715AA002D2D9F /* FullStacked iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FullStacked iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CA03E4C2B5715AA002D2D9F /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullStackedApp.swift; sourceTree = "<group>"; };
 		9CA03E512B5715AA002D2D9F /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		9CA03E532B5715AC002D2D9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9CB389902B863B0A00FB783E /* editor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = editor; path = ../../../../out/editor; sourceTree = "<group>"; };
-		9CDBCDAF2CF7F8070035BF46 /* FullStacked MacOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FullStacked MacOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9CDBCDB02CF7F8070035BF46 /* FullStacked Catalyst copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "FullStacked Catalyst copy-Info.plist"; path = "/Users/cplepage/editor/platform/ios/xcode/FullStacked Catalyst copy-Info.plist"; sourceTree = "<absolute>"; };
-		9CDBCDB12CF7F9B00035BF46 /* WebViewRepresentableUIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewRepresentableUIKit.swift; sourceTree = "<group>"; };
-		9CDBCDB52CF7F9F50035BF46 /* WebViewRepresentableAppKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewRepresentableAppKit.swift; sourceTree = "<group>"; };
-		9CDBCDBF2CF7FC010035BF46 /* macos-x86_64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "macos-x86_64.h"; path = "../../../../../core/bin/macos-x86_64.h"; sourceTree = "<group>"; };
-		9CDBCDC02CF7FC010035BF46 /* macos-x86_64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "macos-x86_64.a"; path = "../../../../../core/bin/macos-x86_64.a"; sourceTree = "<group>"; };
+		9CDBCDAF2CF7F8070035BF46 /* FullStacked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullStacked.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CDBCDB12CF7F9B00035BF46 /* WebViewUIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewUIKit.swift; sourceTree = "<group>"; };
+		9CDBCDB52CF7F9F50035BF46 /* WebViewAppKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewAppKit.swift; sourceTree = "<group>"; };
+		9CDBCDC62CF819F60035BF46 /* macos.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macos.h; path = ../../../../../core/bin/macos.h; sourceTree = "<group>"; };
+		9CDBCDC72CF819F60035BF46 /* macos.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = macos.a; path = ../../../../../core/bin/macos.a; sourceTree = "<group>"; };
 		9CE2142E2B5E17AA00B3F646 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -65,7 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9CDBCDC12CF7FC010035BF46 /* macos-x86_64.a in Frameworks */,
+				9CDBCDC82CF819F60035BF46 /* macos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,10 +79,8 @@
 		9C5A1ED82CDB998F009B4A20 /* bin */ = {
 			isa = PBXGroup;
 			children = (
-				9CDBCDBF2CF7FC010035BF46 /* macos-x86_64.h */,
-				9CDBCDC02CF7FC010035BF46 /* macos-x86_64.a */,
-				9C9902692CE793250039D1F0 /* mac-catalyst-x86_64.h */,
-				9C9902672CE793140039D1F0 /* mac-catalyst-x86_64.a */,
+				9CDBCDC62CF819F60035BF46 /* macos.h */,
+				9CDBCDC72CF819F60035BF46 /* macos.a */,
 				9C5A1ED92CDB99BB009B4A20 /* ios-arm64.h */,
 				9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */,
 			);
@@ -99,16 +93,14 @@
 				9CA03E4E2B5715AA002D2D9F /* FullStacked */,
 				9CA03E4D2B5715AA002D2D9F /* Products */,
 				9C3752D72BE70548001C98D3 /* Frameworks */,
-				9C9902652CE792810039D1F0 /* FullStacked Catalyst-Info.plist */,
-				9CDBCDB02CF7F8070035BF46 /* FullStacked Catalyst copy-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
 		9CA03E4D2B5715AA002D2D9F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9CA03E4C2B5715AA002D2D9F /* FullStacked iOS.app */,
-				9CDBCDAF2CF7F8070035BF46 /* FullStacked MacOS.app */,
+				9CA03E4C2B5715AA002D2D9F /* FullStacked.app */,
+				9CDBCDAF2CF7F8070035BF46 /* FullStacked.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -123,8 +115,8 @@
 				9CA03E4F2B5715AA002D2D9F /* FullStackedApp.swift */,
 				9CA03E512B5715AA002D2D9F /* Main.swift */,
 				9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */,
-				9CDBCDB12CF7F9B00035BF46 /* WebViewRepresentableUIKit.swift */,
-				9CDBCDB52CF7F9F50035BF46 /* WebViewRepresentableAppKit.swift */,
+				9CDBCDB12CF7F9B00035BF46 /* WebViewUIKit.swift */,
+				9CDBCDB52CF7F9F50035BF46 /* WebViewAppKit.swift */,
 				9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */,
 				9CA03E532B5715AC002D2D9F /* Assets.xcassets */,
 				9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */,
@@ -135,9 +127,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9CA03E4B2B5715AA002D2D9F /* FullStacked iOS */ = {
+		9CA03E4B2B5715AA002D2D9F /* FullStacked-iOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9CA03E5A2B5715AC002D2D9F /* Build configuration list for PBXNativeTarget "FullStacked iOS" */;
+			buildConfigurationList = 9CA03E5A2B5715AC002D2D9F /* Build configuration list for PBXNativeTarget "FullStacked-iOS" */;
 			buildPhases = (
 				9CA03E482B5715AA002D2D9F /* Sources */,
 				9CA03E492B5715AA002D2D9F /* Frameworks */,
@@ -147,16 +139,16 @@
 			);
 			dependencies = (
 			);
-			name = "FullStacked iOS";
+			name = "FullStacked-iOS";
 			packageProductDependencies = (
 			);
 			productName = FullStacked;
-			productReference = 9CA03E4C2B5715AA002D2D9F /* FullStacked iOS.app */;
+			productReference = 9CA03E4C2B5715AA002D2D9F /* FullStacked.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9CDBCDA02CF7F8070035BF46 /* FullStacked MacOS */ = {
+		9CDBCDA02CF7F8070035BF46 /* FullStacked-MacOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9CDBCDAC2CF7F8070035BF46 /* Build configuration list for PBXNativeTarget "FullStacked MacOS" */;
+			buildConfigurationList = 9CDBCDAC2CF7F8070035BF46 /* Build configuration list for PBXNativeTarget "FullStacked-MacOS" */;
 			buildPhases = (
 				9CDBCDA12CF7F8070035BF46 /* Sources */,
 				9CDBCDA62CF7F8070035BF46 /* Frameworks */,
@@ -166,11 +158,11 @@
 			);
 			dependencies = (
 			);
-			name = "FullStacked MacOS";
+			name = "FullStacked-MacOS";
 			packageProductDependencies = (
 			);
 			productName = FullStacked;
-			productReference = 9CDBCDAF2CF7F8070035BF46 /* FullStacked MacOS.app */;
+			productReference = 9CDBCDAF2CF7F8070035BF46 /* FullStacked.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -203,8 +195,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9CA03E4B2B5715AA002D2D9F /* FullStacked iOS */,
-				9CDBCDA02CF7F8070035BF46 /* FullStacked MacOS */,
+				9CA03E4B2B5715AA002D2D9F /* FullStacked-iOS */,
+				9CDBCDA02CF7F8070035BF46 /* FullStacked-MacOS */,
 			);
 		};
 /* End PBXProject section */
@@ -241,7 +233,7 @@
 				9C5A1EDF2CDB9ADB009B4A20 /* WebView.swift in Sources */,
 				9C5A1EDD2CDB9AB9009B4A20 /* Instance.swift in Sources */,
 				9CA03E502B5715AA002D2D9F /* FullStackedApp.swift in Sources */,
-				9CDBCDB32CF7F9BF0035BF46 /* WebViewRepresentableUIKit.swift in Sources */,
+				9CDBCDB32CF7F9BF0035BF46 /* WebViewUIKit.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,7 +243,7 @@
 			files = (
 				9CDBCDB92CF7FAB80035BF46 /* Main.swift in Sources */,
 				9CDBCDA32CF7F8070035BF46 /* WebView.swift in Sources */,
-				9CDBCDB82CF7F9F50035BF46 /* WebViewRepresentableAppKit.swift in Sources */,
+				9CDBCDB82CF7F9F50035BF46 /* WebViewAppKit.swift in Sources */,
 				9CDBCDA42CF7F8070035BF46 /* Instance.swift in Sources */,
 				9CDBCDA52CF7F8070035BF46 /* FullStackedApp.swift in Sources */,
 			);
@@ -409,7 +401,7 @@
 				);
 				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = FullStacked;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -451,7 +443,7 @@
 				);
 				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = FullStacked;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -476,7 +468,7 @@
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "FullStacked Catalyst copy-Info.plist";
+				INFOPLIST_FILE = FullStacked/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FullStacked;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -492,17 +484,22 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FullStacked/bin",
+				);
 				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = FullStacked;
 				REGISTER_APP_GROUPS = NO;
 				SDKROOT = macosx;
+				STRINGS_FILE_OUTPUT_ENCODING = binary;
 				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/macos-x86_64.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/macos.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -520,7 +517,7 @@
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "FullStacked Catalyst copy-Info.plist";
+				INFOPLIST_FILE = FullStacked/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FullStacked;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -536,17 +533,22 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FullStacked/bin",
+				);
 				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = editor.FullStacked;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = FullStacked;
 				REGISTER_APP_GROUPS = NO;
 				SDKROOT = macosx;
+				STRINGS_FILE_OUTPUT_ENCODING = binary;
 				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/macos-x86_64.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/../../../core/bin/macos.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -563,7 +565,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9CA03E5A2B5715AC002D2D9F /* Build configuration list for PBXNativeTarget "FullStacked iOS" */ = {
+		9CA03E5A2B5715AC002D2D9F /* Build configuration list for PBXNativeTarget "FullStacked-iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9CA03E5B2B5715AC002D2D9F /* Debug */,
@@ -572,7 +574,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9CDBCDAC2CF7F8070035BF46 /* Build configuration list for PBXNativeTarget "FullStacked MacOS" */ = {
+		9CDBCDAC2CF7F8070035BF46 /* Build configuration list for PBXNativeTarget "FullStacked-MacOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9CDBCDAD2CF7F8070035BF46 /* Debug */,

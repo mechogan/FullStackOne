@@ -15,7 +15,7 @@ func setDirectories(){
     let root = paths.first!
     let config = root + "/.config"
     let editor = Bundle.main.path(forResource: "editor", ofType: nil)!
-//    
+//
 //    // MIGRATION 2024-11-06 - 0.9.0 to 0.10.0
 //
 //    let oldConfigDir = config + "/fullstacked"
