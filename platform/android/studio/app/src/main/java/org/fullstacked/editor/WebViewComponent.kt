@@ -1,6 +1,7 @@
 package org.fullstacked.editor
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
@@ -12,10 +13,12 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.content.ContextCompat.startActivity
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.Base64
+
 
 class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewClient() {
     val webView = createWebView(this)
@@ -55,9 +58,18 @@ class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewC
         }
     }
 
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        if (request?.url?.host == "localhost") {
+            return super.shouldOverrideUrlLoading(view, request)
+        }
+        val intent = Intent(Intent.ACTION_VIEW, request?.url)
+        startActivity(this.ctx, intent, null)
+        return true
+    }
+
     override fun shouldInterceptRequest(
         view: WebView?,
-        request: WebResourceRequest?
+        request: WebResourceRequest?,
     ): WebResourceResponse? {
         if(request?.url?.host != "localhost") {
             return super.shouldInterceptRequest(view, request)

@@ -463,7 +463,7 @@
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 714;
+				CURRENT_PROJECT_VERSION = 715;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -512,7 +512,7 @@
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 714;
+				CURRENT_PROJECT_VERSION = 715;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
