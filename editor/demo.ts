@@ -1,11 +1,14 @@
-import { serializeArgs } from "../src/serialization";
-import { ipc } from "../src/ipc";
-import { ipcEditor } from "./ipc";
+import { bridge } from "../lib/bridge";
+import { serializeArgs } from "../lib/bridge/serialization";
+import { core_fetch } from "../lib/core_fetch";
+import core_message from "../lib/core_message";
+import platform, { Platform } from "../lib/platform";
+import archive from "./lib/archive";
+import git from "./lib/git";
 import {
     createAndMoveProjectFromTmp,
     tmpDir
 } from "./views/add-project/import-zip";
-import { Platform } from "../src/fullstacked";
 
 export async function Demo() {
     if (platform === Platform.WASM) {
@@ -13,7 +16,7 @@ export async function Demo() {
     }
 
     try {
-        await ipcEditor.fetch("https://github.com", { timeout: 3 });
+        await core_fetch("https://github.com", { timeout: 3 });
     } catch (e) {
         return demoFromZip();
     }
@@ -28,8 +31,8 @@ async function demoFromZip() {
         ...serializeArgs(["Demo.zip"])
     ]);
 
-    const [_, demoZipData] = await ipc.bridge(payload);
-    await ipcEditor.archive.unzip(tmpDir, demoZipData);
+    const [_, demoZipData] = await bridge(payload);
+    await archive.unzip(tmpDir, demoZipData);
     createAndMoveProjectFromTmp(
         {
             container: null,
@@ -53,13 +56,13 @@ async function demoFromGitHub() {
         };
     });
 
-    addCoreMessageListener("git-clone", checkForDone);
+    core_message.addListener("git-clone", checkForDone);
 
-    ipcEditor.git.clone(demoRepoUrl, tmpDir);
+    git.clone(demoRepoUrl, tmpDir);
 
     await donePromise;
 
-    removeCoreMessageListener("git-clone", checkForDone);
+    core_message.removeListener("git-clone", checkForDone);
 
     createAndMoveProjectFromTmp(
         {

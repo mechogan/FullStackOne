@@ -3,11 +3,11 @@ import { Button, ButtonGroup } from "../../components/primitives/button";
 import { Icon } from "../../components/primitives/icon";
 import { NEW_FILE_ID } from "../../constants";
 import { Store } from "../../store";
-import { ipcEditor } from "../../ipc";
 import { Project } from "../../types";
 import { Popover } from "../../components/popover";
 import { InputText } from "../../components/primitives/inputs";
 import { createRefresheable } from "../../components/refresheable";
+import fs from "../../../lib/fs";
 
 type FileTreeItemCommon = {
     name: string;
@@ -145,9 +145,7 @@ function TopActions(project: Project) {
         const path = parentPath + "/" + file.name;
         const data = new Uint8Array(await file.arrayBuffer());
 
-        ipcEditor.fs
-            .writeFile(path, data)
-            .then(() => OpenDirectory(parentPath));
+        fs.writeFile(path, data).then(() => OpenDirectory(parentPath));
         form.reset();
     };
     form.append(fileInput);
@@ -178,7 +176,7 @@ async function OpenDirectory(
 
     const fileTreeItemDirectory = fileTreeItem as FileTreeItemDirectory;
 
-    const children = await ipcEditor.fs.readdir(fileTreeItemDirectoryPath, {
+    const children = await fs.readdir(fileTreeItemDirectoryPath, {
         withFileTypes: true
     });
     fileTreeItemDirectory.children = children.map((child) => {
@@ -385,10 +383,10 @@ function fileTreeItemOptions(
 
     deleteButton.onclick = async () => {
         if (fileTreeItem.type === "file") {
-            await ipcEditor.fs.unlink(fileTreeItemPath);
+            await fs.unlink(fileTreeItemPath);
             Store.editor.codeEditor.closeFile(fileTreeItemPath);
         } else {
-            await ipcEditor.fs.rmdir(fileTreeItemPath);
+            await fs.rmdir(fileTreeItemPath);
             Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
         }
         OpenDirectory(fileTreeItem.parent);
@@ -450,11 +448,11 @@ function fileTreeItemForm(fileTreeItemPath: string) {
         }
 
         if (fileTreeItem.type === "file") {
-            await ipcEditor.fs.rename(fileTreeItemPath, newPath);
+            await fs.rename(fileTreeItemPath, newPath);
             tree.delete(fileTreeItemPath);
             Store.editor.codeEditor.closeFile(fileTreeItemPath);
         } else if (fileTreeItem.type === "directory") {
-            await ipcEditor.fs.rename(fileTreeItemPath, newPath);
+            await fs.rename(fileTreeItemPath, newPath);
             Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
         }
 
@@ -511,9 +509,9 @@ async function newFileItemForm(project: Project, forDirectory: boolean) {
         const path = parentPath + "/" + value;
 
         if (forDirectory) {
-            await ipcEditor.fs.mkdir(path);
+            await fs.mkdir(path);
         } else {
-            await ipcEditor.fs.writeFile(path, "\n");
+            await fs.writeFile(path, "\n");
         }
 
         itemElement.remove();

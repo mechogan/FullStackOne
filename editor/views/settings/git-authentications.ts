@@ -3,7 +3,7 @@ import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
 import { createRefresheable } from "../../components/refresheable";
-import { ipcEditor } from "../../ipc";
+import config from "../../lib/config";
 import { CONFIG_TYPE, GitAuths } from "../../types";
 
 let gitAuthRefresh: ReturnType<typeof createRefresheable>["refresh"];
@@ -62,7 +62,7 @@ export function GitAuthentications() {
 async function GitAuthsList() {
     const container = createElement("ul");
 
-    const gitAuths = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+    const gitAuths = await config.get(CONFIG_TYPE.GIT);
     const items = Object.entries(gitAuths).map(GitAuthItem);
 
     container.append(...items);
@@ -104,11 +104,11 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 iconLeft: "Trash"
             });
             deleteButton.onclick = async () => {
-                const gitAuthConfigs = await ipcEditor.config.get(
+                const gitAuthConfigs = await config.get(
                     CONFIG_TYPE.GIT
                 );
                 delete gitAuthConfigs[gitAuth[0]];
-                await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+                await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
                 refreshGitAuthsList();
             };
 
@@ -171,7 +171,7 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
 
             formComponents.submitButton.disabled = true;
 
-            const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+            const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
             gitAuthConfigs[formComponents.hostnameInput.input.value] = {
                 username: formComponents.usernameInput.input.value,
                 email: formComponents.emailInput.input.value,
@@ -182,7 +182,7 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 delete gitAuthConfigs[gitAuth[0]];
             }
 
-            await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+            await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
             refreshGitAuthsList();
         };
 
@@ -267,13 +267,13 @@ function GitAuthCreateForm(close: (refreshList: boolean) => void) {
 
         formComponents.submitButton.disabled = true;
 
-        const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+        const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
         gitAuthConfigs[formComponents.hostnameInput.input.value] = {
             username: formComponents.usernameInput.input.value,
             password: formComponents.passwordInput.input.value,
             email: formComponents.emailInput.input.value
         };
-        await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+        await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
         close(true);
     };
 

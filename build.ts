@@ -32,19 +32,19 @@ if (textBlockToUpdate) {
 
 const outDir = "out";
 const outDirEditor = `${outDir}/editor`;
-const outBaseFileJs = `${outDirEditor}/base.js`;
+// const outBaseFileJs = `${outDirEditor}/base.js`;
 const outTsLib = `${outDirEditor}/tsLib`;
 
 if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true });
 }
 
-esbuild.buildSync({
-    entryPoints: ["src/index.ts"],
-    bundle: true,
-    format: "esm",
-    outfile: outBaseFileJs
-});
+// esbuild.buildSync({
+//     entryPoints: ["src/index.ts"],
+//     bundle: true,
+//     format: "esm",
+//     outfile: outBaseFileJs
+// });
 
 const toBuild = [
     ["editor/index.ts", "index"],
@@ -103,12 +103,12 @@ fs.cpSync("node_modules/typescript/lib", outTsLib, {
     recursive: true
 });
 
-child_process.execSync(
-    `tsc --declaration --skipLibCheck --module system --outfile ${outTsLib}/fullstacked.js src/fullstacked.ts`,
-    {
-        stdio: "inherit"
-    }
-);
+// child_process.execSync(
+//     `tsc --declaration --skipLibCheck --module system --outfile ${outTsLib}/fullstacked.js src/fullstacked.ts`,
+//     {
+//         stdio: "inherit"
+//     }
+// );
 
 const { version } = JSON.parse(
     fs.readFileSync("package.json", { encoding: "utf-8" })

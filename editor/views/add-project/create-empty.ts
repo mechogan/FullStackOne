@@ -5,7 +5,7 @@ import { TopBar } from "../../components/top-bar";
 import { Store } from "../../store";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
-import { ipcEditor } from "../../ipc";
+import fs from "../../../lib/fs";
 
 export function CreateEmpty() {
     const container = document.createElement("div");
@@ -50,7 +50,7 @@ export function CreateEmpty() {
         const title = inputTitle.input.value || "Empty Project";
 
         Promise.all([
-            ipcEditor.fs.mkdir(id),
+            fs.mkdir(id),
             Store.projects.create({ title, id })
         ]).then(() => stackNavigation.back());
     };

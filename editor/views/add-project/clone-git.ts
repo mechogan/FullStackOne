@@ -10,7 +10,8 @@ import {
 } from "./import-zip";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
-import { ipcEditor } from "../../ipc";
+import core_message from "../../../lib/core_message";
+import git from "../../lib/git";
 
 export function CloneGit(repoUrl?: string) {
     const { container, scrollable } = ViewScrollable();
@@ -50,7 +51,7 @@ export function CloneGit(repoUrl?: string) {
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
-            removeCoreMessageListener("git-clone", checkForDone);
+            core_message.addListener("git-clone", checkForDone);
         }
     });
 
@@ -75,7 +76,7 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
         };
     });
 
-    addCoreMessageListener("git-clone", checkForDone);
+    core_message.addListener("git-clone", checkForDone);
 
     const loader = CreateLoader({
         text: "Cloning from remote..."
@@ -85,7 +86,7 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
 
     consoleTerminal.logger(`Cloning ${url}`);
     try {
-        await ipcEditor.git.clone(url, tmpDir);
+        git.clone(url, tmpDir);
     } catch (e) {
         consoleTerminal.logger(e.Error);
         throw e;
@@ -106,7 +107,7 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     consoleTerminal.logger(`Finished cloning ${url}`);
     consoleTerminal.logger(`Done`);
 
-    removeCoreMessageListener("git-clone", checkForDone);
+    core_message.removeListener("git-clone", checkForDone);
 }
 
 export function gitLogger(consoleTerminal: ReturnType<typeof ConsoleTerminal>) {

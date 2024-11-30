@@ -1,4 +1,3 @@
-import { create } from "domain";
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { Dialog } from "../../../components/dialog";
 import { createElement } from "../../../components/element";
@@ -8,7 +7,7 @@ import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import { InputText } from "../../../components/primitives/inputs";
 import { createRefresheable } from "../../../components/refresheable";
-import { ipcEditor } from "../../../ipc";
+import git from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
 import { refreshCodeEditorView, saveAllViews } from "../code-editor";
@@ -137,7 +136,7 @@ export function projectChanges(project: Project) {
 
 async function _projectChanges(project: Project) {
     await saveAllViews();
-    const changes = await ipcEditor.git.status(project.id);
+    const changes = await git.status(project.id);
     const hasChanges =
         changes.Added.length !== 0 ||
         changes.Modified.length !== 0 ||
@@ -195,8 +194,7 @@ async function CommitAndPushButtons(
     }
 
     let reacheable = false;
-    ipcEditor.git
-        .fetch(project)
+    git.fetch(project)
         .then(() => {
             reacheable = true;
             toggleButtonsDisabled();
@@ -237,7 +235,7 @@ async function CommitAndPushButtons(
         commitButton.disabled = true;
         const commitMessage = commitMessageInput.input.value;
         form.reset();
-        await ipcEditor.git.commit(project, commitMessage);
+        await git.commit(project, commitMessage);
         commitButton.disabled = false;
         refresh.repoInfo();
         refresh.status();
@@ -249,7 +247,7 @@ async function CommitAndPushButtons(
         pushButton.disabled = true;
         await commit();
         if (reacheable) {
-            ipcEditor.git.push(project);
+            git.push(project);
             closeButton.click();
         }
         pushButton.disabled = false;
@@ -276,7 +274,7 @@ function RepoInfos(project: Project) {
 
     container.append(webLink);
 
-    ipcEditor.git.head(project.id).then(({ Name, Hash }) => {
+    git.head(project.id).then(({ Name, Hash }) => {
         container.innerHTML += `
                 <div>${Name}</div>
                 <div>${Hash}</div>
@@ -410,7 +408,7 @@ async function Status(project: Project) {
     return container;
 }
 
-type Changes = Awaited<ReturnType<typeof ipcEditor.git.status>>;
+type Changes = Awaited<ReturnType<typeof git.status>>;
 
 function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
@@ -430,16 +428,16 @@ function ChangesList(changes: Changes, project: Project) {
     };
 
     addSection("Added", changes.Added, async (file: string) => {
-        await ipcEditor.git.restore(project.id, [file]);
+        await git.restore(project.id, [file]);
         refreshFullFileTree();
         Store.editor.codeEditor.closeFile(project.id + "/" + file);
     });
     addSection("Modified", changes.Modified, async (file: string) => {
-        await ipcEditor.git.restore(project.id, [file]);
+        await git.restore(project.id, [file]);
         refreshCodeEditorView(project.id + "/" + file);
     });
     addSection("Deleted", changes.Deleted, async (file: string) => {
-        await ipcEditor.git.restore(project.id, [file]);
+        await git.restore(project.id, [file]);
         refreshFullFileTree();
     });
 

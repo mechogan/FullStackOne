@@ -1,7 +1,7 @@
 import "winbox/dist/css/winbox.min.css";
 import wb from "winbox/src/js/winbox";
 import type WinBoxType from "winbox";
-import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
+import { deserializeArgs, numberTo4Bytes } from "../../../lib/bridge/serialization";
 
 const WinBox = wb as WinBoxType.WinBoxConstructor;
 

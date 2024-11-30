@@ -8,11 +8,11 @@ import {
     SETTINGS_VIEW_ID
 } from "../../constants";
 import { createRefresheable } from "../../components/refresheable";
-import { ipcEditor } from "../../ipc";
 import { Project } from "../project";
 import { Version } from "./version";
 import { GitAuthentications } from "./git-authentications";
-import { Platform } from "../../../src/fullstacked";
+import platform, { Platform } from "../../../lib/platform";
+import fs from "../../../lib/fs";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -55,7 +55,7 @@ function Packages() {
 }
 
 async function PackagesButton() {
-    const packagesCount = (await ipcEditor.fs.readdir("node_modules")).length;
+    const packagesCount = (await fs.readdir("node_modules")).length;
     const text = packagesCount + " package" + (packagesCount > 1 ? "s" : "");
     const button = Button({
         text,

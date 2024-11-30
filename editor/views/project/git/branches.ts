@@ -2,14 +2,13 @@ import { projectChanges, toggleCommitAndBranchView } from ".";
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { createElement } from "../../../components/element";
 import { Loader } from "../../../components/loader";
-import { Message } from "../../../components/message";
 import { Popover } from "../../../components/popover";
 import { Badge } from "../../../components/primitives/badge";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import { InputText } from "../../../components/primitives/inputs";
 import { createRefresheable } from "../../../components/refresheable";
-import { ipcEditor } from "../../../ipc";
+import git from "../../../lib/git";
 import { Project } from "../../../types";
 import { refreshAllCodeEditorView } from "../code-editor";
 import { refreshFullFileTree } from "../file-tree";
@@ -81,8 +80,8 @@ async function BranchesList(project: Project) {
     container.classList.add("git-branch-list");
 
     const [branches, head, { hasChanges }] = await Promise.all([
-        ipcEditor.git.branches(project),
-        ipcEditor.git.head(project.id),
+        git.branches(project),
+        git.head(project.id),
         projectChanges(project)
     ]);
 
@@ -116,7 +115,7 @@ async function BranchesList(project: Project) {
                         button.replaceWith(document.createElement("div"));
                     });
 
-                    await ipcEditor.git.checkout(project, branch.name, false);
+                    await git.checkout(project, branch.name, false);
                     refreshGitWidgetBranchAndCommit();
                     await refreshAllCodeEditorView();
                     refreshBranches();
@@ -156,7 +155,7 @@ async function BranchesList(project: Project) {
                 });
 
                 deleteButton.onclick = async () => {
-                    await ipcEditor.git.branchDelete(project, branch.name);
+                    await git.branchDelete(project, branch.name);
                     refreshBranches();
                 };
 
@@ -209,7 +208,7 @@ function CreateBranchForm(project: Project, close: () => void) {
     form.onsubmit = async (e) => {
         e.preventDefault();
 
-        await ipcEditor.git.checkout(
+        await git.checkout(
             project,
             branchNameInput.input.value,
             true

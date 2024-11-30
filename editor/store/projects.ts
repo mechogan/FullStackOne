@@ -1,30 +1,20 @@
 import { createSubscribable } from ".";
 import { CONFIG_TYPE, Project } from "../types";
-import { ipcEditor } from "../ipc";
+import fs from "../../lib/fs";
+import config from "../lib/config";
 
 const list = createSubscribable(listP, []);
-const filterValue = createSubscribable(() => filterP);
 
 export const projects = {
     list: list.subscription,
     create,
     update,
-    deleteP,
-    filter: {
-        value: filterValue.subscription,
-        set: setFilter
-    }
+    deleteP
 };
 
 async function listP() {
-    const { projects } = await ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
+    const { projects } = await config.get(CONFIG_TYPE.PROJECTS);
     return projects || [];
-}
-
-let filterP = "";
-function setFilter(value: string) {
-    filterP = value;
-    filterValue.notify();
 }
 
 async function create(project: Omit<Project, "createdDate">) {
@@ -34,7 +24,7 @@ async function create(project: Omit<Project, "createdDate">) {
     };
     const projects = await listP();
     projects.push(newProject);
-    await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
+    await config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
 }
 
@@ -44,11 +34,11 @@ async function update(project: Project, updatedProject: Project) {
     if (indexOf === -1) return;
 
     if (project.id != updatedProject.id) {
-        await ipcEditor.fs.rename(project.id, updatedProject.id);
+        await fs.rename(project.id, updatedProject.id);
     }
 
     projects[indexOf] = updatedProject;
-    await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
+    await config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
 }
 
@@ -57,8 +47,8 @@ async function deleteP(project: Project) {
     const indexOf = projects.findIndex(({ id }) => id === project.id);
     if (indexOf === -1) return;
     projects.splice(indexOf, 1);
-    await ipcEditor.config.save(CONFIG_TYPE.PROJECTS, { projects });
+    await config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
 
-    ipcEditor.fs.rmdir(project.id);
+    fs.rmdir(project.id);
 }

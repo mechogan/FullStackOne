@@ -1,9 +1,8 @@
 import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
-import { ipcEditor } from "../../ipc";
 import { Store } from "../../store";
-import { Project } from "../../types";
+import packages from "../../lib/packages";
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -42,7 +41,7 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
                 .toString()
                 .slice(e.start, e.start + e.length)
                 .slice(1, -1);
-            ipcEditor.packages.install(`@types/${moduleName}`);
+            packages.install(`@types/${moduleName}`);
         });
         await WorkerTS.restart();
         tsErrors = await getAllTsError();

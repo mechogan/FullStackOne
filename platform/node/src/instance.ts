@@ -1,4 +1,4 @@
-import { numberTo4Bytes, serializeArgs } from "../../../src/serialization";
+import { numberTo4Bytes } from "../../../lib/bridge/serialization";
 import { callLib } from "./call";
 
 type InstanceOpts = { id: string; isEditor: boolean };

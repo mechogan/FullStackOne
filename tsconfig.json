@@ -6,7 +6,6 @@
         "moduleResolution": "Node"
     },
     "exclude": [
-        "lib",
         "platform/android",
         "platform/ios",
         "platform/docker",

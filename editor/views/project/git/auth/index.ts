@@ -3,8 +3,8 @@ import { InputText } from "../../../../components/primitives/inputs";
 import { GitHubDeviceFlow } from "./github";
 import { Button } from "../../../../components/primitives/button";
 import { createElement } from "../../../../components/element";
-import { ipcEditor } from "../../../../ipc";
 import { CONFIG_TYPE } from "../../../../types";
+import config from "../../../../lib/config";
 
 export function GitAuth(hostname: string): Promise<boolean> {
     if (hostname === "github.com") {
@@ -65,13 +65,13 @@ export function GitAuth(hostname: string): Promise<boolean> {
 
             authButton.disabled = true;
 
-            const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+            const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
             gitAuthConfigs[hostname] = {
                 username: usernameInput.input.value,
                 email: emailInput.input.value,
                 password: passwordInput.input.value
             };
-            await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+            await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
 
             resolve(true);
             remove();

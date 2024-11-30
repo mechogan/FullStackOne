@@ -1,4 +1,4 @@
-import { ipcEditor } from "./ipc";
+import config from "./lib/config";
 import { Store } from "./store";
 import { CONFIG_TYPE, Project as ProjectType } from "./types";
 import { CloneGit } from "./views/add-project/clone-git";
@@ -27,7 +27,7 @@ export async function deeplink(fullstackedUrl: string) {
         return false;
     };
 
-    const { projects } = await ipcEditor.config.get(CONFIG_TYPE.PROJECTS);
+    const { projects } = await config.get(CONFIG_TYPE.PROJECTS);
 
     if (runProjectIfFound(projects)) return;
 

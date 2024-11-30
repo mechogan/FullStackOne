@@ -1,4 +1,4 @@
-import { ipcEditor } from "../ipc";
+import packages from "../lib/packages";
 import { Store } from "../store";
 import { BuildError } from "../store/editor";
 
@@ -17,6 +17,6 @@ function checkForPackageToInstall(buildErrors: BuildError[]) {
 
         if (packageName.startsWith(".") || !packageName) return;
 
-        ipcEditor.packages.install(packageName);
+        packages.install(packageName);
     });
 }

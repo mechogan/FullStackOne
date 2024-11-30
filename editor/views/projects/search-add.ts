@@ -1,7 +1,7 @@
 import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
-import { Store } from "../../store";
 import { AddProject } from "../add-project";
+import { filterProjects } from "./list";
 
 export function SearchAdd() {
     const container = document.createElement("div");
@@ -19,7 +19,7 @@ function Search() {
     });
 
     inputSearch.input.onkeyup = () => {
-        Store.projects.filter.set(inputSearch.input.value);
+        filterProjects(inputSearch.input.value);
     };
 
     return inputSearch.container;

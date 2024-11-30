@@ -5,10 +5,12 @@ import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
-import { ipcEditor } from "../../ipc";
 import slugify from "slugify";
 import { Store } from "../../store";
 import { CONFIG_TYPE } from "../../types";
+import archive from "../../lib/archive";
+import fs from "../../../lib/fs";
+import config from "../../lib/config";
 
 export function ImportZip() {
     const { container, scrollable } = ViewScrollable();
@@ -84,7 +86,7 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     const zipData = new Uint8Array(await file.arrayBuffer());
     consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
     consoleTerminal.logger(`Unpacking`);
-    await ipcEditor.archive.unzip(tmpDir, zipData);
+    await archive.unzip(tmpDir, zipData);
 
     // remove .zip extension
     let defaultProjectTitle = file.name;
@@ -106,7 +108,7 @@ export async function createAndMoveProjectFromTmp(
     defaultGitRepoUrl: string
 ) {
     consoleTerminal.logger(`Looking for .fullstacked file`);
-    const contents = await ipcEditor.fs.readdir(tmpDir);
+    const contents = await fs.readdir(tmpDir);
 
     const project: Parameters<typeof Store.projects.create>[0] = {
         title: defaultProjectTitle,
@@ -115,7 +117,7 @@ export async function createAndMoveProjectFromTmp(
 
     if (contents.includes(".fullstacked")) {
         try {
-            const fullstackedFile = await ipcEditor.fs.readFile(
+            const fullstackedFile = await fs.readFile(
                 `${tmpDir}/.fullstacked`,
                 { encoding: "utf8" }
             );
@@ -145,7 +147,7 @@ export async function createAndMoveProjectFromTmp(
     if (project.gitRepository?.url) {
         const url = new URL(project.gitRepository.url);
         const hostname = url.hostname;
-        const gitAuthConfigs = await ipcEditor.config.get(CONFIG_TYPE.GIT);
+        const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
         const gitAuth = gitAuthConfigs[hostname];
         if (gitAuth?.username) {
             project.gitRepository.name = gitAuth.username;
@@ -160,7 +162,7 @@ export async function createAndMoveProjectFromTmp(
 
     let tries = 1,
         originalProjectId = project.id;
-    while (!(await ipcEditor.fs.rename(tmpDir, project.id))) {
+    while (!(await fs.rename(tmpDir, project.id))) {
         tries++;
         project.id = originalProjectId + "-" + tries;
     }

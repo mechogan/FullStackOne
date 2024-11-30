@@ -13,8 +13,8 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import { fsSync } from "../ipc/fsSync";
 import { parsePackageName } from "./utils";
+import fs_sync from "../lib/fs_sync";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -153,7 +153,7 @@ const makeSureSourceFilesAreLoaded = () => {
         );
     }
 
-    const files = fsSync
+    const files = fs_sync
         .readdir(workingDirectory)
         .map((filename) => workingDirectory + "/" + filename);
 
@@ -202,14 +202,14 @@ function initLanguageServiceHost(): LanguageServiceHost {
             if (fileName.startsWith("tsLib")) {
                 if (!scriptSnapshotCache[fileName]) {
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fsSync.staticFile(fileName)
+                        fs_sync.staticFile(fileName)
                     );
                 }
                 return scriptSnapshotCache[fileName];
             } else if (fileName.startsWith("node_modules")) {
                 if (!scriptSnapshotCache[fileName]) {
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fsSync.readFile(fileName)
+                        fs_sync.readFile(fileName)
                     );
                 }
                 return scriptSnapshotCache[fileName];
@@ -222,7 +222,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             }
 
             if (sourceFiles[fileName].contents === null) {
-                sourceFiles[fileName].contents = fsSync.readFile(fileName);
+                sourceFiles[fileName].contents = fs_sync.readFile(fileName);
             }
 
             return ScriptSnapshot.fromString(sourceFiles[fileName].contents);
@@ -240,7 +240,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             if (path.startsWith("node_modules")) {
                 if (!scriptSnapshotCache[path]) {
                     scriptSnapshotCache[path] = ScriptSnapshot.fromString(
-                        fsSync.readFile(path)
+                        fs_sync.readFile(path)
                     );
                 }
 
@@ -257,7 +257,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             }
 
             if (sourceFiles[path].contents === null) {
-                sourceFiles[path].contents = fsSync.readFile(path);
+                sourceFiles[path].contents = fs_sync.readFile(path);
             }
 
             return sourceFiles[path].contents;
@@ -273,7 +273,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
 
                 if (!moduleFiles) {
                     try {
-                        moduleFiles = fsSync
+                        moduleFiles = fs_sync
                             .readdir("node_modules/" + moduleName)
                             .map(
                                 (file) =>

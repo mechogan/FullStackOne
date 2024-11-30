@@ -1,12 +1,10 @@
-import { resolve } from "path";
-import api from "../../../../api";
-import { GitAuths } from "../../../../api/config/types";
 import { Dialog } from "../../../../components/dialog";
 import { Button } from "../../../../components/primitives/button";
 import { Icon } from "../../../../components/primitives/icon";
-import { ipcEditor } from "../../../../ipc";
 import { createElement } from "../../../../components/element";
 import { CONFIG_TYPE } from "../../../../types";
+import config from "../../../../lib/config";
+import { core_fetch } from "../../../../../lib/core_fetch";
 
 export function GitHubDeviceFlow() {
     const container = createElement("div");
@@ -105,7 +103,7 @@ export function GitHubDeviceFlow() {
                 waitText.innerText = "3. " + response.error;
                 resolve(false);
             } else {
-                const gitAuthConfigs = await ipcEditor.config.get(
+                const gitAuthConfigs = await config.get(
                     CONFIG_TYPE.GIT
                 );
                 gitAuthConfigs["github.com"] = {
@@ -113,7 +111,7 @@ export function GitHubDeviceFlow() {
                     email: response.email,
                     password: response.password
                 };
-                await ipcEditor.config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
+                await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
                 resolve(true);
                 remove();
             }
@@ -139,7 +137,7 @@ function sleep(ms: number) {
 const client_id = "175231928f47d8d36b2d";
 
 async function deviceFlowStart() {
-    const response = await ipcEditor.fetch(
+    const response = await core_fetch(
         "https://github.com/login/device/code",
         {
             method: "POST",
@@ -162,7 +160,7 @@ async function deviceFlowStart() {
     };
 }
 async function deviceFlowPoll(device_code: string) {
-    const response = await ipcEditor.fetch(
+    const response = await core_fetch(
         "https://github.com/login/oauth/access_token",
         {
             body: JSON.stringify({
@@ -188,7 +186,7 @@ async function deviceFlowPoll(device_code: string) {
 
     const { access_token } = json;
 
-    const userResponse = await ipcEditor.fetch("https://api.github.com/user", {
+    const userResponse = await core_fetch("https://api.github.com/user", {
         headers: {
             authorization: `Bearer ${access_token}`,
             accept: "application/json"
@@ -200,7 +198,7 @@ async function deviceFlowPoll(device_code: string) {
 
     const username = user.login;
 
-    const emailsResponse = await ipcEditor.fetch(
+    const emailsResponse = await core_fetch(
         "https://api.github.com/user/emails",
         {
             headers: {

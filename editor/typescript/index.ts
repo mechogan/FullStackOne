@@ -1,8 +1,8 @@
 import type { methods } from "./worker";
 import { createSubscribable } from "../store";
-import { Platform } from "../../src/fullstacked";
-import { numberTo4Bytes } from "../../src/serialization";
-import ipc from "../../src";
+import { numberTo4Bytes } from "../../lib/bridge/serialization";
+import { Platform } from "../../lib/platform";
+import { bridge } from "../../lib/bridge";
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
@@ -135,7 +135,7 @@ function getWorkerDataWASM(workerPath: string) {
         ...numberTo4Bytes(workerPathData.byteLength),
         ...workerPathData
     ]);
-    return ipc.bridge(payload);
+    return bridge(payload);
 }
 
 function preloadFS() {

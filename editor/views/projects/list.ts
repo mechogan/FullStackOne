@@ -4,12 +4,11 @@ import { createElement } from "../../components/element";
 import { Popover } from "../../components/popover";
 import { Button, ButtonGroup } from "../../components/primitives/button";
 import { createRefresheable } from "../../components/refresheable";
-import { PROJECTS_VIEW_ID, BG_COLOR } from "../../constants";
 import { Store } from "../../store";
 import { Project as ProjectType } from "../../types";
 import { Project } from "../project";
 import { ProjectSettings } from "../project-settings";
-import { ipcEditor } from "../../ipc";
+import archive from "../../lib/archive";
 
 export function List() {
     const container = createElement("div");
@@ -38,6 +37,8 @@ const fuseOptions: IFuseOptions<ProjectType> = {
     ]
 };
 
+let lastFilter = "";
+export let filterProjects: (searchStr: string) => void;
 function Grid(projects: ProjectType[]) {
     const container = createElement("div");
 
@@ -45,19 +46,17 @@ function Grid(projects: ProjectType[]) {
 
     const filteredGrid = createRefresheable(GridFiltered);
 
-    const filter: Parameters<
-        typeof Store.projects.filter.value.subscribe
-    >[0] = (searchString) => {
+    filterProjects = (searchString) => {
+        lastFilter = searchString;
         if (!searchString) {
             filteredGrid.refresh(projects);
         } else {
             const fuseResults = fuse.search(searchString);
             filteredGrid.refresh(fuseResults.map(({ item }) => item));
         }
-    };
+    }
+    filterProjects(lastFilter);
 
-    Store.projects.filter.value.subscribe(filter);
-    container.ondestroy = () => Store.projects.filter.value.unsubscribe(filter);
     container.append(filteredGrid.element);
 
     return container;
@@ -142,7 +141,7 @@ function ProjectTile(project: ProjectType) {
         });
 
         shareButton.onclick = async () => {
-            const zipData = await ipcEditor.archive.zip(project);
+            const zipData = await archive.zip(project);
             const blob = new Blob([zipData]);
             const a = document.createElement("a");
             document.body.appendChild(a);

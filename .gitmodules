@@ -1,9 +1,3 @@
-[submodule "lib/esbuild"]
-	path = lib/esbuild
-	url = https://github.com/evanw/esbuild.git
 [submodule "editor-sample-demo"]
 	path = editor-sample-demo
 	url = https://github.com/fullstackedorg/editor-sample-demo.git
-[submodule "lib/puppeteer-stream"]
-	path = lib/puppeteer-stream
-	url = https://github.com/cplepage/puppeteer-stream.git

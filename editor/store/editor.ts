@@ -1,5 +1,4 @@
 import { createSubscribable } from ".";
-import { Dirent } from "../../src/fullstacked";
 
 let sidePanelClosed = false;
 const sidePanel = createSubscribable(() => sidePanelClosed);

@@ -8,7 +8,6 @@ import { Store } from "../../store";
 import { createElement, ElementComponent } from "../../components/element";
 import { Editor } from "./editor";
 import { WorkerTS } from "../../typescript";
-import { ipcEditor } from "../../ipc";
 import { Loader } from "../../components/loader";
 import * as sass from "sass";
 import type { Message } from "esbuild";
@@ -16,6 +15,11 @@ import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
 import { Icon } from "../../components/primitives/icon";
 import { createRefresheable } from "../../components/refresheable";
+import fs from "../../../lib/fs";
+import esbuild from "../../lib/esbuild";
+import core_open from "../../lib/core_open";
+import git from "../../lib/git";
+import core_message from "../../../lib/core_message";
 
 let lastOpenedProjectId: string,
     autoRunning = false,
@@ -78,8 +82,8 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
 
         deleteAllButton.onclick = async () => {
             deleteAllButton.disabled = true;
-            await ipcEditor.fs.rmdir("node_modules");
-            await ipcEditor.fs.mkdir("node_modules");
+            await fs.rmdir("node_modules");
+            await fs.mkdir("node_modules");
             stackNavigation.back();
         };
 
@@ -183,13 +187,13 @@ async function build(project: ProjectType) {
 
     await Promise.all([
         saveAllViews(),
-        ipcEditor.fs.rmdir(project.id + "/.build")
+        fs.rmdir(project.id + "/.build")
     ]);
 
     const buildErrors = (
         await Promise.all([
             buildSASS(project),
-            ipcEditor.esbuild.build(project)
+            esbuild.build(project)
         ])
     )
         .flat()
@@ -209,18 +213,18 @@ async function build(project: ProjectType) {
         });
     } else {
         autoRunning = false;
-        ipcEditor.open(project.id);
+        core_open(project.id);
     }
 }
 
 async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
-    const contents = await ipcEditor.fs.readdir(project.id);
+    const contents = await fs.readdir(project.id);
     const entryPoint = contents.find(
         (item) => item === "index.sass" || item === "index.scss"
     );
     if (!entryPoint) return null;
 
-    const entryData = await ipcEditor.fs.readFile(
+    const entryData = await fs.readFile(
         `${project.id}/${entryPoint}`,
         { encoding: "utf8" }
     );
@@ -230,7 +234,7 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
             importer: {
                 load: async (url) => {
                     const filePath = `${project.id}${url.pathname}`;
-                    const contents = await ipcEditor.fs.readFile(filePath, {
+                    const contents = await fs.readFile(filePath, {
                         encoding: "utf8"
                     });
                     return {
@@ -266,8 +270,8 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
     }
 
     const buildDirectory = `${project.id}/.build`;
-    await ipcEditor.fs.mkdir(buildDirectory);
-    await ipcEditor.fs.writeFile(buildDirectory + "/index.css", result.css);
+    await fs.mkdir(buildDirectory);
+    await fs.writeFile(buildDirectory + "/index.css", result.css);
     return null;
 }
 
@@ -291,7 +295,7 @@ function GitWidget(project: ProjectType) {
     if (!hasGit) return container;
 
     const branchAndCommitRender = async () => {
-        const result = await ipcEditor.git.head(project.id);
+        const result = await git.head(project.id);
         const branchAndCommitContainer = createElement("div");
         branchAndCommitContainer.innerHTML = `
                 <div><b>${result.Name}</b></div>
@@ -328,15 +332,15 @@ function GitWidget(project: ProjectType) {
         }
     };
 
-    addCoreMessageListener("git-pull", pullEvent);
-    addCoreMessageListener("git-push", pushEvent);
+    core_message.addListener("git-pull", pullEvent);
+    core_message.addListener("git-push", pushEvent);
 
     container.ondestroy = () => {
-        removeCoreMessageListener("git-pull", pullEvent);
-        removeCoreMessageListener("git-push", pushEvent);
+        core_message.removeListener("git-pull", pullEvent);
+        core_message.removeListener("git-push", pushEvent);
     };
 
-    ipcEditor.git.pull(project);
+    git.pull(project);
 
     return container;
 }

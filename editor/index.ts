@@ -1,6 +1,7 @@
+import core_message from "../lib/core_message";
 import { deeplink } from "./deeplink";
 import { Demo } from "./demo";
-import { ipcEditor } from "./ipc";
+import config from "./lib/config";
 import { CONFIG_TYPE } from "./types";
 import { Packages } from "./views/packages";
 import { Projects } from "./views/projects";
@@ -9,7 +10,7 @@ const launchDeeplink = (url: string) => {
     deeplink(url);
 };
 
-addCoreMessageListener("deeplink", launchDeeplink);
+core_message.addListener("deeplink", launchDeeplink);
 
 // fix windows scrollbars
 if (navigator.userAgent.includes("Windows")) {
@@ -23,7 +24,7 @@ document.querySelector("#splash").remove();
 Projects();
 Packages();
 
-const checkProjectsConfigExists = await ipcEditor.config.get(
+const checkProjectsConfigExists = await config.get(
     CONFIG_TYPE.PROJECTS,
     true
 );

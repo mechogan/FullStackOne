@@ -6,8 +6,8 @@ import { Duplex } from "stream";
 import ws, { WebSocketServer } from "ws";
 import { createInstance } from "./instance";
 import { platform } from ".";
-import { fromBase64 } from "../../../editor/api/connectivity/cryptoUtils";
-import { deserializeArgs, numberTo4Bytes } from "../../../src/serialization";
+import { deserializeArgs, numberTo4Bytes } from "../../../lib/bridge/serialization";
+import { toByteArray } from "base64-js";
 
 type Instance = ReturnType<typeof createInstance>;
 
@@ -84,7 +84,7 @@ function createHandler(instance: Instance) {
         if (instance.isEditor && pathname === "/call-sync") {
             const parsedQuery = fastQueryString.parse(query);
             const payloadBase64 = decodeURIComponent(parsedQuery.payload);
-            const payload = fromBase64(payloadBase64);
+            const payload = toByteArray(payloadBase64);
             const data = await instance.call(payload);
             res.writeHead(200, {
                 "content-type": "application/octet-stream",

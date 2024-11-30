@@ -1,9 +1,10 @@
-import { serializeArgs } from "../../../src/serialization";
+import { bridge } from "../../../lib/bridge";
+import { serializeArgs } from "../../../lib/bridge/serialization";
+import { core_fetch } from "../../../lib/core_fetch";
 import { Badge } from "../../components/primitives/badge";
-import { ipcEditor } from "../../ipc";
+import esbuild from "../../lib/esbuild";
 import { WorkerTS } from "../../typescript";
 import semver from "semver";
-import ipc from "../../../src";
 
 export function Version() {
     const container = document.createElement("div");
@@ -66,7 +67,7 @@ function EditorVersion() {
 }
 
 async function getLatestVersionTag() {
-    const response = await ipcEditor.fetch(
+    const response = await core_fetch(
         "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
         {
             encoding: "utf8"
@@ -82,7 +83,7 @@ function EsbuildVersion() {
         <label>Esbuild</label>
     `;
 
-    ipcEditor.esbuild.version().then((v) => {
+    esbuild.version().then((v) => {
         container.innerHTML += `<div>${v.slice(1)}</div>`;
     });
 
@@ -120,7 +121,7 @@ function getVersionJSON(): Promise<{
         ...serializeArgs(["/version.json"])
     ]);
 
-    return ipc.bridge(payload, ([_, jsonData]) =>
+    return bridge(payload, ([_, jsonData]) =>
         JSON.parse(td.decode(jsonData))
     );
 }

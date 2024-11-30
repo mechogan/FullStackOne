@@ -2,13 +2,11 @@ import {
     EditorView,
     hoverTooltip,
     keymap,
-    lineNumbers
 } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { createElement } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
-import { ipcEditor } from "../../ipc";
 import prettyBytes from "pretty-bytes";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
@@ -36,6 +34,7 @@ import {
 import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
 import { BuildError } from "../../store/editor";
+import fs from "../../../lib/fs";
 
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
@@ -190,7 +189,7 @@ function createBinaryView(filePath: string) {
         const container = createElement("div");
         container.classList.add("binary-view");
 
-        const stats = await ipcEditor.fs.stat(filePath);
+        const stats = await fs.stat(filePath);
         container.innerText = prettyBytes(stats.size);
 
         return container;
@@ -212,7 +211,7 @@ function createImageView(filePath: string) {
             URL.revokeObjectURL(imageURL);
         };
 
-        const imageData = await ipcEditor.fs.readFile(filePath);
+        const imageData = await fs.readFile(filePath);
         const blob = new Blob([imageData]);
         imageURL = URL.createObjectURL(blob);
         img.src = imageURL;
@@ -242,7 +241,7 @@ function createViewEditor(filePath: string) {
 
         const container = createElement("div");
 
-        const content = await ipcEditor.fs.readFile(filePath, {
+        const content = await fs.readFile(filePath, {
             encoding: "utf8"
         });
 
@@ -263,9 +262,9 @@ function createViewEditor(filePath: string) {
 
             const saveFile = async () => {
                 throttler = null;
-                const exists = await ipcEditor.fs.exists(filePath);
+                const exists = await fs.exists(filePath);
                 if (!exists?.isFile) return;
-                await ipcEditor.fs.writeFile(
+                await fs.writeFile(
                     filePath,
                     view.editorView.state.doc.toString()
                 );
