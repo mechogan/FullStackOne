@@ -96,9 +96,30 @@ globalThis.onmessageWASM = function (
     webview.window.oncoremessage(messageType, message);
 };
 
+async function dowloadWASM(): Promise<Uint8Array> {
+    const response = await fetch("bin/wasm.wasm");
+    const contentLength = response.headers.get('content-length');
+    const dataSize = parseInt(contentLength);
+    const data = new Uint8Array(dataSize);
+    const reader = response.body.getReader();
+    let readCount = 0;
+    const progressElement = document.querySelector<HTMLDivElement>("#progress");
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        data.set(value, readCount)
+        readCount += value.byteLength;
+        if (progressElement) {
+            progressElement.style.width = readCount / dataSize * 100 + "%";
+        }
+    }
+    reader.releaseLock();
+    return data;
+}
+
 const go = new Go();
-const result = await WebAssembly.instantiateStreaming(
-    fetch("bin/wasm.wasm"),
+const result = await WebAssembly.instantiate(
+    await dowloadWASM(),
     go.importObject
 );
 go.run(result.instance);
@@ -226,7 +247,7 @@ function initProjectWindow(projectId: string) {
         mimeType
     );
 
-    webview.window.document.body.innerText = "";
+    Array.from(webview.window.document.body.children).forEach(child => child.remove());
 
     // HEAD (link => style, title => title)
     indexHTML.head
@@ -253,35 +274,7 @@ function initProjectWindow(projectId: string) {
                 const blob = new Blob([content], { type });
                 element.href = window.URL.createObjectURL(blob);
                 element.onload = () => {
-                    const bgColor = webview.window.getComputedStyle(
-                        webview.window.document.documentElement
-                    ).backgroundColor;
-                    const hexColor = RGBAToHexA(bgColor, true);
-                    if (hexColor === "#000000" || !webview.winbox) return;
-                    webview.winbox?.setBackground(hexColor);
-                    if (isBgColorDark(hexColor)) {
-                        (
-                            webview.winbox?.dom as HTMLElement
-                        ).querySelector<HTMLDivElement>(
-                            ".wb-header"
-                        ).style.color = "white";
-                        (
-                            webview.winbox?.dom as HTMLElement
-                        ).querySelector<HTMLDivElement>(
-                            ".wb-control"
-                        ).style.filter = "invert(0)";
-                    } else {
-                        (
-                            webview.winbox?.dom as HTMLElement
-                        ).querySelector<HTMLDivElement>(
-                            ".wb-header"
-                        ).style.color = "black";
-                        (
-                            webview.winbox?.dom as HTMLElement
-                        ).querySelector<HTMLDivElement>(
-                            ".wb-control"
-                        ).style.filter = "invert(1)";
-                    }
+                    checkForPageBGColor(webview);
                 };
             }
 
@@ -316,6 +309,40 @@ function initProjectWindow(projectId: string) {
 
             webview.window.document.body.append(element);
         });
+
+    checkForPageBGColor(webview);
+}
+
+function checkForPageBGColor(webview: { window: FullStackedWindow, winbox?: WinBoxType }) {
+    const bgColor = webview.window.getComputedStyle(
+        webview.window.document.documentElement
+    ).backgroundColor;
+    const hexColor = RGBAToHexA(bgColor, true);
+    if (hexColor === "#000000" || !webview.winbox) return;
+    webview.winbox?.setBackground(hexColor);
+    if (isBgColorDark(hexColor)) {
+        (
+            webview.winbox?.dom as HTMLElement
+        ).querySelector<HTMLDivElement>(
+            ".wb-header"
+        ).style.color = "white";
+        (
+            webview.winbox?.dom as HTMLElement
+        ).querySelector<HTMLDivElement>(
+            ".wb-control"
+        ).style.filter = "invert(0)";
+    } else {
+        (
+            webview.winbox?.dom as HTMLElement
+        ).querySelector<HTMLDivElement>(
+            ".wb-header"
+        ).style.color = "black";
+        (
+            webview.winbox?.dom as HTMLElement
+        ).querySelector<HTMLDivElement>(
+            ".wb-control"
+        ).style.filter = "invert(1)";
+    }
 }
 
 function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
