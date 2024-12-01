@@ -148,18 +148,14 @@ export const navigateToDefinition =
 
         const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
 
-        if (!pos) return null;
+        if (!pos) return;
 
         WorkerTS.call()
             .getDefinitionAtPosition(filePath, pos)
             .then((defs) => {
                 if (!defs?.length) return;
 
-                console.log(defs);
-
                 Store.editor.codeEditor.openFile(defs.at(0).fileName);
                 Store.editor.codeEditor.focusFile(defs.at(0).fileName);
             });
-
-        return null;
     };
