@@ -143,7 +143,7 @@ export const tsTypeDefinition =
     };
 
 export const navigateToDefinition =
-    (filePath: string) => (view: EditorView, e: MouseEvent) => {
+    (filePath: string) => (e: MouseEvent, view: EditorView) => {
         if (!e.metaKey && !e.ctrlKey) return null;
 
         const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });

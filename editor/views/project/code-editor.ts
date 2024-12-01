@@ -357,7 +357,9 @@ async function loadTypeScript(filePath: string) {
         EditorView.updateListener.of((ctx) =>
             WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
         ),
-        EditorView.mouseSelectionStyle.of(navigateToDefinition(filePath)),
+        EditorView.domEventHandlers({
+            click: navigateToDefinition(filePath)
+        }),
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
         autocompletion({ override: [tsAutocomplete(filePath)] }),
         hoverTooltip(tsTypeDefinition(filePath))
