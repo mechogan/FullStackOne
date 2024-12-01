@@ -1,7 +1,10 @@
 import "winbox/dist/css/winbox.min.css";
 import wb from "winbox/src/js/winbox";
 import type WinBoxType from "winbox";
-import { deserializeArgs, numberTo4Bytes } from "../../../lib/bridge/serialization";
+import {
+    deserializeArgs,
+    numberTo4Bytes
+} from "../../../lib/bridge/serialization";
 
 const WinBox = wb as WinBoxType.WinBoxConstructor;
 
@@ -98,7 +101,7 @@ globalThis.onmessageWASM = function (
 
 async function dowloadWASM(): Promise<Uint8Array> {
     const response = await fetch("bin/wasm.wasm");
-    const contentLength = response.headers.get('content-length');
+    const contentLength = response.headers.get("content-length");
     const dataSize = parseInt(contentLength);
     const data = new Uint8Array(dataSize);
     const reader = response.body.getReader();
@@ -107,10 +110,10 @@ async function dowloadWASM(): Promise<Uint8Array> {
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        data.set(value, readCount)
+        data.set(value, readCount);
         readCount += value.byteLength;
         if (progressElement) {
-            progressElement.style.width = readCount / dataSize * 100 + "%";
+            progressElement.style.width = (readCount / dataSize) * 100 + "%";
         }
     }
     reader.releaseLock();
@@ -247,7 +250,9 @@ function initProjectWindow(projectId: string) {
         mimeType
     );
 
-    Array.from(webview.window.document.body.children).forEach(child => child.remove());
+    Array.from(webview.window.document.body.children).forEach((child) =>
+        child.remove()
+    );
 
     // HEAD (link => style, title => title)
     indexHTML.head
@@ -313,7 +318,10 @@ function initProjectWindow(projectId: string) {
     checkForPageBGColor(webview);
 }
 
-function checkForPageBGColor(webview: { window: FullStackedWindow, winbox?: WinBoxType }) {
+function checkForPageBGColor(webview: {
+    window: FullStackedWindow;
+    winbox?: WinBoxType;
+}) {
     const bgColor = webview.window.getComputedStyle(
         webview.window.document.documentElement
     ).backgroundColor;
@@ -321,25 +329,17 @@ function checkForPageBGColor(webview: { window: FullStackedWindow, winbox?: WinB
     if (hexColor === "#000000" || !webview.winbox) return;
     webview.winbox?.setBackground(hexColor);
     if (isBgColorDark(hexColor)) {
-        (
-            webview.winbox?.dom as HTMLElement
-        ).querySelector<HTMLDivElement>(
+        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(
             ".wb-header"
         ).style.color = "white";
-        (
-            webview.winbox?.dom as HTMLElement
-        ).querySelector<HTMLDivElement>(
+        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(
             ".wb-control"
         ).style.filter = "invert(0)";
     } else {
-        (
-            webview.winbox?.dom as HTMLElement
-        ).querySelector<HTMLDivElement>(
+        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(
             ".wb-header"
         ).style.color = "black";
-        (
-            webview.winbox?.dom as HTMLElement
-        ).querySelector<HTMLDivElement>(
+        (webview.winbox?.dom as HTMLElement).querySelector<HTMLDivElement>(
             ".wb-control"
         ).style.filter = "invert(1)";
     }

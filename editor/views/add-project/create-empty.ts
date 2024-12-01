@@ -49,10 +49,9 @@ export function CreateEmpty() {
 
         const title = inputTitle.input.value || "Empty Project";
 
-        Promise.all([
-            fs.mkdir(id),
-            Store.projects.create({ title, id })
-        ]).then(() => stackNavigation.back());
+        Promise.all([fs.mkdir(id), Store.projects.create({ title, id })]).then(
+            () => stackNavigation.back()
+        );
     };
 
     form.append(inputTitle.container, inputIdentifier.container, createButton);

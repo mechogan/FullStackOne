@@ -24,10 +24,7 @@ document.querySelector("#splash").remove();
 Projects();
 Packages();
 
-const checkProjectsConfigExists = await config.get(
-    CONFIG_TYPE.PROJECTS,
-    true
-);
+const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {
     Demo();
 }

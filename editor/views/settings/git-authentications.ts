@@ -104,9 +104,7 @@ function GitAuthItem(gitAuth: [string, GitAuths[""]]) {
                 iconLeft: "Trash"
             });
             deleteButton.onclick = async () => {
-                const gitAuthConfigs = await config.get(
-                    CONFIG_TYPE.GIT
-                );
+                const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
                 delete gitAuthConfigs[gitAuth[0]];
                 await config.save(CONFIG_TYPE.GIT, gitAuthConfigs);
                 refreshGitAuthsList();

@@ -7,12 +7,10 @@ import (
 	"path"
 	"path/filepath"
 	"runtime/debug"
-	"strconv"
 	"strings"
-	"time"
 
 	fs "fullstacked/editor/src/fs"
-	"fullstacked/editor/src/serialize"
+	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -72,20 +70,12 @@ func Build(
 		setup.Callback(
 			"",
 			"build",
-			base64.RawStdEncoding.EncodeToString(payload),
+			base64.StdEncoding.EncodeToString(payload),
 		)
 		return
 	}
 
 	entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
-
-	// merge base.js and entryPoint
-	baseJSbytes, _ := fs.ReadFile(setup.Directories.Editor + "/base.js")
-	baseJS := string(baseJSbytes)
-	tmpFilePath := filepath.ToSlash(setup.Directories.Tmp) + "/" + strconv.Itoa(int(time.Now().UnixMilli())) + ".js"
-	mergedFile := baseJS + "\nimport(\"" + entryPointAbs + "\")\n"
-	fs.Mkdir(setup.Directories.Tmp)
-	fs.WriteFile(tmpFilePath, []byte(mergedFile))
 
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
@@ -129,7 +119,7 @@ func Build(
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath:  tmpFilePath,
+			InputPath:  entryPointAbs,
 			OutputPath: "index",
 		}},
 		Outdir:    projectDirectory + "/.build",
@@ -138,12 +128,12 @@ func Build(
 		Format:    esbuild.FormatESModule,
 		Sourcemap: esbuild.SourceMapInlineAndExternal,
 		Write:     !fs.WASM,
-		NodePaths: []string{setup.Directories.NodeModules},
-		Plugins:   plugins,
+		NodePaths: []string{
+			setup.Directories.NodeModules,
+			path.Join(setup.Directories.Editor, "lib"),
+		},
+		Plugins: plugins,
 	})
-
-	// delete tmp merged file
-	fs.Unlink(tmpFilePath)
 
 	if fs.WASM {
 		for _, file := range result.OutputFiles {
@@ -156,5 +146,5 @@ func Build(
 	jsonMessagesStr := string(jsonMessagesData)
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
 	payload = append(payload, jsonMessageSerialized...)
-	setup.Callback("", "build", base64.RawStdEncoding.EncodeToString(payload))
+	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
 }

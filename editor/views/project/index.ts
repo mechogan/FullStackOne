@@ -185,16 +185,10 @@ function FileTreeAndEditor(project: ProjectType) {
 async function build(project: ProjectType) {
     Store.editor.codeEditor.clearAllBuildErrors();
 
-    await Promise.all([
-        saveAllViews(),
-        fs.rmdir(project.id + "/.build")
-    ]);
+    await Promise.all([saveAllViews(), fs.rmdir(project.id + "/.build")]);
 
     const buildErrors = (
-        await Promise.all([
-            buildSASS(project),
-            esbuild.build(project)
-        ])
+        await Promise.all([buildSASS(project), esbuild.build(project)])
     )
         .flat()
         .filter(Boolean);
@@ -224,10 +218,9 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
     );
     if (!entryPoint) return null;
 
-    const entryData = await fs.readFile(
-        `${project.id}/${entryPoint}`,
-        { encoding: "utf8" }
-    );
+    const entryData = await fs.readFile(`${project.id}/${entryPoint}`, {
+        encoding: "utf8"
+    });
     let result: sass.CompileResult;
     try {
         result = await sass.compileStringAsync(entryData, {

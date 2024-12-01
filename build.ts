@@ -103,12 +103,12 @@ fs.cpSync("node_modules/typescript/lib", outTsLib, {
     recursive: true
 });
 
-// child_process.execSync(
-//     `tsc --declaration --skipLibCheck --module system --outfile ${outTsLib}/fullstacked.js src/fullstacked.ts`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
+fs.cpSync("lib/fullstacked.d.ts", outTsLib + "/fullstacked.d.ts", {
+    recursive: true
+});
+fs.cpSync("lib", outDirEditor + "/lib", {
+    recursive: true
+});
 
 const { version } = JSON.parse(
     fs.readFileSync("package.json", { encoding: "utf-8" })

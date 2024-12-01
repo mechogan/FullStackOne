@@ -1,6 +1,6 @@
 import { bridge } from "../../../lib/bridge";
 import { serializeArgs } from "../../../lib/bridge/serialization";
-import { core_fetch } from "../../../lib/core_fetch";
+import core_fetch from "../../../lib/fetch";
 import { Badge } from "../../components/primitives/badge";
 import esbuild from "../../lib/esbuild";
 import { WorkerTS } from "../../typescript";
@@ -121,7 +121,5 @@ function getVersionJSON(): Promise<{
         ...serializeArgs(["/version.json"])
     ]);
 
-    return bridge(payload, ([_, jsonData]) =>
-        JSON.parse(td.decode(jsonData))
-    );
+    return bridge(payload, ([_, jsonData]) => JSON.parse(td.decode(jsonData)));
 }

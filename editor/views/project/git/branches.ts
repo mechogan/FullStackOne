@@ -208,11 +208,7 @@ function CreateBranchForm(project: Project, close: () => void) {
     form.onsubmit = async (e) => {
         e.preventDefault();
 
-        await git.checkout(
-            project,
-            branchNameInput.input.value,
-            true
-        );
+        await git.checkout(project, branchNameInput.input.value, true);
         close();
         refreshGitWidgetBranchAndCommit();
         refreshBranches();

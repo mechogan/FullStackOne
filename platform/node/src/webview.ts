@@ -6,7 +6,10 @@ import { Duplex } from "stream";
 import ws, { WebSocketServer } from "ws";
 import { createInstance } from "./instance";
 import { platform } from ".";
-import { deserializeArgs, numberTo4Bytes } from "../../../lib/bridge/serialization";
+import {
+    deserializeArgs,
+    numberTo4Bytes
+} from "../../../lib/bridge/serialization";
 import { toByteArray } from "base64-js";
 
 type Instance = ReturnType<typeof createInstance>;

@@ -81,7 +81,20 @@ func LOAD_NODE_MODULES(module string) *string {
 		return resolvedPath
 	}
 
+	// actual node_modules directory
 	nodeModulePath := path.Join(setup.Directories.NodeModules, module)
+	resolvedPath = LOAD_AS_FILE(nodeModulePath)
+	if resolvedPath != nil {
+		return resolvedPath
+	}
+
+	resolvedPath = LOAD_AS_DIR(nodeModulePath)
+	if resolvedPath != nil {
+		return resolvedPath
+	}
+
+	// FullStacked lib
+	nodeModulePath = path.Join(setup.Directories.Editor, "lib", module)
 	resolvedPath = LOAD_AS_FILE(nodeModulePath)
 	if resolvedPath != nil {
 		return resolvedPath

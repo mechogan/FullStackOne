@@ -1,22 +1,9 @@
-import { bridge } from "./bridge";
-import { deserializeArgs, getLowestKeyIdAvailable, serializeArgs } from "./bridge/serialization";
+import { bridge } from "../bridge";
+import { deserializeArgs, getLowestKeyIdAvailable, serializeArgs } from "../bridge/serialization";
 import { toByteArray } from "base64-js"
-import core_message from "./core_message";
+import core_message from "../core_message";
 
-const te = new TextEncoder();
-
-type FetchOptions = {
-    method: "GET" | "POST" | "PUT" | "DELETE";
-    headers: Record<string, string>;
-    body: string | Uint8Array;
-    timeout: number;
-};
-
-type FetchResponse = {
-    statusCode: number;
-    statusMessage: string;
-    headers: Record<string, string>;
-};
+const te = new TextEncoder()
 
 type Response = {
     statusCode: number;
@@ -54,15 +41,15 @@ function receivedResponse(base64Data: string) {
 }
 
 // 15
-export function core_fetch(
+export default function core_fetch(
     url: string,
     options?: Partial<FetchOptions>
 ): Promise<FetchResponse & { body: Uint8Array }>;
-export function core_fetch(
+export default function core_fetch(
     url: string,
     options?: Partial<FetchOptions> & { encoding: "utf8" }
 ): Promise<FetchResponse & { body: string }>;
-export function core_fetch(
+export default function core_fetch(
     url: string,
     options?: Partial<FetchOptions> & { encoding?: "utf8" }
 ) {

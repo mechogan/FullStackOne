@@ -4,7 +4,7 @@ import { Icon } from "../../../../components/primitives/icon";
 import { createElement } from "../../../../components/element";
 import { CONFIG_TYPE } from "../../../../types";
 import config from "../../../../lib/config";
-import { core_fetch } from "../../../../../lib/core_fetch";
+import core_fetch from "../../../../../lib/fetch";
 
 export function GitHubDeviceFlow() {
     const container = createElement("div");
@@ -103,9 +103,7 @@ export function GitHubDeviceFlow() {
                 waitText.innerText = "3. " + response.error;
                 resolve(false);
             } else {
-                const gitAuthConfigs = await config.get(
-                    CONFIG_TYPE.GIT
-                );
+                const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
                 gitAuthConfigs["github.com"] = {
                     username: response.username,
                     email: response.email,
@@ -137,21 +135,18 @@ function sleep(ms: number) {
 const client_id = "175231928f47d8d36b2d";
 
 async function deviceFlowStart() {
-    const response = await core_fetch(
-        "https://github.com/login/device/code",
-        {
-            method: "POST",
-            body: JSON.stringify({
-                client_id,
-                scope: "repo,user:email"
-            }),
-            headers: {
-                "content-type": "application/json",
-                accept: "application/json"
-            },
-            encoding: "utf8"
-        }
-    );
+    const response = await core_fetch("https://github.com/login/device/code", {
+        method: "POST",
+        body: JSON.stringify({
+            client_id,
+            scope: "repo,user:email"
+        }),
+        headers: {
+            "content-type": "application/json",
+            accept: "application/json"
+        },
+        encoding: "utf8"
+    });
     return JSON.parse(response.body as string) as {
         device_code: string;
         user_code: string;

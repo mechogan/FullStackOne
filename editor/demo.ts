@@ -1,6 +1,6 @@
 import { bridge } from "../lib/bridge";
 import { serializeArgs } from "../lib/bridge/serialization";
-import { core_fetch } from "../lib/core_fetch";
+import core_fetch from "../lib/fetch";
 import core_message from "../lib/core_message";
 import platform, { Platform } from "../lib/platform";
 import archive from "./lib/archive";

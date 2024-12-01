@@ -28,6 +28,8 @@ function buildResponse(responseBase64: string) {
     const activeBuild = activeBuilds.get(buildId);
     activeBuilds.delete(buildId);
 
+    console.log(buildErrors)
+
     if (!buildErrors) {
         activeBuild.resolve(null);
         return;

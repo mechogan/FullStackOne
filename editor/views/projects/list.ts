@@ -54,7 +54,7 @@ function Grid(projects: ProjectType[]) {
             const fuseResults = fuse.search(searchString);
             filteredGrid.refresh(fuseResults.map(({ item }) => item));
         }
-    }
+    };
     filterProjects(lastFilter);
 
     container.append(filteredGrid.element);
