@@ -52,6 +52,14 @@ function openFile(path: string) {
 
 function closeFile(path: string) {
     codeEditorOpenedFiles.delete(path);
+    if(path === codeEditorFocusedFile) {
+        if(codeEditorOpenedFiles.size > 0) {
+            codeEditorFocusedFile = Array.from(codeEditorOpenedFiles).at(-1);
+        } else {
+            codeEditorFocusedFile = null;
+        }
+        focusedFile.notify();
+    }
     openedFiles.notify();
 }
 
