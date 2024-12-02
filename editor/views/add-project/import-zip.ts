@@ -183,5 +183,5 @@ export async function createAndMoveProjectFromTmp(
         project.id = originalProjectId + "-" + tries;
     }
 
-    Store.projects.create(project);
+    return Store.projects.create(project);
 }

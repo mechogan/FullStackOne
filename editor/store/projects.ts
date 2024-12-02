@@ -26,6 +26,8 @@ async function create(project: Omit<Project, "createdDate">) {
     projects.push(newProject);
     await config.save(CONFIG_TYPE.PROJECTS, { projects });
     list.notify();
+
+    return newProject;
 }
 
 async function update(project: Project, updatedProject: Project) {

@@ -167,7 +167,7 @@ export function restore(projectId: string, files: string[]): Promise<void> {
 export function checkout(
     project: Project,
     branch: string,
-    create: boolean
+    create: boolean = false
 ): Promise<void> {
     const checkoutWithAuth = (username: string, password: string) => {
         const payload = new Uint8Array([

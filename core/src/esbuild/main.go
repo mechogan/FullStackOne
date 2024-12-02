@@ -129,8 +129,8 @@ func Build(
 		Sourcemap: esbuild.SourceMapInlineAndExternal,
 		Write:     !fs.WASM,
 		NodePaths: []string{
-			setup.Directories.NodeModules,
 			path.Join(setup.Directories.Editor, "lib"),
+			setup.Directories.NodeModules,
 		},
 		Plugins: plugins,
 	})

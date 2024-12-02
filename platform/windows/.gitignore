@@ -2,6 +2,6 @@ obj
 *.user
 .vs
 editor
-win-x86_64*
 *.pfx
 Package.StoreAssociation.xml
+win-*.dll
