@@ -76,7 +76,7 @@ async function demoFromGitHub() {
 
     // TODO: Remove once merged in main
 
-    await git.checkout(project, "0.10.0")
+    await git.checkout(project, "0.10.0");
 
     // END remove
 }
