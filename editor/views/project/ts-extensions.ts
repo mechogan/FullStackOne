@@ -49,15 +49,17 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
 
     return tsErrors
         .filter((tsError) => !!tsError)
-        .map((tsError) => ({
-            from: tsError.start,
-            to: tsError.start + tsError.length,
-            severity: tsError.code === 7016 ? "warning" : "error",
-            message:
-                typeof tsError.messageText === "string"
-                    ? tsError.messageText
-                    : (tsError?.messageText?.messageText ?? "")
-        }));
+        .map((tsError) => {
+            return {
+                from: tsError.start,
+                to: tsError.start + tsError.length,
+                severity: tsError.code === 7016 ? "warning" : "error",
+                message:
+                    typeof tsError.messageText === "string"
+                        ? tsError.messageText
+                        : (tsError?.messageText?.messageText ?? "")
+            }
+        });
 };
 
 export const tsAutocomplete =
@@ -68,7 +70,12 @@ export const tsAutocomplete =
         let tsCompletions = await WorkerTS.call().getCompletionsAtPosition(
             filePath,
             ctx.pos,
-            {}
+            {
+                allowIncompleteCompletions: true,
+                allowRenameOfImportPath: true,
+                includeCompletionsForImportStatements: true,
+                includeCompletionsForModuleExports: true,
+            }
         );
 
         if (!tsCompletions) return { from: ctx.pos, options: [] };
@@ -98,6 +105,33 @@ export const tsAutocomplete =
             options: tsCompletions.entries.map((completion) => ({
                 label: completion.name,
                 apply: (view: EditorView) => {
+
+                    WorkerTS.call().getCompletionEntryDetails(
+                        filePath,
+                        ctx.pos,
+                        completion.name,
+                        {},
+                        completion.source,
+                        {
+                            allowIncompleteCompletions: true,
+                            allowRenameOfImportPath: true,
+                            includeCompletionsForImportStatements: true,
+                            includeCompletionsForModuleExports: true,
+                        },
+                        completion.data
+                    ).then(details => {
+                        if(!details?.codeActions?.length) return;
+
+                        view.dispatch({
+                            changes: details.codeActions.at(0).changes.map(({textChanges}) => textChanges.map(change => ({
+                                from: change.span.start,
+                                to: change.span.start + change.span.length,
+                                insert: change.newText
+                            }))).flat()
+                        });
+                    })
+
+
                     view.dispatch({
                         changes: {
                             from,

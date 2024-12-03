@@ -25,6 +25,18 @@ declare module "fs" {
         modTime: number;
         isDirectory: boolean;
     }>;
+    var fs: {
+        readfile: typeof readFile,
+        writeFile: typeof writeFile
+        unlink: typeof unlink
+        readdir: typeof readdir
+        mkdir: typeof mkdir
+        rmdir: typeof rmdir
+        exists: typeof exists
+        rename: typeof rename
+        stat: typeof stat
+    }
+    export default fs;
 }
 
 type FetchOptions = {
@@ -60,7 +72,7 @@ declare module "platform" {
         WINDOWS = "windows",
         WASM = "wasm"
     }
-    
-    const value: Platform;
-    export default value; 
+
+    const platform: Platform;
+    export default platform;
 }
