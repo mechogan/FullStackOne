@@ -1,8 +1,5 @@
 declare module "fs" {
-    export function readFile(path: string): Promise<Uint8Array>;
-    export function readFile(path: string, options: {
-        encoding: "utf8";
-    }): Promise<string>;
+    export function readFile<T>(path: string, options?: T): Promise<T extends { encoding: "utf8" } ? string : Uint8Array>;
     export function writeFile(path: string, data: string | Uint8Array): Promise<boolean>;
     export function unlink(path: string): Promise<boolean>;
     export function readdir(path: string, options?: {

@@ -5,3 +5,4 @@ editor
 *.pfx
 Package.StoreAssociation.xml
 win-*.dll
+publish

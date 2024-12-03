@@ -68,6 +68,7 @@ function CommitView(project: Project, closeButton: HTMLButtonElement) {
     const authorRefresheable = createRefresheable(Author);
 
     const statusPlaceholder = createElement("div");
+    statusPlaceholder.classList.add("status-placeholder");
     statusPlaceholder.innerText = "Calculating diffs...";
     const statusRefresheable = createRefresheable(Status, statusPlaceholder);
 
