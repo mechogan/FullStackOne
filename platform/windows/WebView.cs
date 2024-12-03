@@ -1,5 +1,4 @@
 ﻿using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
@@ -7,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Web;
 using Windows.Storage.Streams;
@@ -129,7 +127,6 @@ namespace FullStacked
             this.webview.CoreWebView2.NewWindowRequested += delegate (CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs e)
             {
                 e.Handled = true;
-
                 _ = Windows.System.Launcher.LaunchUriAsync(new Uri(e.Uri));
             };
 

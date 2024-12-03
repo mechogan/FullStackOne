@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import fs from "fs";
+import fs from "node:fs";
 import path from "path";
 
 fs.cpSync(path.resolve("..", "..", "out", "editor"), "editor", {

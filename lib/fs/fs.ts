@@ -35,7 +35,7 @@ export function unlink(path: string): Promise<boolean> {
     return bridge(payload, ([success]) => success);
 }
 
-export type Dirent = {
+export type FileInfo = {
     name: string;
     isDirectory: boolean;
 };
@@ -48,7 +48,7 @@ export function readdir(
 export function readdir(
     path: string,
     options?: { recursive?: boolean; withFileTypes: true }
-): Promise<Dirent[]>;
+): Promise<FileInfo[]>;
 export function readdir(
     path: string,
     options?: { recursive?: boolean; withFileTypes?: boolean }
@@ -60,7 +60,7 @@ export function readdir(
 
     const transformer = (items: string[] | (string | boolean)[]) => {
         if (options?.withFileTypes) {
-            const dirents: Dirent[] = [];
+            const dirents: FileInfo[] = [];
             for (let i = 0; i < items.length; i = i + 2) {
                 dirents.push({
                     name: items[i] as string,
@@ -109,13 +109,15 @@ export function rename(oldPath: string, newPath: string): Promise<boolean> {
     return bridge(payload, ([success]) => success);
 }
 
-// 10
-export function stat(path: string): Promise<{
+type FileStats = {
     name: string;
     size: number;
     modTime: number;
     isDirectory: boolean;
-}> {
+}
+
+// 10
+export function stat(path: string): Promise<FileStats> {
     const payload = new Uint8Array([10, ...serializeArgs([path])]);
 
     const transformer = (responseArgs: any[]) => {

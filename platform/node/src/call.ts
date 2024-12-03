@@ -7,7 +7,7 @@ const libBinary =
     os.platform() === "darwin"
         ? "macos-x86_64"
         : os.platform() === "win32"
-          ? "win-x86_64.dll"
+          ? "win-x64.dll"
           : null;
 
 if (!libBinary) {

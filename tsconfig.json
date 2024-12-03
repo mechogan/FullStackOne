@@ -10,9 +10,8 @@
         "platform/android",
         "platform/ios",
         "platform/docker",
-        "platform/electron",
         "platform/node/editor",
-        "platfomr/windows",
+        "platform/windows",
         "editor/build",
         "editor-sample-demo"
     ]
