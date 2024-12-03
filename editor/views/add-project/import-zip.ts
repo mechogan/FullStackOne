@@ -96,16 +96,18 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     }
 
     const isGitZip = (dir: string) => {
-        if(dir === defaultProjectTitle) return true;
+        if (dir === defaultProjectTitle) return true;
 
         // we might have "....-branch" in default name
-        const projectTitleComponent = defaultProjectTitle.split("-").slice(0, -1);
+        const projectTitleComponent = defaultProjectTitle
+            .split("-")
+            .slice(0, -1);
         return projectTitleComponent.join("-") === dir;
-    }
+    };
 
     const contents = await fs.readdir(tmpDir);
-    if(contents.length === 1 && isGitZip(contents.at(0))) {
-        const tmpTmpDir = ".tmp2"
+    if (contents.length === 1 && isGitZip(contents.at(0))) {
+        const tmpTmpDir = ".tmp2";
         await fs.rename(tmpDir + "/" + contents.at(0), tmpTmpDir);
         await fs.rmdir(tmpDir);
         await fs.rename(tmpTmpDir, tmpDir);

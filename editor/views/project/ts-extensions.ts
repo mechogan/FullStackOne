@@ -58,7 +58,7 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
                     typeof tsError.messageText === "string"
                         ? tsError.messageText
                         : (tsError?.messageText?.messageText ?? "")
-            }
+            };
         });
 };
 
@@ -74,7 +74,7 @@ export const tsAutocomplete =
                 allowIncompleteCompletions: true,
                 allowRenameOfImportPath: true,
                 includeCompletionsForImportStatements: true,
-                includeCompletionsForModuleExports: true,
+                includeCompletionsForModuleExports: true
             }
         );
 
@@ -105,32 +105,39 @@ export const tsAutocomplete =
             options: tsCompletions.entries.map((completion) => ({
                 label: completion.name,
                 apply: (view: EditorView) => {
+                    WorkerTS.call()
+                        .getCompletionEntryDetails(
+                            filePath,
+                            ctx.pos,
+                            completion.name,
+                            {},
+                            completion.source,
+                            {
+                                allowIncompleteCompletions: true,
+                                allowRenameOfImportPath: true,
+                                includeCompletionsForImportStatements: true,
+                                includeCompletionsForModuleExports: true
+                            },
+                            completion.data
+                        )
+                        .then((details) => {
+                            if (!details?.codeActions?.length) return;
 
-                    WorkerTS.call().getCompletionEntryDetails(
-                        filePath,
-                        ctx.pos,
-                        completion.name,
-                        {},
-                        completion.source,
-                        {
-                            allowIncompleteCompletions: true,
-                            allowRenameOfImportPath: true,
-                            includeCompletionsForImportStatements: true,
-                            includeCompletionsForModuleExports: true,
-                        },
-                        completion.data
-                    ).then(details => {
-                        if(!details?.codeActions?.length) return;
-
-                        view.dispatch({
-                            changes: details.codeActions.at(0).changes.map(({textChanges}) => textChanges.map(change => ({
-                                from: change.span.start,
-                                to: change.span.start + change.span.length,
-                                insert: change.newText
-                            }))).flat()
+                            view.dispatch({
+                                changes: details.codeActions
+                                    .at(0)
+                                    .changes.map(({ textChanges }) =>
+                                        textChanges.map((change) => ({
+                                            from: change.span.start,
+                                            to:
+                                                change.span.start +
+                                                change.span.length,
+                                            insert: change.newText
+                                        }))
+                                    )
+                                    .flat()
+                            });
                         });
-                    })
-
 
                     view.dispatch({
                         changes: {
