@@ -1,7 +1,7 @@
 import type { methods } from "./worker";
 import { createSubscribable } from "../store";
 import { numberTo4Bytes } from "../../lib/bridge/serialization";
-import { Platform } from "../../lib/platform";
+import platform, { Platform } from "../../lib/platform";
 import { bridge } from "../../lib/bridge";
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
@@ -63,7 +63,7 @@ async function restart() {
     }
 
     WorkerTS.dispose();
-    if (globalThis.platform === Platform.WASM) {
+    if (platform === Platform.WASM) {
         await preloadFS();
     }
     return WorkerTS.start(directory);
@@ -78,7 +78,7 @@ function start(workingDirectory: string) {
         readyPromise = new Promise<void>(async (resolve) => {
             let workerPath = "worker-ts.js";
 
-            if (globalThis.platform === Platform.WASM) {
+            if (platform === Platform.WASM) {
                 const [mimeType, workerData] =
                     await getWorkerDataWASM("worker-ts.js");
                 const blob = new Blob([workerData], { type: mimeType });
@@ -88,7 +88,7 @@ function start(workingDirectory: string) {
             worker = new Worker(workerPath, { type: "module" });
             worker.onmessage = async (message) => {
                 if (message.data.ready) {
-                    if (globalThis.platform === Platform.WASM) {
+                    if (platform === Platform.WASM) {
                         await preloadFS();
                     }
                     await WorkerTS.call().start(workingDirectory);

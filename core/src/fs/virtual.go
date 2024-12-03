@@ -63,7 +63,7 @@ func vRmdir(path string) error {
 	indexesToRemove := []int{}
 
 	for i, dir := range VirtDirs {
-		if strings.HasPrefix(dir, path) {
+		if dir == path || pathIsChildOfPath(dir, path) {
 			indexesToRemove = append(indexesToRemove, i)
 		}
 	}
@@ -75,7 +75,7 @@ func vRmdir(path string) error {
 	}
 
 	for file := range VirtFS {
-		if strings.HasPrefix(file, path) {
+		if pathIsChildOfPath(file, path) {
 			delete(VirtFS, file)
 		}
 	}
