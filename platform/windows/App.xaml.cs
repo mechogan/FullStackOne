@@ -18,25 +18,45 @@ namespace FullStacked
 
     unsafe public partial class App : Application
     {
+        static Lib lib;
+
         public App()
         {
+            Trace.WriteLine(RuntimeInformation.ProcessArchitecture);
+            switch (RuntimeInformation.ProcessArchitecture)
+            {
+                case Architecture.X64:
+                    App.lib = new LibX64();
+                    break;
+                case Architecture.X86:
+                    App.lib = new LibX86();
+                    break;
+                case Architecture.Arm64:
+                    App.lib = new LibARM64();
+                    break;
+                default:
+                    throw new Exception("Unsupported arch");
+            }
+
             this.InitializeComponent();
             this.registerDeepLinking();
         }
 
-        private void registerDeepLinking() {
+        private void registerDeepLinking()
+        {
             WindowsIdentity user = WindowsIdentity.GetCurrent();
             WindowsPrincipal principal = new WindowsPrincipal(user);
             bool isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
 
-            if (isAdmin) {
+            if (isAdmin)
+            {
                 String directoryLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 RegistryKey key = Registry.ClassesRoot.CreateSubKey("fullstacked", true);
                 key.SetValue("", "url:myprotocol");
                 key.SetValue("URL Protocol", "");
 
                 RegistryKey shell = key.CreateSubKey(@"shell\open\command", true);
-                shell.SetValue("",  "\"" + directoryLocation + "\\FullStacked.exe\"  \"%1\"");
+                shell.SetValue("", "\"" + directoryLocation + "\\FullStacked.exe\"  \"%1\"");
 
                 shell.Close();
                 key.Close();
@@ -57,8 +77,8 @@ namespace FullStacked
 
             setDirectories();
 
-            cb = new CallbackDelegate(onCallback);
-            callback(cb);
+            cb = new Lib.CallbackDelegate(onCallback);
+            App.lib.setCallback(cb);
 
             WebView editor = new WebView(new Instance("", true));
             this.bringToFront(editor);
@@ -68,12 +88,14 @@ namespace FullStacked
             }
         }
         private readonly Dictionary<string, (Window, WebView)> webviews = new();
-        private CallbackDelegate cb;
+        private Lib.CallbackDelegate cb;
 
-        private void bringToFront(WebView webview) {
+        private void bringToFront(WebView webview)
+        {
             String projectId = webview.instance.id;
 
-            if (this.webviews.ContainsKey(projectId)) {
+            if (this.webviews.ContainsKey(projectId))
+            {
                 Window window = this.webviews[projectId].Item1;
                 window.DispatcherQueue.TryEnqueue(() =>
                 {
@@ -106,7 +128,8 @@ namespace FullStacked
         {
             if (!webviews.ContainsKey(projectId)) return;
 
-            if (projectId == "" && messageType == "open") {
+            if (projectId == "" && messageType == "open")
+            {
                 if (webviews.ContainsKey(message))
                 {
                     this.bringToFront(webviews[message].Item2);
@@ -121,21 +144,6 @@ namespace FullStacked
             WebView webview = webviews[projectId].Item2;
             webview.onMessage(messageType, message);
         }
-
-        // DLL Lib Bridge
-
-
-        [DllImport("win-x86_64.dll")]
-        public static extern void directories(void* root, void* config, void* editor);
-        [DllImport("win-x86_64.dll")]
-        public static extern void callback(CallbackDelegate cb);
-
-        public delegate void CallbackDelegate(string projectId, string messageType, string message);
-
-        [DllImport("win-x86_64.dll")]
-        public static extern int call(byte* payload, int size, byte** response);
-        [DllImport("win-x86_64.dll")]
-        public static extern void freePtr(void* ptr);
 
 
         public static void setDirectories()
@@ -153,7 +161,7 @@ namespace FullStacked
                 configPtr = configBytes,
                 editorPtr = editorBytes)
             {
-                directories(
+                App.lib.setDirectories(
                     rootPtr,
                     configPtr,
                     editorPtr
@@ -168,12 +176,12 @@ namespace FullStacked
 
             fixed (byte* p = payload, r = responsePtr)
             {
-                int responseLength = call(p, payload.Length, &r);
+                int responseLength = App.lib.callLib(p, payload.Length, &r);
 
                 byte[] response = new byte[responseLength];
                 Marshal.Copy((IntPtr)r, response, 0, responseLength);
 
-                freePtr(r);
+                App.lib.freePtrLib(r);
 
                 return response;
             }
@@ -193,9 +201,12 @@ namespace FullStacked
             return bytes;
         }
 
-        public static byte[] combineBuffers(byte[][] buffers) {
-            byte[] combined = new byte[buffers.Sum(x => {
-                if (x == null) {
+        public static byte[] combineBuffers(byte[][] buffers)
+        {
+            byte[] combined = new byte[buffers.Sum(x =>
+            {
+                if (x == null)
+                {
                     return 0;
                 }
                 return x.Length;
@@ -203,7 +214,8 @@ namespace FullStacked
             int offset = 0;
             foreach (byte[] buffer in buffers)
             {
-                if (buffer == null) {
+                if (buffer == null)
+                {
                     continue;
                 }
                 Array.Copy(buffer, 0, combined, offset, buffer.Length);
@@ -223,16 +235,19 @@ namespace FullStacked
             Trace.WriteLine(sb.ToString());
         }
 
-        public static int bytesToNumber(byte[] bytes) {
+        public static int bytesToNumber(byte[] bytes)
+        {
             uint value = 0;
-            foreach (byte b in bytes) {
+            foreach (byte b in bytes)
+            {
                 value = value << 8;
                 value = value | b;
             }
             return (int)value;
         }
 
-        public static int deserializeNumber(byte[] bytes) {
+        public static int deserializeNumber(byte[] bytes)
+        {
             bool negative = bytes[0] == 1;
 
             uint n = 0;
@@ -245,18 +260,21 @@ namespace FullStacked
 
             int value = (int)n;
 
-            if (negative) {
+            if (negative)
+            {
                 return 0 - value;
             }
 
             return value;
         }
 
-        public static List<DataValue> deserializeArgs(byte[] bytes) {
+        public static List<DataValue> deserializeArgs(byte[] bytes)
+        {
             List<DataValue> args = new List<DataValue>();
 
             int cursor = 0;
-            while (cursor < bytes.Length) { 
+            while (cursor < bytes.Length)
+            {
                 DataType type = (DataType)bytes[cursor];
                 cursor++;
                 int length = bytesToNumber(bytes[new Range(cursor, cursor + 4)]);
@@ -264,7 +282,8 @@ namespace FullStacked
                 byte[] arg = bytes[new Range(cursor, cursor + length)];
                 cursor += length;
 
-                switch (type) {
+                switch (type)
+                {
                     case DataType.UNDEFINED:
                         args.Add(new DataValue());
                         break;
@@ -305,7 +324,8 @@ namespace FullStacked
         }
     }
 
-    public class DataValue {
+    public class DataValue
+    {
         public bool boolean;
         public string str;
         public int number;

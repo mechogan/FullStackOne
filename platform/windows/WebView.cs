@@ -125,7 +125,20 @@ namespace FullStacked
                 IRandomAccessStream resStream = new MemoryStream(values[1].buffer).AsRandomAccessStream();
                 args.Response = this.webview.CoreWebView2.Environment.CreateWebResourceResponse(resStream, 200, "OK", string.Join("\r\n", headers));
             };
+
+            this.webview.CoreWebView2.NewWindowRequested += delegate (CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs e)
+            {
+                e.Handled = true;
+
+                _ = Windows.System.Launcher.LaunchUriAsync(new Uri(e.Uri));
+            };
+
             this.webview.Source = new Uri("http://localhost");
+        }
+
+        private void CoreWebView2_NewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs args)
+        {
+            throw new NotImplementedException();
         }
 
         public void onMessage(string type, string message) {
