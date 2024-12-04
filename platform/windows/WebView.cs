@@ -51,9 +51,12 @@ namespace FullStacked
             this.webview.CoreWebView2.WebResourceRequested += delegate (CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs args)
             {
                 Uri uri = new(args.Request.Uri);
-                String pathname = uri.LocalPath;
 
-                Trace.WriteLine(pathname);
+                if (uri.Host != "localhost") {
+                    return;
+                }
+
+                String pathname = uri.LocalPath;
 
                 if (pathname == "/platform")
                 {
