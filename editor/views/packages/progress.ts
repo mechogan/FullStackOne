@@ -92,6 +92,8 @@ function CreatePackageInstallProgressView(packageName: string) {
             statusText = `(${progress.Loaded}/${progress.Total}) ${statusText}`;
         } else if (progress.Stage === "done") {
             statusText = "installed";
+        } else {
+            statusText = progress.Stage
         }
 
         status.innerText = statusText;

@@ -457,7 +457,9 @@ enum IMAGE_Ext {
 }
 
 enum BINARY_Ext {
-    ZIP = "zip"
+    ZIP = "zip",
+    WOFF2 = "woff2",
+    WOFF = "woff"
 }
 
 const javascriptExtensions = [

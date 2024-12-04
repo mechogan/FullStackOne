@@ -4,6 +4,11 @@ import { CompletionContext } from "@codemirror/autocomplete";
 import { Store } from "../../store";
 import packages from "../../lib/packages";
 
+let ignoredPackages = new Set<string>();
+export function Packages() {
+    Store.packages.ignored.subscribe((ignored) => ignoredPackages = ignored);
+}
+
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
 
@@ -29,9 +34,7 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
             .slice(e.start, e.start + e.length)
             .slice(1, -1);
 
-        return !moduleName.startsWith(".");
-        // &&
-        // !CodeEditor.ignoreTypes.has(`@types/${moduleName}`)
+        return !moduleName.startsWith(".") && !ignoredPackages.has(`@types/${moduleName}`)
     });
 
     if (needsTypes.length) {

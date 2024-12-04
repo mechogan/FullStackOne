@@ -23,7 +23,7 @@ type Progress struct {
 }
 
 type ResponseNPM struct {
-	Dist map[string]string
+	Dist map[string]any
 }
 
 type DownloadProgress struct {
@@ -69,19 +69,37 @@ func install(name string) {
 	npmRes, err := http.Get("https://registry.npmjs.org/" + name + "/latest")
 	if err != nil {
 		fmt.Println(err)
+		fs.Rmdir(packageDir)
+		notifyProgress(Progress{
+			Name:   name,
+			Stage:  "error",
+			Loaded: 1,
+			Total:  1,
+		})
 		return
 	}
 	defer npmRes.Body.Close()
 
 	npmResJSON := &ResponseNPM{}
-	json.NewDecoder(npmRes.Body).Decode(npmResJSON)
+	err = json.NewDecoder(npmRes.Body).Decode(npmResJSON)
+	if err != nil {
+		fmt.Println(err)
+		fs.Rmdir(packageDir)
+		notifyProgress(Progress{
+			Name:   name,
+			Stage:  "error",
+			Loaded: 1,
+			Total:  1,
+		})
+		return
+	}
 
-	packageRes, err := http.Get(npmResJSON.Dist["tarball"])
+	packageRes, err := http.Get(npmResJSON.Dist["tarball"].(string))
 	if err != nil {
 		fs.Rmdir(packageDir)
 		notifyProgress(Progress{
 			Name:   name,
-			Stage:  "done",
+			Stage:  "error",
 			Loaded: 1,
 			Total:  1,
 		})

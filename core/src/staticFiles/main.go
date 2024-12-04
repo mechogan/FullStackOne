@@ -29,14 +29,16 @@ func Serve(baseDir string, filePath string) []byte {
 	fileExtComponents := strings.Split(*filePathAbs, ".")
 	ext := fileExtComponents[len(fileExtComponents)-1]
 
+	mimeType := strings.Split(mime.TypeByExtension("."+ext), ";")[0]
+
 	// file types fix
 	switch ext {
 	case "mjs", "cjs":
-		ext = "js"
+		mimeType = strings.Split(mime.TypeByExtension(".js"), ";")[0]
+	case "woff2":
+		mimeType = "font/woff2"
 	}
-
-	mimeType := strings.Split(mime.TypeByExtension("."+ext), ";")[0]
-
+	
 	if mimeType == "" {
 		mimeType = "text/plain"
 	}

@@ -54,7 +54,7 @@ const options: CompilerOptions = {
     module: ModuleKind.ES2022,
     target: ScriptTarget.ES2022,
     moduleResolution: ModuleResolutionKind.Node10,
-    lib: ["lib.dom.d.ts", "lib.es2023.d.ts", "fullstacked.d.ts"],
+    lib: ["lib.dom.d.ts", "lib.dom.iterable.d.ts", "lib.es2023.d.ts", "fullstacked.d.ts"],
     jsx: JsxEmit.React
 };
 let services: LanguageService;

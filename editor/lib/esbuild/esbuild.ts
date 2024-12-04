@@ -23,7 +23,6 @@ const activeBuilds = new Map<
 >();
 
 function buildResponse(responseBase64: string) {
-    console.log(responseBase64);
     const responseData = toByteArray(responseBase64);
     const [buildId, buildErrors] = deserializeArgs(responseData);
     const activeBuild = activeBuilds.get(buildId);

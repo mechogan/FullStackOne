@@ -68,9 +68,7 @@ function createWindow(projectId: string) {
     iframe.style.height = "100%";
     iframe.style.width = "100%";
     const height = newWinboxHeight();
-    console.log(height);
     const width = newWinboxWidth();
-    console.log(height, width);
     const winbox = new WinBox(projectId, {
         mount: iframe,
         height,
@@ -269,18 +267,21 @@ function initProjectWindow(projectId: string) {
 
             if (
                 element instanceof HTMLLinkElement &&
-                element.rel === "stylesheet"
+                element.rel === "stylesheet" 
             ) {
                 const url = new URL(element.href);
-                const [type, content] = staticFileServing(
-                    projectId,
-                    url.pathname
-                );
-                const blob = new Blob([content], { type });
-                element.href = window.URL.createObjectURL(blob);
-                element.onload = () => {
-                    checkForPageBGColor(webview);
-                };
+
+                if(url.host === window.location.host) {
+                    const [type, content] = staticFileServing(
+                        projectId,
+                        url.pathname
+                    );
+                    const blob = new Blob([content], { type });
+                    element.href = window.URL.createObjectURL(blob);
+                    element.onload = () => {
+                        checkForPageBGColor(webview);
+                    };
+                }
             }
 
             webview.window.document.head.append(element);
@@ -290,18 +291,19 @@ function initProjectWindow(projectId: string) {
     indexHTML.body
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach((element) => {
-            if (element instanceof HTMLScriptElement) {
-                const script = window.document.createElement("script");
-                script.type = element.type;
-
+            if (element instanceof HTMLScriptElement && element.src) {
                 const url = new URL(element.src);
-                const [type, content] = staticFileServing(
-                    projectId,
-                    url.pathname
-                );
-                const blob = new Blob([content], { type });
-                script.src = URL.createObjectURL(blob);
-                element = script;
+                if(url.host === window.location.host) {
+                    const script = window.document.createElement("script");
+                    script.type = element.type;
+                    const [type, content] = staticFileServing(
+                        projectId,
+                        url.pathname
+                    );
+                    const blob = new Blob([content], { type });
+                    script.src = URL.createObjectURL(blob);
+                    element = script;
+                }
             } else {
                 element
                     .querySelectorAll<HTMLImageElement>("img")
@@ -347,6 +349,9 @@ function checkForPageBGColor(webview: {
 
 function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
     const url = new URL(img.src);
+    if(url.host !== window.location.host) {
+        return;
+    }
     const [type, imageData] = staticFileServing(projectId, url.pathname);
     const blob = new Blob([imageData], { type });
     const objURL = URL.createObjectURL(blob);
