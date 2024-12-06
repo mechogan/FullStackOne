@@ -13,7 +13,7 @@ android {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
         targetSdk = 34
-        versionCode = 739
+        versionCode = 741
         versionName = "0.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -22,11 +22,6 @@ android {
         }
         ndk {
             abiFilters += listOf("armeabi-v7a","arm64-v8a", "x86_64")
-        }
-        externalNativeBuild {
-            cmake {
-                arguments += "-DANDROID_STL=c++_static"
-            }
         }
     }
 

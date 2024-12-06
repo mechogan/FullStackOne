@@ -1,13 +1,6 @@
 //
 // Created by Charles-Philippe Lepage on 2024-07-25.
 //
-#ifdef ANDROID_ABI_arm64
-#include <android-arm64-v8a.h>
-#elif ANDROID_ABI_x64
-#include <android-x86_64.h>
-#else
-#include <android-armeabi-v7a.h>
-#endif
 
 #include <jni.h>
 

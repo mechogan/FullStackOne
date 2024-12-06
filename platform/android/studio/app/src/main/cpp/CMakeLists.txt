@@ -45,9 +45,6 @@ add_library(editor-core SHARED
     # List C/C++ source files with relative paths to this CMakeLists.txt.
         bridge.cpp)
 
-target_include_directories(editor-core PRIVATE
-        ${core_DIR}/include)
-
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
