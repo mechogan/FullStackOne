@@ -86,7 +86,7 @@ export const tsAutocomplete =
         let lastWord, from;
         for (let i = ctx.pos - 1; i >= 0; i--) {
             if (
-                [" ", ".", "\n", ":", "{", "<", '"', "'", "(", "["].includes(
+                [" ", ".", "\n", ":", "{", "<", '"', "'", "(", "[", "!"].includes(
                     text[i]
                 ) ||
                 i === 0
