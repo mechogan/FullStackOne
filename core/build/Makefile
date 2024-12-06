@@ -47,40 +47,34 @@ ios-arm64:
 ###### Android #######
 
 ANDROID_OUT = $(CURDIR)/../../platform/android/studio/app/src/main/cpp/core
-NDK_VERSION = 26.3.11579264
+NDK_VERSION = 26.1.10909125
 
 android-arm:
+	mkdir -p $(ANDROID_OUT)/armeabi-v7a && \
 	CGO_ENABLED=1 \
 	GOOS=android \
 	GOARCH=arm \
-	CGO_LDFLAGS="-Wl,-soname,android-armeabi-v7a.so" \
+	CGO_LDFLAGS="-Wl,-soname,core.so" \
 	CC=~/Library/Android/sdk/ndk/$(NDK_VERSION)/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi34-clang \
-	go build -buildmode=c-shared -o $(OUT)/android-armeabi-v7a.so -v .. && \
-	mkdir -p $(ANDROID_OUT)/include $(ANDROID_OUT)/lib && \
-	cp $(OUT)/android-armeabi-v7a.so $(ANDROID_OUT)/lib/android-armeabi-v7a.so && \
-	cp $(OUT)/android-armeabi-v7a.h $(ANDROID_OUT)/include/android-armeabi-v7a.h
+	go build -buildmode=c-shared -o $(ANDROID_OUT)/armeabi-v7a/core.so -v ..
 
 android-arm64:
+	mkdir -p $(ANDROID_OUT)/arm64-v8a && \
 	CGO_ENABLED=1 \
 	GOOS=android \
 	GOARCH=arm64 \
-	CGO_LDFLAGS="-Wl,-soname,android-arm64-v8a.so" \
+	CGO_LDFLAGS="-Wl,-soname,core.so" \
 	CC=~/Library/Android/sdk/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android34-clang \
-	go build -buildmode=c-shared -o $(OUT)/android-arm64-v8a.so -v .. && \
-	mkdir -p $(ANDROID_OUT)/include $(ANDROID_OUT)/lib && \
-	cp $(OUT)/android-arm64-v8a.so $(ANDROID_OUT)/lib/android-arm64-v8a.so && \
-	cp $(OUT)/android-arm64-v8a.h $(ANDROID_OUT)/include/android-arm64-v8a.h
+	go build -buildmode=c-shared -o $(ANDROID_OUT)/arm64-v8a/core.so -v .. 
 
 android-x86_64:
+	mkdir -p $(ANDROID_OUT)/x86_64 && \
 	CGO_ENABLED=1 \
 	GOOS=android \
 	GOARCH=amd64 \
-	CGO_LDFLAGS="-Wl,-soname,android-x86_64.so" \
+	CGO_LDFLAGS="-Wl,-soname,core.so" \
 	CC=~/Library/Android/sdk/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android34-clang \
-	go build -buildmode=c-shared -o $(OUT)/android-x86_64.so -v .. && \
-	mkdir -p $(ANDROID_OUT)/include $(ANDROID_OUT)/lib && \
-	cp $(OUT)/android-x86_64.so $(ANDROID_OUT)/lib/android-x86_64.so && \
-	cp $(OUT)/android-x86_64.h $(ANDROID_OUT)/include/android-x86_64.h
+	go build -buildmode=c-shared -o $(ANDROID_OUT)/x86_64/core.so -v .. 
 
 android: android-arm android-arm64 android-x86_64
 

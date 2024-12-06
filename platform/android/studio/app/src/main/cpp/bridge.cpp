@@ -1,18 +1,11 @@
 #include <android/log.h>
 #include "bridge.h"
 
-
-
 #include <cstring>
 #include <string>
 #include <functional>
 
 extern "C" {
-
-extern void directories(char* root, char* config, char* editor);
-extern void callback(void* cb);
-extern int call(void* buffer, int length, void** responsePtr);
-extern void freePtr(void* ptr);
 
 
 JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories

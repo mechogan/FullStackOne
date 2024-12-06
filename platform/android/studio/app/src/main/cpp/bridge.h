@@ -2,6 +2,14 @@
 // Created by Charles-Philippe Lepage on 2024-07-25.
 //
 
+#ifdef ANDROID_ABI_arm64
+#include "core/arm64-v8a/core.h"
+#elif ANDROID_ABI_x64
+#include "core/x86_64/core.h"
+#else
+#include "core/armeabi-v7a/core.h"
+#endif
+
 #include <jni.h>
 
 #ifndef FULLSTACKED_EDITOR_EDITOR_H

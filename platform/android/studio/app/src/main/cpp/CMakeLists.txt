@@ -24,7 +24,7 @@ endif ()
 
 add_library(core SHARED IMPORTED)
 set_target_properties(core PROPERTIES IMPORTED_LOCATION
-        ${core_DIR}/lib/android-${ANDROID_ABI}.so)
+        ${core_DIR}/${ANDROID_ABI}/core.so)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
