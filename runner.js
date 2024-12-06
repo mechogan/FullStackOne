@@ -85,7 +85,7 @@ const TEST_AND_BUILD = () => {
     //     stdio: "inherit"
     // });
     // child_process.execSync("npm test", { stdio: "inherit" });
-    child_process.execSync("make ios-arm64 android -j8", {
+    child_process.execSync("make ios-arm64 android macos-static -j8", {
         cwd: "core/build",
         stdio: "inherit"
     });
@@ -360,23 +360,27 @@ const ELECTRON_DEPLOY = async () => {
     return Promise.all(releaseFileNames.map(tryUploadingUntilSuccess));
 };
 
-/////////////// ios /////////////////
+/////////////// apple /////////////////
 
-const iosDirectory = "platform/ios";
-const xcodeDirectory = `${process.cwd()}/${iosDirectory}/xcode`;
-const archivePath = `${process.cwd()}/${iosDirectory}/FullStacked.xcarchive`;
-const pkgDirectory = `${process.cwd()}/${iosDirectory}/pkg`;
+const appleDirectory = "platform/apple";
+
+const archivePathiOS = `${process.cwd()}/${appleDirectory}/FullStacked-iOS.xcarchive`;
+const pkgDirectoryiOS = `${process.cwd()}/${appleDirectory}/pkg-ios`;
+
+const archivePathMacOS = `${process.cwd()}/${appleDirectory}/FullStacked-MacOS.xcarchive`;
+const pkgDirectoryMacOS = `${process.cwd()}/${appleDirectory}/pkg-macos`;
+
 const appleKeys = dotenv.parse(
-    fs.readFileSync(`${iosDirectory}/APPLE_KEYS.env`)
+    fs.readFileSync(`${appleDirectory}/APPLE_KEYS.env`)
 );
 
-const IOS_BUILD = () => {
+const APPLE_BUILD = () => {
     // child_process.execSync("make ios", {
     //     cwd: `${iosDirectory}/esbuild`,
     //     stdio: "inherit"
     // });
 
-    const xcodeFile = `${iosDirectory}/xcode/FullStacked.xcodeproj/project.pbxproj`;
+    const xcodeFile = `${appleDirectory}/FullStacked.xcodeproj/project.pbxproj`;
     const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
     const xcodeFileUpdated = xcodeFileContent
         .replace(
@@ -389,34 +393,68 @@ const IOS_BUILD = () => {
         );
     fs.writeFileSync(xcodeFile, xcodeFileUpdated);
 
-    if (fs.existsSync(archivePath))
-        fs.rmSync(archivePath, { recursive: true, force: true });
-    if (fs.existsSync(pkgDirectory))
-        fs.rmSync(pkgDirectory, { recursive: true, force: true });
+    [
+        archivePathiOS,
+        pkgDirectoryiOS,
+        archivePathMacOS,
+        pkgDirectoryMacOS,
+    ].forEach(d => {
+        if (fs.existsSync(d))
+            fs.rmSync(d, { recursive: true, force: true });
+    });
+    
 
     child_process.execSync(
-        `xcodebuild -project ${xcodeDirectory}/FullStacked.xcodeproj -scheme FullStacked -sdk iphoneos -configuration Release clean`,
+        `xcodebuild -project ${appleDirectory}/FullStacked.xcodeproj -scheme FullStacked-iOS -sdk iphoneos -configuration Release clean`,
         {
             stdio: "inherit"
         }
     );
     child_process.execSync(
-        `xcodebuild -project ${xcodeDirectory}/FullStacked.xcodeproj -scheme FullStacked -sdk iphoneos -configuration Release archive -archivePath ${archivePath}`,
+        `xcodebuild -project ${appleDirectory}/FullStacked.xcodeproj -scheme FullStacked-iOS -sdk iphoneos -configuration Release archive -archivePath ${archivePathiOS}`,
         {
             stdio: "inherit"
         }
     );
     child_process.execSync(
-        `xcodebuild -exportArchive -archivePath ${archivePath} -exportOptionsPlist ${process.cwd()}/${iosDirectory}/exportOptions.plist -exportPath ${pkgDirectory} -allowProvisioningUpdates`,
+        `xcodebuild -exportArchive -archivePath ${archivePathiOS} -exportOptionsPlist ${process.cwd()}/${appleDirectory}/exportOptions.plist -exportPath ${pkgDirectoryiOS} -allowProvisioningUpdates`,
+        {
+            stdio: "inherit"
+        }
+    );
+
+    child_process.execSync(
+        `xcodebuild -project ${appleDirectory}/FullStacked.xcodeproj -scheme FullStacked-MacOS -sdk macosx -configuration Release clean`,
+        {
+            stdio: "inherit"
+        }
+    );
+    child_process.execSync(
+        `xcodebuild -project ${appleDirectory}/FullStacked.xcodeproj -scheme FullStacked-MacOS -sdk macosx -configuration Release archive -archivePath ${archivePathMacOS}`,
+        {
+            stdio: "inherit"
+        }
+    );
+    child_process.execSync(
+        `xcodebuild -exportArchive -archivePath ${archivePathMacOS} -exportOptionsPlist ${process.cwd()}/${appleDirectory}/exportOptions.plist -exportPath ${pkgDirectoryMacOS} -allowProvisioningUpdates`,
         {
             stdio: "inherit"
         }
     );
 };
 
-const IOS_DEPLOY = () => {
+const APPLE_DEPLOY = () => {
     child_process.execSync(
-        `xcrun altool --upload-app --file ${pkgDirectory}/FullStacked.ipa -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
+        `xcrun altool --upload-app --file ${pkgDirectoryiOS}/FullStacked.ipa -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
+        {
+            stdio: "inherit",
+            env: {
+                API_PRIVATE_KEYS_DIR: appleKeys.APPLE_API_KEY_DIRECTORY
+            }
+        }
+    );
+    child_process.execSync(
+        `xcrun altool --upload-app --file ${pkgDirectoryMacOS}/FullStacked.pkg -t macosx --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
         {
             stdio: "inherit",
             env: {
@@ -545,7 +583,7 @@ async function run() {
         //     await notifyError("Failed to build for electron");
         // }
         try {
-            IOS_BUILD();
+            APPLE_BUILD();
         } catch (e) {
             console.error(e);
             await notifyError("Failed to build for ios");
@@ -582,7 +620,7 @@ async function run() {
         //     notifyError("Failed to deploy for electron", false);
         // }
         try {
-            IOS_DEPLOY();
+            APPLE_DEPLOY();
         } catch (e) {
             console.error(e);
             notifyError("Failed to deploy for ios", false);
