@@ -93,7 +93,7 @@ function CreatePackageInstallProgressView(packageName: string) {
         } else if (progress.Stage === "done") {
             statusText = "installed";
         } else {
-            statusText = progress.Stage
+            statusText = progress.Stage;
         }
 
         status.innerText = statusText;

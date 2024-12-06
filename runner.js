@@ -397,12 +397,10 @@ const APPLE_BUILD = () => {
         archivePathiOS,
         pkgDirectoryiOS,
         archivePathMacOS,
-        pkgDirectoryMacOS,
-    ].forEach(d => {
-        if (fs.existsSync(d))
-            fs.rmSync(d, { recursive: true, force: true });
+        pkgDirectoryMacOS
+    ].forEach((d) => {
+        if (fs.existsSync(d)) fs.rmSync(d, { recursive: true, force: true });
     });
-    
 
     child_process.execSync(
         `xcodebuild -project ${appleDirectory}/FullStacked.xcodeproj -scheme FullStacked-iOS -sdk iphoneos -configuration Release clean`,

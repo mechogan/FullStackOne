@@ -6,7 +6,7 @@ import packages from "../../lib/packages";
 
 let ignoredPackages = new Set<string>();
 export function Packages() {
-    Store.packages.ignored.subscribe((ignored) => ignoredPackages = ignored);
+    Store.packages.ignored.subscribe((ignored) => (ignoredPackages = ignored));
 }
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
@@ -34,7 +34,10 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
             .slice(e.start, e.start + e.length)
             .slice(1, -1);
 
-        return !moduleName.startsWith(".") && !ignoredPackages.has(`@types/${moduleName}`)
+        return (
+            !moduleName.startsWith(".") &&
+            !ignoredPackages.has(`@types/${moduleName}`)
+        );
     });
 
     if (needsTypes.length) {
@@ -86,9 +89,19 @@ export const tsAutocomplete =
         let lastWord, from;
         for (let i = ctx.pos - 1; i >= 0; i--) {
             if (
-                [" ", ".", "\n", ":", "{", "<", '"', "'", "(", "[", "!"].includes(
-                    text[i]
-                ) ||
+                [
+                    " ",
+                    ".",
+                    "\n",
+                    ":",
+                    "{",
+                    "<",
+                    '"',
+                    "'",
+                    "(",
+                    "[",
+                    "!"
+                ].includes(text[i]) ||
                 i === 0
             ) {
                 from = i === 0 ? i : i + 1;

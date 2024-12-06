@@ -2,10 +2,8 @@ package git
 
 import (
 	"encoding/json"
-	fs "fullstacked/editor/src/fs"
-	serialize "fullstacked/editor/src/serialize"
-	setup "fullstacked/editor/src/setup"
 	"path"
+	"time"
 
 	git "github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
@@ -13,6 +11,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+
+	fs "fullstacked/editor/src/fs"
+	serialize "fullstacked/editor/src/serialize"
+	setup "fullstacked/editor/src/setup"
 )
 
 type GitError struct {
@@ -320,6 +322,7 @@ func Commit(directory string, commitMessage string, authorName string, authorEma
 		Author: &object.Signature{
 			Name:  authorName,
 			Email: authorEmail,
+			When:  time.Now(),
 		},
 	})
 

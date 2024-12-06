@@ -267,11 +267,11 @@ function initProjectWindow(projectId: string) {
 
             if (
                 element instanceof HTMLLinkElement &&
-                element.rel === "stylesheet" 
+                element.rel === "stylesheet"
             ) {
                 const url = new URL(element.href);
 
-                if(url.host === window.location.host) {
+                if (url.host === window.location.host) {
                     const [type, content] = staticFileServing(
                         projectId,
                         url.pathname
@@ -293,7 +293,7 @@ function initProjectWindow(projectId: string) {
         .forEach((element) => {
             if (element instanceof HTMLScriptElement && element.src) {
                 const url = new URL(element.src);
-                if(url.host === window.location.host) {
+                if (url.host === window.location.host) {
                     const script = window.document.createElement("script");
                     script.type = element.type;
                     const [type, content] = staticFileServing(
@@ -349,7 +349,7 @@ function checkForPageBGColor(webview: {
 
 function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
     const url = new URL(img.src);
-    if(url.host !== window.location.host) {
+    if (url.host !== window.location.host) {
         return;
     }
     const [type, imageData] = staticFileServing(projectId, url.pathname);

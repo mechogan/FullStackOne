@@ -38,7 +38,7 @@ func Serve(baseDir string, filePath string) []byte {
 	case "woff2":
 		mimeType = "font/woff2"
 	}
-	
+
 	if mimeType == "" {
 		mimeType = "text/plain"
 	}

@@ -24,7 +24,7 @@ core_message.addListener("package-install-progress", (dataStr) => {
 
     let allDone = true;
     for (const progress of activePackageInstall.values()) {
-        if(progress.Stage === "error") {
+        if (progress.Stage === "error") {
             console.log("ignore", Name);
             ignoredPackages.add(Name);
             ignored.notify();
