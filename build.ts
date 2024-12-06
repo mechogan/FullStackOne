@@ -119,7 +119,7 @@ const branch = child_process
     .trim();
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
 const commitNumber = child_process
-    .execSync("git rev-list --count --all")
+    .execSync(`git rev-list --count ${branch}`)
     .toString()
     .trim();
 fs.writeFileSync(
