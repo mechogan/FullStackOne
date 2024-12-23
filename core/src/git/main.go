@@ -8,6 +8,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -32,7 +33,21 @@ func errorFmt(e error) *string {
 }
 
 func getRepo(directory string) (*git.Repository, *string) {
-	repo, err := git.PlainOpen(directory)
+	repo := (*git.Repository)(nil)
+	err := (error)(nil)
+
+	if(fs.WASM) {
+		wfs := WasmFS{
+			root: directory + "/.git",
+		}
+		wfs2 := WasmFS {
+			root: directory,
+		}
+		repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
+	} else {
+		repo, err = git.PlainOpen(directory)
+	}
+	
 
 	if err != nil {
 		return nil, errorFmt(err)
@@ -73,8 +88,6 @@ func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-var wfs = WasmFS{}
-
 func Clone(into string, url string, username *string, password *string) {
 	auth := (*http.BasicAuth)(nil)
 	if username != nil && password != nil {
@@ -91,7 +104,13 @@ func Clone(into string, url string, username *string, password *string) {
 	
 	err := (error)(nil)
 	if(fs.WASM) {
-		_, err = git.Clone(filesystem.NewStorage(wfs, nil), wfs, &git.CloneOptions{
+		wfs := WasmFS{
+			root: into + "/.git",
+		}
+		wfs2 := WasmFS {
+			root: into,
+		}
+		_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
 			Auth:     auth,
 			URL:      url,
 			Progress: &progress,

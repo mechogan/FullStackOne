@@ -41,15 +41,15 @@ func vfs(this js.Value, args []js.Value) interface{} {
 
 	arrayConstructor := js.Global().Get("Uint8Array")
 
-	for file, data := range fs.VirtFS {
-		if !strings.HasPrefix(file, prefix) {
+	for name, f := range fs.VirtFS {
+		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
 
-		dataJS := arrayConstructor.New(len(data))
-		js.CopyBytesToJS(dataJS, data)
+		dataJS := arrayConstructor.New(len(f.Data))
+		js.CopyBytesToJS(dataJS, f.Data)
 
-		fileMap[file] = dataJS
+		fileMap[name] = dataJS
 	}
 
 	for _, dir := range fs.VirtDirs {

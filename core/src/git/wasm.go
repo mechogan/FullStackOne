@@ -3,200 +3,278 @@ package git
 import (
 	fs "fullstacked/editor/src/fs"
 	"io"
-	"log"
+	"math/rand"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/go-git/go-billy/v5"
 )
 
-type WasmFS struct{}
+type WasmFS struct {
+	root string
+}
 
 type File struct {
 	filename string
-	data []byte
-	io.ReaderAt
-	io.Seeker
+	path   string
+	reader *FileReader
 }
 
-func (File) Close() error {
-	return nil
+type FileReader struct {
+	path   string
+	data   []byte
+	cursor int
+	closed bool
+}
+
+
+func (f *FileReader) Read(p []byte) (n int, err error) {
+	f.data, err = fs.ReadFile(f.path)
+
+	if err != nil || f.cursor >= len(f.data) {
+		return 0, io.EOF
+	}
+
+	from := f.cursor
+	f.cursor = f.cursor + len(p)
+
+	if f.cursor > len(f.data) {
+		f.cursor = len(f.data)
+	}
+
+	copy(p, f.data[from:f.cursor])
+
+	if f.cursor >= len(f.data) {
+		return f.cursor - from, nil
+	}
+
+	return len(p), nil
+}
+
+func (f File) ReadAt(p []byte, off int64) (n int, err error) {
+	return len(p), nil
+}
+
+func (f File) Close() error {
+	return nil;
 }
 
 func (f File) Write(p []byte) (n int, err error) {
-	log.Println("WRITE " + f.filename)
-	f.data = append(f.data, p...)
-	fs.WriteFile(f.filename, f.data)
+	f.reader.data = append(f.reader.data, p...)
+	fs.WriteFile(f.path, f.reader.data)
+	f.reader.cursor = len(f.reader.data)
 	return len(p), nil
 }
 
 func (f File) Read(p []byte) (n int, err error) {
-	log.Println("READ " + f.filename)
-	f.data, _ = fs.ReadFile(f.filename)
-	copy(p, f.data)
-	return len(p), err
+	return f.reader.Read(p)
+}
+
+func (f File) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case 0:
+		f.reader.cursor = int(offset)
+	case 1:
+		f.reader.cursor += int(offset)
+	case 2:
+		f.reader.cursor = len(f.reader.data) - int(offset)
+	}
+	return int64(f.reader.cursor), nil
 }
 
 func (f File) Size() int64 {
-	log.Println("SIZE " + f.filename)
-	f.data, _ = fs.ReadFile(f.filename)
-	return int64(len(f.data))
+	info := fs.Stat(f.path)
+	if(info == nil) {
+		return 0
+	}
+	return info.Size
 }
-func (f File) Mode() os.FileMode  {
-	log.Println("MODE " + f.filename)
+func (f File) Mode() os.FileMode {
 	return os.ModePerm
 }
 func (f File) ModTime() time.Time {
-	log.Println("MODTIME " + f.filename)
-	return time.Now()
+	info := fs.Stat(f.path)
+	return info.ModTime
 }
-func (f File) IsDir() bool     {
-	log.Println("IS_DIR " + f.filename)
-	_, isFile := fs.Exists(f.filename)
+func (f File) IsDir() bool {
+	_, isFile := fs.Exists(f.path)
 	return !isFile
 }
-func (f File) Sys() any  {
-	log.Println("SYS " + f.filename)
+func (f File) Sys() any {
 	return nil
 }
 
 func (f File) Name() string {
-	log.Println("NAME " + f.filename)
 	return f.filename
 }
 
 func (f File) Lock() error {
-	log.Println("LOCK " + f.filename)
 	return nil
 }
 func (f File) Unlock() error {
-	log.Println("UNLOCK " + f.filename)
 	return nil
 
 }
 func (f File) Truncate(size int64) error {
-	log.Println("TRUNCATE " + f.filename)
 	return nil
 }
 
-func createFile(filename string) File {
-	log.Println("CREATE " + filename)
+func (w WasmFS) createFile(filename string) File {
+	filePath := path.Join(w.root, filename);
 	return File{
 		filename: filename,
+		path: filePath,
+		reader: &FileReader{
+			path: filePath,
+			closed: false,
+		},
 	}
 }
 
-func (WasmFS) Create(filename string) (billy.File, error) {
-	log.Println("CREATE " + filename)
-	f := createFile(filename)
+func (w WasmFS) createFileWithName(filename string, name string) File {
+	filePath := path.Join(w.root, filename);
+	return File{
+		filename: name,
+		path: filePath,
+		reader: &FileReader{
+			path: filePath,
+			closed: false,
+		},
+	}
+}
 
-	fs.WriteFile(filename, []byte{})
+func (w WasmFS) Create(filename string) (billy.File, error) {
+	f := w.createFile(filename);
+
+	dir := path.Dir(f.path)
+	fs.Mkdir(dir);
+
+	fs.WriteFile(f.path, []byte{})
 
 	return f, nil
 }
 
-func (WasmFS) Open(filename string) (billy.File, error) {
-	log.Println("OPEN " + filename)
-	return createFile(filename), nil
+func (w WasmFS) Open(filename string) (billy.File, error) {
+	f := w.createFile(filename);
+
+	exists, _ := fs.Exists(f.path)
+	if(!exists) {
+		return nil, os.ErrNotExist
+	}
+	
+	return f, nil
 }
 
-func (WasmFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
-	log.Println("OPEN_FILE " + filename)
-	return createFile(filename), nil
+func (w WasmFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
+	f := w.createFile(filename);
+
+	exists, _ := fs.Exists(f.path)
+	if(!exists) {
+		return w.Create(filename)
+	}
+
+	return f, nil
 }
 
-func (WasmFS) Stat(filename string) (os.FileInfo, error) {
-	log.Println("STAT " + filename)
-	return createFile(filename), nil
+func (w WasmFS) Stat(filename string) (os.FileInfo, error) {
+	f := w.createFile(filename)
+	
+	exists, _ := fs.Exists(f.path)
+	if !exists {
+		return nil, os.ErrNotExist
+	}
+
+	return f, nil
 }
 
-func (WasmFS) Rename(oldpath, newpath string) error {
-	log.Println("RENAME " + oldpath + " | " + newpath)
-	fs.Rename(oldpath, newpath)
+func (w WasmFS) Rename(oldpath, newpath string) error {
+	fs.Rename(w.Join(w.root, oldpath), w.Join(w.root, newpath))
 	return nil
 }
 
-func (WasmFS) Remove(filename string) error {
-	log.Println("REMOVE " + filename)
-	_, isFile := fs.Exists(filename)
+func (w WasmFS) Remove(filename string) error {
+	path := w.Join(w.root, filename)
+
+	_, isFile := fs.Exists(path)
 	if isFile {
-		fs.Unlink(filename)
+		fs.Unlink(path)
 	} else {
-		fs.Rmdir(filename)
+		fs.Rmdir(path)
 	}
 	return nil
 }
 
 func (WasmFS) Join(elem ...string) string {
-	log.Println("JOIN " + strings.Join(elem, ", "))
 	return path.Join(elem...)
 }
 
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+func RandStringRunes(n int) string {
+    b := make([]rune, n)
+    for i := range b {
+        b[i] = letterRunes[rand.Intn(len(letterRunes))]
+    }
+    return string(b)
+}
+
 func (w WasmFS) TempFile(dir, prefix string) (billy.File, error) {
-	log.Println("TEMP_FILE " + dir + " | " + prefix)
-	return createFile(w.Join(dir, prefix)), nil
+	filePath := path.Join(dir, prefix + RandStringRunes(6))
+	return w.Create(filePath)
 }
 
 func (w WasmFS) ReadDir(path string) ([]os.FileInfo, error) {
-	log.Println("READ_DIR " + path)
-	contents, _ := fs.ReadDir(path, false)
-	
+	f := w.createFile(path)
+
+	contents, _ := fs.ReadDir(f.path, false)
+
 	items := []os.FileInfo{}
 	for _, item := range contents {
-		items = append(items, createFile(w.Join(path, item.Name)))
+		items = append(items, w.createFileWithName(w.Join(path, item.Name), item.Name))
 	}
 	return items, nil
 }
 
-func (WasmFS) MkdirAll(filename string, perm os.FileMode) error {
-	log.Println("MK_DIR_ALL " + filename)
-	fs.Mkdir(filename)
+func (w WasmFS) MkdirAll(filename string, perm os.FileMode) error {
+	f := w.createFile(filename)
+	fs.Mkdir(f.path)
 	return nil
 }
 
 func (w WasmFS) Lstat(filename string) (os.FileInfo, error) {
-	log.Println("LSTAT " + filename)
 	return w.Stat(filename)
 }
 
 func (WasmFS) Symlink(target, link string) error {
-	log.Println("SYMLINK " + target + " | " + link)
 	return nil
 }
 
 func (WasmFS) Readlink(link string) (string, error) {
-	log.Println("READLINK " + link)
 	return "", nil
 }
 
 func (WasmFS) Chmod(name string, mode os.FileMode) error {
-	log.Println("CHMOD " + name + " | " + mode.String())
 	return nil
 }
 
 func (WasmFS) Lchown(name string, uid, gid int) error {
-	log.Println("LCHOMWN " + name)
 	return nil
 }
 
 func (WasmFS) Chown(name string, uid, gid int) error {
-	log.Println("CHOME " + name)
 	return nil
 }
 
 func (WasmFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
-	log.Println("CHTIMES " + name)
 	return nil
 }
 
 func (w WasmFS) Chroot(path string) (billy.Filesystem, error) {
-	log.Println("CHROOT " + path)
-	return w, nil
+	return WasmFS{
+		root: path,
+	}, nil
 }
 
-func (WasmFS) Root() string {
-	log.Println("ROOT")
-	return ""
+func (w WasmFS) Root() string {
+	return w.root
 }

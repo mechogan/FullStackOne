@@ -8,7 +8,12 @@ import (
 	"time"
 )
 
-var VirtFS = make(map[string][]byte)
+type vFile struct {
+	Data []byte
+	ModTime time.Time
+}
+
+var VirtFS = make(map[string]*vFile)
 var VirtDirs = []string{}
 
 func vReadFile(path string) ([]byte, error) {
@@ -20,13 +25,20 @@ func vReadFile(path string) ([]byte, error) {
 		return nil, errors.New("ENOENT")
 	}
 
-	return f, nil
+	return f.Data, nil
 }
 
 func vWriteFile(path string, data []byte) error {
 	path = strings.TrimPrefix(path, "/")
 
-	VirtFS[path] = data
+	if(VirtFS[path] == nil) {
+		VirtFS[path] = &vFile{
+			Data: []byte{},
+			ModTime: time.Now(),
+		}
+	}
+
+	VirtFS[path].Data = data
 	return nil
 }
 
@@ -112,7 +124,7 @@ func vStat(path string) *SmallFileInfo {
 		}
 	}
 
-	if f == nil && !d {
+	if f == nil || d {
 		return nil
 	}
 
@@ -120,8 +132,8 @@ func vStat(path string) *SmallFileInfo {
 
 	return &SmallFileInfo{
 		pathComponents[len(pathComponents)-1],
-		int64(len(f)),
-		time.Unix(0, 0),
+		int64(len(f.Data)),
+		f.ModTime,
 		d,
 	}
 }

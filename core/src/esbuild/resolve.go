@@ -72,6 +72,28 @@ func LOAD_AS_DIR(modulePath string) *string {
 		return nil
 	}
 
+	packageJsonPath := path.Join(modulePath, "package.json")
+	pExsits, _ := fs.Exists(packageJsonPath)
+	if(pExsits) {
+		packageJsonData, _ := fs.ReadFile(packageJsonPath)
+		packageJSON := PackageJSONMain{}
+		err := json.Unmarshal(packageJsonData, &packageJSON)
+		if(err != nil){
+			return LOAD_INDEX(modulePath)
+		}
+
+		mainPath := path.Join(modulePath, packageJSON.Main)
+
+		mainResolved := LOAD_AS_FILE(mainPath)
+		if(mainResolved != nil) {
+			return mainResolved
+		}
+		mainResolved = LOAD_INDEX(mainPath)
+		if(mainResolved != nil){
+			return mainResolved
+		}
+	}
+
 	return LOAD_INDEX(modulePath)
 }
 
@@ -103,6 +125,9 @@ func LOAD_NODE_MODULES(module string) *string {
 	return LOAD_AS_DIR(nodeModulePath)
 }
 
+type PackageJSONMain struct {
+	Main string
+}
 type PackageJSON struct {
 	Exports json.RawMessage
 }
