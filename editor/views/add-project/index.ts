@@ -27,7 +27,7 @@ export function AddProject() {
         iconLeft: "Git"
     });
     cloneGitButton.onclick = () => CloneGit();
-    cloneGitButton.disabled = platform === Platform.WASM;
+    // cloneGitButton.disabled = platform === Platform.WASM;
 
     const importZipButton = Button({
         text: "Import zip",

@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
@@ -72,6 +73,8 @@ func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+var wfs = WasmFS{}
+
 func Clone(into string, url string, username *string, password *string) {
 	auth := (*http.BasicAuth)(nil)
 	if username != nil && password != nil {
@@ -85,11 +88,21 @@ func Clone(into string, url string, username *string, password *string) {
 		Name: "git-clone",
 	}
 
-	_, err := git.PlainClone(into, false, &git.CloneOptions{
-		Auth:     auth,
-		URL:      url,
-		Progress: &progress,
-	})
+	
+	err := (error)(nil)
+	if(fs.WASM) {
+		_, err = git.Clone(filesystem.NewStorage(wfs, nil), wfs, &git.CloneOptions{
+			Auth:     auth,
+			URL:      url,
+			Progress: &progress,
+		})
+	} else {
+		_, err = git.PlainClone(into, false, &git.CloneOptions{
+			Auth:     auth,
+			URL:      url,
+			Progress: &progress,
+		})
+	}
 
 	if err != nil {
 		progress.Write([]byte(*errorFmt(err)))

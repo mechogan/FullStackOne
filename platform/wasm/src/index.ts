@@ -194,6 +194,9 @@ function initProjectWindow(projectId: string) {
         }
 
         if (url.startsWith("http")) {
+            if(url.startsWith("https://github.com")) {
+                url = `http://localhost:8000?url=${encodeURIComponent(url)}`;
+            }
             return webview.window.originalFetch(url, options);
         }
 

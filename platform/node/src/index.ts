@@ -7,15 +7,15 @@ import { createInstance } from "./instance";
 
 // MIGRATION 2024-11-05 - 0.9.0 to 0.10.0
 
-const newConfigDir = path.resolve(os.homedir(), ".config", "fullstacked");
-const oldConfigDir = path.resolve(os.homedir(), "FullStacked", ".config");
-const oldConfigDirExists = fs.existsSync(oldConfigDir);
-if (oldConfigDirExists) {
-    fs.cpSync(oldConfigDir, newConfigDir, {
-        recursive: true,
-        filter: (source) => !source.includes("node_modules")
-    });
-}
+// const newConfigDir = path.resolve(os.homedir(), ".config", "fullstacked");
+// const oldConfigDir = path.resolve(os.homedir(), "FullStacked", ".config");
+// const oldConfigDirExists = fs.existsSync(oldConfigDir);
+// if (oldConfigDirExists) {
+//     fs.cpSync(oldConfigDir, newConfigDir, {
+//         recursive: true,
+//         filter: (source) => !source.includes("node_modules")
+//     });
+// }
 
 // end migration
 
