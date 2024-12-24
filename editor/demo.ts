@@ -2,7 +2,6 @@ import { bridge } from "../lib/bridge";
 import { serializeArgs } from "../lib/bridge/serialization";
 import core_fetch from "../lib/fetch";
 import core_message from "../lib/core_message";
-import platform, { Platform } from "../lib/platform";
 import archive from "./lib/archive";
 import git from "./lib/git";
 import {
@@ -11,12 +10,8 @@ import {
 } from "./views/add-project/import-zip";
 
 export async function Demo() {
-    if (platform === Platform.WASM) {
-        return demoFromZip();
-    }
-
     try {
-        await core_fetch("https://github.com", { timeout: 3 });
+        await core_fetch("https://github.com/fullstackedorg", { timeout: 3 });
     } catch (e) {
         return demoFromZip();
     }

@@ -74,22 +74,22 @@ func LOAD_AS_DIR(modulePath string) *string {
 
 	packageJsonPath := path.Join(modulePath, "package.json")
 	pExsits, _ := fs.Exists(packageJsonPath)
-	if(pExsits) {
+	if pExsits {
 		packageJsonData, _ := fs.ReadFile(packageJsonPath)
 		packageJSON := PackageJSONMain{}
 		err := json.Unmarshal(packageJsonData, &packageJSON)
-		if(err != nil){
+		if err != nil {
 			return LOAD_INDEX(modulePath)
 		}
 
 		mainPath := path.Join(modulePath, packageJSON.Main)
 
 		mainResolved := LOAD_AS_FILE(mainPath)
-		if(mainResolved != nil) {
+		if mainResolved != nil {
 			return mainResolved
 		}
 		mainResolved = LOAD_INDEX(mainPath)
-		if(mainResolved != nil){
+		if mainResolved != nil {
 			return mainResolved
 		}
 	}

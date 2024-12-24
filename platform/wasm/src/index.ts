@@ -190,7 +190,6 @@ async function initProjectWindow(projectId: string) {
         url: string | Request,
         options: any
     ) {
-
         if (typeof url === "object") {
             return webview.window.originalFetch(url);
         }
@@ -354,7 +353,10 @@ function checkForPageBGColor(webview: {
     }
 }
 
-async function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
+async function replaceImageWithObjectURL(
+    projectId: string,
+    img: HTMLImageElement
+) {
     const url = new URL(img.src);
     if (url.host !== window.location.host) {
         return;

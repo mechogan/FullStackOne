@@ -36,18 +36,17 @@ func getRepo(directory string) (*git.Repository, *string) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
 
-	if(fs.WASM) {
-		wfs := WasmFS{
-			root: directory + "/.git",
-		}
-		wfs2 := WasmFS {
-			root: directory,
-		}
-		repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
-	} else {
-		repo, err = git.PlainOpen(directory)
+	// if fs.WASM {
+	wfs := WasmFS{
+		root: directory + "/.git",
 	}
-	
+	wfs2 := WasmFS{
+		root: directory,
+	}
+	repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
+	// } else {
+	// 	repo, err = git.PlainOpen(directory)
+	// }
 
 	if err != nil {
 		return nil, errorFmt(err)
@@ -101,27 +100,26 @@ func Clone(into string, url string, username *string, password *string) {
 		Name: "git-clone",
 	}
 
-	
 	err := (error)(nil)
-	if(fs.WASM) {
-		wfs := WasmFS{
-			root: into + "/.git",
-		}
-		wfs2 := WasmFS {
-			root: into,
-		}
-		_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
-			Auth:     auth,
-			URL:      url,
-			Progress: &progress,
-		})
-	} else {
-		_, err = git.PlainClone(into, false, &git.CloneOptions{
-			Auth:     auth,
-			URL:      url,
-			Progress: &progress,
-		})
+	// if fs.WASM {
+	wfs := WasmFS{
+		root: into + "/.git",
 	}
+	wfs2 := WasmFS{
+		root: into,
+	}
+	_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
+		Auth:     auth,
+		URL:      url,
+		Progress: &progress,
+	})
+	// } else {
+	// 	_, err = git.PlainClone(into, false, &git.CloneOptions{
+	// 		Auth:     auth,
+	// 		URL:      url,
+	// 		Progress: &progress,
+	// 	})
+	// }
 
 	if err != nil {
 		progress.Write([]byte(*errorFmt(err)))

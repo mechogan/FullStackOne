@@ -211,6 +211,7 @@ type SmallFileInfo struct {
 	Size    int64
 	ModTime time.Time
 	IsDir   bool
+	Mode    os.FileMode
 }
 
 func Stat(path string) *SmallFileInfo {
@@ -229,6 +230,7 @@ func Stat(path string) *SmallFileInfo {
 		fileInfo.Size(),
 		fileInfo.ModTime(),
 		fileInfo.IsDir(),
+		fileInfo.Mode(),
 	}
 }
 

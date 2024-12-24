@@ -17,36 +17,37 @@ type WasmFS struct {
 
 type File struct {
 	filename string
-	path   string
-	reader *FileReader
+	path     string
+	reader   *FileReader
 }
 
 type FileReader struct {
 	path   string
 	data   []byte
-	cursor int
-	closed bool
+	cursor int64
 }
-
 
 func (f *FileReader) Read(p []byte) (n int, err error) {
 	f.data, err = fs.ReadFile(f.path)
 
-	if err != nil || f.cursor >= len(f.data) {
+	pLength := int64(len(p))
+	fLength := int64(len(f.data))
+
+	if err != nil || f.cursor >= fLength {
 		return 0, io.EOF
 	}
 
 	from := f.cursor
-	f.cursor = f.cursor + len(p)
+	f.cursor = f.cursor + pLength
 
-	if f.cursor > len(f.data) {
-		f.cursor = len(f.data)
+	if f.cursor > fLength {
+		f.cursor = fLength
 	}
 
 	copy(p, f.data[from:f.cursor])
 
-	if f.cursor >= len(f.data) {
-		return f.cursor - from, nil
+	if f.cursor >= fLength {
+		return int(f.cursor - from), nil
 	}
 
 	return len(p), nil
@@ -57,14 +58,34 @@ func (f File) ReadAt(p []byte, off int64) (n int, err error) {
 }
 
 func (f File) Close() error {
-	return nil;
+	return nil
 }
 
 func (f File) Write(p []byte) (n int, err error) {
-	f.reader.data = append(f.reader.data, p...)
+	chunk := make([]byte, len(p))
+	copy(chunk, p)
+
+	if f.reader.cursor == 0 {
+		f.reader.data = chunk
+	} else if f.reader.cursor == int64(len(f.reader.data)) {
+		f.reader.data = append(f.reader.data, chunk...)
+	} else {
+		data := []byte{}
+
+		before := make([]byte, f.reader.cursor)
+		copy(before, f.reader.data[0:f.reader.cursor])
+
+		data = append(data, chunk...)
+
+		after := make([]byte, int64(len(f.reader.data))-f.reader.cursor)
+		copy(after, f.reader.data[f.reader.cursor:])
+
+		f.reader.data = data
+	}
+
 	fs.WriteFile(f.path, f.reader.data)
-	f.reader.cursor = len(f.reader.data)
-	return len(p), nil
+	f.reader.cursor += int64(len(chunk))
+	return len(chunk), nil
 }
 
 func (f File) Read(p []byte) (n int, err error) {
@@ -74,24 +95,28 @@ func (f File) Read(p []byte) (n int, err error) {
 func (f File) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0:
-		f.reader.cursor = int(offset)
+		f.reader.cursor = offset
 	case 1:
-		f.reader.cursor += int(offset)
+		f.reader.cursor += offset
 	case 2:
-		f.reader.cursor = len(f.reader.data) - int(offset)
+		f.reader.cursor = int64(len(f.reader.data)) - offset
 	}
-	return int64(f.reader.cursor), nil
+	return f.reader.cursor, nil
 }
 
 func (f File) Size() int64 {
 	info := fs.Stat(f.path)
-	if(info == nil) {
+	if info == nil {
 		return 0
 	}
 	return info.Size
 }
 func (f File) Mode() os.FileMode {
-	return os.ModePerm
+	info := fs.Stat(f.path)
+	if info != nil {
+		return info.Mode
+	}
+	return os.ModeDir
 }
 func (f File) ModTime() time.Time {
 	info := fs.Stat(f.path)
@@ -121,34 +146,32 @@ func (f File) Truncate(size int64) error {
 }
 
 func (w WasmFS) createFile(filename string) File {
-	filePath := path.Join(w.root, filename);
+	filePath := path.Join(w.root, filename)
 	return File{
 		filename: filename,
-		path: filePath,
+		path:     filePath,
 		reader: &FileReader{
 			path: filePath,
-			closed: false,
 		},
 	}
 }
 
 func (w WasmFS) createFileWithName(filename string, name string) File {
-	filePath := path.Join(w.root, filename);
+	filePath := path.Join(w.root, filename)
 	return File{
 		filename: name,
-		path: filePath,
+		path:     filePath,
 		reader: &FileReader{
 			path: filePath,
-			closed: false,
 		},
 	}
 }
 
 func (w WasmFS) Create(filename string) (billy.File, error) {
-	f := w.createFile(filename);
+	f := w.createFile(filename)
 
 	dir := path.Dir(f.path)
-	fs.Mkdir(dir);
+	fs.Mkdir(dir)
 
 	fs.WriteFile(f.path, []byte{})
 
@@ -156,21 +179,21 @@ func (w WasmFS) Create(filename string) (billy.File, error) {
 }
 
 func (w WasmFS) Open(filename string) (billy.File, error) {
-	f := w.createFile(filename);
+	f := w.createFile(filename)
 
 	exists, _ := fs.Exists(f.path)
-	if(!exists) {
+	if !exists {
 		return nil, os.ErrNotExist
 	}
-	
+
 	return f, nil
 }
 
 func (w WasmFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
-	f := w.createFile(filename);
+	f := w.createFile(filename)
 
 	exists, _ := fs.Exists(f.path)
-	if(!exists) {
+	if !exists {
 		return w.Create(filename)
 	}
 
@@ -179,7 +202,7 @@ func (w WasmFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.Fil
 
 func (w WasmFS) Stat(filename string) (os.FileInfo, error) {
 	f := w.createFile(filename)
-	
+
 	exists, _ := fs.Exists(f.path)
 	if !exists {
 		return nil, os.ErrNotExist
@@ -210,16 +233,17 @@ func (WasmFS) Join(elem ...string) string {
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 func RandStringRunes(n int) string {
-    b := make([]rune, n)
-    for i := range b {
-        b[i] = letterRunes[rand.Intn(len(letterRunes))]
-    }
-    return string(b)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }
 
 func (w WasmFS) TempFile(dir, prefix string) (billy.File, error) {
-	filePath := path.Join(dir, prefix + RandStringRunes(6))
+	filePath := path.Join(dir, prefix+RandStringRunes(6))
 	return w.Create(filePath)
 }
 

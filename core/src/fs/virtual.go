@@ -9,7 +9,7 @@ import (
 )
 
 type vFile struct {
-	Data []byte
+	Data    []byte
 	ModTime time.Time
 }
 
@@ -31,9 +31,9 @@ func vReadFile(path string) ([]byte, error) {
 func vWriteFile(path string, data []byte) error {
 	path = strings.TrimPrefix(path, "/")
 
-	if(VirtFS[path] == nil) {
+	if VirtFS[path] == nil {
 		VirtFS[path] = &vFile{
-			Data: []byte{},
+			Data:    []byte{},
 			ModTime: time.Now(),
 		}
 	}
@@ -135,6 +135,7 @@ func vStat(path string) *SmallFileInfo {
 		int64(len(f.Data)),
 		f.ModTime,
 		d,
+		0644,
 	}
 }
 
