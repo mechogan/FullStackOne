@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
@@ -23,12 +24,17 @@ func call(this js.Value, args []js.Value) interface{} {
 	payload := make([]byte, args[0].Get("length").Int())
 	_ = js.CopyBytesToGo(payload, args[0])
 
-	response := methods.Call(payload)
-	arrayConstructor := js.Global().Get("Uint8Array")
-	dataJS := arrayConstructor.New(len(response))
-	js.CopyBytesToJS(dataJS, response)
+	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		resolve := args[0]
+		go func() {
+			response := methods.Call(payload)
+			resolve.Invoke(base64.StdEncoding.EncodeToString(response))
+		}()
+		return nil
+	})
 
-	return dataJS
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
 }
 
 func vfs(this js.Value, args []js.Value) interface{} {

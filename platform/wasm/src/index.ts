@@ -5,6 +5,7 @@ import {
     deserializeArgs,
     numberTo4Bytes
 } from "../../../lib/bridge/serialization";
+import { toByteArray } from "base64-js";
 
 const WinBox = wb as WinBoxType.WinBoxConstructor;
 
@@ -14,14 +15,14 @@ declare global {
         run: Function;
     }
     var directories: (root: string, config: string, editor: string) => void;
-    var call: (payload: Uint8Array) => Uint8Array;
+    var call: (payload: Uint8Array) => Promise<string>; // base64
 }
 
 type FullStackedWindow = Window & {
     originalFetch?: typeof fetch;
     oncoremessage?: (messageType: string, message: string) => void;
     lib?: {
-        call: (payload: Uint8Array) => Uint8Array;
+        call: (payload: Uint8Array) => Promise<string>; // base64
     };
 };
 
@@ -153,12 +154,12 @@ let payload = new Uint8Array([
     ...numberTo4Bytes(1),
     1
 ]);
-const unzipResult = deserializeArgs(call(payload)).at(0);
+const unzipResult = deserializeArgs(toByteArray(await call(payload))).at(0);
 if (!unzipResult) {
     console.error("Failed to unzip editor");
 }
 
-function staticFileServing(projectId: string, pathname: string) {
+async function staticFileServing(projectId: string, pathname: string) {
     const projectIdData = te.encode(projectId);
     const pathnameData = te.encode(pathname);
     let payload = new Uint8Array([
@@ -170,15 +171,15 @@ function staticFileServing(projectId: string, pathname: string) {
         ...numberTo4Bytes(pathnameData.length),
         ...pathnameData
     ]);
-    const responseRaw = call(payload);
-    const response = deserializeArgs(responseRaw);
+    const responseRaw = await call(payload);
+    const response = deserializeArgs(toByteArray(responseRaw));
     return response;
 }
 
 webviews.set("", { window });
 initProjectWindow("");
 
-function initProjectWindow(projectId: string) {
+async function initProjectWindow(projectId: string) {
     globalThis.td = new window.TextDecoder();
 
     const webview = webviews.get(projectId);
@@ -189,14 +190,17 @@ function initProjectWindow(projectId: string) {
         url: string | Request,
         options: any
     ) {
+
         if (typeof url === "object") {
             return webview.window.originalFetch(url);
         }
 
+        url = url.trim();
         if (url.startsWith("http")) {
-            if(url.startsWith("https://github.com")) {
+            if (url.startsWith("https://github.com")) {
                 url = `http://localhost:8000?url=${encodeURIComponent(url)}`;
             }
+
             return webview.window.originalFetch(url, options);
         }
 
@@ -206,7 +210,7 @@ function initProjectWindow(projectId: string) {
             };
         }
 
-        const [_, contents] = staticFileServing(projectId, url);
+        const [_, contents] = await staticFileServing(projectId, url);
         return {
             text: () =>
                 new Promise<string>((res) =>
@@ -243,7 +247,7 @@ function initProjectWindow(projectId: string) {
         };
     }
 
-    const [mimeType, contents] = staticFileServing(projectId, "/");
+    const [mimeType, contents] = await staticFileServing(projectId, "/");
 
     const parser = new DOMParser();
     const indexHTML = parser.parseFromString(
@@ -258,7 +262,7 @@ function initProjectWindow(projectId: string) {
     // HEAD (link => style, title => title)
     indexHTML.head
         .querySelectorAll<HTMLElement>(":scope > *")
-        .forEach((element) => {
+        .forEach(async (element) => {
             if (element instanceof HTMLTitleElement) {
                 if (projectId == "") {
                     webview.window.document.title = element.innerText;
@@ -275,7 +279,7 @@ function initProjectWindow(projectId: string) {
                 const url = new URL(element.href);
 
                 if (url.host === window.location.host) {
-                    const [type, content] = staticFileServing(
+                    const [type, content] = await staticFileServing(
                         projectId,
                         url.pathname
                     );
@@ -293,13 +297,13 @@ function initProjectWindow(projectId: string) {
     // BODY (script => script, img => img)
     indexHTML.body
         .querySelectorAll<HTMLElement>(":scope > *")
-        .forEach((element) => {
+        .forEach(async (element) => {
             if (element instanceof HTMLScriptElement && element.src) {
                 const url = new URL(element.src);
                 if (url.host === window.location.host) {
                     const script = window.document.createElement("script");
                     script.type = element.type;
-                    const [type, content] = staticFileServing(
+                    const [type, content] = await staticFileServing(
                         projectId,
                         url.pathname
                     );
@@ -350,12 +354,13 @@ function checkForPageBGColor(webview: {
     }
 }
 
-function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
+async function replaceImageWithObjectURL(projectId: string, img: HTMLImageElement) {
     const url = new URL(img.src);
     if (url.host !== window.location.host) {
         return;
     }
-    const [type, imageData] = staticFileServing(projectId, url.pathname);
+    img.removeAttribute("src");
+    const [type, imageData] = await staticFileServing(projectId, url.pathname);
     const blob = new Blob([imageData], { type });
     const objURL = URL.createObjectURL(blob);
     img.src = objURL;
