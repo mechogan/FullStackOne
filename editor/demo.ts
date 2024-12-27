@@ -59,7 +59,7 @@ async function demoFromGitHub() {
 
     core_message.removeListener("git-clone", checkForDone);
 
-    const project = await createAndMoveProjectFromTmp(
+    await createAndMoveProjectFromTmp(
         {
             container: null,
             logger: () => {},
@@ -68,10 +68,4 @@ async function demoFromGitHub() {
         "Demo",
         demoRepoUrl
     );
-
-    // TODO: Remove once merged in main
-
-    await git.checkout(project, "0.10.0");
-
-    // END remove
 }
