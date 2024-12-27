@@ -26,10 +26,11 @@ child_process.execSync("npm run build", {
 });
 
 // test functionalities with node
+process.chdir(process.cwd() + "/platform/node");
 process.env.NO_OPEN = "1";
 await import(
     process.cwd().replace(/\\/g, "/").split(":").pop() +
-        "/platform/node/index.js"
+        "/index.js"
 );
 
 // Launch the browser
@@ -75,7 +76,7 @@ await sleep(500);
 const importProjectFileInput = (await page.waitForSelector(
     `#${IMPORT_PROJECT_FILE_INPUT_ID}`
 )) as ElementHandle<HTMLInputElement>;
-await importProjectFileInput.uploadFile("editor/build/Demo.zip");
+await importProjectFileInput.uploadFile("../../out/editor/Demo.zip");
 
 await sleep(2000);
 

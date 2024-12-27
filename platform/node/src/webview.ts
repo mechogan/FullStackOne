@@ -51,7 +51,9 @@ export async function createWebView(
         onSocketClose
     });
     server.listen(port);
-    open(`http://localhost:${port}`);
+    if (!process.env.NO_OPEN) {
+        open(`http://localhost:${port}`);
+    }
     return {
         message: (type: string, message: string) => {
             const jsonStr = JSON.stringify([type, message]);

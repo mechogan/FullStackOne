@@ -96,3 +96,17 @@ wasm:
 	GOARCH=wasm \
 	go build -o $(OUT)/wasm.wasm -v ../wasm && \
 	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.js $(OUT)/wasm.js
+
+
+###### All #######
+
+clean: 
+	rm -rf $(OUT) && \
+	go clean -cache
+
+all: macos-static \
+	macos-x86_64-shared \
+	ios-arm64 \
+	android \
+	win-x86_64 \
+	wasm

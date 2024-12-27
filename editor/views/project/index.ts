@@ -1,5 +1,5 @@
 import type { Project as ProjectType } from "../../types";
-import { BG_COLOR, PROJECT_VIEW_ID } from "../../constants";
+import { BG_COLOR, DELETE_ALL_PACKAGES_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Button } from "../../components/primitives/button";
@@ -79,6 +79,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             text: "Delete All",
             color: "red"
         });
+        deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
 
         deleteAllButton.onclick = async () => {
             deleteAllButton.disabled = true;
@@ -117,6 +118,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             style: "icon-large",
             iconLeft: "Play"
         });
+        runButton.id = RUN_PROJECT_ID;
 
         runFn = async () => {
             const loaderContainer = document.createElement("div");

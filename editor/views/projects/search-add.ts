@@ -1,5 +1,6 @@
 import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
+import { NEW_PROJECT_ID } from "../../constants";
 import { AddProject } from "../add-project";
 import { filterProjects } from "./list";
 
@@ -30,6 +31,7 @@ function Add() {
         style: "icon-large",
         iconLeft: "Plus"
     });
+    addButton.id = NEW_PROJECT_ID;
 
     addButton.onclick = AddProject;
 
