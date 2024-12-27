@@ -1,22 +1,31 @@
 import fs from "fs";
 import esbuild from "esbuild";
 
-if (fs.existsSync("bin")) {
-    fs.rmSync("bin", { recursive: true });
+if (fs.existsSync("out")) {
+    fs.rmSync("out", { recursive: true });
 }
-fs.mkdirSync("bin");
+fs.mkdirSync("out/bin", { recursive: true });
 
-fs.cpSync("../../core/bin/wasm.wasm", "bin/wasm.wasm");
-fs.cpSync("../../core/bin/wasm.js", "bin/wasm.js");
+fs.cpSync("../../core/bin/wasm.wasm", "out/bin/wasm.wasm");
+fs.cpSync("../../core/bin/wasm.js", "out/bin/wasm.js");
+
+const wasmSize = fs.statSync("out/bin/wasm.wasm").size;
 
 const editorZipFileName = fs
     .readdirSync("../../out/zip")
     .find((item) => item.startsWith("editor"));
-fs.cpSync(`../../out/zip/${editorZipFileName}`, "editor.zip");
+fs.cpSync(`../../out/zip/${editorZipFileName}`, "out/editor.zip");
 
 esbuild.buildSync({
     entryPoints: ["src/index.ts"],
-    outfile: "index.js",
+    outfile: "out/index.js",
     bundle: true,
-    format: "esm"
+    format: "esm",
+    define: {
+        "process.env.wasmSize": wasmSize.toString()
+    }
 });
+
+["src/dev-icon.png", "src/index.html"].forEach((f) =>
+    fs.cpSync(f, "out" + f.slice("src".length))
+);

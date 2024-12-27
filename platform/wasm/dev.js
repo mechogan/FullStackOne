@@ -11,6 +11,8 @@ const notFound = {
     body: "Not Found"
 };
 
+const basedir = "out";
+
 const existsAndIsFile = (pathname) => {
     let stat;
     try {
@@ -27,6 +29,8 @@ const hanlder = (req, res) => {
 
     if (pathname.startsWith("/")) pathname = pathname.slice(1);
     if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+
+    pathname = basedir + "/" + pathname;
 
     if (!existsAndIsFile(pathname)) {
         const maybeIndex = pathname + (pathname ? "/" : "") + "index.html";
