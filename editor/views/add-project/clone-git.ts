@@ -1,22 +1,19 @@
-import api from "../../api";
-import rpc from "../../rpc";
 import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { ConsoleTerminal, CreateLoader } from "./import-zip";
-import { createProjectFromFullStackedFile } from "../../api/projects";
-import { GitProgressEvent } from "isomorphic-git";
-import { Project } from "../../api/config/types";
+import {
+    ConsoleTerminal,
+    createAndMoveProjectFromTmp,
+    CreateLoader,
+    tmpDir
+} from "./import-zip";
+import stackNavigation from "../../stack-navigation";
+import { BG_COLOR } from "../../constants";
+import core_message from "../../../lib/core_message";
+import git from "../../lib/git";
 
-type CloneGitOpts = {
-    didCloneProject: (project: Project) => void;
-
-    // for deeplinks
-    repoUrl?: string;
-};
-
-export function CloneGit(opts: CloneGitOpts) {
+export function CloneGit(repoUrl?: string) {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -38,82 +35,97 @@ export function CloneGit(opts: CloneGitOpts) {
 
     form.append(repoUrlInput.container, cloneButton);
 
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-
+    const submit = async () => {
         cloneButton.disabled = true;
-
-        const loader = CreateLoader({
-            text: "Cloning from remote..."
-        });
-
-        const consoleTerminal = ConsoleTerminal();
-
-        scrollable.append(loader, consoleTerminal.container);
-
-        consoleTerminal.logger(`Cloning ${repoUrlInput.input.value}`);
-
-        const tmpDirectory = "tmp";
-        consoleTerminal.logger(`Cloning into ${tmpDirectory} directory`);
-
-        await api.git.clone(repoUrlInput.input.value, tmpDirectory, {
-            onProgress: gitLogger(consoleTerminal.text)
-        });
-        consoleTerminal.logger(``);
-
-        const project = await createProjectFromFullStackedFile({
-            getDirectoryContents: () =>
-                rpc().fs.readdir(tmpDirectory, {
-                    absolutePath: true
-                }) as Promise<string[]>,
-            getFileContents: (filename) =>
-                rpc().fs.readFile(tmpDirectory + "/" + filename, {
-                    absolutePath: true,
-                    encoding: "utf8"
-                }) as Promise<string>,
-            alternateTitle: repoUrlInput.input.value
-                .split("/")
-                .pop()
-                .split(".")
-                .shift(),
-            alternateRepo: repoUrlInput.input.value,
-            logger: consoleTerminal.logger
-        });
-
-        await rpc().fs.rename(tmpDirectory, project.location, {
-            absolutePath: true
-        });
-        consoleTerminal.logger(`Moved tmp to ${project.location}`);
-        consoleTerminal.logger(`Done`);
-
-        opts.didCloneProject(project);
+        cloneGitRepo(repoUrlInput.input.value, scrollable)
+            .then(() => stackNavigation.back())
+            .catch(() => {});
+    };
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        submit();
     };
 
     scrollable.append(form);
 
-    if (opts.repoUrl) {
-        repoUrlInput.input.value = opts.repoUrl;
-        setTimeout(() => cloneButton.click(), 1);
-    }
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR,
+        onDestroy: () => {
+            core_message.addListener("git-clone", checkForDone);
+        }
+    });
 
-    return container;
+    if (repoUrl) {
+        repoUrlInput.input.value = repoUrl;
+        submit();
+    }
 }
 
-export function gitLogger(el: HTMLElement) {
+let checkForDone: (progress: string) => void;
+async function cloneGitRepo(url: string, scrollable: HTMLElement) {
+    const consoleTerminal = ConsoleTerminal();
+
+    const logProgress = gitLogger(consoleTerminal);
+
+    const donePromise = new Promise<void>((resolve) => {
+        checkForDone = (progress: string) => {
+            if (progress.trim().endsWith("done")) {
+                resolve();
+            }
+            logProgress(progress);
+        };
+    });
+
+    core_message.addListener("git-clone", checkForDone);
+
+    const loader = CreateLoader({
+        text: "Cloning from remote..."
+    });
+
+    scrollable.append(loader, consoleTerminal.container);
+
+    consoleTerminal.logger(`Cloning ${url}`);
+    try {
+        git.clone(url, tmpDir);
+    } catch (e) {
+        consoleTerminal.logger(e.Error);
+        throw e;
+    }
+
+    await donePromise;
+
+    const repoUrl = new URL(url);
+    let defaultProjectTitle = repoUrl.pathname.slice(1); // remove forward slash
+    // remove .git
+    const pathnameComponents = defaultProjectTitle.split(".");
+    if (pathnameComponents.at(-1) === "git") {
+        defaultProjectTitle = pathnameComponents.slice(0, -1).join(".");
+    }
+
+    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, url);
+
+    consoleTerminal.logger(`Finished cloning ${url}`);
+    consoleTerminal.logger(`Done`);
+
+    core_message.removeListener("git-clone", checkForDone);
+}
+
+export function gitLogger(consoleTerminal: ReturnType<typeof ConsoleTerminal>) {
     let currentPhase: string, currentHTMLElement: HTMLDivElement;
-    return (progress: GitProgressEvent) => {
-        if (progress.phase !== currentPhase) {
-            currentPhase = progress.phase;
-            currentHTMLElement = document.createElement("div");
-            el.append(currentHTMLElement);
-        }
+    return (progress: string) => {
+        const progressLines = progress.split("\n");
+        progressLines.forEach((line) => {
+            if (!line.trim()) return;
 
-        if (progress.total) {
-            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}/${progress.total} (${((progress.loaded / progress.total) * 100).toFixed(2)}%)`;
-        } else {
-            currentHTMLElement.innerText = `${progress.phase} ${progress.loaded}`;
-        }
+            const phase = line.split(":").at(0);
+            if (phase !== currentPhase) {
+                currentPhase = phase;
+                currentHTMLElement = document.createElement("div");
+                consoleTerminal.text.append(currentHTMLElement);
+            }
 
-        el.scrollIntoView(false);
+            currentHTMLElement.innerText = line.trim();
+            consoleTerminal.text.scrollIntoView(false);
+        });
     };
 }

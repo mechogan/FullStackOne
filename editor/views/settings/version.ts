@@ -1,5 +1,8 @@
+import { bridge } from "../../../lib/bridge";
+import { serializeArgs } from "../../../lib/bridge/serialization";
+import core_fetch from "../../../lib/fetch";
 import { Badge } from "../../components/primitives/badge";
-import rpc from "../../rpc";
+import esbuild from "../../lib/esbuild";
 import { WorkerTS } from "../../typescript";
 import semver from "semver";
 
@@ -21,57 +24,51 @@ function EditorVersion() {
         <label>Editor</label>
     `;
 
-    rpc()
-        .fs.readFile("version.json", { encoding: "utf8" })
-        .then((versionFileContent: string) => {
-            const { version, branch, commit, commitNumber } =
-                JSON.parse(versionFileContent);
+    getVersionJSON().then(({ version, branch, commit, commitNumber }) => {
+        const editorVersionContainer = document.createElement("div");
+        editorVersionContainer.classList.add("editor-version");
 
-            const editorVersionContainer = document.createElement("div");
-            editorVersionContainer.classList.add("editor-version");
+        const topRow = document.createElement("div");
+        topRow.innerText = version;
+        editorVersionContainer.append(topRow);
 
-            const topRow = document.createElement("div");
-            topRow.innerText = version;
-            editorVersionContainer.append(topRow);
+        container.append(editorVersionContainer);
 
-            container.append(editorVersionContainer);
+        getLatestVersionTag().then((latestVersion) => {
+            const isDev = semver.gt(version, latestVersion);
 
-            getLatestVersionTag().then((latestVersion) => {
-                const isDev = semver.gt(version, latestVersion);
+            const badge = isDev
+                ? Badge({
+                      text: "Development",
+                      type: "info"
+                  })
+                : semver.eq(version, latestVersion)
+                  ? Badge({
+                        text: "Latest",
+                        type: "info-2"
+                    })
+                  : Badge({
+                        text: "Update Available",
+                        type: "warning"
+                    });
 
-                const badge = isDev
-                    ? Badge({
-                          text: "Development",
-                          type: "info"
-                      })
-                    : semver.eq(version, latestVersion)
-                      ? Badge({
-                            text: "Latest",
-                            type: "info-2"
-                        })
-                      : Badge({
-                            text: "Update Available",
-                            type: "warning"
-                        });
+            topRow.prepend(badge);
 
-                topRow.prepend(badge);
-
-                if (isDev) {
-                    topRow.append(` (${commitNumber})`);
-                    const bottomRow = document.createElement("div");
-                    bottomRow.innerHTML = `<small>${commit.slice(0, 8)} (${branch})</small>`;
-                    editorVersionContainer.append(bottomRow);
-                }
-            });
+            if (isDev) {
+                topRow.append(` (${commitNumber})`);
+                const bottomRow = document.createElement("div");
+                bottomRow.innerHTML = `<small>${commit.slice(0, 8)} (${branch})</small>`;
+                editorVersionContainer.append(bottomRow);
+            }
         });
+    });
 
     return container;
 }
 
 async function getLatestVersionTag() {
-    const response = await rpc().fetch(
+    const response = await core_fetch(
         "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
-        null,
         {
             encoding: "utf8"
         }
@@ -86,11 +83,9 @@ function EsbuildVersion() {
         <label>Esbuild</label>
     `;
 
-    rpc()
-        .esbuild.version()
-        .then((v) => {
-            container.innerHTML += `<div>${v}</div>`;
-        });
+    esbuild.version().then((v) => {
+        container.innerHTML += `<div>${v.slice(1)}</div>`;
+    });
 
     return container;
 }
@@ -111,4 +106,20 @@ function TypescriptVersion() {
     WorkerTS.start("").then(appendTypeScriptVersion);
 
     return container;
+}
+
+const td = new TextDecoder();
+
+function getVersionJSON(): Promise<{
+    version: string;
+    branch: string;
+    commit: string;
+    commitNumber: string;
+}> {
+    const payload = new Uint8Array([
+        1, // static file serving,
+        ...serializeArgs(["/version.json"])
+    ]);
+
+    return bridge(payload, ([_, jsonData]) => JSON.parse(td.decode(jsonData)));
 }

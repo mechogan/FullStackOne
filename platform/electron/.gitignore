@@ -1,6 +1,0 @@
-.cache
-out
-esbuild
-*.tgz
-js
-editor

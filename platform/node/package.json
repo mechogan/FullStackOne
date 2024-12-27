@@ -2,7 +2,7 @@
     "name": "@fullstacked/editor",
     "description": "Create Local-First Web-Like Apps On Any Platform.",
     "author": "FullStacked Org.",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "main": "index.js",
     "bin": {
         "fullstacked": "index.js"
@@ -20,7 +20,8 @@
     },
     "type": "module",
     "dependencies": {
-        "esbuild": "^0.24.0"
+        "esbuild": "^0.24.0",
+        "ffi-rs": "^1.0.98"
     },
     "devDependencies": {
         "bonjour-service": "^1.2.1",

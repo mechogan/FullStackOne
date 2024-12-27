@@ -1,18 +1,14 @@
-import api from "../api";
-import rpc from "../rpc";
-import { CONFIG_TYPE, Project } from "../api/config/types";
 import { Button } from "../components/primitives/button";
 import { InputText } from "../components/primitives/inputs";
 import { TopBar } from "../components/top-bar";
 import { ViewScrollable } from "../components/view-scrollable";
 import slugify from "slugify";
+import stackNavigation from "../stack-navigation";
+import { BG_COLOR } from "../constants";
+import { Project } from "../types";
+import { Store } from "../store";
 
-type ProjectSettingsOpts = {
-    project: Project;
-    didUpdateProject: () => void;
-};
-
-export function ProjectSettings(opts: ProjectSettingsOpts) {
+export function ProjectSettings(project: Project) {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("project-settings");
 
@@ -27,11 +23,11 @@ export function ProjectSettings(opts: ProjectSettingsOpts) {
     const titleInput = InputText({
         label: "Title"
     });
-    titleInput.input.value = opts.project.title;
+    titleInput.input.value = project.title;
     const identifierInput = InputText({
         label: "Identifier"
     });
-    identifierInput.input.value = opts.project.id;
+    identifierInput.input.value = project.id;
     identifierInput.input.onblur = () => {
         identifierInput.input.value = slugify(identifierInput.input.value, {
             lower: true
@@ -44,7 +40,7 @@ export function ProjectSettings(opts: ProjectSettingsOpts) {
 
     form.append(titleInput.container, identifierInput.container, updateButton);
 
-    form.onsubmit = async (e) => {
+    form.onsubmit = (e) => {
         e.preventDefault();
 
         updateButton.disabled = true;
@@ -52,35 +48,29 @@ export function ProjectSettings(opts: ProjectSettingsOpts) {
             lower: true
         });
 
-        const updatedTitle = titleInput.input.value;
-        const updatedIdentifier = identifierInput.input.value;
+        const updatedProject = {
+            ...project
+        };
+
+        updatedProject.title = titleInput.input.value;
+        updatedProject.id = identifierInput.input.value;
 
         if (
-            updatedTitle === opts.project.title &&
-            updatedIdentifier === opts.project.id
-        )
-            return opts.didUpdateProject();
-
-        const projects = await api.projects.list();
-        const indexOf = projects.findIndex(({ id }) => id === opts.project.id);
-        const project = projects[indexOf];
-
-        project.title = updatedTitle;
-
-        if (updatedIdentifier !== project.id) {
-            project.id = updatedIdentifier;
-            await rpc().fs.rename(opts.project.location, updatedIdentifier, {
-                absolutePath: true
-            });
-            project.location = updatedIdentifier;
+            updatedProject.title === project.title &&
+            updatedProject.id === project.id
+        ) {
+            stackNavigation.back();
+            return;
         }
 
-        projects[indexOf] = project;
-        await api.config.save(CONFIG_TYPE.PROJECTS, projects);
-        opts.didUpdateProject();
+        Store.projects
+            .update(project, updatedProject)
+            .then(() => stackNavigation.back());
     };
 
     scrollable.append(form);
 
-    return container;
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    });
 }

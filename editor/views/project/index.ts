@@ -1,114 +1,145 @@
-import api from "../../api";
-import rpc from "../../rpc";
-import type { Project as ProjectType } from "../../api/config/types";
-import { Loader } from "../../components/loader";
+import type { Project as ProjectType } from "../../types";
+import { BG_COLOR, DELETE_ALL_PACKAGES_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
+import stackNavigation from "../../stack-navigation";
+import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Button } from "../../components/primitives/button";
-import { Icon } from "../../components/primitives/icon";
-import { TopBar } from "../../components/top-bar";
-import { WorkerTS } from "../../typescript";
-import { CodeEditor, FileError } from "./code-editor";
-import { Editor } from "./editor";
 import { FileTree } from "./file-tree";
+import { Store } from "../../store";
+import { createElement, ElementComponent } from "../../components/element";
+import { Editor } from "./editor";
+import { WorkerTS } from "../../typescript";
+import { Loader } from "../../components/loader";
+import * as sass from "sass";
+import type { Message } from "esbuild";
+import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
-import type esbuild from "esbuild";
-import { packageInstaller } from "../packages/installer";
-import {
-    DELETE_ALL_PACKAGES_ID,
-    PROJECT_VIEW_ID,
-    RUN_PROJECT_ID
-} from "../../constants";
+import { Icon } from "../../components/primitives/icon";
+import { createRefresheable } from "../../components/refresheable";
+import fs from "../../../lib/fs";
+import esbuild from "../../lib/esbuild";
+import core_open from "../../lib/core_open";
+import git from "../../lib/git";
+import core_message from "../../../lib/core_message";
 
-type ProjectOpts = {
-    project: ProjectType;
-    didUpdateProject: () => void;
+let lastOpenedProjectId: string,
+    autoRunning = false,
+    runFn: () => void;
+export function Project(project: ProjectType, run = false) {
+    // gives a chance if back button by mistake
+    if (lastOpenedProjectId !== project.id) {
+        Store.editor.codeEditor.clearFiles();
+        Store.editor.codeEditor.clearAllBuildErrors();
+        WorkerTS.dispose();
+        autoRunning = false;
+    }
 
-    // to directly run from deeplink
-    run?: boolean;
+    lastOpenedProjectId = project.id;
 
-    // only for packages view
-    didDeleteAllPackages?: () => void;
-};
-
-export function Project(opts: ProjectOpts) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.id = PROJECT_VIEW_ID;
     container.classList.add("view");
 
-    const fileTree = FileTree({
-        directory: opts.project.location,
-        onClosePanel: () => {
-            content.classList.add("closed-panel");
+    const fileTreeAndEditor = FileTreeAndEditor(project);
+    const topBar = TopBar(project, fileTreeAndEditor);
+
+    container.append(topBar, fileTreeAndEditor);
+
+    const autoRun = (installingPackages: Map<string, any>) => {
+        if (!autoRunning) return;
+        if (installingPackages.size === 0) {
+            autoRunning = false;
+            build(project);
+        }
+    };
+    Store.packages.installingPackages.subscribe(autoRun);
+
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR,
+        onDestroy: () => {
+            Store.packages.installingPackages.unsubscribe(autoRun);
+            topBar.destroy();
+            fileTreeAndEditor.destroy();
+            container.destroy();
         }
     });
 
-    WorkerTS.dispose();
-    const tsButton = Button({
-        style: "icon-large",
-        iconLeft: "TypeScript"
-    });
-    WorkerTS.working = () => {
-        tsButton.disabled = false;
+    if (run) {
+        runFn();
+    }
 
-        if (WorkerTS.reqs.size > 0) {
-            tsButton.classList.add("working");
-        } else {
-            tsButton.classList.remove("working");
-        }
-    };
-    tsButton.disabled = true;
-    tsButton.onclick = WorkerTS.restart;
+    return container;
+}
 
-    const runButton = Button({
-        style: "icon-large",
-        iconLeft: "Play"
-    });
-    runButton.id = RUN_PROJECT_ID;
-    runButton.onclick = async () => {
-        const loaderContainer = document.createElement("div");
-        loaderContainer.classList.add("loader-container");
-        loaderContainer.append(Loader());
-        runButton.replaceWith(loaderContainer);
+function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
+    const actions: ElementComponent[] = [];
 
-        await run({ project: opts.project });
-
-        loaderContainer.replaceWith(runButton);
-    };
-
-    const pullEvents: PullEvents = {
-        start: null,
-        end: null
-    };
-    const gitWidget = GitWidget({
-        project: opts.project,
-        didUpdateProject: opts.didUpdateProject,
-        fileTree,
-        pullEvents
-    });
-
-    const isPackagesView =
-        opts.project.id === "packages" && opts.project.createdDate === null;
-    const deleteAllButton = Button({
-        text: "Delete All",
-        color: "red"
-    });
-    deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
-    deleteAllButton.onclick = async () => {
-        deleteAllButton.disabled = true;
-        await rpc().fs.rmdir(opts.project.location, {
-            absolutePath: true
+    let gitWidget: ReturnType<typeof GitWidget>;
+    if (project.id === "node_modules") {
+        const deleteAllButton = Button({
+            text: "Delete All",
+            color: "red"
         });
-        opts.didDeleteAllPackages();
-    };
+        deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
 
-    const topBar = TopBar({
-        title: opts.project.title,
-        subtitle: opts.project.id,
-        actions: isPackagesView
-            ? [deleteAllButton]
-            : [gitWidget.container, tsButton, runButton],
+        deleteAllButton.onclick = async () => {
+            deleteAllButton.disabled = true;
+            await fs.rmdir("node_modules");
+            await fs.mkdir("node_modules");
+            stackNavigation.back();
+        };
+
+        actions.push(deleteAllButton);
+    } else {
+        gitWidget = GitWidget(project);
+
+        const tsButton = Button({
+            style: "icon-large",
+            iconLeft: "TypeScript"
+        });
+
+        tsButton.disabled = true;
+        const flashOnWorking = (request: Map<number, Function>) => {
+            if (request.size > 0) {
+                tsButton.disabled = false;
+                tsButton.classList.add("working");
+            } else {
+                tsButton.classList.remove("working");
+            }
+        };
+        WorkerTS.working.subscribe(flashOnWorking);
+        tsButton.onclick = () => {
+            WorkerTS.restart();
+        };
+        tsButton.ondestroy = () => {
+            WorkerTS.working.unsubscribe(flashOnWorking);
+        };
+
+        const runButton = Button({
+            style: "icon-large",
+            iconLeft: "Play"
+        });
+        runButton.id = RUN_PROJECT_ID;
+
+        runFn = async () => {
+            const loaderContainer = document.createElement("div");
+            loaderContainer.classList.add("loader-container");
+            loaderContainer.append(Loader());
+            runButton.replaceWith(loaderContainer);
+            await build(project);
+            loaderContainer.replaceWith(runButton);
+        };
+        runButton.onclick = runFn;
+
+        actions.push(gitWidget, tsButton, runButton);
+    }
+
+    const topBar = TopBarComponent({
+        title: project.title,
+        subtitle: project.id,
+        actions,
         onBack: () => {
-            if (content.classList.contains("closed-panel")) {
-                content.classList.remove("closed-panel");
+            if (fileTreeAndEditor.classList.contains("closed-panel")) {
+                Store.editor.setSidePanelClosed(false);
                 return false;
             }
 
@@ -116,255 +147,195 @@ export function Project(opts: ProjectOpts) {
         }
     });
 
-    container.append(topBar);
+    topBar.ondestroy = () => {
+        actions.forEach((e) => e.destroy());
+        gitWidget?.destroy();
+    };
 
-    const content = document.createElement("div");
-    content.classList.add("content");
+    return topBar;
+}
 
-    content.append(
-        fileTree.container,
-        Editor({
-            directory: opts.project.location
-        })
-    );
-    container.append(content);
+function FileTreeAndEditor(project: ProjectType) {
+    const container = createElement("div");
+    container.classList.add("file-tree-and-editor");
 
-    pullEvents.start?.();
-    api.git.pull(opts.project).then(() => {
-        pullEvents.end?.();
-        CodeEditor.reloadActiveFilesContent();
-        fileTree.reloadFileTree();
-        gitWidget.reloadBranchAndCommit();
-    });
+    const toggleSidePanel = (closed: boolean) => {
+        if (closed) {
+            container.classList.add("closed-panel");
+        } else {
+            container.classList.remove("closed-panel");
+        }
+    };
 
-    if (opts.run) {
-        setTimeout(() => runButton.click(), 1);
-    }
+    Store.editor.sidePanelClosed.subscribe(toggleSidePanel);
+    container.ondestroy = () =>
+        Store.editor.sidePanelClosed.unsubscribe(toggleSidePanel);
+
+    const fileTree = FileTree(project);
+    const editor = Editor(project);
+
+    container.append(fileTree, editor);
+
+    container.ondestroy = () => {
+        fileTree.destroy();
+        editor.destroy();
+    };
 
     return container;
 }
 
-type PullEvents = {
-    start: () => void;
-    end: () => void;
-};
+async function build(project: ProjectType) {
+    Store.editor.codeEditor.clearAllBuildErrors();
 
-type GitWidgetOpts = {
-    project: ProjectType;
-    didUpdateProject: ProjectOpts["didUpdateProject"];
-    fileTree: ReturnType<typeof FileTree>;
-    pullEvents: PullEvents;
-    statusArrow?: ReturnType<typeof Icon>;
-};
+    await Promise.all([saveAllViews(), fs.rmdir(project.id + "/.build")]);
 
-function GitWidget(opts: GitWidgetOpts) {
-    const container = document.createElement("div");
+    const buildErrors = (
+        await Promise.all([buildSASS(project), esbuild.build(project)])
+    )
+        .flat()
+        .filter(Boolean);
+
+    if (buildErrors?.length) {
+        autoRunning = true;
+        buildErrors.forEach((error) => {
+            if (!error?.location) return;
+            Store.editor.codeEditor.addBuildError({
+                file: error.location.file,
+                line: error.location.line,
+                col: error.location.column,
+                length: error.location.length,
+                message: error.text
+            });
+        });
+    } else {
+        autoRunning = false;
+        core_open(project.id);
+    }
+}
+
+async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
+    const contents = await fs.readdir(project.id);
+    const entryPoint = contents.find(
+        (item) => item === "index.sass" || item === "index.scss"
+    );
+    if (!entryPoint) return null;
+
+    const entryData = await fs.readFile(`${project.id}/${entryPoint}`, {
+        encoding: "utf8"
+    });
+    let result: sass.CompileResult;
+    try {
+        result = await sass.compileStringAsync(entryData, {
+            importer: {
+                load: async (url) => {
+                    const filePath = `${project.id}${url.pathname}`;
+                    const contents = await fs.readFile(filePath, {
+                        encoding: "utf8"
+                    });
+                    return {
+                        syntax: filePath.endsWith(".sass")
+                            ? "indented"
+                            : filePath.endsWith(".scss")
+                              ? "scss"
+                              : "css",
+                        contents
+                    };
+                },
+                canonicalize: (path) => new URL(path, window.location.href)
+            }
+        });
+    } catch (e) {
+        const error = e as unknown as sass.Exception;
+        const file = error.span.url?.pathname || entryPoint;
+        const line = error.span.start.line + 1;
+        const column = error.span.start.column;
+        const length = error.span.text.length;
+        return {
+            text: error.message,
+            location: {
+                file,
+                line,
+                column,
+                length,
+                namespace: "SASS",
+                lineText: error.message,
+                suggestion: ""
+            }
+        };
+    }
+
+    const buildDirectory = `${project.id}/.build`;
+    await fs.mkdir(buildDirectory);
+    await fs.writeFile(buildDirectory + "/index.css", result.css);
+    return null;
+}
+
+let refreshBranchAndCommit: ReturnType<typeof createRefresheable>["refresh"];
+export const refreshGitWidgetBranchAndCommit = () => {
+    refreshBranchAndCommit?.();
+};
+function GitWidget(project: ProjectType) {
+    const container = createElement("div");
     container.classList.add("git-widget");
 
-    const renderBranchAndCommit = async () => {
-        const branchAndCommitContainer = document.createElement("div");
-
-        const [branch, commit] = await Promise.all([
-            api.git.currentBranch(opts.project),
-            api.git.log(opts.project, 1)
-        ]);
-
-        branchAndCommitContainer.innerHTML = `
-                <div><b>${branch}</b></div>
-                <div>${commit.at(0).oid.slice(0, 7)}<div>
-            `;
-
-        return branchAndCommitContainer;
-    };
-
-    let branchAndCommit: Awaited<ReturnType<typeof renderBranchAndCommit>>;
-    const reloadBranchAndCommit = async () => {
-        const updatedBranchAndCommit = await renderBranchAndCommit();
-        if (branchAndCommit) {
-            branchAndCommit.replaceWith(updatedBranchAndCommit);
-        } else {
-            container.prepend(updatedBranchAndCommit);
-        }
-        branchAndCommit = updatedBranchAndCommit;
-    };
-
+    const hasGit = Boolean(project.gitRepository?.url);
     const gitButton = Button({
         style: "icon-large",
         iconLeft: "Git"
     });
-    gitButton.disabled = true;
-    api.git
-        .currentBranch(opts.project)
-        .then(() => {
-            gitButton.disabled = false;
-            reloadBranchAndCommit();
-        })
-        .catch(() => {});
-
-    gitButton.onclick = () => {
-        let remove: ReturnType<typeof Git>;
-
-        const reloadGit = () => {
-            remove?.();
-            remove = Git({
-                project: opts.project,
-                didUpdateProject: async () => {
-                    opts.project = (await api.projects.list()).find(
-                        ({ id }) => opts.project.id === id
-                    );
-                    reloadGit();
-                    opts.didUpdateProject();
-                },
-                didUpdateFiles: () => opts.fileTree.reloadFileTree(),
-                didChangeCommitOrBranch: reloadBranchAndCommit,
-                didPushEvent: (event) => {
-                    if (event === "start") {
-                        opts.statusArrow.style.display = "flex";
-                        opts.statusArrow.classList.add("red");
-                    } else {
-                        opts.statusArrow.style.display = "none";
-                    }
-                }
-            });
-        };
-
-        reloadGit();
-    };
-
+    gitButton.disabled = !hasGit;
+    gitButton.onclick = () => Git(project);
     container.append(gitButton);
 
-    if (!opts.statusArrow) {
-        opts.statusArrow = Icon("Arrow 2");
-        opts.statusArrow.classList.add("git-status-arrow");
-        opts.statusArrow.style.display = "none";
-    }
-    container.append(opts.statusArrow);
+    if (!hasGit) return container;
 
-    opts.pullEvents.start = () => {
-        opts.statusArrow.style.display = "flex";
-        opts.statusArrow.classList.remove("red");
-    };
-    opts.pullEvents.end = () => {
-        opts.statusArrow.style.display = "none";
+    const branchAndCommitRender = async () => {
+        const result = await git.head(project.id);
+        const branchAndCommitContainer = createElement("div");
+        branchAndCommitContainer.innerHTML = `
+                <div><b>${result.Name}</b></div>
+                <div>${result.Hash.slice(0, 7)}<div>
+            `;
+        return branchAndCommitContainer;
     };
 
-    container.append(opts.statusArrow);
+    const branchAndCommit = createRefresheable(branchAndCommitRender);
+    container.prepend(branchAndCommit.element);
+    refreshBranchAndCommit = branchAndCommit.refresh;
+    refreshBranchAndCommit();
 
-    return { container, reloadBranchAndCommit };
-}
+    const statusArrow = Icon("Arrow 2");
+    statusArrow.classList.add("git-status-arrow");
+    statusArrow.style.display = "none";
+    container.append(statusArrow);
 
-type runOpts = {
-    project: ProjectType;
-};
-
-async function run(opts: runOpts) {
-    await CodeEditor.saveAllActiveFiles();
-    CodeEditor.clearAllErrors();
-
-    const errors = await api.projects.build(opts.project);
-
-    if (errors.length) {
-        const { missingPackages, fileErrors } = processBuildErrors({
-            project: opts.project,
-            errors
-        });
-        if (missingPackages.size) {
-            await Promise.all(
-                Array.from(missingPackages).map(packageInstaller.install)
-            );
-            return run(opts);
-        } else {
-            for (const [path, errors] of fileErrors) {
-                CodeEditor.addBuildFileErrors({ path, errors });
-            }
-        }
-    } else {
-        rpc().run(opts.project);
-    }
-}
-
-type processBuildErrorsOpts = {
-    project: ProjectType;
-    errors: Partial<esbuild.Message>[];
-};
-
-function processBuildErrors(opts: processBuildErrorsOpts) {
-    const processedErrors = opts.errors.map((error) =>
-        processBuildError({
-            project: opts.project,
-            error
-        })
-    );
-
-    const missingPackages = new Set<string>();
-    const fileErrors = new Map<string, FileError[]>();
-    processedErrors.forEach((error) => {
-        switch (error.type) {
-            case "missingPackage":
-                missingPackages.add(error.packageName);
-                break;
-            case "fileError":
-                let errorsForFile = fileErrors.get(error.path);
-                if (!errorsForFile) {
-                    errorsForFile = [];
-                    fileErrors.set(error.path, errorsForFile);
-                }
-                errorsForFile.push(error.fileError);
-        }
-    });
-
-    return { missingPackages, fileErrors };
-}
-
-type processErrorOpts = {
-    project: ProjectType;
-    error: Partial<esbuild.Message>;
-};
-
-function processBuildError(opts: processErrorOpts):
-    | {
-          type: "missingPackage";
-          packageName: string;
-      }
-    | {
-          type: "fileError";
-          path: string;
-          fileError: FileError;
-      } {
-    const file = opts.error.location?.file;
-
-    if (!file) {
-        console.log(opts.error);
-        return;
-    }
-
-    const message = opts.error.text;
-
-    if (message.startsWith("Could not resolve")) {
-        const packageName: string = message
-            .match(/\".*\"/)
-            ?.at(0)
-            ?.slice(1, -1);
-
-        if (!packageName.startsWith(".")) {
-            return {
-                type: "missingPackage",
-                packageName
-            };
-        }
-    }
-
-    const filePath = file.split(opts.project.location).pop();
-    const path = opts.project.location + filePath;
-
-    return {
-        type: "fileError",
-        path,
-        fileError: {
-            line: opts.error.location?.line,
-            col: opts.error.location?.column,
-            length: opts.error.location?.length,
-            message
+    const pullEvent = (progress: string) => {
+        statusArrow.style.display = "flex";
+        statusArrow.classList.remove("red");
+        if (progress.endsWith("done")) {
+            statusArrow.style.display = "none";
+            branchAndCommit.refresh();
         }
     };
+
+    const pushEvent = (progress: string) => {
+        statusArrow.style.display = "flex";
+        statusArrow.classList.add("red");
+        if (progress.endsWith("done")) {
+            statusArrow.style.display = "none";
+            branchAndCommit.refresh();
+        }
+    };
+
+    core_message.addListener("git-pull", pullEvent);
+    core_message.addListener("git-push", pushEvent);
+
+    container.ondestroy = () => {
+        core_message.removeListener("git-pull", pullEvent);
+        core_message.removeListener("git-push", pushEvent);
+    };
+
+    git.pull(project);
+
+    return container;
 }

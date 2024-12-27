@@ -7,12 +7,14 @@ android {
     namespace = "org.fullstacked.editor"
     compileSdk = 34
 
+    ndkVersion = "26.1.10909125"
+
     defaultConfig {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
         targetSdk = 34
-        versionCode = 599
-        versionName = "0.9.0"
+        versionCode = 744
+        versionName = "0.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -53,7 +55,7 @@ android {
     sourceSets {
         getByName("main") {
             assets {
-                srcDirs("../../../../editor/build", "../../../../src/js")
+                srcDirs("../../../../out/zip")
             }
         }
     }
@@ -74,11 +76,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("javax.jmdns:jmdns:3.2.2")
-    implementation("io.ktor:ktor-server-core:2.3.12")
-    implementation("io.ktor:ktor-server-netty:2.3.12")
-    implementation("io.ktor:ktor-server-websockets:2.3.12")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

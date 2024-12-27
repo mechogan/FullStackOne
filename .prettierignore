@@ -18,7 +18,9 @@ platform/docker/package
 
 platform/electron/js
 
-platform/ios/FullStacked.xcarchive
-platform/ios/pkg
-platform/ios/xcode/FullStacked.xcodeproj/xcshareddate
-platform/ios/xcode/FullStacked.xcodeproj/xcuserdata
+platform/apple/*.xcarchive
+platform/apple/pkg*
+platform/apple/FullStacked.xcodeproj/xcshareddate
+platform/apple/FullStacked.xcodeproj/xcuserdata
+
+platform/windows

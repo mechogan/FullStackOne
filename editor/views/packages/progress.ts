@@ -1,50 +1,105 @@
-export function PackagesInstallProgress() {
-    const container = document.createElement("div");
-    container.classList.add("packages-install-progress");
+import prettyBytes from "pretty-bytes";
+import { Dialog } from "../../components/dialog";
+import { Store } from "../../store";
+import { Progress } from "../../store/packages";
+import { createElement } from "../../components/element";
 
+let packageInstallView: {
+    remove: ReturnType<typeof Dialog>["remove"];
+    updateList: ([string, Progress]) => void;
+};
+export function PackagesInstallProgress(
+    installingPackages: Parameters<
+        Parameters<typeof Store.packages.installingPackages.subscribe>[0]
+    >[0]
+) {
+    if (installingPackages.size === 0) {
+        packageInstallView?.remove();
+        packageInstallView = null;
+        installingPackageViews.clear();
+        return;
+    }
+
+    if (!packageInstallView) {
+        const { container, packagesList } = CreatePackagesInstallView();
+        packageInstallView = {
+            remove: Dialog(container).remove,
+            updateList: ([packageName, progress]) => {
+                UpdatePackageInstallProgress(
+                    packagesList,
+                    packageName,
+                    progress
+                );
+            }
+        };
+    }
+
+    for (const installingPackage of installingPackages.entries()) {
+        packageInstallView.updateList(installingPackage);
+    }
+}
+
+function CreatePackagesInstallView() {
+    const container = createElement("div");
+    container.classList.add("packages-install-progress");
     const title = document.createElement("h3");
     title.innerText = "Dependencies";
-
     container.append(title);
+    const packagesList = document.createElement("ul");
+    container.append(packagesList);
+    return { container, packagesList };
+}
 
-    const installList = document.createElement("ul");
+const installingPackageViews = new Map<
+    string,
+    ReturnType<typeof CreatePackageInstallProgressView>
+>();
+function UpdatePackageInstallProgress(
+    list: HTMLUListElement,
+    packageName: string,
+    progress: Progress
+) {
+    let progressView = installingPackageViews.get(packageName);
 
-    container.append(installList);
+    if (!progressView) {
+        progressView = CreatePackageInstallProgressView(packageName);
+        list.append(progressView.container);
+        installingPackageViews.set(packageName, progressView);
+    }
 
-    const addPackage = (name: string) => {
-        const item = document.createElement("li");
+    progressView.setProgress(progress);
+}
 
-        const packageName = document.createElement("div");
-        packageName.innerText = name;
-        item.append(packageName);
+function CreatePackageInstallProgressView(packageName: string) {
+    const container = document.createElement("li");
 
-        const status = document.createElement("div");
-        item.append(status);
+    const name = document.createElement("div");
+    name.innerText = packageName;
 
-        const progress = document.createElement("div");
-        progress.classList.add("progress-bar");
-        item.append(progress);
+    const status = document.createElement("div");
 
-        installList.append(item);
+    const progressLine = document.createElement("div");
+    progressLine.classList.add("progress-bar");
 
-        const setters = {
-            setStatus: (text: string) => {
-                status.innerText = text;
-                return setters;
-            },
-            setProgress: (loaded: number, total: number) => {
-                progress.style.width =
-                    ((loaded / total) * 100).toFixed(2) + "%";
-                return setters;
-            },
-            remove: () => item.remove()
-        };
+    container.append(name, status, progressLine);
 
-        return setters;
+    const setProgress = (progress: Progress) => {
+        let statusText = progress.Stage as string;
+
+        if (progress.Stage === "downloading" && progress.Loaded !== 0) {
+            statusText = `(${prettyBytes(progress.Loaded)}/${prettyBytes(progress.Total)}) ${statusText}`;
+        } else if (progress.Stage === "unpacking" && progress.Loaded !== 0) {
+            statusText = `(${progress.Loaded}/${progress.Total}) ${statusText}`;
+        } else if (progress.Stage === "done") {
+            statusText = "installed";
+        } else {
+            statusText = progress.Stage;
+        }
+
+        status.innerText = statusText;
+        progressLine.style.width =
+            ((progress.Loaded / progress.Total) * 100).toFixed(2) + "%";
     };
 
-    return {
-        container,
-        addPackage
-    };
+    return { container, setProgress };
 }

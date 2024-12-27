@@ -1,10 +1,8 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
 import * as sass from "sass";
-import { build } from "./platform/node/src/build";
 import esbuild from "esbuild";
-import zip from "./editor/api/projects/zip";
 import child_process from "child_process";
+import AdmZip from "adm-zip";
 
 const production = process.argv.includes("--production");
 
@@ -30,48 +28,48 @@ if (textBlockToUpdate) {
     throw "Could not find typescript code block to patch.";
 }
 
-const baseFile = "src/js/base.js";
+// END fix
 
-esbuild.buildSync({
-    entryPoints: ["src/index.ts"],
-    bundle: true,
-    format: "esm",
-    outfile: baseFile
-});
+const outDir = "out";
+const outDirEditor = `${outDir}/editor`;
+// const outBaseFileJs = `${outDirEditor}/base.js`;
+const outTsLib = `${outDirEditor}/tsLib`;
 
-if (fs.existsSync("editor/build"))
-    fs.rmSync("editor/build", { recursive: true });
+if (fs.existsSync(outDir)) {
+    fs.rmSync(outDir, { recursive: true });
+}
+
+// esbuild.buildSync({
+//     entryPoints: ["src/index.ts"],
+//     bundle: true,
+//     format: "esm",
+//     outfile: outBaseFileJs
+// });
 
 const toBuild = [
     ["editor/index.ts", "index"],
-    ["editor/typescript/worker.ts", "worker-ts"],
-    ["editor/views/packages/worker.ts", "worker-package-install"]
+    ["editor/typescript/worker.ts", "worker-ts"]
 ];
 
-const baseJS = await fs.promises.readFile(baseFile, { encoding: "utf-8" });
-let buildErrors = [];
 for (const [input, output] of toBuild) {
-    const mergedContent = `${baseJS}\nimport("${path.resolve(input).split("\\").join("/")}");`;
-    const tmpFile = `.cache/tmp-${Date.now()}.js`;
-    await fs.promises.writeFile(tmpFile, mergedContent);
-    const errors = build(
-        esbuild.buildSync,
-        tmpFile,
-        output,
-        "editor/build",
-        undefined,
-        production ? false : "external",
-        false,
-        production
-    );
-    fs.rmSync(tmpFile);
-    if (errors) buildErrors.push(errors);
+    esbuild.buildSync({
+        entryPoints: [
+            {
+                in: input,
+                out: output
+            }
+        ],
+        bundle: true,
+        format: "esm",
+        outdir: outDirEditor,
+        sourcemap: production ? false : "external",
+        splitting: false,
+        minify: production
+    });
 }
 
-if (buildErrors.length) throw buildErrors;
-
-fs.cpSync("editor/index.html", "editor/build/index.html");
-fs.cpSync("editor/assets", "editor/build/assets", {
+fs.cpSync("editor/index.html", `${outDirEditor}/index.html`);
+fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
     recursive: true
 });
 
@@ -79,39 +77,38 @@ const styleEntrypoint = "editor/index.scss";
 const { css } = await sass.compileAsync(styleEntrypoint, {
     style: production ? "compressed" : "expanded"
 });
-await fs.promises.writeFile("editor/build/index.css", css);
+await fs.promises.writeFile(`${outDirEditor}/index.css`, css);
 
 const scrollbarsStyle = "editor/style/globals/scrollbars.scss";
 const scrollbarsCSS = await sass.compileAsync(scrollbarsStyle, {
     style: production ? "compressed" : "expanded"
 });
-await fs.promises.writeFile("editor/build/scrollbars.css", scrollbarsCSS.css);
+await fs.promises.writeFile(
+    `${outDirEditor}/scrollbars.css`,
+    scrollbarsCSS.css
+);
 
-fs.cpSync("editor/icons", "editor/build/icons", {
+fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
     recursive: true
 });
 
 const sampleDemoDir = "editor-sample-demo";
 if (fs.existsSync(sampleDemoDir)) {
-    const zipData = await zip(
-        sampleDemoDir,
-        async (file) => new Uint8Array(await fs.promises.readFile(file)),
-        (path) => fs.promises.readdir(path, { withFileTypes: true }),
-        (file) => file.startsWith(".git")
-    );
-    await fs.promises.writeFile("editor/build/Demo.zip", zipData);
+    const zip = new AdmZip();
+    zip.addLocalFolder(sampleDemoDir, "", (file) => !file.startsWith(".git"));
+    zip.writeZip(`${outDirEditor}/Demo.zip`);
 }
 
-fs.cpSync("node_modules/typescript/lib", "editor/build/tsLib", {
+fs.cpSync("node_modules/typescript/lib", outTsLib, {
     recursive: true
 });
 
-child_process.execSync(
-    "tsc --declaration --skipLibCheck --module system --outfile editor/build/tsLib/fullstacked.js src/adapter/fullstacked.ts",
-    {
-        stdio: "inherit"
-    }
-);
+fs.cpSync("lib/fullstacked.d.ts", outTsLib + "/fullstacked.d.ts", {
+    recursive: true
+});
+fs.cpSync("lib", outDirEditor + "/lib", {
+    recursive: true
+});
 
 const { version } = JSON.parse(
     fs.readFileSync("package.json", { encoding: "utf-8" })
@@ -122,11 +119,11 @@ const branch = child_process
     .trim();
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
 const commitNumber = child_process
-    .execSync("git rev-list --count --all")
+    .execSync(`git rev-list --count ${branch}`)
     .toString()
     .trim();
 fs.writeFileSync(
-    "editor/build/version.json",
+    `${outDirEditor}/version.json`,
     JSON.stringify({
         version,
         branch,
@@ -134,3 +131,12 @@ fs.writeFileSync(
         commitNumber
     })
 );
+
+if (!process.argv.includes("--no-zip")) {
+    const outZipDir = `${outDir}/zip`;
+    const outZip = `${outZipDir}/editor-${production ? commitNumber : Date.now()}.zip`;
+    const zip = new AdmZip();
+    zip.addLocalFolder(outDirEditor);
+    fs.mkdirSync(outZipDir, { recursive: true });
+    zip.writeZip(outZip);
+}

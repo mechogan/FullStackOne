@@ -1,247 +1,175 @@
-import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
+import { createElement } from "../../components/element";
+import { createRefresheable } from "../../components/refresheable";
+import { Store } from "../../store";
+import prettyBytes from "pretty-bytes";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import {
+    Diagnostic,
     linter,
     lintGutter,
-    Diagnostic,
     setDiagnostics
 } from "@codemirror/lint";
-import rpc from "../../rpc";
+import prettier from "prettier";
+import prettierPluginHTML from "prettier/plugins/html";
+import prettierPluginCSS from "prettier/plugins/postcss";
+import prettierPluginMD from "prettier/plugins/markdown";
+import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginTypeScript from "prettier/plugins/typescript";
+import { EditorSelection } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
 import {
+    navigateToDefinition,
     tsAutocomplete,
     tsErrorLinter,
     tsTypeDefinition
 } from "./ts-extensions";
+import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
-import prettier from "prettier";
-import prettierPluginEstree from "prettier/plugins/estree";
-import prettierPluginTypeScript from "prettier/plugins/typescript";
-import prettyBytes from "pretty-bytes";
+import { BuildError } from "../../store/editor";
+import fs from "../../../lib/fs";
 
-window.addEventListener("keydown", async (e) => {
-    if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
+const tabWidth = 4;
+window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
 
-        if (!CodeEditor.openedFilePath) return;
-        const ext = CodeEditor.openedFilePath.split(".").pop() as UTF8_Ext;
-        if (!jsTsExtensions.includes(ext)) return;
+let workingDirectory: string,
+    buildErrors: BuildError[] = [];
+export function CodeEditor(project: Project) {
+    workingDirectory = project.id;
 
-        const openedFile = find(
-            CodeEditor.activeFiles,
-            ({ path }) => CodeEditor.openedFilePath === path
-        );
-        const editorView = openedFile.view as EditorView;
+    const container = createElement("div");
 
-        const formatted = await prettier.format(
-            editorView.state.doc.toString(),
-            {
-                parser: "typescript",
-                plugins: [prettierPluginTypeScript, prettierPluginEstree],
-                tabWidth: 4,
-                trailingComma: "none"
-            }
-        );
-
-        const selection = editorView.state.selection;
-
-        editorView.dispatch({
-            changes: {
-                from: 0,
-                to: editorView.state.doc.length,
-                insert: formatted
-            },
-            selection
+    const onBuildErrors = (errors: BuildError[]) => {
+        clearBuildErrors();
+        1;
+        buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
+        buildErrors.forEach((err) => {
+            Store.editor.codeEditor.openFile(err.file);
+            Store.editor.codeEditor.focusFile(err.file);
         });
-    }
-});
-
-type CodeViewExtension = {
-    path: string;
-    load: () => Promise<void>;
-    save: () => Promise<void>;
-    saveThrottler?: ReturnType<typeof setTimeout>;
-};
-
-type GenericView = {
-    dom: HTMLElement;
-    destroy: () => void;
-} & CodeViewExtension;
-
-type CodeView = (EditorView & CodeViewExtension) | GenericView;
-
-export type FileError = {
-    line: number;
-    col: number;
-    length: number;
-    message: string;
-};
-
-type ActiveFile = {
-    path: string;
-    view?: CodeView;
-};
-
-type setParentOpts = {
-    workingDirectory: string;
-    element: HTMLElement;
-};
-
-let workingDirectory: string;
-let parentElement: HTMLElement;
-
-export const CodeEditor = {
-    activeFiles: new Set<ActiveFile>(),
-    ignoreTypes: new Set<string>(),
-    openedFilePath: null as string,
-    set parent(opts: setParentOpts) {
-        workingDirectory = opts.workingDirectory;
-        parentElement = opts.element;
-        CodeEditor.activeFiles.forEach(({ view }) => view.destroy());
-        CodeEditor.activeFiles.clear();
-        CodeEditor.ignoreTypes.clear();
-    },
-    onActiveFileChange: null as () => void,
-    addFile,
-    replacePath,
-    remove,
-    reloadActiveFilesContent,
-    saveAllActiveFiles,
-    addBuildFileErrors,
-    clearAllErrors
-};
-
-export function find<T>(
-    set: Set<T> | MapIterator<T>,
-    predicate: (item: T) => boolean
-) {
-    for (const item of set) {
-        if (predicate(item)) return item;
-    }
-}
-
-async function addFile(path: string) {
-    const alreadyActiveFile = find(
-        CodeEditor.activeFiles,
-        (file) => file.path === path
-    );
-    if (alreadyActiveFile) {
-        open(path);
-        return alreadyActiveFile;
-    }
-
-    const activeFile: ActiveFile = { path };
-    CodeEditor.activeFiles.add(activeFile);
-    CodeEditor.openedFilePath = path;
-    CodeEditor.onActiveFileChange?.();
-
-    clearParent();
-
-    activeFile.view = await createView(path);
-    open(path);
-    return activeFile;
-}
-
-function open(path: string) {
-    CodeEditor.openedFilePath = path;
-    CodeEditor.onActiveFileChange?.();
-    clearParent();
-    parentElement.append(
-        find(CodeEditor.activeFiles, (file) => file.path === path).view.dom
-    );
-}
-
-function replacePath(oldPath: string, newPath: string) {
-    const file = find(CodeEditor.activeFiles, ({ path }) => path === oldPath);
-    if (!file) return;
-
-    file.path = newPath;
-    file.view.path = newPath;
-
-    if (CodeEditor.openedFilePath === oldPath) {
-        CodeEditor.openedFilePath = newPath;
-    }
-
-    CodeEditor.onActiveFileChange?.();
-}
-
-async function reloadActiveFilesContent() {
-    const filesToRemove = new Set<string>();
-    const reloadPromises: Promise<any>[] = [];
-
-    const deleteOrRemove = async (file: ActiveFile) => {
-        if (file.view.saveThrottler) clearTimeout(file.view.saveThrottler);
-
-        const exists = await rpc().fs.exists(file.path, {
-            absolutePath: true
-        });
-        if (!exists) {
-            filesToRemove.add(file.path);
-        } else {
-            return file.view.load();
-        }
     };
 
-    CodeEditor.activeFiles.forEach((file) =>
-        reloadPromises.push(deleteOrRemove(file))
-    );
+    const refresheable = createRefresheable(focusFile);
+    Store.editor.codeEditor.focusedFile.subscribe(refresheable.refresh);
+    Store.editor.codeEditor.openedFiles.subscribe(createViews);
+    Store.editor.codeEditor.buildErrors.subscribe(onBuildErrors);
 
-    await Promise.all(reloadPromises);
-
-    filesToRemove.forEach((file) => remove(file));
-
-    CodeEditor.onActiveFileChange?.();
+    container.ondestroy = () => {
+        Store.editor.codeEditor.openedFiles.unsubscribe(createViews);
+        Store.editor.codeEditor.focusedFile.unsubscribe(refresheable.refresh);
+        Store.editor.codeEditor.buildErrors.unsubscribe(onBuildErrors);
+    };
+    container.append(refresheable.element);
+    return container;
 }
 
-function saveAllActiveFiles() {
-    const savePromises = [];
-    CodeEditor.activeFiles.forEach((file) => {
-        if (file.view?.saveThrottler) clearTimeout(file.view?.saveThrottler);
-        savePromises.push(file.view?.save());
+type View = ReturnType<typeof createRefresheable> & {
+    editorView?: EditorView & { save: (throttled?: boolean) => Promise<void> };
+};
+
+const views = new Map<string, View>();
+
+export function saveAllViews() {
+    return Promise.all(
+        Array.from(views.values())
+            .filter((v) => v.editorView)
+            .map((v) => v.editorView.save(false))
+    );
+}
+
+export function refreshCodeEditorView(filePath: string) {
+    const view = views.get(filePath);
+    if (!view) return;
+    return view.refresh();
+}
+
+export function refreshAllCodeEditorView() {
+    const promises = [];
+    for (const filePath of views.keys()) {
+        const maybePromise = refreshCodeEditorView(filePath);
+        if (maybePromise) {
+            promises.push(maybePromise);
+        }
+    }
+    return Promise.all(promises);
+}
+
+function createViews(filesPaths: Set<string>) {
+    const pathToClose = new Set<string>();
+    for (const path of views.keys()) {
+        if (filesPaths.has(path)) continue;
+        pathToClose.add(path);
+    }
+    pathToClose.forEach((path) => {
+        const view = views.get(path);
+        view.editorView?.save(false).then(() => view.editorView?.destroy());
+        views.delete(path);
+        if (focusedViewPath === path) {
+            Store.editor.codeEditor.focusFile(null);
+        }
     });
-    return Promise.all(savePromises);
+    filesPaths.forEach((path) => {
+        if (views.get(path)) return;
+        focusFile(path);
+    });
 }
 
-function remove(path: string, forDeletion = false) {
-    const activeFile = find(
-        CodeEditor.activeFiles,
-        (file) => file.path === path
+let focusedViewPath: string;
+function focusFile(path: string) {
+    focusedViewPath = path;
+
+    const container = createElement("div");
+
+    if (!path) return container;
+
+    let view = views.get(path);
+
+    if (!view) {
+        view = createView(path);
+        view.refresh();
+        views.set(path, view);
+    } else {
+        displayBuildErrors(path, view);
+    }
+
+    container.append(view.element);
+
+    return container;
+}
+
+function displayBuildErrors(path: string, view: View) {
+    if (!view.editorView) return;
+
+    const errors = buildErrors.filter(({ file }) => file === path);
+
+    if (errors.length === 0) return;
+
+    const diagnostics: Diagnostic[] = errors.map((fileError) => {
+        const from =
+            view.editorView.state.doc.line(fileError.line).from + fileError.col;
+        return {
+            from,
+            to: from + fileError.length,
+            severity: "error",
+            message: fileError.message
+        };
+    });
+
+    view.editorView.dispatch(
+        setDiagnostics(view.editorView.state, diagnostics)
     );
-    if (!activeFile) return;
-
-    if (activeFile.view?.saveThrottler) {
-        clearTimeout(activeFile.view?.saveThrottler);
-    }
-    if (!forDeletion) {
-        activeFile.view?.save();
-    }
-    activeFile.view?.destroy();
-    activeFile.view?.dom?.remove();
-
-    if (this.openedFilePath === activeFile.path) this.openedFilePath = null;
-
-    CodeEditor.activeFiles.delete(activeFile);
-
-    CodeEditor.onActiveFileChange?.();
 }
 
-function clearParent() {
-    for (const child of parentElement.children) {
-        child.remove();
+function clearBuildErrors() {
+    for (const view of views.values()) {
+        view.editorView?.dispatch(setDiagnostics(view.editorView?.state, []));
     }
 }
 
-const defaultExtensions = [
-    basicSetup,
-    oneDark,
-    keymap.of([indentWithTab]),
-    indentUnit.of("    ")
-];
-
-function createView(filePath: string): Promise<CodeView> {
+function createView(filePath: string): View {
     const fileExtension = filePath.split(".").pop().toLowerCase();
     if (Object.values(BINARY_Ext).find((ext) => ext === fileExtension)) {
         return createBinaryView(filePath);
@@ -252,67 +180,107 @@ function createView(filePath: string): Promise<CodeView> {
     return createViewEditor(filePath);
 }
 
-async function createViewEditor(filePath: string) {
-    const saveOnUpdate = () => {
-        if (editorView.saveThrottler) clearTimeout(editorView.saveThrottler);
-        editorView.saveThrottler = setTimeout(() => {
-            saveFile();
-            editorView.saveThrottler = null;
-        }, 2000);
+function createBinaryView(filePath: string) {
+    const render = async () => {
+        const container = createElement("div");
+        container.classList.add("binary-view");
+
+        const stats = await fs.stat(filePath);
+        container.innerText = prettyBytes(stats.size);
+
+        return container;
     };
 
-    const loadContentFromFile = (path: string) => {
-        return rpc().fs.readFile(path, {
-            absolutePath: true,
-            encoding: "utf8"
-        }) as Promise<string>;
+    return createRefresheable(render);
+}
+
+function createImageView(filePath: string) {
+    const render = async () => {
+        const container = createElement("div");
+        container.classList.add("image-view");
+        const img = document.createElement("img");
+        container.append(img);
+
+        let imageURL: string;
+
+        container.ondestroy = () => {
+            URL.revokeObjectURL(imageURL);
+        };
+
+        const imageData = await fs.readFile(filePath);
+        const blob = new Blob([imageData]);
+        imageURL = URL.createObjectURL(blob);
+        img.src = imageURL;
+
+        return container;
     };
 
-    const editorView = new EditorView({
-        doc: await loadContentFromFile(filePath),
-        extensions: [
-            ...defaultExtensions,
-            ...(await languageExtensions(filePath)),
-            EditorView.updateListener.of(saveOnUpdate)
-        ]
-    }) as EditorView & CodeViewExtension;
+    return createRefresheable(render);
+}
 
-    editorView.path = filePath;
+const defaultExtensions = [
+    basicSetup,
+    EditorView.clickAddsSelectionRange.of((e) => e.altKey && !e.metaKey),
+    oneDark,
+    keymap.of([indentWithTab]),
+    indentUnit.of(new Array(tabWidth + 1).join(" "))
+];
 
-    editorView.load = async () => {
-        editorView.dispatch({
-            changes: {
-                from: 0,
-                to: editorView.state.doc.length,
-                insert: await loadContentFromFile(editorView.path)
-            }
-        });
-    };
+function createViewEditor(filePath: string) {
+    let throttler: ReturnType<typeof setTimeout>, view: View;
 
-    const saveFile = async () => {
-        const text = editorView.state.doc.toString();
-        const fileExtension = editorView.path
-            .split(".")
-            .pop()
-            .toLowerCase() as UTF8_Ext;
-
-        if (typescriptExtensions.includes(fileExtension)) {
-            return WorkerTS.call().updateFile(editorView.path, text, true);
+    const render = async () => {
+        if (throttler) {
+            clearTimeout(throttler);
+            throttler = null;
         }
 
-        const exists = await rpc().fs.exists(editorView.path, {
-            absolutePath: true
-        });
-        if (!exists?.isFile) return;
+        const container = createElement("div");
 
-        return rpc().fs.writeFile(editorView.path, text, {
-            absolutePath: true
+        const content = await fs.readFile(filePath, {
+            encoding: "utf8"
         });
+
+        view.editorView = new EditorView({
+            doc: content,
+            extensions: [
+                ...defaultExtensions,
+                ...(await languageExtensions(filePath)),
+                EditorView.updateListener.of(() => view.editorView.save())
+            ],
+            parent: container
+        }) as any;
+
+        view.editorView.save = (throttled = true) => {
+            if (throttler) {
+                clearTimeout(throttler);
+            }
+
+            const saveFile = async () => {
+                throttler = null;
+                const exists = await fs.exists(filePath);
+                if (!exists?.isFile) return;
+                await fs.writeFile(
+                    filePath,
+                    view.editorView.state.doc.toString()
+                );
+            };
+
+            if (throttled) {
+                throttler = setTimeout(saveFile, 2000);
+            } else {
+                return saveFile();
+            }
+        };
+
+        displayBuildErrors(filePath, view);
+
+        return container;
     };
 
-    editorView.save = saveFile;
+    view = createRefresheable(render);
 
-    return editorView;
+    return view;
 }
 
 async function languageExtensions(filePath: string) {
@@ -326,6 +294,7 @@ async function languageExtensions(filePath: string) {
         case UTF8_Ext.TYPESCRIPT:
         case UTF8_Ext.TYPESCRIPT_X:
             return loadJsTsExtensions(filePath);
+        case UTF8_Ext.SVG:
         case UTF8_Ext.HTML:
             const langHTML = await import("@codemirror/lang-html");
             return [langHTML.html()];
@@ -357,6 +326,7 @@ async function languageExtensions(filePath: string) {
 async function loadJsTsExtensions(filePath: string) {
     const extensions = [];
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
+
     const langJs = await import("@codemirror/lang-javascript");
 
     const jsDefaultExtension = langJs.javascript({
@@ -384,60 +354,77 @@ async function loadTypeScript(filePath: string) {
     await WorkerTS.start(workingDirectory);
 
     return [
+        EditorView.updateListener.of((ctx) =>
+            WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
+        ),
+        EditorView.domEventHandlers({ click: navigateToDefinition(filePath) }),
         linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
         autocompletion({ override: [tsAutocomplete(filePath)] }),
         hoverTooltip(tsTypeDefinition(filePath))
     ];
 }
 
-async function createImageView(filePath: string) {
-    const img = document.createElement("img");
+const prettierPlugins = [
+    prettierPluginHTML,
+    prettierPluginCSS,
+    prettierPluginMD,
+    prettierPluginEstree,
+    prettierPluginTypeScript
+];
 
-    const loadFromFile = async (path: string) => {
-        const imageData = await rpc().fs.readFile(path, {
-            absolutePath: true
-        });
-        const imageBlob = new Blob([imageData]);
-        img.src = window.URL.createObjectURL(imageBlob);
-    };
+async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
+    if (e.key !== "s" || (!e.metaKey && !e.ctrlKey)) return;
 
-    const destroy = () => window.URL.revokeObjectURL(img.src);
+    e.preventDefault();
 
-    const imageView = {
-        path: filePath,
-        destroy,
-        save: async () => {},
-        load: async () => {
-            destroy();
-            loadFromFile(imageView.path);
+    const view = views.get(focusedViewPath);
+    if (!view?.editorView) return;
+
+    const fileExtension = focusedViewPath
+        .split(".")
+        .pop()
+        .toLowerCase() as UTF8_Ext;
+    if (!prettierSupport.includes(fileExtension)) return;
+
+    let filepath = focusedViewPath;
+    if (fileExtension === UTF8_Ext.SVG) {
+        filepath = filepath.slice(0, 0 - ".svg".length) + ".html";
+    }
+
+    const formatted = await prettier.format(
+        view.editorView.state.doc.toString(),
+        {
+            filepath,
+            plugins: prettierPlugins,
+            tabWidth
+        }
+    );
+
+    let selection = view.editorView.state.selection;
+
+    let range = selection.ranges?.at(0);
+    if (range?.from > formatted.length) {
+        selection = selection.replaceRange(
+            EditorSelection.range(formatted.length, range.to),
+            0
+        );
+        range = selection.ranges?.at(0);
+    }
+    if (range?.to > formatted.length) {
+        selection = selection.replaceRange(
+            EditorSelection.range(range.from, formatted.length),
+            0
+        );
+    }
+
+    view.editorView.dispatch({
+        changes: {
+            from: 0,
+            to: view.editorView.state.doc.length,
+            insert: formatted
         },
-        dom: img
-    };
-
-    loadFromFile(filePath);
-
-    return imageView;
-}
-
-async function createBinaryView(filePath: string) {
-    const container = document.createElement("div");
-    container.classList.add("binary-view");
-
-    const binaryView = {
-        path: filePath,
-        destroy: () => {},
-        save: async () => {},
-        load: async () => {
-            const stats = await rpc().fs.stat(filePath, { absolutePath: true });
-            console.log(stats);
-            container.innerText = prettyBytes(stats.size);
-        },
-        dom: container
-    };
-
-    binaryView.load();
-
-    return binaryView;
+        selection
+    });
 }
 
 enum UTF8_Ext {
@@ -470,7 +457,9 @@ enum IMAGE_Ext {
 }
 
 enum BINARY_Ext {
-    ZIP = "zip"
+    ZIP = "zip",
+    WOFF2 = "woff2",
+    WOFF = "woff"
 }
 
 const javascriptExtensions = [
@@ -484,30 +473,20 @@ const typescriptExtensions = [UTF8_Ext.TYPESCRIPT, UTF8_Ext.TYPESCRIPT_X];
 
 const jsTsExtensions = [...javascriptExtensions, ...typescriptExtensions];
 
-type addFileErrorsOpts = {
-    path: string;
-    errors: FileError[];
+const prettierSupport = [
+    ...jsTsExtensions,
+    UTF8_Ext.HTML,
+    UTF8_Ext.SVG,
+    UTF8_Ext.JSON,
+    UTF8_Ext.MARKDOWN,
+    UTF8_Ext.CSS,
+    UTF8_Ext.SASS,
+    UTF8_Ext.SCSS
+];
+
+export type FileError = {
+    line: number;
+    col: number;
+    length: number;
+    message: string;
 };
-
-async function addBuildFileErrors(opts: addFileErrorsOpts) {
-    const activeFile = await addFile(opts.path);
-    const editorView = activeFile.view as EditorView;
-    const diagnostics: Diagnostic[] = opts.errors.map((fileError) => {
-        const from =
-            editorView.state.doc.line(fileError.line).from + fileError.col;
-        return {
-            from,
-            to: from + fileError.length,
-            severity: "error",
-            message: fileError.message
-        };
-    });
-    editorView.dispatch(setDiagnostics(editorView.state, diagnostics));
-}
-
-function clearAllErrors() {
-    for (const activeFile of CodeEditor.activeFiles) {
-        const maybeEditorView = activeFile.view as EditorView;
-        maybeEditorView?.dispatch?.(setDiagnostics(maybeEditorView.state, []));
-    }
-}

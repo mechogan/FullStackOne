@@ -1,18 +1,18 @@
-import api from "../../api";
-import rpc from "../../rpc";
 import { Button } from "../../components/primitives/button";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import { Project } from "../project";
-import { Connectivity } from "./connectivity";
-import { GitAuthentications } from "./git-authentications";
-import { Version } from "./version";
 import stackNavigation from "../../stack-navigation";
 import {
     BG_COLOR,
     PACKAGES_BUTTON_ID,
     SETTINGS_VIEW_ID
 } from "../../constants";
+import { createRefresheable } from "../../components/refresheable";
+import { Project } from "../project";
+import { Version } from "./version";
+import { GitAuthentications } from "./git-authentications";
+import platform, { Platform } from "../../../lib/platform";
+import fs from "../../../lib/fs";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -25,16 +25,20 @@ export function Settings() {
 
     container.prepend(topBar);
 
-    scrollable.append(
-        Packages(),
-        Connectivity(),
-        GitAuthentications(),
-        Version()
-    );
+    scrollable.append(Packages());
 
-    return container;
+    if (platform !== Platform.WASM) {
+        scrollable.append(GitAuthentications());
+    }
+
+    scrollable.append(Version());
+
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    });
 }
 
+let refreshPackageButton: ReturnType<typeof createRefresheable>["refresh"];
 function Packages() {
     const packages = document.createElement("div");
     packages.classList.add("packages");
@@ -42,52 +46,30 @@ function Packages() {
     packages.innerHTML = `
         <h2>Packages</h2>
     `;
-
-    let button: ReturnType<typeof Button>, nodeModulesDirectory: string;
-    const reloadButton = () => {
-        api.packages.count().then(async (packagesCount) => {
-            const text =
-                packagesCount + " package" + (packagesCount > 1 ? "s" : "");
-
-            const updatedButton = Button({
-                text,
-                iconRight: "Package"
-            });
-            updatedButton.id = PACKAGES_BUTTON_ID;
-
-            if (!nodeModulesDirectory)
-                nodeModulesDirectory =
-                    await rpc().directories.nodeModulesDirectory();
-
-            updatedButton.onclick = () => {
-                stackNavigation.navigate(
-                    Project({
-                        project: {
-                            title: "Packages",
-                            id: "packages",
-                            location: nodeModulesDirectory,
-                            createdDate: null
-                        },
-                        didDeleteAllPackages: () => {
-                            stackNavigation.back();
-                            reloadButton();
-                        },
-                        didUpdateProject: null
-                    }),
-                    BG_COLOR
-                );
-            };
-
-            if (button) {
-                button.replaceWith(updatedButton);
-            } else {
-                packages.append(updatedButton);
-            }
-
-            button = updatedButton;
-        });
-    };
-    reloadButton();
+    const packageButton = createRefresheable(PackagesButton);
+    packages.append(packageButton.element);
+    refreshPackageButton = packageButton.refresh;
+    packageButton.refresh();
 
     return packages;
+}
+
+async function PackagesButton() {
+    const packagesCount = (await fs.readdir("node_modules")).length;
+    const text = packagesCount + " package" + (packagesCount > 1 ? "s" : "");
+    const button = Button({
+        text,
+        iconLeft: "Package"
+    });
+    button.onclick = () => {
+        const view = Project({
+            id: "node_modules",
+            title: "Packages",
+            createdDate: null
+        });
+        view.ondestroy = refreshPackageButton;
+    };
+    button.id = PACKAGES_BUTTON_ID;
+
+    return button;
 }

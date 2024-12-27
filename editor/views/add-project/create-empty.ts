@@ -1,14 +1,13 @@
 import slugify from "slugify";
-import api from "../../api";
 import { Button } from "../../components/primitives/button";
 import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
+import { Store } from "../../store";
+import stackNavigation from "../../stack-navigation";
+import { BG_COLOR } from "../../constants";
+import fs from "../../../lib/fs";
 
-type CreateEmptyOpts = {
-    didCreateProject: () => void;
-};
-
-export function CreateEmpty(opts: CreateEmptyOpts) {
+export function CreateEmpty() {
     const container = document.createElement("div");
     container.classList.add("view", "create-form");
 
@@ -41,18 +40,18 @@ export function CreateEmpty(opts: CreateEmptyOpts) {
 
     form.onsubmit = (e) => {
         e.preventDefault();
+        createButton.disabled = true;
 
-        const id = slugify(inputIdentifier.input.value, {
-            lower: true
-        });
+        let id = inputIdentifier.input.value
+            ? slugify(inputIdentifier.input.value, { lower: true })
+            : slugify(inputTitle.input.value, { lower: true });
+        id = id || "no-identifier";
 
-        api.projects
-            .create({
-                title: inputTitle.input.value,
-                id,
-                location: id
-            })
-            .then(opts.didCreateProject);
+        const title = inputTitle.input.value || "Empty Project";
+
+        Promise.all([fs.mkdir(id), Store.projects.create({ title, id })]).then(
+            () => stackNavigation.back()
+        );
     };
 
     form.append(inputTitle.container, inputIdentifier.container, createButton);
@@ -61,5 +60,7 @@ export function CreateEmpty(opts: CreateEmptyOpts) {
 
     setTimeout(() => inputTitle.input.focus(), 1);
 
-    return container;
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    });
 }

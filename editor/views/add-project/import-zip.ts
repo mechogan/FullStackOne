@@ -1,26 +1,18 @@
 import prettyBytes from "pretty-bytes";
-import api from "../../api";
-import rpc from "../../rpc";
 import { Loader } from "../../components/loader";
 import { InputFile } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
-import * as zip from "@zip.js/zip.js";
-import { createProjectFromFullStackedFile } from "../../api/projects";
-import { gitLogger } from "./clone-git";
-import { IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
+import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
+import stackNavigation from "../../stack-navigation";
+import slugify from "slugify";
+import { Store } from "../../store";
+import { CONFIG_TYPE } from "../../types";
+import archive from "../../lib/archive";
+import fs from "../../../lib/fs";
+import config from "../../lib/config";
 
-type ImportZipOpts = {
-    didImportProject: () => void;
-
-    // only for demo import on first launch
-    zip?: {
-        data: Uint8Array;
-        name: string;
-    };
-};
-
-export function ImportZip(opts: ImportZipOpts) {
+export function ImportZip() {
     const { container, scrollable } = ViewScrollable();
     container.classList.add("view", "create-form");
 
@@ -38,106 +30,20 @@ export function ImportZip(opts: ImportZipOpts) {
     zipFileInput.input.id = IMPORT_PROJECT_FILE_INPUT_ID;
     form.append(zipFileInput.container);
 
-    zipFileInput.input.onchange = async () => {
+    zipFileInput.input.onchange = () => {
         const file = zipFileInput.input.files?.[0];
         if (!file) return;
-
         zipFileInput.input.disabled = true;
-
-        const loader = CreateLoader({
-            text: "Importing Project..."
+        loadZipFile(file, scrollable).then(() => {
+            stackNavigation.back();
         });
-
-        const consoleTerminal = ConsoleTerminal();
-
-        scrollable.append(loader, consoleTerminal.container);
-
-        consoleTerminal.logger(`Importing file: ${file.name}`);
-
-        const zipData = new Uint8Array(await file.arrayBuffer());
-
-        consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
-
-        const entries = await new zip.ZipReader(
-            new zip.Uint8ArrayReader(zipData)
-        ).getEntries();
-
-        consoleTerminal.logger(`ZIP item count: ${entries.length}`);
-
-        const project = await createProjectFromFullStackedFile({
-            getDirectoryContents: async () =>
-                entries.map((entry) => entry.filename),
-            getFileContents: async (filename) => {
-                const data = await entries
-                    .find((entry) => entry.filename === filename)
-                    .getData(new zip.Uint8ArrayWriter());
-                return new TextDecoder().decode(data);
-            },
-            alternateTitle: file.name.split(".").shift(),
-            logger: consoleTerminal.logger
-        });
-
-        if (project.gitRepository?.url) {
-            consoleTerminal.logger(`Found git repository URL`);
-            consoleTerminal.logger(`Trying to clone before unpacking`);
-            try {
-                await api.git.clone(
-                    project.gitRepository.url,
-                    project.location,
-                    {
-                        onProgress: gitLogger(consoleTerminal.text)
-                    }
-                );
-            } catch (e) {
-                consoleTerminal.logger(`Failed to clone git repository`);
-                await rpc().fs.rmdir(`${project.location}/.git`, {
-                    absolutePath: true
-                });
-            }
-        }
-
-        consoleTerminal.text.innerText += `Unpacking\n`;
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries.at(i);
-
-            const pathComponents = entry.filename.split("/");
-            const filename = pathComponents.pop();
-            const directory = pathComponents.join("/");
-            const fullPath = (directory ? directory + "/" : "") + filename;
-
-            consoleTerminal.logger(
-                `Writing file: ${filename} [${fullPath}] (${i + 1}/${entries.length})`
-            );
-
-            await rpc().fs.mkdir(project.location + "/" + directory, {
-                absolutePath: true
-            });
-            const data = await entry.getData(new zip.Uint8ArrayWriter());
-            await rpc().fs.writeFile(project.location + "/" + fullPath, data, {
-                absolutePath: true
-            });
-        }
-
-        consoleTerminal.logger(`Finish importing ${file.name}`);
-        consoleTerminal.logger("Done");
-
-        opts.didImportProject();
     };
 
     scrollable.append(form);
 
-    if (opts.zip) {
-        const file = new File([opts.zip.data], opts.zip.name, {
-            type: "application/octet-stream",
-            lastModified: Date.now()
-        });
-        const container = new DataTransfer();
-        container.items.add(file);
-        zipFileInput.input.files = container.files;
-        zipFileInput.input.onchange(null);
-    }
-
-    return container;
+    stackNavigation.navigate(container, {
+        bgColor: BG_COLOR
+    });
 }
 
 export function CreateLoader(opts: { text: string }) {
@@ -160,8 +66,124 @@ export function ConsoleTerminal() {
     container.append(text);
 
     const logger = (message: string) => {
-        (text.innerText += `${message}\n`), text.scrollIntoView(false);
+        (text.innerHTML += `${message.trim()}<br/>`),
+            text.scrollIntoView(false);
     };
 
     return { container, text, logger };
+}
+
+async function loadZipFile(file: File, scrollable: HTMLElement) {
+    const loader = CreateLoader({
+        text: "Importing Project..."
+    });
+
+    const consoleTerminal = ConsoleTerminal();
+
+    scrollable.append(loader, consoleTerminal.container);
+
+    consoleTerminal.logger(`Importing file: ${file.name}`);
+    const zipData = new Uint8Array(await file.arrayBuffer());
+    consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
+    consoleTerminal.logger(`Unpacking`);
+    await archive.unzip(tmpDir, zipData);
+
+    // remove .zip extension
+    let defaultProjectTitle = file.name;
+    const fileNameComponents = file.name.split(".");
+    if (fileNameComponents.at(-1) === "zip") {
+        defaultProjectTitle = fileNameComponents.slice(0, -1).join(".");
+    }
+
+    const isGitZip = (dir: string) => {
+        if (dir === defaultProjectTitle) return true;
+
+        // we might have "....-branch" in default name
+        const projectTitleComponent = defaultProjectTitle
+            .split("-")
+            .slice(0, -1);
+        return projectTitleComponent.join("-") === dir;
+    };
+
+    const contents = await fs.readdir(tmpDir);
+    if (contents.length === 1 && isGitZip(contents.at(0))) {
+        const tmpTmpDir = ".tmp2";
+        await fs.rename(tmpDir + "/" + contents.at(0), tmpTmpDir);
+        await fs.rmdir(tmpDir);
+        await fs.rename(tmpTmpDir, tmpDir);
+    }
+
+    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, null);
+
+    consoleTerminal.logger(`Finished importing ${file.name}`);
+    consoleTerminal.logger("Done");
+}
+
+export const tmpDir = ".tmp";
+export async function createAndMoveProjectFromTmp(
+    consoleTerminal: ReturnType<typeof ConsoleTerminal>,
+    defaultProjectTitle: string,
+    defaultGitRepoUrl: string
+) {
+    consoleTerminal.logger(`Looking for .fullstacked file`);
+    const contents = await fs.readdir(tmpDir);
+
+    const project: Parameters<typeof Store.projects.create>[0] = {
+        title: defaultProjectTitle,
+        id: slugify(defaultProjectTitle.replace(/\//g, "."), { lower: true })
+    };
+
+    if (contents.includes(".fullstacked")) {
+        try {
+            const fullstackedFile = await fs.readFile(
+                `${tmpDir}/.fullstacked`,
+                { encoding: "utf8" }
+            );
+            const fullstackedProjectData = JSON.parse(fullstackedFile);
+            consoleTerminal.logger(`Found valid .fullstacked file`);
+            consoleTerminal.logger(
+                `${JSON.stringify(fullstackedFile, null, 2)}`
+            );
+            project.title = fullstackedProjectData.title || project.title;
+            project.id = fullstackedProjectData.id || project.id;
+            if (fullstackedProjectData.git?.url) {
+                project.gitRepository = {
+                    url: fullstackedProjectData.git?.url
+                };
+            }
+        } catch (e) {
+            consoleTerminal.logger(`Found invalid .fullstacked file`);
+        }
+    }
+
+    if (defaultGitRepoUrl) {
+        project.gitRepository = {
+            url: defaultGitRepoUrl
+        };
+    }
+
+    if (project.gitRepository?.url) {
+        const url = new URL(project.gitRepository.url);
+        const hostname = url.hostname;
+        const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
+        const gitAuth = gitAuthConfigs[hostname];
+        if (gitAuth?.username) {
+            project.gitRepository.name = gitAuth.username;
+        }
+        if (gitAuth?.email) {
+            project.gitRepository.email = gitAuth.email;
+        }
+    }
+
+    consoleTerminal.logger(`Creating Project`);
+    consoleTerminal.logger(`${JSON.stringify(project, null, 2)}`);
+
+    let tries = 1,
+        originalProjectId = project.id;
+    while (!(await fs.rename(tmpDir, project.id))) {
+        tries++;
+        project.id = originalProjectId + "-" + tries;
+    }
+
+    return Store.projects.create(project);
 }

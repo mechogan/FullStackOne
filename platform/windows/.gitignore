@@ -1,0 +1,8 @@
+obj
+*.user
+.vs
+editor
+*.pfx
+Package.StoreAssociation.xml
+win-*.dll
+publish

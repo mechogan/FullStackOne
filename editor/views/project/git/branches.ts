@@ -1,22 +1,22 @@
-import api from "../../../api";
-import { Project } from "../../../api/config/types";
+import { projectChanges, toggleCommitAndBranchView } from ".";
+import { refreshGitWidgetBranchAndCommit } from "..";
+import { createElement } from "../../../components/element";
 import { Loader } from "../../../components/loader";
-import { Message } from "../../../components/message";
 import { Popover } from "../../../components/popover";
 import { Badge } from "../../../components/primitives/badge";
 import { Button, ButtonGroup } from "../../../components/primitives/button";
 import { Icon } from "../../../components/primitives/icon";
 import { InputText } from "../../../components/primitives/inputs";
+import { createRefresheable } from "../../../components/refresheable";
+import git from "../../../lib/git";
+import { Project } from "../../../types";
+import { refreshAllCodeEditorView } from "../code-editor";
+import { refreshFullFileTree } from "../file-tree";
 
-type BranchesOpts = {
-    project: Project;
-    didChangeBranch: () => void;
-    goBack: () => void;
-    removeDialog: () => void;
-};
+let refreshBranches: ReturnType<typeof createRefresheable>["refresh"];
 
-export function Branches(opts: BranchesOpts) {
-    const container = document.createElement("div");
+export function Branches(project: Project, closeButton: HTMLButtonElement) {
+    const container = createElement("div");
     container.classList.add("git-branches");
 
     const top = document.createElement("div");
@@ -25,7 +25,7 @@ export function Branches(opts: BranchesOpts) {
         style: "icon-large",
         iconLeft: "Arrow"
     });
-    backButton.onclick = opts.goBack;
+    backButton.onclick = toggleCommitAndBranchView;
 
     const title = document.createElement("h3");
     title.innerText = "Branches";
@@ -35,203 +35,156 @@ export function Branches(opts: BranchesOpts) {
         iconLeft: "Plus"
     });
 
-    createButton.onclick = () => {
-        createButton.style.display = "none";
-
-        const createBranchForm = CreateBranchForm({
-            project: opts.project,
-            remove: () => {
-                createBranchForm.remove();
-                createButton.style.display = null;
-            },
-            didCreateBranch: () => {
-                reloadBranchList();
-                opts.didChangeBranch();
-            }
-        });
-
-        top.insertAdjacentElement("afterend", createBranchForm);
-    };
-
     top.append(backButton, title, createButton);
 
-    const closeButton = Button({
-        text: "Close",
-        style: "text"
-    });
+    let showCreateBranchForm = false;
 
-    closeButton.onclick = opts.removeDialog;
-
-    let branchList: Awaited<ReturnType<typeof BranchesList>>;
-    const reloadBranchList = () => {
-        BranchesList({
-            project: opts.project,
-            didChangeBranch: opts.didChangeBranch,
-            didChangeBranchList: reloadBranchList
-        }).then((updatedBranchList) => {
-            branchList.replaceWith(updatedBranchList);
-            branchList = updatedBranchList;
-        });
-
-        if (!branchList) branchList = document.createElement("div");
+    createButton.onclick = () => {
+        showCreateBranchForm = true;
+        createBranchRefresheable.refresh();
     };
-    reloadBranchList();
 
-    container.append(top, branchList, closeButton);
+    const renderBranchForm = () => {
+        if (showCreateBranchForm) {
+            createButton.style.display = "none";
+            return CreateBranchForm(project, () => {
+                showCreateBranchForm = false;
+                createBranchRefresheable.refresh();
+            });
+        } else {
+            createButton.style.display = null;
+            return createElement("div");
+        }
+    };
+
+    const createBranchRefresheable = createRefresheable(renderBranchForm);
+    createBranchRefresheable.refresh();
+
+    const renderBranchesList = () => BranchesList(project);
+    const branchesListRefresheable = createRefresheable(renderBranchesList);
+    refreshBranches = branchesListRefresheable.refresh;
+    refreshBranches();
+
+    container.append(
+        top,
+        createBranchRefresheable.element,
+        branchesListRefresheable.element,
+        closeButton
+    );
 
     return container;
 }
 
-type BranchesListOpts = {
-    project: Project;
-    didChangeBranch: () => void;
-    didChangeBranchList: () => void;
-};
-
-async function BranchesList(opts: BranchesListOpts) {
-    const container = document.createElement("div");
+async function BranchesList(project: Project) {
+    const container = createElement("ul");
     container.classList.add("git-branch-list");
 
-    const [branches, currentBranch, changes] = await Promise.all([
-        api.git.branch.getAll(opts.project),
-        api.git.currentBranch(opts.project),
-        api.git.changes(opts.project)
+    const [branches, head, { hasChanges }] = await Promise.all([
+        git.branches(project),
+        git.head(project.id),
+        projectChanges(project)
     ]);
-    let hasUncommittedChanges =
-        changes.added.length ||
-        changes.modified.length ||
-        changes.deleted.length;
-    if (hasUncommittedChanges) {
-        container.append(
-            Message({
-                style: "warning",
-                text: "You have uncommitted changes. Commit before changing branch."
-            })
-        );
-    }
 
-    const branchesList = document.createElement("ul");
-    container.append(branchesList);
+    const checkoutButtons: HTMLButtonElement[] = [];
 
-    const allBranches = Array.from(
-        new Set(branches.local.concat(branches.remote))
-    ).filter((name) => name !== "HEAD");
+    const items = branches
+        .sort((a, b) => (a.name < b.name ? -1 : 1))
+        .map((branch) => {
+            const item = document.createElement("li");
 
-    const checkoutButtonsAndOptions = [];
+            const branchName = document.createElement("div");
+            branchName.innerText = branch.name;
+            item.append(branchName);
 
-    const items = allBranches.sort().map((branch) => {
-        const item = document.createElement("li");
+            const isCurrent = branch.name === head.Name;
 
-        const isCurrent = branch === currentBranch;
-        let isLocal = branches.local.includes(branch);
-
-        if (isCurrent) {
-            const icon = Icon("Arrow 2");
-            checkoutButtonsAndOptions.push(icon);
-            item.append(icon);
-        } else if (hasUncommittedChanges) {
-            item.append(document.createElement("div"));
-        } else {
-            const checkoutButton = Button({
-                style: "icon-small",
-                iconLeft: "Arrow Corner"
-            });
-
-            checkoutButtonsAndOptions.push(checkoutButton);
-
-            checkoutButton.onclick = async () => {
-                checkoutButton.replaceWith(Loader());
-                checkoutButtonsAndOptions.forEach((button) => {
-                    button.replaceWith(document.createElement("div"));
+            if (isCurrent) {
+                const icon = Icon("Arrow 2");
+                item.prepend(icon);
+            } else if (!hasChanges) {
+                const checkoutButton = Button({
+                    style: "icon-small",
+                    iconLeft: "Arrow Corner"
                 });
 
-                await api.git.checkout(opts.project, branch);
-                if (branches.remote.includes(branch)) {
-                    await api.git.pull(opts.project);
-                }
-                opts.didChangeBranch();
-                opts.didChangeBranchList();
-            };
+                checkoutButtons.push(checkoutButton);
 
-            item.append(checkoutButton);
-        }
+                checkoutButton.onclick = async () => {
+                    checkoutButton.replaceWith(Loader());
+                    checkoutButtons.forEach((button) => {
+                        button.replaceWith(document.createElement("div"));
+                    });
 
-        const branchName = document.createElement("div");
-        branchName.innerText = branch;
-        item.append(branchName);
+                    await git.checkout(project, branch.name, false);
+                    refreshGitWidgetBranchAndCommit();
+                    await refreshAllCodeEditorView();
+                    refreshBranches();
+                    refreshFullFileTree();
+                };
 
-        if (isLocal) {
-            if (branches.remote.includes(branch)) {
-                item.append(document.createElement("div"));
+                item.prepend(checkoutButton);
             } else {
+                item.prepend(createElement("div"));
+            }
+
+            if (branch.local && !branch.remote) {
                 item.append(
                     Badge({
                         text: "local-only",
                         type: "info"
                     })
                 );
+            } else if (!branch.local && branch.remote) {
+                item.append(
+                    Badge({
+                        text: "remote-only"
+                    })
+                );
             }
-        } else {
-            item.append(
-                Badge({
-                    text: "remote-only"
-                })
-            );
-        }
 
-        if (isLocal && !isCurrent) {
-            const optionsButton = Button({
-                style: "icon-small",
-                iconLeft: "Options"
-            });
-
-            checkoutButtonsAndOptions.push(optionsButton);
-
-            item.append(optionsButton);
-
-            const deleteButton = Button({
-                text: "Delete",
-                iconLeft: "Trash",
-                color: "red"
-            });
-
-            deleteButton.onclick = () => {
-                api.git.branch
-                    .delete(opts.project, branch)
-                    .then(opts.didChangeBranchList);
-                setTimeout(() => item.remove(), 1);
-            };
-
-            optionsButton.onclick = () => {
-                Popover({
-                    anchor: optionsButton,
-                    content: ButtonGroup([deleteButton]),
-                    align: {
-                        x: "right",
-                        y: "center"
-                    }
+            if (!isCurrent && branch.local) {
+                const deleteButton = Button({
+                    text: "Delete",
+                    iconLeft: "Trash",
+                    color: "red"
                 });
-            };
-        } else {
-            item.append(document.createElement("div"));
-        }
 
-        return item;
-    });
+                const optionsButton = Button({
+                    style: "icon-small",
+                    iconLeft: "Options"
+                });
 
-    branchesList.append(...items);
+                deleteButton.onclick = async () => {
+                    await git.branchDelete(project, branch.name);
+                    refreshBranches();
+                };
+
+                optionsButton.onclick = () => {
+                    Popover({
+                        anchor: optionsButton,
+                        content: ButtonGroup([deleteButton]),
+                        align: {
+                            x: "right",
+                            y: "center"
+                        }
+                    });
+                };
+
+                item.append(optionsButton);
+            } else {
+                item.append(createElement("div"));
+            }
+
+            return item;
+        });
+
+    container.append(...items);
 
     return container;
 }
 
-type CreateBranchFormOpts = {
-    project: Project;
-    remove: () => void;
-    didCreateBranch: () => void;
-};
-
-function CreateBranchForm(opts: CreateBranchFormOpts) {
-    const form = document.createElement("form");
+function CreateBranchForm(project: Project, close: () => void) {
+    const form = createElement("form");
     form.classList.add("create-branch-form");
 
     const branchNameInput = InputText({
@@ -243,7 +196,7 @@ function CreateBranchForm(opts: CreateBranchFormOpts) {
         text: "Cancel"
     });
     cancelButton.type = "button";
-    cancelButton.onclick = opts.remove;
+    cancelButton.onclick = close;
 
     const createButton = Button({
         text: "Create"
@@ -252,15 +205,13 @@ function CreateBranchForm(opts: CreateBranchFormOpts) {
     const buttons = document.createElement("div");
     buttons.append(cancelButton, createButton);
 
-    form.onsubmit = (e) => {
+    form.onsubmit = async (e) => {
         e.preventDefault();
-        createButton.disabled = true;
-        api.git.branch
-            .create(opts.project, branchNameInput.input.value)
-            .then(() => {
-                opts.remove();
-                opts.didCreateBranch();
-            });
+
+        await git.checkout(project, branchNameInput.input.value, true);
+        close();
+        refreshGitWidgetBranchAndCommit();
+        refreshBranches();
     };
 
     form.append(branchNameInput.container, buttons);

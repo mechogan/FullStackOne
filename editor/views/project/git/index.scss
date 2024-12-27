@@ -44,24 +44,19 @@
         padding: spacing.$small;
         border-radius: spacing.$x-small;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         gap: spacing.$small;
 
-        &.with-form {
-            align-items: flex-start;
-            > button {
-                display: none;
-            }
+        .icon {
+            height: 30px;
         }
 
-        > div:nth-child(2) {
+        .git-author-infos {
             flex: 1;
+            display: flex;
+            justify-content: space-between;
             font-size: typography.$small;
-        }
-
-        > .icon {
-            width: 24px;
-            height: 28px;
+            align-items: center;
         }
 
         .git-author-form {
@@ -76,6 +71,10 @@
                 align-items: center;
             }
         }
+    }
+
+    .status-placeholder {
+        padding-top: spacing.$medium;
     }
 
     .git-status {
@@ -113,21 +112,27 @@
             padding-top: spacing.$small;
             padding-bottom: spacing.$small;
         }
+    }
+
+    .git-form {
+        display: flex;
+        flex-direction: column;
+
+        form {
+            padding-top: spacing.$small;
+            .message {
+                padding-top: spacing.$small;
+            }
+        }
+
+        .git-buttons {
+            display: flex;
+            justify-content: space-between;
+            padding-top: spacing.$small;
+        }
 
         .message {
             justify-content: flex-end;
-        }
-    }
-
-    .git-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: spacing.$small;
-
-        > div {
-            display: flex;
-            gap: spacing.$x-small;
         }
     }
 }
@@ -144,59 +149,49 @@
     }
 
     .git-branch-list {
-        .message {
-            padding-top: spacing.$small;
-        }
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$small;
 
-        .message + ul {
-            padding-top: spacing.$small;
-        }
+        padding: spacing.$medium 0;
 
-        ul {
+        li {
+            background-color: colors.$gray-dark;
+            border: 1px solid colors.$gray;
+
             display: flex;
-            flex-direction: column;
-            gap: spacing.$small;
+            align-items: center;
+            justify-content: space-between;
+            gap: spacing.$x-small;
+            border-radius: spacing.$x-small;
 
-            padding: spacing.$medium 0;
+            padding: spacing.$small;
 
-            li {
-                background-color: colors.$gray-dark;
-                border: 1px solid colors.$gray;
+            > div:first-child {
+                height: 24px;
+                width: 24px;
 
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                gap: spacing.$x-small;
-                border-radius: spacing.$x-small;
+                justify-content: center;
 
-                padding: spacing.$small;
-
-                > div:first-child {
-                    height: 24px;
-                    width: 24px;
-
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-
-                    > svg {
-                        height: 20px;
-                        width: 20px;
-                    }
+                > svg {
+                    height: 20px;
+                    width: 20px;
                 }
+            }
 
-                > div:nth-child(2) {
-                    flex: 1;
-                }
+            > div:nth-child(2) {
+                flex: 1;
+            }
 
-                > div:nth-child(4) {
-                    height: 24px;
-                    width: 24px;
-                }
+            > div:nth-child(4) {
+                height: 24px;
+                width: 24px;
+            }
 
-                > button:last-child {
-                    color: colors.$light;
-                }
+            > button:last-child {
+                color: colors.$light;
             }
         }
     }

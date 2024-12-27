@@ -1,0 +1,8 @@
+@use "../values/colors.scss";
+@use "../values/spacing.scss";
+
+.winbox {
+    border-radius: spacing.$small;
+    background-color: colors.$gray-dark;
+    overflow: hidden;
+}

@@ -6,13 +6,11 @@
         "moduleResolution": "Node"
     },
     "exclude": [
-        "lib",
+        "out",
         "platform/android",
-        "platform/ios",
+        "platform/apple",
         "platform/docker",
-        "platform/electron",
         "platform/node/editor",
-        "editor/build",
         "editor-sample-demo"
     ]
 }

@@ -13,13 +13,8 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import type { AdapterEditor } from "../rpc";
-import type { rpcSync as rpcSyncFn } from "../../src/index";
-import type rpcFn from "../../src/index";
-import { bindPassRequestBody } from "../../src/android";
-
-const rpc = globalThis.rpc as typeof rpcFn<AdapterEditor>;
-const rpcSync = globalThis.rpcSync as typeof rpcSyncFn<AdapterEditor>;
+import { parsePackageName } from "./utils";
+import fs_sync from "../lib/fs_sync";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -36,29 +31,7 @@ function removeSourceObjects(obj: any) {
     return obj;
 }
 
-const passingBodyToMainThread = new Map<number, () => void>();
-
 self.onmessage = (message: MessageEvent) => {
-    if (message.data.request_id) {
-        const resolve = passingBodyToMainThread.get(message.data.request_id);
-        resolve?.();
-        passingBodyToMainThread.delete(message.data.request_id);
-        return;
-    }
-
-    if (message.data.platform) {
-        if (message.data.platform === "android") {
-            bindPassRequestBody((id, body) => {
-                return new Promise<void>((resolve) => {
-                    passingBodyToMainThread.set(id, resolve);
-                    self.postMessage({ id, body });
-                });
-            });
-        }
-
-        return;
-    }
-
     const { id, methodPath, args } = message.data;
 
     let method = methodPath.reduce(
@@ -67,7 +40,8 @@ self.onmessage = (message: MessageEvent) => {
     ) as any;
 
     if (typeof method === "function") {
-        const data = removeSourceObjects(method(...args));
+        const response = method(...args);
+        const data = removeSourceObjects(response);
         self.postMessage({
             id,
             data
@@ -80,15 +54,62 @@ const options: CompilerOptions = {
     module: ModuleKind.ES2022,
     target: ScriptTarget.ES2022,
     moduleResolution: ModuleResolutionKind.Node10,
-    lib: ["lib.dom.d.ts", "lib.es2023.d.ts", "fullstacked.d.ts"],
+    lib: [
+        "lib.dom.d.ts",
+        "lib.dom.iterable.d.ts",
+        "lib.es2023.d.ts",
+        "fullstacked.d.ts"
+    ],
     jsx: JsxEmit.React
 };
 let services: LanguageService;
-let updateThrottler: ReturnType<typeof setTimeout> = null;
 
 export let methods = {
     version() {
         return version;
+    },
+    preloadFS(
+        files: { [path: string]: Uint8Array },
+        tsLib: { [path: string]: Uint8Array },
+        node_modules: { [path: string]: Uint8Array }
+    ) {
+        sourceFiles = {};
+
+        const td = new TextDecoder();
+        for (const [path, data] of Object.entries(files)) {
+            if (data === null) continue;
+
+            sourceFiles[path.slice("projects/".length)] = {
+                contents: td.decode(data),
+                version: 1
+            };
+        }
+
+        for (const [path, data] of Object.entries(tsLib)) {
+            if (data === null) continue;
+
+            scriptSnapshotCache[path.slice("editor/".length)] =
+                ScriptSnapshot.fromString(td.decode(data));
+        }
+
+        for (const [path, data] of Object.entries(node_modules)) {
+            if (data === null) continue;
+
+            const modulePath = path.slice("projects/node_modules/".length);
+            const moduleName = parsePackageName(modulePath);
+
+            let files = nodeModules.get(moduleName);
+            if (!files) {
+                files = [];
+                nodeModules.set(moduleName, files);
+            }
+            if (modulePath != moduleName) {
+                files.push(`node_modules/${modulePath}`);
+            }
+
+            scriptSnapshotCache[`node_modules/${modulePath}`] =
+                ScriptSnapshot.fromString(td.decode(data));
+        }
     },
     start(currentDirectory: string) {
         if (services) return;
@@ -108,53 +129,15 @@ export let methods = {
     invalidateWorkingDirectory() {
         sourceFiles = null;
     },
-    updateFile(sourceFile: string, contents: string, now = false) {
+    updateFile(sourceFile: string, contents: string) {
         makeSureSourceFilesAreLoaded();
 
         sourceFiles[sourceFile] = {
             contents,
-            lastVersionSaved: sourceFiles?.[sourceFile]?.lastVersionSaved
-                ? sourceFiles?.[sourceFile]?.lastVersionSaved
-                : 0,
             version: sourceFiles?.[sourceFile]?.version
                 ? sourceFiles?.[sourceFile]?.version + 1
                 : 1
         };
-
-        if (updateThrottler) clearTimeout(updateThrottler);
-
-        updateThrottler = setTimeout(
-            () => {
-                Promise.all(
-                    Object.entries(sourceFiles).map(
-                        ([filename, { contents, lastVersionSaved, version }]) =>
-                            new Promise<void>(async (res) => {
-                                if (lastVersionSaved === version) return res();
-
-                                if (
-                                    await rpc().fs.exists(filename, {
-                                        absolutePath: true
-                                    })
-                                ) {
-                                    await rpc().fs.writeFile(
-                                        filename,
-                                        contents,
-                                        {
-                                            absolutePath: true
-                                        }
-                                    );
-                                    sourceFiles[filename].lastVersionSaved =
-                                        version;
-                                } else {
-                                    delete sourceFiles[filename];
-                                }
-                                res();
-                            })
-                    )
-                ).then(() => (updateThrottler = null));
-            },
-            now ? 0 : 2000
-        );
     },
     ...services
 };
@@ -163,7 +146,6 @@ let workingDirectory: string;
 let sourceFiles: {
     [filename: string]: {
         contents: string;
-        lastVersionSaved: number;
         version: number;
     };
 } = null;
@@ -176,21 +158,16 @@ const makeSureSourceFilesAreLoaded = () => {
         );
     }
 
-    const files = (
-        rpcSync().fs.readdir(workingDirectory, {
-            recursive: true,
-            absolutePath: true
-        }) as string[]
-    ).map((filename) => workingDirectory + "/" + filename);
+    const files = fs_sync
+        .readdir(workingDirectory)
+        .map((filename) => workingDirectory + "/" + filename);
 
     sourceFiles = {};
 
     files.forEach((file) => {
-        const version = rpcSync().fs.stat(file, { absolutePath: true }).mtimeMs;
         sourceFiles[file] = {
             contents: null,
-            version,
-            lastVersionSaved: version
+            version: 0
         };
     });
 };
@@ -199,10 +176,6 @@ const scriptSnapshotCache: {
     [path: string]: IScriptSnapshot;
 } = {};
 let nodeModules: Map<string, string[]> = new Map();
-
-const nodeModulesDirectory = await rpc().directories.nodeModulesDirectory();
-const resolveNodeModulePath = (path: string) =>
-    nodeModulesDirectory + "/" + path.slice("node_modules/".length);
 
 function initLanguageServiceHost(): LanguageServiceHost {
     return {
@@ -231,22 +204,17 @@ function initLanguageServiceHost(): LanguageServiceHost {
         getScriptSnapshot: function (fileName: string) {
             // console.log("getScriptSnapshot", fileName);
 
-            if (fileName.includes("tsLib")) {
+            if (fileName.startsWith("tsLib")) {
                 if (!scriptSnapshotCache[fileName]) {
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        rpcSync().fs.readFile(fileName, {
-                            encoding: "utf8"
-                        }) as string
+                        fs_sync.staticFile(fileName)
                     );
                 }
                 return scriptSnapshotCache[fileName];
             } else if (fileName.startsWith("node_modules")) {
                 if (!scriptSnapshotCache[fileName]) {
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        rpcSync().fs.readFile(resolveNodeModulePath(fileName), {
-                            encoding: "utf8",
-                            absolutePath: true
-                        }) as string
+                        fs_sync.readFile(fileName)
                     );
                 }
                 return scriptSnapshotCache[fileName];
@@ -259,13 +227,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             }
 
             if (sourceFiles[fileName].contents === null) {
-                sourceFiles[fileName].contents = rpcSync().fs.readFile(
-                    fileName,
-                    {
-                        encoding: "utf8",
-                        absolutePath: true
-                    }
-                ) as string;
+                sourceFiles[fileName].contents = fs_sync.readFile(fileName);
             }
 
             return ScriptSnapshot.fromString(sourceFiles[fileName].contents);
@@ -283,10 +245,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             if (path.startsWith("node_modules")) {
                 if (!scriptSnapshotCache[path]) {
                     scriptSnapshotCache[path] = ScriptSnapshot.fromString(
-                        rpcSync().fs.readFile(resolveNodeModulePath(path), {
-                            absolutePath: true,
-                            encoding: "utf8"
-                        }) as string
+                        fs_sync.readFile(path)
                     );
                 }
 
@@ -303,10 +262,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
             }
 
             if (sourceFiles[path].contents === null) {
-                sourceFiles[path].contents = rpcSync().fs.readFile(path, {
-                    encoding: "utf8",
-                    absolutePath: true
-                }) as string;
+                sourceFiles[path].contents = fs_sync.readFile(path);
             }
 
             return sourceFiles[path].contents;
@@ -315,26 +271,19 @@ function initLanguageServiceHost(): LanguageServiceHost {
             // console.log("fileExists", path);
 
             if (path.startsWith("node_modules")) {
-                const pathComponents = path.split("/");
-                const moduleName = pathComponents.at(1).startsWith("@")
-                    ? pathComponents.at(1) + "/" + pathComponents.at(2)
-                    : pathComponents.at(1);
+                const modulePath = path.slice("node_modules/".length);
+                const moduleName = parsePackageName(modulePath);
 
                 let moduleFiles = nodeModules.get(moduleName);
 
                 if (!moduleFiles) {
                     try {
-                        moduleFiles = (
-                            rpcSync().fs.readdir(
-                                nodeModulesDirectory + "/" + moduleName,
-                                {
-                                    recursive: true,
-                                    absolutePath: true
-                                }
-                            ) as string[]
-                        ).map(
-                            (file) => "node_modules/" + moduleName + "/" + file
-                        );
+                        moduleFiles = fs_sync
+                            .readdir("node_modules/" + moduleName)
+                            .map(
+                                (file) =>
+                                    "node_modules/" + moduleName + "/" + file
+                            );
                     } catch (e) {
                         moduleFiles = [];
                     }
