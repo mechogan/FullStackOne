@@ -248,7 +248,7 @@ export async function branches(project: Project) {
 
 // 79
 export function push(project: Project) {
-    const pullWithAuth = (username: string, password: string) => {
+    const pushWithAuth = (username: string, password: string) => {
         const payload = new Uint8Array([
             79,
             ...serializeArgs([project.id, username, password])
@@ -259,7 +259,7 @@ export function push(project: Project) {
     checkForAuthRequiredOnCallback(
         project.gitRepository.url,
         "git-push",
-        pullWithAuth
+        pushWithAuth
     );
 }
 

@@ -28,10 +28,7 @@ child_process.execSync("npm run build", {
 // test functionalities with node
 process.chdir(process.cwd() + "/platform/node");
 process.env.NO_OPEN = "1";
-await import(
-    process.cwd().replace(/\\/g, "/").split(":").pop() +
-        "/index.js"
-);
+await import(process.cwd().replace(/\\/g, "/").split(":").pop() + "/index.js");
 
 // Launch the browser
 const browser = await puppeteer.launch({

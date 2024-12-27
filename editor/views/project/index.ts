@@ -1,5 +1,10 @@
 import type { Project as ProjectType } from "../../types";
-import { BG_COLOR, DELETE_ALL_PACKAGES_ID, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
+import {
+    BG_COLOR,
+    DELETE_ALL_PACKAGES_ID,
+    PROJECT_VIEW_ID,
+    RUN_PROJECT_ID
+} from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Button } from "../../components/primitives/button";
