@@ -7,6 +7,8 @@ import {
 } from "../../../lib/bridge/serialization";
 import { toByteArray } from "base64-js";
 
+const gitProxy = "https://p.fullstacked.org";
+
 const WinBox = wb as WinBoxType.WinBoxConstructor;
 
 declare global {
@@ -197,7 +199,7 @@ async function initProjectWindow(projectId: string) {
         url = url.trim();
         if (url.startsWith("http")) {
             if (url.startsWith("https://github.com")) {
-                url = `http://localhost:8000?url=${encodeURIComponent(url)}`;
+                url = `${gitProxy}?url=${encodeURIComponent(url)}`;
             }
 
             return webview.window.originalFetch(url, options);
