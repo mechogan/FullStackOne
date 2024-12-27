@@ -100,22 +100,28 @@ globalThis.onmessageWASM = function (
     webview.window.oncoremessage(messageType, message);
 };
 
-const wasmSize = parseInt(process.env.wasmSize);
+const expectedWasmSize = parseInt(process.env.wasmSize);
 
 async function dowloadWASM(): Promise<Uint8Array> {
     const response = await fetch("bin/wasm.wasm");
-    const data = new Uint8Array(wasmSize);
+    let data = new Uint8Array(expectedWasmSize * 1.3);
     const reader = response.body.getReader();
     let readCount = 0;
     while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+
+        if (done) {
+            // resize to actual byteLength
+            data = data.slice(0, readCount);
+            break;
+        };
+
         data.set(value, readCount);
         readCount += value.byteLength;
         const progressElement =
             document.querySelector<HTMLDivElement>("#progress");
         if (progressElement) {
-            progressElement.style.width = (readCount / wasmSize) * 100 + "%";
+            progressElement.style.width = (readCount / expectedWasmSize) * 100 + "%";
         }
     }
     reader.releaseLock();
