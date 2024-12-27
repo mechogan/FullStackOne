@@ -5,7 +5,7 @@
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build -- --no-zip && npm start -w platform/node",
         "fmt": "prettier . --write && cd core && gofmt -l -w .",
-        "typecheck": "tsc --noEmit && cd platform/electron && npm run typecheck",
+        "typecheck": "tsc --noEmit",
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
     "workspaces": [

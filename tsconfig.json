@@ -8,11 +8,9 @@
     "exclude": [
         "out",
         "platform/android",
-        "platform/ios",
+        "platform/apple",
         "platform/docker",
         "platform/node/editor",
-        "platform/windows",
-        "editor/build",
         "editor-sample-demo"
     ]
 }

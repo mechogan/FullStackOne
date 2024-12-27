@@ -2,7 +2,7 @@ import ffi from "ffi-rs";
 import path from "path";
 import os from "os";
 
-const binDirectory = path.resolve(process.cwd(), "bin");
+const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
 const libBinary =
     os.platform() === "darwin"
         ? "macos-x86_64"

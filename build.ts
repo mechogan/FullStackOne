@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import * as sass from "sass";
 import esbuild from "esbuild";
 import child_process from "child_process";

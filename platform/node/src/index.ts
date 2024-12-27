@@ -29,7 +29,7 @@ const root = path.resolve(os.homedir(), "FullStacked");
 await setDirectories({
     root,
     config: path.resolve(os.homedir(), ".config", "fullstacked"),
-    editor: path.resolve(process.cwd(), "editor")
+    editor: path.resolve(process.cwd(), "..", "..", "out", "editor")
 });
 
 export const platform = new TextEncoder().encode("node");

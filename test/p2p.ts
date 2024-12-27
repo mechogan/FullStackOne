@@ -12,7 +12,7 @@ import {
     PROJECTS_VIEW_ID,
     RUN_PROJECT_ID
 } from "../editor/constants";
-import fs from "fs";
+import fs from "node:fs";
 import os from "os";
 
 const rootDir1 = os.homedir() + "/" + crypto.randomUUID();
