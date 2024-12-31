@@ -1,4 +1,4 @@
-import { createSubscribable } from ".";
+import { createSequential, createSubscribable } from ".";
 import { CONFIG_TYPE, Project } from "../types";
 import fs from "../../lib/fs";
 import config from "../lib/config";
@@ -7,7 +7,7 @@ const list = createSubscribable(listP, []);
 
 export const projects = {
     list: list.subscription,
-    create,
+    create: createSequential(create),
     update,
     deleteP
 };

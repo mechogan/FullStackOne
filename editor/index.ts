@@ -6,11 +6,7 @@ import { CONFIG_TYPE } from "./types";
 import { Packages } from "./views/packages";
 import { Projects } from "./views/projects";
 
-const launchDeeplink = (url: string) => {
-    deeplink(url);
-};
-
-core_message.addListener("deeplink", launchDeeplink);
+core_message.addListener("deeplink", deeplink);
 
 // fix windows scrollbars
 if (navigator.userAgent.includes("Windows")) {

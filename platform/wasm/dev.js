@@ -25,7 +25,7 @@ const existsAndIsFile = (pathname) => {
 };
 
 const hanlder = (req, res) => {
-    let pathname = req.url;
+    let pathname = req.url.split("?").shift();
 
     if (pathname.startsWith("/")) pathname = pathname.slice(1);
     if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);

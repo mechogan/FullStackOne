@@ -314,19 +314,35 @@ function GitWidget(project: ProjectType) {
     statusArrow.style.display = "none";
     container.append(statusArrow);
 
-    const pullEvent = (progress: string) => {
+    const pullEvent = (gitProgress: string) => {
         statusArrow.style.display = "flex";
         statusArrow.classList.remove("red");
-        if (progress.endsWith("done")) {
+
+        let json: { Url: string; Data: string };
+        try {
+            json = JSON.parse(gitProgress);
+        } catch (e) {
+            return;
+        }
+
+        if (json.Data.endsWith("done")) {
             statusArrow.style.display = "none";
             branchAndCommit.refresh();
         }
     };
 
-    const pushEvent = (progress: string) => {
+    const pushEvent = (gitProgress: string) => {
         statusArrow.style.display = "flex";
         statusArrow.classList.add("red");
-        if (progress.endsWith("done")) {
+
+        let json: { Url: string; Data: string };
+        try {
+            json = JSON.parse(gitProgress);
+        } catch (e) {
+            return;
+        }
+
+        if (json.Data.endsWith("done")) {
             statusArrow.style.display = "none";
             branchAndCommit.refresh();
         }

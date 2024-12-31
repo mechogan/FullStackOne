@@ -5,7 +5,8 @@ import core_message from "../lib/core_message";
 import archive from "./lib/archive";
 import git from "./lib/git";
 import {
-    createAndMoveProjectFromTmp,
+    createAndMoveProject,
+    randomStr,
     tmpDir
 } from "./views/add-project/import-zip";
 
@@ -27,8 +28,10 @@ async function demoFromZip() {
     ]);
 
     const [_, demoZipData] = await bridge(payload);
-    await archive.unzip(tmpDir, demoZipData);
-    createAndMoveProjectFromTmp(
+    const tmpDirectory = tmpDir + "/" + randomStr(6);
+    await archive.unzip(tmpDirectory, demoZipData);
+    createAndMoveProject(
+        tmpDirectory,
         {
             container: null,
             logger: () => {},
@@ -44,8 +47,11 @@ const demoRepoUrl = "https://github.com/fullstackedorg/editor-sample-demo.git";
 async function demoFromGitHub() {
     let checkForDone: (message: string) => void;
     const donePromise = new Promise<void>((resolve) => {
-        checkForDone = (progress: string) => {
-            if (progress.trim().endsWith("done")) {
+        checkForDone = (gitProgress: string) => {
+            const { Url, Data } = JSON.parse(gitProgress);
+            if (Url !== demoRepoUrl) return;
+
+            if (Data.trim().endsWith("done")) {
                 resolve();
             }
         };
@@ -53,13 +59,15 @@ async function demoFromGitHub() {
 
     core_message.addListener("git-clone", checkForDone);
 
-    git.clone(demoRepoUrl, tmpDir);
+    const tmpDirectory = tmpDir + "/" + randomStr(6);
+    git.clone(demoRepoUrl, tmpDirectory);
 
     await donePromise;
 
     core_message.removeListener("git-clone", checkForDone);
 
-    await createAndMoveProjectFromTmp(
+    await createAndMoveProject(
+        tmpDirectory,
         {
             container: null,
             logger: () => {},

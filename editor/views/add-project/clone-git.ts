@@ -4,8 +4,9 @@ import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import {
     ConsoleTerminal,
-    createAndMoveProjectFromTmp,
+    createAndMoveProject,
     CreateLoader,
+    randomStr,
     tmpDir
 } from "./import-zip";
 import stackNavigation from "../../stack-navigation";
@@ -65,14 +66,19 @@ let checkForDone: (progress: string) => void;
 async function cloneGitRepo(url: string, scrollable: HTMLElement) {
     const consoleTerminal = ConsoleTerminal();
 
+    const tmpDirectory = tmpDir + "/" + randomStr(6);
+
     const logProgress = gitLogger(consoleTerminal);
 
     const donePromise = new Promise<void>((resolve) => {
-        checkForDone = (progress: string) => {
-            if (progress.trim().endsWith("done")) {
+        checkForDone = (gitProgress: string) => {
+            const { Url, Data } = JSON.parse(gitProgress);
+            if (Url !== url) return;
+
+            if (Data.trim().endsWith("done")) {
                 resolve();
             }
-            logProgress(progress);
+            logProgress(Data);
         };
     });
 
@@ -86,7 +92,7 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
 
     consoleTerminal.logger(`Cloning ${url}`);
     try {
-        git.clone(url, tmpDir);
+        git.clone(url, tmpDirectory);
     } catch (e) {
         consoleTerminal.logger(e.Error);
         throw e;
@@ -102,7 +108,12 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
         defaultProjectTitle = pathnameComponents.slice(0, -1).join(".");
     }
 
-    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, url);
+    createAndMoveProject(
+        tmpDirectory,
+        consoleTerminal,
+        defaultProjectTitle,
+        url
+    );
 
     consoleTerminal.logger(`Finished cloning ${url}`);
     consoleTerminal.logger(`Done`);

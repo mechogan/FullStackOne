@@ -8,6 +8,46 @@ export const Store = {
     packages
 };
 
+export function createSequential<T extends any[], R extends Promise<any>>(
+    fn: (...args: T) => R
+) {
+    let toRun: {
+        args: T;
+        fn: (...args: T) => R;
+        resolve: (args: Awaited<R>) => void;
+    }[] = [];
+
+    let lock = false;
+
+    const execute = async () => {
+        if (lock) return;
+
+        lock = true;
+
+        while (toRun.length) {
+            const toExecute = toRun.shift();
+            const result = await toExecute.fn(...toExecute.args);
+            toExecute.resolve(result);
+        }
+
+        lock = false;
+    };
+
+    return (...args: T) => {
+        const promise = new Promise<Awaited<R>>((resolve) => {
+            toRun.push({
+                args,
+                fn,
+                resolve
+            });
+        });
+
+        execute();
+
+        return promise;
+    };
+}
+
 export function createSubscribable<T>(
     getter: () => T,
     placeolderValue?: Awaited<T>

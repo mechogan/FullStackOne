@@ -80,13 +80,15 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
 
     const consoleTerminal = ConsoleTerminal();
 
+    const tmpDirectory = tmpDir + "/" + randomStr(6);
+
     scrollable.append(loader, consoleTerminal.container);
 
     consoleTerminal.logger(`Importing file: ${file.name}`);
     const zipData = new Uint8Array(await file.arrayBuffer());
     consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
     consoleTerminal.logger(`Unpacking`);
-    await archive.unzip(tmpDir, zipData);
+    await archive.unzip(tmpDirectory, zipData);
 
     // remove .zip extension
     let defaultProjectTitle = file.name;
@@ -105,28 +107,49 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
         return projectTitleComponent.join("-") === dir;
     };
 
-    const contents = await fs.readdir(tmpDir);
+    const contents = await fs.readdir(tmpDirectory);
     if (contents.length === 1 && isGitZip(contents.at(0))) {
-        const tmpTmpDir = ".tmp2";
+        const tmpTmpDir = tmpDir + "/" + randomStr(6);
         await fs.rename(tmpDir + "/" + contents.at(0), tmpTmpDir);
         await fs.rmdir(tmpDir);
         await fs.rename(tmpTmpDir, tmpDir);
     }
 
-    createAndMoveProjectFromTmp(consoleTerminal, defaultProjectTitle, null);
+    createAndMoveProject(
+        tmpDirectory,
+        consoleTerminal,
+        defaultProjectTitle,
+        null
+    );
 
     consoleTerminal.logger(`Finished importing ${file.name}`);
     consoleTerminal.logger("Done");
 }
 
 export const tmpDir = ".tmp";
-export async function createAndMoveProjectFromTmp(
+export function randomStr(length: number) {
+    let result = "";
+    const characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+        result += characters.charAt(
+            Math.floor(Math.random() * charactersLength)
+        );
+        counter += 1;
+    }
+    return result;
+}
+
+export async function createAndMoveProject(
+    tmpDirectory: string,
     consoleTerminal: ReturnType<typeof ConsoleTerminal>,
     defaultProjectTitle: string,
     defaultGitRepoUrl: string
 ) {
     consoleTerminal.logger(`Looking for .fullstacked file`);
-    const contents = await fs.readdir(tmpDir);
+    const contents = await fs.readdir(tmpDirectory);
 
     const project: Parameters<typeof Store.projects.create>[0] = {
         title: defaultProjectTitle,
@@ -136,7 +159,7 @@ export async function createAndMoveProjectFromTmp(
     if (contents.includes(".fullstacked")) {
         try {
             const fullstackedFile = await fs.readFile(
-                `${tmpDir}/.fullstacked`,
+                `${tmpDirectory}/.fullstacked`,
                 { encoding: "utf8" }
             );
             const fullstackedProjectData = JSON.parse(fullstackedFile);
@@ -180,7 +203,7 @@ export async function createAndMoveProjectFromTmp(
 
     let tries = 1,
         originalProjectId = project.id;
-    while (!(await fs.rename(tmpDir, project.id))) {
+    while (!(await fs.rename(tmpDirectory, project.id))) {
         tries++;
         project.id = originalProjectId + "-" + tries;
     }

@@ -114,14 +114,15 @@ async function dowloadWASM(): Promise<Uint8Array> {
             // resize to actual byteLength
             data = data.slice(0, readCount);
             break;
-        };
+        }
 
         data.set(value, readCount);
         readCount += value.byteLength;
         const progressElement =
             document.querySelector<HTMLDivElement>("#progress");
         if (progressElement) {
-            progressElement.style.width = (readCount / expectedWasmSize) * 100 + "%";
+            progressElement.style.width =
+                (readCount / expectedWasmSize) * 100 + "%";
         }
     }
     reader.releaseLock();
@@ -396,4 +397,22 @@ function RGBAToHexA(rgba: string, forceRemoveAlpha = false) {
 
 function isBgColorDark(bgColor: string) {
     return parseInt(bgColor.replace("#", ""), 16) < 0xffffff / 2;
+}
+
+const searchParams = new URLSearchParams(window.location.search);
+const deeplink = searchParams.get("url");
+if (deeplink) {
+    const url = new URL(deeplink);
+    if (url.pathname.startsWith("/fullstackedorg")) {
+        launchDeeplink(url);
+    }
+}
+
+async function launchDeeplink(url: URL) {
+    while (globalThis.oncoremessage === undefined) {
+        await new Promise((res) => setTimeout(res, 1000));
+    }
+
+    const urlStr = `fullstacked://${url.protocol.slice(0, -1)}//${url.host}${url.pathname}${url.search ? "?" + url.search : ""}`;
+    globalThis.oncoremessage("deeplink", urlStr);
 }

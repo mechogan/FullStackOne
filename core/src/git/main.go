@@ -77,13 +77,24 @@ func getWorktree(directory string) (*git.Worktree, *string) {
 }
 
 type GitProgress struct {
-	Name     string
-	Progress string
+	Name string
+	Url  string
+}
+
+type GitProgressJSON struct {
+	Url  string
+	Data string
 }
 
 func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 	n := len(p)
-	setup.Callback("", gitProgress.Name, string(p))
+
+	json, _ := json.Marshal(GitProgressJSON{
+		Url:  gitProgress.Url,
+		Data: string(p),
+	})
+
+	setup.Callback("", gitProgress.Name, string(json))
 	return n, nil
 }
 
@@ -98,6 +109,7 @@ func Clone(into string, url string, username *string, password *string) {
 
 	progress := GitProgress{
 		Name: "git-clone",
+		Url:  url,
 	}
 
 	err := (error)(nil)
@@ -206,8 +218,6 @@ func Pull(directory string, username *string, password *string) {
 		Name: "git-pull",
 	}
 
-	progress.Write([]byte("start"))
-
 	worktree, err := getWorktree(directory)
 
 	if err != nil {
@@ -222,6 +232,17 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
+	remote, err2 := repo.Remote("origin")
+
+	if err2 != nil {
+		progress.Write([]byte(*errorFmt(err2)))
+		return
+	}
+
+	progress.Url = remote.Config().URLs[0]
+
+	progress.Write([]byte("start"))
+
 	auth := (*http.BasicAuth)(nil)
 	if username != nil && password != nil {
 		auth = &http.BasicAuth{
@@ -230,7 +251,7 @@ func Pull(directory string, username *string, password *string) {
 		}
 	}
 
-	err2 := worktree.AddGlob(".")
+	err2 = worktree.AddGlob(".")
 	if err2 != nil {
 		progress.Write([]byte(*errorFmt(err2)))
 		return
@@ -262,14 +283,23 @@ func Push(directory string, username *string, password *string) {
 		Name: "git-push",
 	}
 
-	progress.Write([]byte("start"))
-
 	repo, err := getRepo(directory)
 
 	if err != nil {
 		progress.Write([]byte(*err))
 		return
 	}
+
+	remote, err2 := repo.Remote("origin")
+
+	if err2 != nil {
+		progress.Write([]byte(*errorFmt(err2)))
+		return
+	}
+
+	progress.Url = remote.Config().URLs[0]
+
+	progress.Write([]byte("start"))
 
 	auth := (*http.BasicAuth)(nil)
 	if username != nil && password != nil {
@@ -279,7 +309,7 @@ func Push(directory string, username *string, password *string) {
 		}
 	}
 
-	err2 := repo.Push(&git.PushOptions{
+	err2 = repo.Push(&git.PushOptions{
 		Auth: auth,
 		Progress: &GitProgress{
 			Name: "git-push",
