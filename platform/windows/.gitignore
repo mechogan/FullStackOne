@@ -6,3 +6,4 @@ editor
 Package.StoreAssociation.xml
 win-*.dll
 publish
+AppPackages
