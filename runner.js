@@ -18,7 +18,7 @@ import prettyMs from "pretty-ms";
 const branch = "main";
 const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
 const commitNumber = child_process
-    .execSync("git rev-list --count --all")
+    .execSync(`git rev-list --count ${branch}`)
     .toString()
     .trim();
 const release = process.argv.includes("--release");
