@@ -17,6 +17,8 @@ github.com/cyphar/filepath-securejoin v0.2.4 h1:Ugdm7cg7i6ZK6x3xDF1oEu1nfkyfH53E
 github.com/cyphar/filepath-securejoin v0.2.4/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/cyphar/filepath-securejoin v0.2.5 h1:6iR5tXJ/e6tJZzzdMc1km3Sa7RRIVBKAK32O2s7AYfo=
 github.com/cyphar/filepath-securejoin v0.2.5/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
+github.com/cyphar/filepath-securejoin v0.3.6 h1:4d9N5ykBnSp5Xn2JkhocYDkOpURL/18CYMpo6xB9uWM=
+github.com/cyphar/filepath-securejoin v0.3.6/go.mod h1:Sdj7gXlvMcPZsbhwhQ33GguGLDGQL7h7bg04C/+u9jI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=
@@ -29,12 +31,16 @@ github.com/go-git/go-billy/v5 v5.5.0 h1:yEY4yhzCDuMGSv83oGxiBotRzhwhNr8VZyphhiu+
 github.com/go-git/go-billy/v5 v5.5.0/go.mod h1:hmexnoNsr2SJU1Ju67OaNz5ASJY3+sHgFRpCtpDCKow=
 github.com/go-git/go-billy/v5 v5.6.0 h1:w2hPNtoehvJIxR00Vb4xX94qHQi/ApZfX+nBE2Cjio8=
 github.com/go-git/go-billy/v5 v5.6.0/go.mod h1:sFDq7xD3fn3E0GOwUSZqHo9lrkmx8xJhA0ZrfvjBRGM=
+github.com/go-git/go-billy/v5 v5.6.1 h1:u+dcrgaguSSkbjzHwelEjc0Yj300NUevrrPphk/SoRA=
+github.com/go-git/go-billy/v5 v5.6.1/go.mod h1:0AsLr1z2+Uksi4NlElmMblP5rPcDZNRCD8ujZCRR2BE=
 github.com/go-git/go-git/v5 v5.12.0 h1:7Md+ndsjrzZxbddRDZjF14qK+NN56sy6wkqaVrjZtys=
 github.com/go-git/go-git/v5 v5.12.0/go.mod h1:FTM9VKtnI2m65hNI/TenDDDnUf2Q9FHnXYjuz9i5OEY=
 github.com/go-git/go-git/v5 v5.12.1-0.20241115094014-70dd9f8347eb h1:TEo1aHmTS/QU1IIYczLGhqUEp8m03a7bk3ZdRHoUonk=
 github.com/go-git/go-git/v5 v5.12.1-0.20241115094014-70dd9f8347eb/go.mod h1:KECzDiPamjQz6lBAKQI+cIhdDfUcb64jyErZarVFKIE=
 github.com/go-git/go-git/v5 v5.12.1-0.20241222101704-7d6fbc2c2a05 h1:61qfveIVW9KZh+FNqKNO3WYXZfJCNigw2iInUBiMvKA=
 github.com/go-git/go-git/v5 v5.12.1-0.20241222101704-7d6fbc2c2a05/go.mod h1:ga2Rh5SVMXjo3LaQQYJaJuBDUxCgxYTn1k3ijVOEnxg=
+github.com/go-git/go-git/v5 v5.13.1 h1:DAQ9APonnlvSWpvolXWIuV6Q6zXy2wHbN4cVlNR5Q+M=
+github.com/go-git/go-git/v5 v5.13.1/go.mod h1:qryJB4cSBoq3FRoBRf5A77joojuBcmPJ0qu3XXXVixc=
 github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da h1:oI5xCqsCo564l8iNU+DwB5epxmsaqB+rhGL0m5jtYqE=
 github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
