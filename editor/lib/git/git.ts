@@ -15,8 +15,18 @@ const errorChecker = ([error]) => {
     let errorObj: ErrorObj;
     try {
         const json = JSON.parse(error.trim().replace(/\n/g, ""));
-        if(typeof json.Url === "string" && typeof json.Data === "string") return;
-        errorObj = json;
+        if (typeof json.Data === "string") {
+            let maybeError: ErrorObj;
+            try {
+                maybeError = JSON.parse(json.Data)
+            } catch (e) { }
+            if (maybeError?.Error) {
+                errorObj = maybeError
+            }
+        }
+        else if (json?.Error) {
+            errorObj = json;
+        }
     } catch (e) { }
 
     if (!errorObj) return;
@@ -61,14 +71,14 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
                     }
                 });
                 return;
+            } else if (e.Error) {
+                throw e.Error;
             }
-
-            throw e.Error;
         }
 
         const { Url, Data } = JSON.parse(message);
-        
-        if(Url !== repoUrl) return;
+
+        if (Url !== repoUrl) return;
 
         if (Data.endsWith("done")) {
             core_message.removeListener(messageType, checkForAuthError);

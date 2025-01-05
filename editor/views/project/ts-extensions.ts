@@ -25,7 +25,7 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     let tsErrors = await getAllTsError();
 
     const needsTypes = tsErrors.filter((e) => {
-        if (e.code !== 7016 && e.code !== 2307) return false;
+        if (!e?.code || (e.code !== 7016 && e.code !== 2307)) return false;
 
         const text = e.file?.text || view.state.doc.toString();
 
