@@ -9,23 +9,16 @@ type ErrorObj = {
     Error: string;
 };
 
-const errorChecker = ([error]) => {
-    if (!error) return;
+const errorChecker = ([maybeError]) => {
+    if (!maybeError) return;
 
     let errorObj: ErrorObj;
     try {
-        const json = JSON.parse(error.trim().replace(/\n/g, ""));
-        if (typeof json.Data === "string") {
-            let maybeError: ErrorObj;
-            try {
-                maybeError = JSON.parse(json.Data)
-            } catch (e) { }
-            if (maybeError?.Error) {
-                errorObj = maybeError
+        const json = JSON.parse(maybeError);
+        if(json.Error) {
+            errorObj = {
+                Error: json.Data
             }
-        }
-        else if (json?.Error) {
-            errorObj = json;
         }
     } catch (e) { }
 
@@ -77,7 +70,6 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
         }
 
         const { Url, Data } = JSON.parse(message);
-
         if (Url !== repoUrl) return;
 
         if (Data.endsWith("done")) {
@@ -98,7 +90,7 @@ async function checkForAuthRequiredOnResponse<T extends (...args: any) => any>(
     do {
         response = await ipcCallWithAuth(repoUrl, ipcCall);
         try {
-            errorChecker([response.at(0)]);
+            errorChecker(response);
         } catch (e) {
             if (e.Error?.startsWith("authentication required")) {
                 retry = await GitAuth(getHostnameFromRepoURL(repoUrl));

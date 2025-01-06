@@ -48,10 +48,16 @@ async function demoFromGitHub() {
     let checkForDone: (message: string) => void;
     const donePromise = new Promise<void>((resolve) => {
         checkForDone = (gitProgress: string) => {
-            const { Url, Data } = JSON.parse(gitProgress);
-            if (Url !== demoRepoUrl) return;
+            let json: { Url: string; Data: string };
+            try {
+                json = JSON.parse(gitProgress);
+            } catch (e) {
+                return;
+            }
 
-            if (Data.trim().endsWith("done")) {
+            if (json.Url !== demoRepoUrl) return;
+
+            if (json.Data.trim().endsWith("done")) {
                 resolve();
             }
         };
