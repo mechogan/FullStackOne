@@ -41,13 +41,13 @@ class WebViewExtended: WKWebView, WKUIDelegate {
 }
 
 struct WebViewRepresentable: NSViewRepresentable {
-    private let projectId: String;
+    private let webview: WebView;
     init(webView: WebView) {
-        self.projectId = webView.requestHandler.instance.id
+        self.webview = webView
     }
     
     func makeNSView(context: Context) -> WebView  {
-        return (WebViews.singleton?.getView(projectId: self.projectId))!
+        return self.webview
     }
     
     func updateNSView(_ uiView: WebView, context: Context) {

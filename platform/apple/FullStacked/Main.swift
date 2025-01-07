@@ -15,23 +15,6 @@ func setDirectories(){
     let root = paths.first!
     let config = root + "/.config"
     let editor = Bundle.main.path(forResource: "editor", ofType: nil)!
-//
-//    // MIGRATION 2024-11-06 - 0.9.0 to 0.10.0
-//
-//    let oldConfigDir = config + "/fullstacked"
-//    if(FileManager.default.fileExists(atPath: oldConfigDir)) {
-//        let items = try! FileManager.default.contentsOfDirectory(atPath: oldConfigDir)
-//        items.filter({!$0.contains("node_modules")}).forEach({ item in
-//            let oldPathUrl = URL(fileURLWithPath: oldConfigDir + "/" + item)
-//            let newPathUrl = URL(fileURLWithPath: config + "/" + item)
-//            if(FileManager.default.fileExists(atPath: config + "/" + item)) {
-//                try! FileManager.default.removeItem(at: newPathUrl)
-//            }
-//            try! FileManager.default.copyItem(at: oldPathUrl, to: newPathUrl)
-//        })
-//    }
-//    
-//    // end migration
     
     directories(
         root.ptr(),
@@ -45,12 +28,16 @@ func CallbackC(projectIdPtr: UnsafeMutablePointer<Int8>, messageTypePtr: UnsafeM
     let messageType = String(cString: messageTypePtr)
     let message = String(cString: messagePtr)
     
-    if(projectId == "" && messageType == "open") {
-        WebViews.singleton?.addWebView(webView: WebView(instance: Instance(projectId: message)))
+    if(projectId == "") {
+        if(messageType == "open") {
+            FullStackedApp.singleton?.webViews.addWebView(projectId: message)
+        } else if(FullStackedApp.singleton!.webViews.ready) {
+            FullStackedApp.singleton?.webViews.getEditor().onMessage(messageType: messageType, message: message)
+        }
         return
     }
     
-    if let webview = WebViews.singleton?.getView(projectId: projectId) {
+    if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
         webview.onMessage(messageType: messageType, message: message)
     }
 }
@@ -63,14 +50,27 @@ func setCallback(){
 
 
 class WebViews: ObservableObject {
-    static var singleton: WebViews?
     @Published var views: [WebView] = []
-    init() {
-        WebViews.singleton = self;
+    @Published var hiddenProjectsIds: [String] = []
+    var ready = false
+    private var editor: WebView?
+    
+    func getEditor() -> WebView {
+        if(self.editor == nil) {
+            self.editor = WebView(instance: Instance(projectId: "", isEditor: true))
+        }
+        return self.editor!
     }
-    func addWebView(webView: WebView) {
-        self.views.append(webView)
+    
+    func addWebView(projectId: String) {
+        if let existingWebView = self.getView(projectId: projectId) {
+            existingWebView.reload()
+        } else {
+            let webView = WebView(instance: Instance(projectId: projectId))
+            self.views.append(webView)
+        }
     }
+    
     func getView(projectId: String) -> WebView? {
         if let view = self.views.first(where: {$0.requestHandler.instance.id == projectId}) {
             return view
@@ -78,58 +78,150 @@ class WebViews: ObservableObject {
         
         return nil
     }
+    
     func removeView(projectId: String) {
         if let viewIndex = self.views.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
             let view = self.views.remove(at: viewIndex)
             view.close()
         }
+        
+        self.hiddenProjectsIds.removeAll(where: {$0 == projectId})
+    }
+    
+    func setHidden(projectId: String) {
+        self.hiddenProjectsIds.append(projectId)
+    }
+    
+    func isHidden(_ projectId: String) -> Bool {
+        return self.hiddenProjectsIds.first(where: { $0 == projectId }) != nil
     }
 }
 
-struct Main: View {
-    @ObservedObject var webViews = WebViews()
+
+
+struct WebViewSingle: View {
+    var webView: WebView;
     
-    init(){
-        setDirectories()
-        setCallback()
-        
-        self.webViews.addWebView(webView: WebView(instance: Instance(projectId: "", isEditor: true)))
+    var body: some View {
+        WebViewRepresentable(webView: self.webView)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            .edgesIgnoringSafeArea(.all)
+            .ignoresSafeArea()
+    }
+}
+
+struct WebViewEditor: View {
+    var webView: WebView;
+    
+    var body: some View {
+        WebViewRepresentable(webView: self.webView)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            .edgesIgnoringSafeArea(.all)
+            .ignoresSafeArea()
+            .onOpenURL{ url in
+                self.webView.onMessage(messageType: "deeplink", message: url.absoluteString)
+            }
+    }
+}
+
+#if os(macOS)
+let isMacOS = true
+#else
+let isMacOS = false
+#endif
+
+
+@available(iOS 16.0, *)
+struct WebViewsStacked: View {
+    @ObservedObject var webViews: WebViews;
+    
+    @Environment(\.supportsMultipleWindows) public var supportsMultipleWindows
+    @Environment(\.openWindow) private var openWindow
+    
+    init(webViews: WebViews) {
+        self.webViews = webViews
+        self.webViews.ready = true
     }
     
     var body: some View {
         ZStack {
+            WebViewEditor(webView: self.webViews.getEditor())
             ForEach(self.webViews.views.indices, id: \.self) { webViewIndex in
-                
-                if self.webViews.views[webViewIndex].requestHandler.instance.isEditor {
+                VStack(spacing: 0) {
+                    HStack(alignment: .center) {
+                        if(supportsMultipleWindows) {
+                            Button {
+                                let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                                self.openWindow(id: "window-webview", value: projectId)
+                                FullStackedApp.singleton?.webViews.setHidden(projectId: projectId)
+                            } label: {
+                                Image(systemName: "square.fill.on.square.fill")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
+                        }
+                        
+                        Button {
+                            let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                            self.webViews.removeView(projectId: projectId)
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .keyboardShortcut("w", modifiers: .command)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
+                    }
+                    
                     WebViewRepresentable(webView: self.webViews.views[webViewIndex])
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
-                        .onOpenURL{ url in
-                            self.webViews.views[webViewIndex].onMessage(messageType: "deeplink", message: url.absoluteString)
-                        }
-                } else {
-                    VStack(spacing: 0) {
-                        HStack(alignment: .center) {
-                            Button {
+                        .onAppear() {
+                            if(isMacOS) {
                                 let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
-                                self.webViews.removeView(projectId: projectId)
-                            } label: {
-                                Image(systemName: "xmark")
+                                self.openWindow(id: "window-webview", value: projectId)
                             }
-                            .keyboardShortcut("w", modifiers: .command)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
                         }
-                        
-                        WebViewRepresentable(webView: self.webViews.views[webViewIndex])
-                            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                            .edgesIgnoringSafeArea(.all)
-                            .ignoresSafeArea()
-                    }
-                    .background(Color.black)
                 }
-                
+                .background(Color.black)
+                .opacity(isMacOS || FullStackedApp.singleton!.webViews.isHidden(self.webViews.views[webViewIndex].requestHandler.instance.id) ? 0 : 1)
+            }
+        }
+        .background(Color(hex: 0x1e293b))
+    }
+}
+
+struct WebViewsStackedLegacy: View {
+    @ObservedObject var webViews: WebViews;
+    
+    init(webViews: WebViews) {
+        self.webViews = webViews
+        self.webViews.ready = true
+    }
+    
+    var body: some View {
+        ZStack {
+            WebViewEditor(webView: self.webViews.getEditor())
+            ForEach(self.webViews.views.indices, id: \.self) { webViewIndex in
+                VStack(spacing: 0) {
+                    HStack(alignment: .center) {
+                        Button {
+                            let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                            self.webViews.removeView(projectId: projectId)
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .keyboardShortcut("w", modifiers: .command)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
+                    }
+                    
+                    WebViewRepresentable(webView: self.webViews.views[webViewIndex])
+                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                        .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()
+                }
+                .background(Color.black)
             }
         }
         .background(Color(hex: 0x1e293b))

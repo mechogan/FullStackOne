@@ -24,13 +24,13 @@ class WebViewExtended: WKWebView {
 }
 
 struct WebViewRepresentable: UIViewRepresentable {
-    private let projectId: String;
+    private let webView: WebView;
     init(webView: WebView) {
-        self.projectId = webView.requestHandler.instance.id
+        self.webView = webView
     }
     
     func makeUIView(context: Context) -> WebView  {
-        return (WebViews.singleton?.getView(projectId: self.projectId))!
+        return webView
     }
     
     func updateUIView(_ uiView: WebView, context: Context) {

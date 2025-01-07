@@ -28,7 +28,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
         
         userContentController.add(self, name: "bridge")
         
-        if #available(iOS 16.4, *) {
+        if #available(iOS 16.4, macOS 13.3, *) {
             self.isInspectable = true
         }
         
