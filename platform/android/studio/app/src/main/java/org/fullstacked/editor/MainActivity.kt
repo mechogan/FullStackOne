@@ -1,8 +1,10 @@
 package org.fullstacked.editor
 
 import android.app.Activity
+import android.app.UiModeManager
 import android.content.Intent
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.content.res.Configuration.UI_MODE_TYPE_DESK
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -24,12 +26,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     var editorWebViewComponent: WebViewComponent? = null
     var stackedProjectWebViewComponent: WebViewComponent? = null
     val projectsIdsInExternal = mutableListOf<String>()
 
-    var externalProjectsBuildChangeListeners = mutableMapOf<String, OnSharedPreferenceChangeListener>()
+    var onSharedPreferenceChangeListeners = mutableMapOf<String, OnSharedPreferenceChangeListener>()
 
     private external fun directories(
         root: String,
@@ -37,10 +38,17 @@ class MainActivity : ComponentActivity() {
         editor: String,
     )
 
-    private external fun callback()
+    private external fun addCallback(id: Int)
+    private external fun removeCallback(id: Int)
+
+    private val callbackId = (0..9999).random()
 
     fun Callback(projectId: String, messageType: String, message: String) {
+        println("RECEIVED CORE MESSAGE FOR [$projectId] [$messageType]")
+
         if(projectId == "") {
+            if(this.editorWebViewComponent == null) return;
+
             // open project
             if(messageType == "open") {
                 val mainLooper = Looper.getMainLooper()
@@ -52,23 +60,20 @@ class MainActivity : ComponentActivity() {
                     val editor = sharedPreferences.edit()
                     editor.putLong(message, ts)
                     editor.apply()
-                    editor.commit()
 
-                    if(this.projectsIdsInExternal.contains(message)) {
-                        // brings external window in front
+                    if(this.isSamsungDexOrChromeOsOrDeskMode()) {
                         this.openProjectInAdjacentWindow(message)
-                    }
-                    else {
+                    } else {
                         if(stackedProjectWebViewComponent != null) {
                             this.removeStackedProject()
                         }
 
                         if(editorWebViewComponent != null) {
-                            (editorWebViewComponent?.view?.parent as ViewGroup).removeView(editorWebViewComponent?.view)
+                            (editorWebViewComponent?.webView?.parent as ViewGroup).removeView(editorWebViewComponent?.webView)
                         }
 
                         stackedProjectWebViewComponent = WebViewComponent(this, Instance(message))
-                        this.setContentView(stackedProjectWebViewComponent?.view)
+                        this.setContentView(stackedProjectWebViewComponent?.webView)
                     }
                 }
             }
@@ -77,9 +82,9 @@ class MainActivity : ComponentActivity() {
                 editorWebViewComponent?.onMessage(messageType, message)
             }
         }
-        // probably for stacked project
+        // for stacked project
         else if(stackedProjectWebViewComponent?.instance?.projectId == projectId) {
-            stackedProjectWebViewComponent?.onMessage(message, messageType)
+            stackedProjectWebViewComponent?.onMessage(messageType, message)
         }
     }
 
@@ -95,6 +100,8 @@ class MainActivity : ComponentActivity() {
             config,
             editor
         )
+
+        addCallback(callbackId)
 
         var deeplink: String? = null
         var projectIdExternal: String? = null
@@ -116,19 +123,17 @@ class MainActivity : ComponentActivity() {
             this.editorWebViewComponent = WebViewComponent(this, editorInstance)
             this.extractEditorFiles(editorInstance, editor)
             this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
-            this.setContentView(this.editorWebViewComponent?.view)
-            callback()
+            this.setContentView(this.editorWebViewComponent?.webView)
             if(deeplink != null) {
                 this.editorWebViewComponent?.onMessage("deeplink", deeplink)
             }
         }
         // launch single project
         else {
-            this.stackedProjectWebViewComponent = WebViewComponent(this, Instance(projectIdExternal), true)
-            this.setContentView(this.stackedProjectWebViewComponent?.view)
-
+            this.stackedProjectWebViewComponent = WebViewComponent(this, Instance(projectIdExternal))
+            this.setContentView(this.stackedProjectWebViewComponent?.webView)
             var lastTs: Long = 0
-            this.externalProjectsBuildChangeListeners[projectIdExternal] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
+            this.onSharedPreferenceChangeListeners[buildTimestampPreferenceKey] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
                 val ts = sharedPreferences.getLong(projectIdExternal, 0L)
                 println("BUILD TIMESTAMP 1 [$ts]")
                 if(lastTs != ts) {
@@ -137,7 +142,7 @@ class MainActivity : ComponentActivity() {
                     println("BUILD TIMESTAMP 2 [$lastTs]")
                 }
             }
-            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.externalProjectsBuildChangeListeners[projectIdExternal])
+            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.onSharedPreferenceChangeListeners[buildTimestampPreferenceKey])
         }
 
         this.onBackPressedDispatcher.addCallback {
@@ -167,20 +172,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
             }
         }.isEnabled = true
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        removeCallback(callbackId)
+
+        this.removeStackedProject()
 
         if(stackedProjectWebViewComponent != null) {
             val buildTimestampPreferences = getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE)
             val editor = buildTimestampPreferences.edit()
             editor.remove(stackedProjectWebViewComponent?.instance?.projectId)
             editor.apply()
-            editor.commit()
         }
     }
 
@@ -254,13 +260,13 @@ class MainActivity : ComponentActivity() {
 
     fun removeStackedProject(){
         if(stackedProjectWebViewComponent != null) {
+            (stackedProjectWebViewComponent?.webView?.parent as ViewGroup).removeView(stackedProjectWebViewComponent?.webView)
             stackedProjectWebViewComponent?.webView?.destroy()
-            (stackedProjectWebViewComponent?.view?.parent as ViewGroup).removeView(stackedProjectWebViewComponent?.view)
             stackedProjectWebViewComponent = null
         }
 
         if(editorWebViewComponent != null) {
-            this.setContentView(editorWebViewComponent?.view)
+            this.setContentView(editorWebViewComponent?.webView)
         }
     }
 
@@ -278,14 +284,14 @@ class MainActivity : ComponentActivity() {
                 removeStackedProject()
             }
 
-            this.externalProjectsBuildChangeListeners[projectId] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
+            this.onSharedPreferenceChangeListeners[projectId] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
                 if(!sharedPreferences.contains(projectId)) {
                     this.projectsIdsInExternal.remove(projectId)
-                    this.externalProjectsBuildChangeListeners.remove(projectId)
+                    this.onSharedPreferenceChangeListeners.remove(projectId)
                 }
             }
 
-            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.externalProjectsBuildChangeListeners[projectId])
+            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.onSharedPreferenceChangeListeners[projectId])
         }
     }
 
@@ -299,5 +305,31 @@ class MainActivity : ComponentActivity() {
                 fileChooserValueCallback?.onReceiveValue(null)
             }
         }
+    }
+
+    private fun isSamsungDexOrChromeOsOrDeskMode(): Boolean {
+        // Samsung DeX
+        // source: https://developer.samsung.com/samsung-dex/modify-optimizing.html
+        val enabled: Boolean
+        val config = this.resources.configuration
+        try {
+            val configClass: Class<*> = config.javaClass
+            enabled = (configClass.getField("SEM_DESKTOP_MODE_ENABLED").getInt(configClass)
+                    == configClass.getField("semDesktopModeEnabled").getInt(config))
+            return enabled
+        } catch (_: NoSuchFieldException) {
+        } catch (_: IllegalAccessException) {
+        } catch (_: IllegalArgumentException) {
+        }
+
+        // ChromeOS
+        // source: https://www.b4x.com/android/forum/threads/check-if-the-application-is-running-on-a-chromebook.145496/
+        if(this.packageManager.hasSystemFeature("org.chromium.arc") ||
+            this.packageManager.hasSystemFeature("org.chromium.arc.device_management")) {
+            return true
+        }
+
+        val uim = this.getSystemService(UI_MODE_SERVICE) as UiModeManager
+        return uim.currentModeType == UI_MODE_TYPE_DESK
     }
 }

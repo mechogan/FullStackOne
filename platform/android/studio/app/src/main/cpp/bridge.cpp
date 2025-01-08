@@ -1,6 +1,7 @@
 #include <android/log.h>
 #include "bridge.h"
 
+#include <android/log.h>
 #include <cstring>
 #include <string>
 #include <functional>
@@ -41,47 +42,65 @@ JNIEXPORT jbyteArray JNICALL Java_org_fullstacked_editor_Instance_call
 }
 
 JavaVM* javaVm;
-jclass cls;
-jobject mainActivity;
-std::function<void(char*, char*, char*)> cb;
-// can't cast lambda to function (Callback), so use helper
+
+struct CallbackResponder {
+    jobject activity;
+    jclass cls;
+    jint id;
+};
+std::vector<CallbackResponder> responders = {};
+
 void goCallback(char* projectId, char* messageType, char* message) {
-    cb(projectId, messageType, message);
-}
+    __android_log_print(ANDROID_LOG_VERBOSE, "org.fullstacked.editor.core", "goCallback responders count [%zu]", responders.size());
 
-JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved){
-    javaVm = vm;
-
-    JNIEnv *env = nullptr;
-    if (javaVm->AttachCurrentThread(&env, nullptr) == JNI_OK) {
-        // cache MainActivity class
-        jclass clazz = env->FindClass("org/fullstacked/editor/MainActivity");
-        cls = (jclass)env->NewGlobalRef(clazz);
-    }
-
-    cb = [](char* projectId, char* messageType, char* message) {
+    for(CallbackResponder responder : responders) {
         // get JNI env
         JNIEnv *env = nullptr;
         if (javaVm->AttachCurrentThread(&env, nullptr) == JNI_OK) {
             // find method id on cached class
-            jmethodID methodid = env->GetMethodID(cls, "Callback", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+            jmethodID methodid = env->GetMethodID(responder.cls, "Callback", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 
             // callback
             jstring jstr = env->NewStringUTF(projectId);
             jstring jstr2 = env->NewStringUTF(messageType);
             jstring jstr3 = env->NewStringUTF(message);
-            env->CallVoidMethod(mainActivity, methodid, jstr, jstr2, jstr3);
+            env->CallVoidMethod(responder.activity, methodid, jstr, jstr2, jstr3);
         }
-    };
+    }
+}
+
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved){
+    __android_log_print(ANDROID_LOG_VERBOSE, "org.fullstacked.editor.core", "onLoad");
+    javaVm = vm;
+    callback((void*)goCallback);
     return JNI_VERSION_1_6;
 }
 
-JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_callback
-        (JNIEnv * env, jobject thiz)
+JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_addCallback
+        (JNIEnv * env, jobject thiz, jint id)
 {
-    // cache MainActivity instance
-    mainActivity = env->NewGlobalRef(thiz);
-    callback((void*)goCallback);
+    __android_log_print(ANDROID_LOG_VERBOSE, "org.fullstacked.editor.core", "add callback");
+
+    CallbackResponder responder{
+        env->NewGlobalRef(thiz),
+        (jclass)(env->NewGlobalRef(env->FindClass("org/fullstacked/editor/MainActivity"))),
+        id
+    };
+
+    responders.push_back(responder);
+}
+
+JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_removeCallback
+        (JNIEnv * env, jobject thiz, jint id)
+{
+    __android_log_print(ANDROID_LOG_VERBOSE, "org.fullstacked.editor.core", "remove callback");
+
+    for(int i = 0; i < responders.size(); i++) {
+        if(responders.at(i).id == id) {
+            responders.erase(responders.begin() + i);
+            return;
+        }
+    }
 }
 
 }

@@ -24,7 +24,9 @@ extern "C" {
 
     JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved);
 
-    JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_callback(JNIEnv *env, jobject thiz);
+    JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_addCallback(JNIEnv *env, jobject thiz, jint id);
+    JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_removeCallback(JNIEnv *env, jobject thiz, jint id);
+
 }
 
 #endif //FULLSTACKED_EDITOR_EDITOR_H
