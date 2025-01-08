@@ -2,6 +2,7 @@ package org.fullstacked.editor
 
 import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -14,6 +15,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import java.io.File
 
+val buildTimestampPreferenceKey = "project-build-ts"
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -21,7 +23,13 @@ class MainActivity : ComponentActivity() {
             System.loadLibrary("editor-core")
         }
     }
-    val webViews = mutableListOf<Pair<String, WebViewComponent>>()
+
+
+    var editorWebViewComponent: WebViewComponent? = null
+    var stackedProjectWebViewComponent: WebViewComponent? = null
+    val projectsIdsInExternal = mutableListOf<String>()
+
+    var externalProjectsBuildChangeListeners = mutableMapOf<String, OnSharedPreferenceChangeListener>()
 
     private external fun directories(
         root: String,
@@ -32,25 +40,52 @@ class MainActivity : ComponentActivity() {
     private external fun callback()
 
     fun Callback(projectId: String, messageType: String, message: String) {
-        if(projectId == "" && messageType == "open") {
-            val mainLooper = Looper.getMainLooper()
-            val handler = Handler(mainLooper)
-            handler.post {
-                val webView = WebViewComponent(this, Instance(message))
-                this.webViews.add(Pair(message, webView))
-                val params =
-                    ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                this.addContentView(webView.webView, params)
+        if(projectId == "") {
+            // open project
+            if(messageType == "open") {
+                val mainLooper = Looper.getMainLooper()
+                val handler = Handler(mainLooper)
+                handler.post {
+                    val ts = System.currentTimeMillis()
+                    println("BUILD TIMESTAMP [$message] [$ts]")
+                    val sharedPreferences = this.getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+                    editor.putLong(message, ts)
+                    editor.apply()
+                    editor.commit()
+
+                    if(this.projectsIdsInExternal.contains(message)) {
+                        // brings external window in front
+                        this.openProjectInAdjacentWindow(message)
+                    }
+                    else {
+                        if(stackedProjectWebViewComponent != null) {
+                            this.removeStackedProject()
+                        }
+
+                        if(editorWebViewComponent != null) {
+                            (editorWebViewComponent?.view?.parent as ViewGroup).removeView(editorWebViewComponent?.view)
+                        }
+
+                        stackedProjectWebViewComponent = WebViewComponent(this, Instance(message))
+                        this.setContentView(stackedProjectWebViewComponent?.view)
+                    }
+                }
             }
-
-            return
+            // pass message to editor
+            else {
+                editorWebViewComponent?.onMessage(messageType, message)
+            }
         }
-
-        val webView = this.webViews.find { it.first == projectId } ?: return
-        webView.second.onMessage(messageType, message)
+        // probably for stacked project
+        else if(stackedProjectWebViewComponent?.instance?.projectId == projectId) {
+            stackedProjectWebViewComponent?.onMessage(message, messageType)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         val root = this.filesDir.absolutePath + "/projects"
         val config = this.filesDir.absolutePath + "/.config"
         val editor = this.filesDir.absolutePath + "/editor"
@@ -61,42 +96,91 @@ class MainActivity : ComponentActivity() {
             editor
         )
 
-        val editorInstance = Instance( "", true)
-        val editorWebView = WebViewComponent(this, editorInstance)
+        var deeplink: String? = null
+        var projectIdExternal: String? = null
+        val data: Uri? = intent?.data
+        if(data != null && data.toString().isNotEmpty()) {
+            val urlStr = data.toString()
+            if(urlStr.startsWith("fullstacked://http")) {
+                println("LAUNCH URL [$data]")
+                deeplink = urlStr
+            } else {
+                projectIdExternal = urlStr.slice("fullstacked://".length..< urlStr.length)
+                println("INTENT [$projectIdExternal]")
+            }
+        }
 
-        this.extractEditorFiles(editorInstance, editor)
+        // launch editor and maybe launch Url
+        if(projectIdExternal == null) {
+            val editorInstance = Instance( "", true)
+            this.editorWebViewComponent = WebViewComponent(this, editorInstance)
+            this.extractEditorFiles(editorInstance, editor)
+            this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
+            this.setContentView(this.editorWebViewComponent?.view)
+            callback()
+            if(deeplink != null) {
+                this.editorWebViewComponent?.onMessage("deeplink", deeplink)
+            }
+        }
+        // launch single project
+        else {
+            this.stackedProjectWebViewComponent = WebViewComponent(this, Instance(projectIdExternal), true)
+            this.setContentView(this.stackedProjectWebViewComponent?.view)
 
-        super.onCreate(savedInstanceState)
-        this.fileChooserResultLauncher = this.createFileChooserResultLauncher()
-
-        this.webViews.add(Pair("", editorWebView))
-
-        this.setContentView(editorWebView.webView)
-
-        callback()
+            var lastTs: Long = 0
+            this.externalProjectsBuildChangeListeners[projectIdExternal] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
+                val ts = sharedPreferences.getLong(projectIdExternal, 0L)
+                println("BUILD TIMESTAMP 1 [$ts]")
+                if(lastTs != ts) {
+                    this.stackedProjectWebViewComponent?.webView?.reload()
+                    lastTs = ts
+                    println("BUILD TIMESTAMP 2 [$lastTs]")
+                }
+            }
+            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.externalProjectsBuildChangeListeners[projectIdExternal])
+        }
 
         this.onBackPressedDispatcher.addCallback {
-            if(webViews.size == 1) {
-                webViews.first().second.back { didGoBack ->
+            // in external project window
+            if(editorWebViewComponent == null && stackedProjectWebViewComponent != null) {
+                stackedProjectWebViewComponent?.back { didGoBack ->
                     if(!didGoBack) {
-                        moveTaskToBack(true)
-                    }
-                }
-            } else {
-                val lastWebView = webViews.last()
-                lastWebView.second.back { didGoBack ->
-                    if(!didGoBack) {
-                        (lastWebView.second.webView.parent as ViewGroup).removeView(lastWebView.second.webView)
-                        webViews.remove(lastWebView)
+                        finish()
                     }
                 }
             }
-        }.isEnabled = true
+            // in top window
+            else {
+                // we have a stacked project
+                if(stackedProjectWebViewComponent != null) {
+                    stackedProjectWebViewComponent?.back { didGoBack ->
+                        if(!didGoBack) {
+                            removeStackedProject()
+                        }
+                    }
+                }
+                // we're in the editor
+                else {
+                    editorWebViewComponent?.back { didGoBack ->
+                        if(!didGoBack) {
+                            moveTaskToBack(true)
+                        }
+                    }
+                }
 
-        val data: Uri? = intent?.data
-        if(data != null && data.toString().isNotEmpty()) {
-            println("LAUNCH URL [$data]")
-            editorWebView.onMessage("deeplink", data.toString())
+            }
+        }.isEnabled = true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if(stackedProjectWebViewComponent != null) {
+            val buildTimestampPreferences = getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE)
+            val editor = buildTimestampPreferences.edit()
+            editor.remove(stackedProjectWebViewComponent?.instance?.projectId)
+            editor.apply()
+            editor.commit()
         }
     }
 
@@ -168,6 +252,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun removeStackedProject(){
+        if(stackedProjectWebViewComponent != null) {
+            stackedProjectWebViewComponent?.webView?.destroy()
+            (stackedProjectWebViewComponent?.view?.parent as ViewGroup).removeView(stackedProjectWebViewComponent?.view)
+            stackedProjectWebViewComponent = null
+        }
+
+        if(editorWebViewComponent != null) {
+            this.setContentView(editorWebViewComponent?.view)
+        }
+    }
+
+    fun openProjectInAdjacentWindow(projectId: String) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse("fullstacked://$projectId")
+        intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+
+        if(!this.projectsIdsInExternal.contains(projectId)) {
+            this.projectsIdsInExternal.add(projectId)
+
+            if(stackedProjectWebViewComponent?.instance?.projectId == projectId) {
+                removeStackedProject()
+            }
+
+            this.externalProjectsBuildChangeListeners[projectId] = OnSharedPreferenceChangeListener { sharedPreferences, _ ->
+                if(!sharedPreferences.contains(projectId)) {
+                    this.projectsIdsInExternal.remove(projectId)
+                    this.externalProjectsBuildChangeListeners.remove(projectId)
+                }
+            }
+
+            getSharedPreferences(buildTimestampPreferenceKey, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this.externalProjectsBuildChangeListeners[projectId])
+        }
+    }
 
     lateinit var fileChooserResultLauncher: ActivityResultLauncher<Intent>
     var fileChooserValueCallback: ValueCallback<Array<Uri>>? = null

@@ -3,7 +3,7 @@ module fullstacked/editor
 go 1.23.1
 
 require (
-	github.com/evanw/esbuild v0.24.0 // direct
+	github.com/evanw/esbuild v0.24.2 // direct
 	github.com/go-git/go-git/v5 v5.13.1 // direct
 )
 

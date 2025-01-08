@@ -1,11 +1,18 @@
 package org.fullstacked.editor
 
 import android.annotation.SuppressLint
+import android.app.UiModeManager
+import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
+import android.content.res.Configuration.UI_MODE_TYPE_DESK
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -13,17 +20,105 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.Space
+import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat.startActivity
+import androidx.core.graphics.drawable.DrawableCompat
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.Base64
 
 
-class WebViewComponent(val ctx: MainActivity, val instance: Instance) : WebViewClient() {
+class WebViewComponent(
+    val ctx: MainActivity,
+    val instance: Instance,
+    var onExternalView: Boolean = false,
+) : WebViewClient() {
     val webView = createWebView(this)
+    val view = LinearLayout(this.ctx)
     var firstContact = false
     val messageToBeSent = mutableListOf<Pair<String, String>>()
+
+    init {
+        this.view.orientation = LinearLayout.VERTICAL
+        this.view.setBackgroundColor(Color.BLACK)
+        this.view.layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
+
+        if(!instance.isEditor && !this.onExternalView && this.isSamsungDexOrChromebookOrDeskMode()) {
+            val hLayout = LinearLayout(this.ctx)
+
+            val openExternal = Button(this.ctx)
+            openExternal.height = 24
+            openExternal.width = 24
+            openExternal.setCompoundDrawables(null, createDrawable(R.drawable.baseline_open_in_new_24), null, null)
+            openExternal.setOnClickListener {
+                this.ctx.openProjectInAdjacentWindow(instance.projectId)
+            }
+
+            val space = Space(this.ctx)
+            space.layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT, 1f)
+
+            val close = Button(this.ctx)
+            close.height = 24
+            close.width = 24
+            close.minWidth = 24
+            close.setPadding(close.paddingTop, close.paddingTop, close.paddingTop, close.paddingTop)
+            close.setCompoundDrawables(null, createDrawable(R.drawable.baseline_close_24), null, null)
+            close.setOnClickListener {
+                this.ctx.removeStackedProject()
+            }
+
+            hLayout.addView(openExternal, LayoutParams(
+                48,
+                LayoutParams.WRAP_CONTENT
+            ))
+            hLayout.addView(space)
+            hLayout.addView(close, LayoutParams(
+                48,
+                LayoutParams.WRAP_CONTENT
+            ))
+            this.view.addView(hLayout)
+        }
+
+        this.view.addView(this.webView, LayoutParams(MATCH_PARENT, MATCH_PARENT))
+    }
+
+    private fun createDrawable(@DrawableRes id: Int): Drawable {
+        val icon = this.ctx.resources.getDrawable(id, this.ctx.theme)
+        val iconWrapped = DrawableCompat.wrap(icon)
+        DrawableCompat.setTint(icon, Color.BLACK)
+        iconWrapped.setBounds(0, 3, iconWrapped.intrinsicWidth, iconWrapped.intrinsicHeight + 3)
+        return iconWrapped
+    }
+
+    private fun isSamsungDexOrChromebookOrDeskMode(): Boolean {
+        // Samsung DeX
+        // source: https://developer.samsung.com/samsung-dex/modify-optimizing.html
+        val enabled: Boolean
+        val config = this.ctx.resources.configuration
+        try {
+            val configClass: Class<*> = config.javaClass
+            enabled = (configClass.getField("SEM_DESKTOP_MODE_ENABLED").getInt(configClass)
+                    == configClass.getField("semDesktopModeEnabled").getInt(config))
+            return enabled
+        } catch (_: NoSuchFieldException) {
+        } catch (_: IllegalAccessException) {
+        } catch (_: IllegalArgumentException) {
+        }
+
+        // Chromebook
+        // source: https://www.b4x.com/android/forum/threads/check-if-the-application-is-running-on-a-chromebook.145496/
+        if(this.ctx.packageManager.hasSystemFeature("org.chromium.arc") ||
+            this.ctx.packageManager.hasSystemFeature("org.chromium.arc.device_management")) {
+            return true
+        }
+
+        val uim = this.ctx.getSystemService(UI_MODE_SERVICE) as UiModeManager
+        return uim.currentModeType == UI_MODE_TYPE_DESK
+    }
 
     // https://stackoverflow.com/a/45506857
     // Bridging with Base64 seems faster...
