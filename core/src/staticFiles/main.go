@@ -110,7 +110,7 @@ func generateDefaultHTML() []byte {
 	return defaultHTML.Bytes()
 }
 
-var scriptHTML = "<script type=\"module\" src=\"/index.js\"></script>";
+var scriptHTML = "<script type=\"module\" src=\"/index.js\"></script>"
 
 func getScriptNode() *html.Node {
 	doc, _ := html.Parse(strings.NewReader(scriptHTML))
@@ -136,7 +136,7 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 
 	// could not find body,
 	// simply append script to content
-	if(err != nil) {
+	if err != nil {
 		return append(htmlContent, []byte(scriptHTML)...), nil
 	}
 
@@ -156,7 +156,7 @@ func injectScriptInBody(doc *html.Node) error {
 	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && n.DataAtom == atom.Body {
 			n.AppendChild(script)
-			return nil;
+			return nil
 		}
 	}
 
