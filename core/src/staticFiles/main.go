@@ -22,7 +22,7 @@ func Serve(baseDir string, filePath string) []byte {
 	filePathAbs := path.Join(baseDir, filePath)
 	exists, isFile := fs.Exists(filePathAbs)
 
-	// then try in .build directory, 
+	// then try in .build directory,
 	// if exists, use this
 	buildDir := path.Join(baseDir, ".build")
 	buildFilePathAbs := path.Join(buildDir, filePath)
@@ -76,22 +76,22 @@ func indexHTML(directoryPath string) []byte {
 	maybeIndexFilePath := path.Join(directoryPath, "index.html")
 	indexFileExists, isFile := fs.Exists(maybeIndexFilePath)
 
-	if(!indexFileExists || !isFile) {
+	if !indexFileExists || !isFile {
 		return generateDefaultHTML()
 	}
 
 	htmlContent, err := fs.ReadFile(maybeIndexFilePath)
 
-	if(err != nil) {
+	if err != nil {
 		fmt.Println(err)
 		return generateDefaultHTML()
 	}
 
 	htmlContent, err = injectScriptInHTML(htmlContent)
 
-	// in case of errors, should return 
+	// in case of errors, should return
 	// non-injected html content and alert user
-	if(err != nil) {
+	if err != nil {
 		fmt.Println(err)
 		return generateDefaultHTML()
 	}
@@ -100,7 +100,7 @@ func indexHTML(directoryPath string) []byte {
 }
 
 func generateDefaultHTML() []byte {
-	if(len(defaultHTML.Bytes()) == 0) {
+	if len(defaultHTML.Bytes()) == 0 {
 		doc, _ := html.Parse(strings.NewReader("<html><body></body></html>"))
 		injectScriptInBody(doc)
 		html.Render(&defaultHTML, doc)
@@ -110,9 +110,9 @@ func generateDefaultHTML() []byte {
 }
 
 func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
-	doc, err := html.Parse(strings.NewReader(string(htmlContent)));
+	doc, err := html.Parse(strings.NewReader(string(htmlContent)))
 
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 	HTML := bytes.Buffer{}
 	err = html.Render(&HTML, doc)
 
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -132,10 +132,10 @@ func injectScriptInBody(doc *html.Node) {
 	script, _ := html.ParseFragment(strings.NewReader("<script type=\"module\" src=\"/index.js\"></script>"), nil)
 
 	for n := range doc.Descendants() {
-		if (n.Type == html.ElementNode && n.DataAtom == atom.Body) { 
+		if n.Type == html.ElementNode && n.DataAtom == atom.Body {
 			n.AppendChild(script[0])
-			return;
-		 }
+			return
+		}
 	}
 
 	// if body is not found

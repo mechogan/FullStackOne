@@ -68,19 +68,16 @@ func Build(
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
 
-	// if there is no entryPoint, 
+	// if there is no entryPoint,
 	// create tmp empty js file
-	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10) + ".js")
+	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
 	if entryPoint == nil {
 		fs.WriteFile(tmpFile, []byte("import(\"bridge\");"))
 	} else {
 		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
-		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\"" + entryPointAbs + "\")"))
+		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\""+entryPointAbs+"\")"))
 	}
 
-
-
-	
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	if fs.WASM {
