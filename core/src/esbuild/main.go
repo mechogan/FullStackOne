@@ -12,7 +12,7 @@ import (
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
-	"fullstacked/editor/src/utils"
+	utils "fullstacked/editor/src/utils"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
@@ -68,14 +68,13 @@ func Build(
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
 
-	// if there is no entryPoint,
-	// create tmp empty js file
+	// create tmp that imports bridge and entryPoint if any
 	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
 	if entryPoint == nil {
 		fs.WriteFile(tmpFile, []byte("import(\"bridge\");"))
 	} else {
 		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
-		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\""+entryPointAbs+"\")"))
+		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\""+entryPointAbs+"\");"))
 	}
 
 	// add WASM fixture plugin
@@ -94,10 +93,14 @@ func Build(
 							return esbuild.OnResolveResult{}, nil
 						}
 
-						return esbuild.OnResolveResult{
-							Path: "/" + *resolved,
-						}, nil
+						resolvedStr := *resolved
+						if !strings.HasPrefix(resolvedStr, "/") {
+							resolvedStr = "/" + resolvedStr
+						}
 
+						return esbuild.OnResolveResult{
+							Path: resolvedStr,
+						}, nil
 					})
 
 				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
