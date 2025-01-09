@@ -2,8 +2,8 @@ package git
 
 import (
 	fs "fullstacked/editor/src/fs"
+	utils "fullstacked/editor/src/utils"
 	"io"
-	"math/rand"
 	"os"
 	"path"
 	"time"
@@ -232,18 +232,8 @@ func (WasmFS) Join(elem ...string) string {
 	return path.Join(elem...)
 }
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
-
 func (w WasmFS) TempFile(dir, prefix string) (billy.File, error) {
-	filePath := path.Join(dir, prefix+RandStringRunes(6))
+	filePath := path.Join(dir, prefix+utils.RandString(6))
 	return w.Create(filePath)
 }
 

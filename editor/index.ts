@@ -16,7 +16,7 @@ if (navigator.userAgent.includes("Windows")) {
     document.head.append(link);
 }
 
-document.querySelector("#splash").remove();
+document.querySelector("#splash")?.remove();
 Projects();
 Packages();
 

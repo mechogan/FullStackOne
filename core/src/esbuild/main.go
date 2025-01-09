@@ -12,6 +12,7 @@ import (
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
+	"fullstacked/editor/src/utils"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
@@ -66,17 +67,20 @@ func Build(
 
 	// find entryPoint
 	entryPoint := findEntryPoint(projectDirectory)
+
+	// if there is no entryPoint, 
+	// create tmp empty js file
+	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10) + ".js")
 	if entryPoint == nil {
-		setup.Callback(
-			"",
-			"build",
-			base64.StdEncoding.EncodeToString(payload),
-		)
-		return
+		fs.WriteFile(tmpFile, []byte("import(\"bridge\");"))
+	} else {
+		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
+		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\"" + entryPointAbs + "\")"))
 	}
 
-	entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
 
+
+	
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	if fs.WASM {
@@ -119,7 +123,7 @@ func Build(
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath:  entryPointAbs,
+			InputPath:  tmpFile,
 			OutputPath: "index",
 		}},
 		Outdir:    projectDirectory + "/.build",
@@ -147,4 +151,5 @@ func Build(
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
 	payload = append(payload, jsonMessageSerialized...)
 	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
+	fs.Unlink(tmpFile)
 }
