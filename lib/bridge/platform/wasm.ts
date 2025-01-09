@@ -1,5 +1,5 @@
-import { toByteArray } from "base64-js";
 import { Bridge } from "..";
+import { toByteArray } from "../../base64";
 import { deserializeArgs } from "../serialization";
 
 export const BridgeWasm: Bridge = async (

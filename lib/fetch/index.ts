@@ -1,6 +1,6 @@
+import { toByteArray } from "../base64";
 import { bridge } from "../bridge";
 import { deserializeArgs, getLowestKeyIdAvailable, serializeArgs } from "../bridge/serialization";
-import { toByteArray } from "base64-js"
 import core_message from "../core_message";
 
 const te = new TextEncoder()

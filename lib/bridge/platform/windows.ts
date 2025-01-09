@@ -1,5 +1,5 @@
-import { fromByteArray, toByteArray } from "base64-js";
 import { Bridge } from "..";
+import { fromByteArray, toByteArray } from "../../base64";
 import { bytesToNumber, deserializeArgs, getLowestKeyIdAvailable, numberTo4Bytes } from "../serialization";
 
 

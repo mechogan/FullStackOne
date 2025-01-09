@@ -1,4 +1,3 @@
-import { toByteArray } from "base64-js";
 import { bridge } from "../../../lib/bridge";
 import {
     deserializeArgs,
@@ -8,6 +7,7 @@ import {
 import { Project } from "../../types";
 import type { Message } from "esbuild";
 import core_message from "../../../lib/core_message";
+import { toByteArray } from "../../../lib/base64";
 
 
 // 55

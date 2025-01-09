@@ -5,7 +5,7 @@ import {
     deserializeArgs,
     numberTo4Bytes
 } from "../../../lib/bridge/serialization";
-import { toByteArray } from "base64-js";
+import { toByteArray } from "../../../lib/base64";
 
 const gitProxy = "https://p.fullstacked.org";
 

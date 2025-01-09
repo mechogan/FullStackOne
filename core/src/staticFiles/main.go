@@ -2,6 +2,7 @@ package staticFiles
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"mime"
 	"path"
@@ -101,12 +102,27 @@ func indexHTML(directoryPath string) []byte {
 
 func generateDefaultHTML() []byte {
 	if len(defaultHTML.Bytes()) == 0 {
-		doc, _ := html.Parse(strings.NewReader("<html><body></body></html>"))
+		doc, _ := html.Parse(strings.NewReader(""))
 		injectScriptInBody(doc)
 		html.Render(&defaultHTML, doc)
 	}
 
 	return defaultHTML.Bytes()
+}
+
+var scriptHTML = "<script type=\"module\" src=\"/index.js\"></script>";
+
+func getScriptNode() *html.Node {
+	doc, _ := html.Parse(strings.NewReader(scriptHTML))
+
+	for n := range doc.Descendants() {
+		if n.Type == html.ElementNode && n.DataAtom == atom.Script {
+			n.Parent.RemoveChild(n)
+			return n
+		}
+	}
+
+	return nil
 }
 
 func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
@@ -116,7 +132,13 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	injectScriptInBody(doc)
+	err = injectScriptInBody(doc)
+
+	// could not find body,
+	// simply append script to content
+	if(err != nil) {
+		return append(htmlContent, []byte(scriptHTML)...), nil
+	}
 
 	HTML := bytes.Buffer{}
 	err = html.Render(&HTML, doc)
@@ -128,17 +150,15 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 	return HTML.Bytes(), nil
 }
 
-func injectScriptInBody(doc *html.Node) {
-	script, _ := html.ParseFragment(strings.NewReader("<script type=\"module\" src=\"/index.js\"></script>"), nil)
+func injectScriptInBody(doc *html.Node) error {
+	script := getScriptNode()
 
 	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && n.DataAtom == atom.Body {
-			n.AppendChild(script[0])
-			return
+			n.AppendChild(script)
+			return nil;
 		}
 	}
 
-	// if body is not found
-	// append to root
-	doc.AppendChild(script[0])
+	return errors.New("could not find body in doc")
 }
