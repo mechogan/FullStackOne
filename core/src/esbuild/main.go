@@ -65,7 +65,7 @@ func Build(
 
 	// find entryPoints
 	entryPointJS := findEntryPoint(projectDirectory)
-	entryPointAbsCSS := path.Join(projectDirectory, ".build", "index.css")
+	entryPointAbsCSS := filepath.ToSlash(path.Join(projectDirectory, ".build", "index.css"))
 
 	// create tmp that imports bridge and entryPoint if any
 	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
@@ -128,16 +128,16 @@ func Build(
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath:  tmpFile,
+			InputPath:  filepath.ToSlash(tmpFile),
 			OutputPath: "index",
 		}},
 		AllowOverwrite: true,
-		Outdir:    projectDirectory + "/.build",
-		Splitting: !fs.WASM,
-		Bundle:    true,
-		Format:    esbuild.FormatESModule,
-		Sourcemap: esbuild.SourceMapInlineAndExternal,
-		Write:     !fs.WASM,
+		Outdir:         projectDirectory + "/.build",
+		Splitting:      !fs.WASM,
+		Bundle:         true,
+		Format:         esbuild.FormatESModule,
+		Sourcemap:      esbuild.SourceMapInlineAndExternal,
+		Write:          !fs.WASM,
 		NodePaths: []string{
 			path.Join(setup.Directories.Editor, "lib"),
 			setup.Directories.NodeModules,
