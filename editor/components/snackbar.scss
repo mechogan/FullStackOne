@@ -1,0 +1,36 @@
+@use "../style/values/spacing.scss";
+@use "../style/values/colors.scss";
+
+.snack-bars-container {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$small;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 0 spacing.$medium spacing.$medium;
+
+    .snack-bar {
+        background-color: colors.$gray-dark;
+        border-radius: spacing.$x-small;
+        color: colors.$light;
+
+        min-width: 300px;
+        max-width: 450px;
+
+        min-height: 42px;
+       
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        
+        padding: spacing.$x-small spacing.$small;
+
+        box-shadow: 0px 4px 10px colors.opacity(colors.$dark, 60);
+
+        > div:first-child {
+            padding: spacing.$x-small 0;
+        }
+    }
+}
