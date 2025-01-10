@@ -2,7 +2,6 @@ package staticFiles
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"mime"
 	"path"
@@ -40,8 +39,8 @@ func Serve(baseDir string, filePath string) []byte {
 
 	// path is directory,
 	// look for index.html
-	// if exists, parse and inject `<script type="module" src="index.js"></script>`
-	// else, send base HTML index file that includes `<script type="module" src="index.js"></script>`
+	// if exists, parse and inject `<script type="module" src="/index.js"></script>`
+	// else, send base HTML index file that includes `<script type="module" src="/index.js"></script>`
 	if !isFile {
 		data := serialize.SerializeString("text/html")
 		data = append(data, serialize.SerializeBuffer(indexHTML(filePathAbs))...)
@@ -71,21 +70,19 @@ func Serve(baseDir string, filePath string) []byte {
 	return data
 }
 
-var defaultHTML = bytes.Buffer{}
-
 func indexHTML(directoryPath string) []byte {
 	maybeIndexFilePath := path.Join(directoryPath, "index.html")
 	indexFileExists, isFile := fs.Exists(maybeIndexFilePath)
 
 	if !indexFileExists || !isFile {
-		return generateDefaultHTML()
+		return defaultHTML
 	}
 
 	htmlContent, err := fs.ReadFile(maybeIndexFilePath)
 
 	if err != nil {
 		fmt.Println(err)
-		return generateDefaultHTML()
+		return defaultHTML
 	}
 
 	htmlContent, err = injectScriptInHTML(htmlContent)
@@ -94,29 +91,67 @@ func indexHTML(directoryPath string) []byte {
 	// non-injected html content and alert user
 	if err != nil {
 		fmt.Println(err)
-		return generateDefaultHTML()
+		return defaultHTML
 	}
 
 	return htmlContent
 }
 
-func generateDefaultHTML() []byte {
-	if len(defaultHTML.Bytes()) == 0 {
-		doc, _ := html.Parse(strings.NewReader(""))
-		injectScriptInBody(doc)
-		html.Render(&defaultHTML, doc)
-	}
-
-	return defaultHTML.Bytes()
+type DefaultHTMLElement struct {
+	Text   string
+	InHead bool
+	Atom   atom.Atom
+	Attr   map[string][]string
 }
 
-var scriptHTML = "<script type=\"module\" src=\"/index.js\"></script>"
+var defaultHTMLElements = []DefaultHTMLElement{
+	{
+		Text:   `<meta charset="utf-8" />`,
+		InHead: true,
+		Atom:   atom.Meta,
+		Attr:   map[string][]string{"charset": {"*"}},
+	},
+	{
+		Text:   `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />`,
+		InHead: true,
+		Atom:   atom.Meta,
+		Attr:   map[string][]string{"name": {"viewport"}},
+	},
+	{
+		Text:   `<link rel="stylesheet" href="/index.css" />`,
+		InHead: true,
+		Atom:   atom.Link,
+		Attr: map[string][]string{
+			"rel":  {"stylesheet"},
+			"href": {"index.css", "/index.css"},
+		},
+	},
+	{
+		Text:   `<script type="module" src="/index.js"></script>`,
+		Atom:   atom.Script,
+		Attr: map[string][]string{
+			"type": {"module"},
+			"src":  {"index.js", "/index.js"},
+		},
+	},
+}
 
-func getScriptNode() *html.Node {
-	doc, _ := html.Parse(strings.NewReader(scriptHTML))
+var defaultHTML = []byte(`<html>
+	<head>` +
+	defaultHTMLElements[0].Text +
+	defaultHTMLElements[1].Text +
+	defaultHTMLElements[2].Text +
+	`</head>
+	<body>` +
+	defaultHTMLElements[3].Text +
+	`</body>
+</html>`)
+
+func getDefaultElementNode(e DefaultHTMLElement) *html.Node {
+	doc, _ := html.Parse(strings.NewReader(e.Text))
 
 	for n := range doc.Descendants() {
-		if n.Type == html.ElementNode && n.DataAtom == atom.Script {
+		if n.Type == html.ElementNode && n.DataAtom == e.Atom {
 			n.Parent.RemoveChild(n)
 			return n
 		}
@@ -132,13 +167,7 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	err = injectScriptInBody(doc)
-
-	// could not find body,
-	// simply append script to content
-	if err != nil {
-		return append(htmlContent, []byte(scriptHTML)...), nil
-	}
+	injectDefaultTagsInDoc(doc)
 
 	HTML := bytes.Buffer{}
 	err = html.Render(&HTML, doc)
@@ -150,15 +179,86 @@ func injectScriptInHTML(htmlContent []byte) ([]byte, error) {
 	return HTML.Bytes(), nil
 }
 
-func injectScriptInBody(doc *html.Node) error {
-	script := getScriptNode()
+func allTrue(arr []bool) bool {
+	for _, b := range arr {
+		if !b {
+			return false
+		}
+	}
+	return true
+}
 
-	for n := range doc.Descendants() {
-		if n.Type == html.ElementNode && n.DataAtom == atom.Body {
-			n.AppendChild(script)
-			return nil
+func attrMatch(key string, values []string, attrs []html.Attribute) bool {
+	for _, attr := range attrs {
+		if attr.Key != key {
+			continue
+		}
+
+		for _, v := range values {
+			if v == attr.Val {
+				return true
+			}
 		}
 	}
 
-	return errors.New("could not find body in doc")
+	return false
+}
+
+func injectDefaultTagsInDoc(doc *html.Node) {
+	hasDefaultHTMLElement := make([]bool, len(defaultHTMLElements))
+
+	head := (*html.Node)(nil)
+	body := (*html.Node)(nil)
+
+	for n := range doc.Descendants() {
+		if n.Type != html.ElementNode {
+			continue
+		}
+
+		switch n.DataAtom {
+		case atom.Head:
+			head = n
+			continue
+		case atom.Body:
+			body = n
+			continue
+		}
+
+		for i, defaultElement := range defaultHTMLElements {
+			if defaultElement.Atom != n.DataAtom {
+				continue
+			}
+
+			hasAttr := make([]bool, len(defaultElement.Attr))
+			j := 0
+			for attr, values := range defaultElement.Attr {
+				hasAttr[j] = attrMatch(attr, values, n.Attr)
+				j++
+			}
+
+			if allTrue(hasAttr) {
+				hasDefaultHTMLElement[i] = true
+			}
+		}
+	}
+
+	if allTrue(hasDefaultHTMLElement) {
+		return
+	}
+
+	for i := range hasDefaultHTMLElement {
+		if hasDefaultHTMLElement[i] {
+			continue
+		}
+
+		defaultHTMLElement := defaultHTMLElements[i]
+
+		n := getDefaultElementNode(defaultHTMLElement)
+
+		if defaultHTMLElement.InHead {
+			head.AppendChild(n)
+		} else {
+			body.AppendChild(n)
+		}
+	}
 }

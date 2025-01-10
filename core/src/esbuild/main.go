@@ -3,7 +3,6 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"path"
 	"path/filepath"
 	"runtime/debug"
@@ -18,7 +17,6 @@ import (
 )
 
 func Version() string {
-	_ = esbuild.Transform("const x = 0", esbuild.TransformOptions{})
 	bi, _ := debug.ReadBuildInfo()
 
 	for _, dep := range bi.Deps {
@@ -65,22 +63,29 @@ func Build(
 ) {
 	payload := serialize.SerializeNumber(buildId)
 
-	// find entryPoint
-	entryPoint := findEntryPoint(projectDirectory)
+	// find entryPoints
+	entryPointJS := findEntryPoint(projectDirectory)
+	entryPointAbsCSS := path.Join(projectDirectory, ".build", "index.css")
 
 	// create tmp that imports bridge and entryPoint if any
 	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
-	if entryPoint == nil {
-		fs.WriteFile(tmpFile, []byte("import(\"bridge\");"))
+	if entryPointJS == nil {
+		fs.WriteFile(tmpFile, []byte(`
+			import "`+entryPointAbsCSS+`";
+			import "bridge";
+		`))
 	} else {
-		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
-		fs.WriteFile(tmpFile, []byte("await import(\"bridge\");\nimport(\""+entryPointAbs+"\");"))
+		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPointJS))
+		fs.WriteFile(tmpFile, []byte(`
+			import "`+entryPointAbsCSS+`";
+			import "bridge";
+			import "`+entryPointAbs+`";
+		`))
 	}
 
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	if fs.WASM {
-		fmt.Println("WE BUILDING WASM")
 		wasmFS := esbuild.Plugin{
 			Name: "wasm-fs",
 			Setup: func(build esbuild.PluginBuild) {
@@ -126,6 +131,7 @@ func Build(
 			InputPath:  tmpFile,
 			OutputPath: "index",
 		}},
+		AllowOverwrite: true,
 		Outdir:    projectDirectory + "/.build",
 		Splitting: !fs.WASM,
 		Bundle:    true,

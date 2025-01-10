@@ -4,7 +4,6 @@ import SwiftUI
 struct FullStackedApp: App {
     static var singleton: FullStackedApp?
     @ObservedObject var webViews = WebViews()
-    @Environment(\.dismissWindow) private var dismissWindow
 
     init() {
         FullStackedApp.singleton = self;
