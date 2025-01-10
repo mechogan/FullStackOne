@@ -29,12 +29,7 @@ struct FullStackedApp: App {
         
         if #available(iOS 16.1, *) {
             WindowGroup(id: "window-webview", for: String.self) { $projectId in
-                if(projectId != nil && self.webViews.getView(projectId: projectId!) != nil) {
-                    WebViewSingle(webView: self.webViews.getView(projectId: projectId!)!)
-                        .onDisappear {
-                            self.webViews.removeView(projectId: projectId!)
-                        }
-                }
+                WebViewSingle(projectId: projectId)
             }
             .commands {
                 CommandGroup(replacing: CommandGroupPlacement.newItem) {

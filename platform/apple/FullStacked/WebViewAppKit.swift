@@ -22,6 +22,7 @@ class WebViewExtended: WKWebView, WKUIDelegate {
     }
     
     func openDownloadDirectory(){
+        print("ICICICI3");
         NSWorkspace.shared.open(URL(fileURLWithPath: downloadDirectory))
     }
     

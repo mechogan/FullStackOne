@@ -5,7 +5,7 @@ import {
     deserializeArgs,
     numberTo4Bytes
 } from "../../../lib/bridge/serialization";
-import { toByteArray } from "base64-js";
+import { toByteArray } from "../../../lib/base64";
 
 const gitProxy = "https://p.fullstacked.org";
 
@@ -268,7 +268,7 @@ async function initProjectWindow(projectId: string) {
         child.remove()
     );
 
-    // HEAD (link => style, title => title)
+    // HEAD (link => style, title => title, script => script)
     indexHTML.head
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach(async (element) => {
@@ -279,9 +279,9 @@ async function initProjectWindow(projectId: string) {
                     webview.winbox.setTitle(element.innerText);
                 }
                 return;
-            }
-
-            if (
+            } else if (element instanceof HTMLScriptElement && element.src) {
+                element = await scriptSrcToBlobURL(element, projectId)
+            } else if (
                 element instanceof HTMLLinkElement &&
                 element.rel === "stylesheet"
             ) {
@@ -308,18 +308,7 @@ async function initProjectWindow(projectId: string) {
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach(async (element) => {
             if (element instanceof HTMLScriptElement && element.src) {
-                const url = new URL(element.src);
-                if (url.host === window.location.host) {
-                    const script = window.document.createElement("script");
-                    script.type = element.type;
-                    const [type, content] = await staticFileServing(
-                        projectId,
-                        url.pathname
-                    );
-                    const blob = new Blob([content], { type });
-                    script.src = URL.createObjectURL(blob);
-                    element = script;
-                }
+                element = await scriptSrcToBlobURL(element, projectId)
             } else {
                 element
                     .querySelectorAll<HTMLImageElement>("img")
@@ -361,6 +350,24 @@ function checkForPageBGColor(webview: {
             ".wb-control"
         ).style.filter = "invert(1)";
     }
+}
+
+async function scriptSrcToBlobURL(element: HTMLScriptElement, projectId: string) {
+    const url = new URL(element.src);
+    
+    if (url.host === window.location.host) {
+        const script = window.document.createElement("script");
+        script.type = element.type;
+        const [type, content] = await staticFileServing(
+            projectId,
+            url.pathname
+        );
+        const blob = new Blob([content], { type });
+        script.src = URL.createObjectURL(blob);
+        return script
+    }
+
+    return element
 }
 
 async function replaceImageWithObjectURL(

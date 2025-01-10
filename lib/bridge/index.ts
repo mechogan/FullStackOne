@@ -31,3 +31,5 @@ switch (platform) {
     case Platform.DOCKER:
         console.log("Bridge not yet implemented");
 }
+
+console.log("FullStacked")

@@ -194,9 +194,10 @@ async function build(project: ProjectType) {
 
     await Promise.all([saveAllViews(), fs.rmdir(project.id + "/.build")]);
 
-    const buildErrors = (
-        await Promise.all([buildSASS(project), esbuild.build(project)])
-    )
+    const buildErrorsSASS = await buildSASS(project);
+    const buildErrorsEsbuild = await esbuild.build(project);
+
+    const buildErrors = [buildErrorsSASS, ...(buildErrorsEsbuild || [])]
         .flat()
         .filter(Boolean);
 
@@ -219,13 +220,32 @@ async function build(project: ProjectType) {
 }
 
 async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
+    const writeOutputCSS = async (css: string) => {
+        const buildDirectory = `${project.id}/.build`;
+        await fs.mkdir(buildDirectory);
+        await fs.writeFile(buildDirectory + "/index.css", css);
+    }
+
     const contents = await fs.readdir(project.id);
-    const entryPoint = contents.find(
+    const entryPointSASS = contents.find(
         (item) => item === "index.sass" || item === "index.scss"
     );
-    if (!entryPoint) return null;
 
-    const entryData = await fs.readFile(`${project.id}/${entryPoint}`, {
+    // check for css file and write to output
+    // esbuild will pick it up and merge with css in js
+    if (!entryPointSASS) {
+        const entryPointCSS = contents.find((item) => item === "index.css");
+        if (entryPointCSS) {
+            // TODO: fs.copyFile
+            await writeOutputCSS(await fs.readFile(`${project.id}/${entryPointCSS}`, { encoding: "utf8" }))
+        } else {
+            await writeOutputCSS("");
+        }
+
+        return;
+    };
+
+    const entryData = await fs.readFile(`${project.id}/${entryPointSASS}`, {
         encoding: "utf8"
     });
     let result: sass.CompileResult;
@@ -241,8 +261,8 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                              ? "scss"
-                              : "css",
+                                ? "scss"
+                                : "css",
                         contents
                     };
                 },
@@ -251,7 +271,7 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
         });
     } catch (e) {
         const error = e as unknown as sass.Exception;
-        const file = error.span.url?.pathname || entryPoint;
+        const file = error.span.url?.pathname || entryPointSASS;
         const line = error.span.start.line + 1;
         const column = error.span.start.column;
         const length = error.span.text.length;
@@ -269,9 +289,7 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
         };
     }
 
-    const buildDirectory = `${project.id}/.build`;
-    await fs.mkdir(buildDirectory);
-    await fs.writeFile(buildDirectory + "/index.css", result.css);
+    await writeOutputCSS(result.css);
     return null;
 }
 

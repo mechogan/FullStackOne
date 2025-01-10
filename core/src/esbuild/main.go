@@ -3,7 +3,6 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"path"
 	"path/filepath"
 	"runtime/debug"
@@ -12,12 +11,12 @@ import (
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
+	utils "fullstacked/editor/src/utils"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
 func Version() string {
-	_ = esbuild.Transform("const x = 0", esbuild.TransformOptions{})
 	bi, _ := debug.ReadBuildInfo()
 
 	for _, dep := range bi.Deps {
@@ -64,23 +63,29 @@ func Build(
 ) {
 	payload := serialize.SerializeNumber(buildId)
 
-	// find entryPoint
-	entryPoint := findEntryPoint(projectDirectory)
-	if entryPoint == nil {
-		setup.Callback(
-			"",
-			"build",
-			base64.StdEncoding.EncodeToString(payload),
-		)
-		return
-	}
+	// find entryPoints
+	entryPointJS := findEntryPoint(projectDirectory)
+	entryPointAbsCSS := path.Join(projectDirectory, ".build", "index.css")
 
-	entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPoint))
+	// create tmp that imports bridge and entryPoint if any
+	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
+	if entryPointJS == nil {
+		fs.WriteFile(tmpFile, []byte(`
+			import "`+entryPointAbsCSS+`";
+			import "bridge";
+		`))
+	} else {
+		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPointJS))
+		fs.WriteFile(tmpFile, []byte(`
+			import "`+entryPointAbsCSS+`";
+			import "bridge";
+			import "`+entryPointAbs+`";
+		`))
+	}
 
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	if fs.WASM {
-		fmt.Println("WE BUILDING WASM")
 		wasmFS := esbuild.Plugin{
 			Name: "wasm-fs",
 			Setup: func(build esbuild.PluginBuild) {
@@ -93,10 +98,14 @@ func Build(
 							return esbuild.OnResolveResult{}, nil
 						}
 
-						return esbuild.OnResolveResult{
-							Path: "/" + *resolved,
-						}, nil
+						resolvedStr := *resolved
+						if !strings.HasPrefix(resolvedStr, "/") {
+							resolvedStr = "/" + resolvedStr
+						}
 
+						return esbuild.OnResolveResult{
+							Path: resolvedStr,
+						}, nil
 					})
 
 				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
@@ -119,9 +128,10 @@ func Build(
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath:  entryPointAbs,
+			InputPath:  tmpFile,
 			OutputPath: "index",
 		}},
+		AllowOverwrite: true,
 		Outdir:    projectDirectory + "/.build",
 		Splitting: !fs.WASM,
 		Bundle:    true,
@@ -147,4 +157,5 @@ func Build(
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
 	payload = append(payload, jsonMessageSerialized...)
 	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
+	fs.Unlink(tmpFile)
 }

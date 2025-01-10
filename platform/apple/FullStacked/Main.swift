@@ -71,7 +71,7 @@ class WebViews: ObservableObject {
         }
     }
     
-    func getView(projectId: String) -> WebView? {
+    func getView(projectId: String?) -> WebView? {
         if let view = self.views.first(where: {$0.requestHandler.instance.id == projectId}) {
             return view
         }
@@ -79,7 +79,7 @@ class WebViews: ObservableObject {
         return nil
     }
     
-    func removeView(projectId: String) {
+    func removeView(projectId: String?) {
         if let viewIndex = self.views.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
             let view = self.views.remove(at: viewIndex)
             view.close()
@@ -100,13 +100,34 @@ class WebViews: ObservableObject {
 
 
 struct WebViewSingle: View {
-    var webView: WebView;
+    @Environment(\.dismiss) private var dismiss
+    
+    let projectId: String?
+    let webView: WebView?
+    
+    init(projectId: String?) {
+        self.projectId = projectId
+        self.webView = FullStackedApp.singleton?.webViews.getView(projectId: projectId)
+    }
     
     var body: some View {
-        WebViewRepresentable(webView: self.webView)
-            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            .edgesIgnoringSafeArea(.all)
-            .ignoresSafeArea()
+        HStack {
+            if(webView != nil) {
+                WebViewRepresentable(webView: webView!)
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                    .edgesIgnoringSafeArea(.all)
+                    .ignoresSafeArea()
+            }
+        }
+        .onAppear{
+            if(self.projectId == nil || self.webView == nil) {
+                self.dismiss()
+            }
+        }
+        .onDisappear {
+            FullStackedApp.singleton?.webViews.removeView(projectId: projectId)
+        }
+        
     }
 }
 

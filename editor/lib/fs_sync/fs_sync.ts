@@ -1,4 +1,4 @@
-import { fromByteArray } from "base64-js";
+import { fromByteArray } from "../../../lib/base64";
 import { deserializeArgs, serializeArgs } from "../../../lib/bridge/serialization";
 
 function syncRequest(method: number, ...args: any[]) {
