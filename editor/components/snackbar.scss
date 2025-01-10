@@ -10,15 +10,18 @@
     left: 0;
     z-index: 100;
     padding: 0 spacing.$medium spacing.$medium;
+    align-items: flex-start;
+
+    max-width: 450px;
+    @media (max-width: 450px) {
+        align-items: center;
+    }
 
     .snack-bar {
         background-color: colors.$gray-dark;
         border-radius: spacing.$x-small;
         color: colors.$light;
-
-        min-width: 300px;
-        max-width: 450px;
-
+       
         min-height: 42px;
        
         display: flex;

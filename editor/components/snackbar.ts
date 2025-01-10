@@ -43,7 +43,7 @@ export function SnackBar(opts: SnackBarOpt) {
         setTimeout(() => container.remove(), animDuration)
     }
 
-    setTimeout(dismiss, 4000);
+    // setTimeout(dismiss, 4000);
 
     return { dismiss }
 }
