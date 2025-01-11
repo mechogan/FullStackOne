@@ -61,7 +61,6 @@ func Build(
 	projectDirectory string,
 	buildId float64,
 ) {
-	setup.Callback("*", "alert", "WE BUILDING")
 	payload := serialize.SerializeNumber(buildId)
 
 	// find entryPoints
