@@ -72,8 +72,11 @@ async function processScss(entryPoint: string, out: string) {
     await fs.promises.writeFile(out, css);
 }
 
-await processScss("editor/index.scss", `${outDirEditor}/index.css`)
-await processScss("editor/style/globals/scrollbars.scss", `${outDirEditor}/scrollbars.css`)
+await processScss("editor/index.scss", `${outDirEditor}/index.css`);
+await processScss(
+    "editor/style/globals/scrollbars.scss",
+    `${outDirEditor}/scrollbars.css`
+);
 
 fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
     recursive: true
@@ -97,7 +100,10 @@ fs.cpSync("lib", outDirEditor + "/lib", {
     recursive: true,
     filter: (s) => !s.endsWith(".scss")
 });
-await processScss("lib/components/snackbar.scss", `${outDirEditor}/lib/components/snackbar.css`)
+await processScss(
+    "lib/components/snackbar.scss",
+    `${outDirEditor}/lib/components/snackbar.css`
+);
 
 const { version } = JSON.parse(
     fs.readFileSync("package.json", { encoding: "utf-8" })

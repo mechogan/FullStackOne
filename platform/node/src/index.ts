@@ -39,8 +39,8 @@ type WebView = Awaited<ReturnType<typeof createWebView>>;
 const webViews = new Map<string, WebView>();
 
 const cb = (projectId: string, messageType: string, message: string) => {
-    if(projectId === "*") {
-        for(const w of webViews.values()) {
+    if (projectId === "*") {
+        for (const w of webViews.values()) {
             w.message(messageType, message);
         }
         return;
