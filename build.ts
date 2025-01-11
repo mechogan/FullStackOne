@@ -32,19 +32,11 @@ if (textBlockToUpdate) {
 
 const outDir = "out";
 const outDirEditor = `${outDir}/editor`;
-// const outBaseFileJs = `${outDirEditor}/base.js`;
 const outTsLib = `${outDirEditor}/tsLib`;
 
 if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true });
 }
-
-// esbuild.buildSync({
-//     entryPoints: ["src/index.ts"],
-//     bundle: true,
-//     format: "esm",
-//     outfile: outBaseFileJs
-// });
 
 const toBuild = [
     ["editor/index.ts", "index"],
@@ -73,20 +65,15 @@ fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
     recursive: true
 });
 
-const styleEntrypoint = "editor/index.scss";
-const { css } = await sass.compileAsync(styleEntrypoint, {
-    style: production ? "compressed" : "expanded"
-});
-await fs.promises.writeFile(`${outDirEditor}/index.css`, css);
+async function processScss(entryPoint: string, out: string) {
+    const { css } = await sass.compileAsync(entryPoint, {
+        style: production ? "compressed" : "expanded"
+    });
+    await fs.promises.writeFile(out, css);
+}
 
-const scrollbarsStyle = "editor/style/globals/scrollbars.scss";
-const scrollbarsCSS = await sass.compileAsync(scrollbarsStyle, {
-    style: production ? "compressed" : "expanded"
-});
-await fs.promises.writeFile(
-    `${outDirEditor}/scrollbars.css`,
-    scrollbarsCSS.css
-);
+await processScss("editor/index.scss", `${outDirEditor}/index.css`)
+await processScss("editor/style/globals/scrollbars.scss", `${outDirEditor}/scrollbars.css`)
 
 fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
     recursive: true
@@ -107,8 +94,10 @@ fs.cpSync("lib/fullstacked.d.ts", outTsLib + "/fullstacked.d.ts", {
     recursive: true
 });
 fs.cpSync("lib", outDirEditor + "/lib", {
-    recursive: true
+    recursive: true,
+    filter: (s) => !s.endsWith(".scss")
 });
+await processScss("lib/components/snackbar.scss", `${outDirEditor}/lib/components/snackbar.css`)
 
 const { version } = JSON.parse(
     fs.readFileSync("package.json", { encoding: "utf-8" })

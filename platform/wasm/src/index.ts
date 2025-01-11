@@ -91,7 +91,12 @@ globalThis.onmessageWASM = function (
     messageType: string,
     message: string
 ) {
-    if (projectId === "" && messageType === "open") {
+    if(projectId === "*") {
+        for(const w of webviews.values()) {
+            w.window.oncoremessage(messageType, message);
+        }
+        return;
+    } else if (projectId === "" && messageType === "open") {
         createWindow(message);
         return;
     }

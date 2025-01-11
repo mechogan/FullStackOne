@@ -1,3 +1,4 @@
+import "../core_message";
 import platform, { Platform } from "../platform";
 import { BridgeAndroid } from "./platform/android";
 import { BridgeApple, initRespondApple } from "./platform/apple";

@@ -46,8 +46,11 @@ class MainActivity : ComponentActivity() {
     fun Callback(projectId: String, messageType: String, message: String) {
         println("RECEIVED CORE MESSAGE FOR [$projectId] [$messageType]")
 
-        if(projectId == "") {
-            if(this.editorWebViewComponent == null) return;
+        if(projectId == "*") {
+            this.editorWebViewComponent?.onMessage(messageType, message)
+            this.stackedProjectWebViewComponent?.onMessage(messageType, message)
+        } else if(projectId == "") {
+            if(this.editorWebViewComponent == null) return
 
             // open project
             if(messageType == "open") {

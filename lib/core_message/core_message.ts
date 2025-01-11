@@ -1,3 +1,5 @@
+import { SnackBar } from "../components/snackbar";
+
 const coreMessageListeners = new Map<string, Set<(message: string) => void>>();
 export const addListener = (
     messageType: string,
@@ -33,3 +35,9 @@ globalThis.oncoremessage = (messageType: string, message: string) => {
 };
 
 addListener("log", console.log);
+addListener("alert", (message) => {
+    SnackBar({
+        message,
+        autoDismissTimeout: 4000
+    })
+});
