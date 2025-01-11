@@ -1,5 +1,6 @@
 @use "../../editor/style/values/spacing.scss";
 @use "../../editor/style/values/colors.scss";
+@use "../../editor/style/values/typography.scss";
 
 .snack-bars-container {
     display: flex;
@@ -14,6 +15,8 @@
     width: 100%;
     pointer-events: none;
     text-align: left;
+    font-family: typography.$fonts;
+    font-size: typography.$medium;
 
     max-width: 450px;
     @media (max-width: 450px) {

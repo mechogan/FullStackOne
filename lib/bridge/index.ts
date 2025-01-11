@@ -34,3 +34,4 @@ switch (platform) {
 }
 
 console.log("FullStacked")
+bridge(new Uint8Array([0]))

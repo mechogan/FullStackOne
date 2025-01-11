@@ -50,8 +50,6 @@ func callback(cb unsafe.Pointer) {
 			C.CString(message),
 		)
 	}
-
-	setup.Callback("", "", "Hello From Go")
 }
 
 //export call

@@ -126,9 +126,14 @@ namespace FullStacked
 
         public void onCallback(string projectId, string messageType, string message)
         {
-            if (!webviews.ContainsKey(projectId)) return;
-
-            if (projectId == "" && messageType == "open")
+            if (projectId == "*")
+            {
+                foreach (var item in webviews.Values)
+                {
+                    item.Item2.onMessage(messageType, message);
+                }
+            }
+            else if (projectId == "" && messageType == "open")
             {
                 if (webviews.ContainsKey(message))
                 {
@@ -138,11 +143,14 @@ namespace FullStacked
                 {
                     this.bringToFront(new WebView(new Instance(message)));
                 }
-                return;
+            }
+            else if (webviews.ContainsKey(projectId))
+            {
+                WebView webview = webviews[projectId].Item2;
+                webview.onMessage(messageType, message);
             }
 
-            WebView webview = webviews[projectId].Item2;
-            webview.onMessage(messageType, message);
+           
         }
 
 
