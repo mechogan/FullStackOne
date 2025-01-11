@@ -4,7 +4,6 @@ using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Web;
@@ -91,7 +90,6 @@ namespace FullStacked
 
                 // static file serving
 
-
                 byte[] header = new byte[] {
                     1, // Static File Serving
                     2  // STRING
@@ -134,11 +132,6 @@ namespace FullStacked
             };
 
             this.webview.Source = new Uri("http://localhost");
-        }
-
-        private void CoreWebView2_NewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs args)
-        {
-            throw new NotImplementedException();
         }
 
         public void onMessage(string type, string message) {

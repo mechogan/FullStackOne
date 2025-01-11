@@ -9,7 +9,7 @@ import (
 	esbuild "fullstacked/editor/src/esbuild"
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
-	"fullstacked/editor/src/git"
+	git "fullstacked/editor/src/git"
 	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	UNKNOWN     = 0
+	HELLO       = 0
 	STATIC_FILE = 1
 
 	FS_READFILE  = 2
@@ -74,6 +74,8 @@ func Call(payload []byte) []byte {
 	baseDir := setup.Directories.Root + "/" + projectId
 
 	switch {
+	case method == HELLO:
+		setup.Callback("", "", "Hello From Go")
 	case method == STATIC_FILE:
 		if isEditor {
 			baseDir = setup.Directories.Editor

@@ -28,16 +28,16 @@ func CallbackC(projectIdPtr: UnsafeMutablePointer<Int8>, messageTypePtr: UnsafeM
     let messageType = String(cString: messageTypePtr)
     let message = String(cString: messagePtr)
     
-    if(projectId == "") {
+    if(projectId == "*") {
+        FullStackedApp.singleton?.webViews.getEditor().onMessage(messageType: messageType, message: message)
+        FullStackedApp.singleton?.webViews.views.forEach({$0.onMessage(messageType: messageType, message: message)})
+    } else if(projectId == "") {
         if(messageType == "open") {
             FullStackedApp.singleton?.webViews.addWebView(projectId: message)
         } else if(FullStackedApp.singleton!.webViews.ready) {
             FullStackedApp.singleton?.webViews.getEditor().onMessage(messageType: messageType, message: message)
         }
-        return
-    }
-    
-    if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
+    } else if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
         webview.onMessage(messageType: messageType, message: message)
     }
 }

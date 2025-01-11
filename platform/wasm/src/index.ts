@@ -91,7 +91,12 @@ globalThis.onmessageWASM = function (
     messageType: string,
     message: string
 ) {
-    if (projectId === "" && messageType === "open") {
+    if (projectId === "*") {
+        for (const w of webviews.values()) {
+            w.window.oncoremessage(messageType, message);
+        }
+        return;
+    } else if (projectId === "" && messageType === "open") {
         createWindow(message);
         return;
     }
@@ -280,7 +285,7 @@ async function initProjectWindow(projectId: string) {
                 }
                 return;
             } else if (element instanceof HTMLScriptElement && element.src) {
-                element = await scriptSrcToBlobURL(element, projectId)
+                element = await scriptSrcToBlobURL(element, projectId);
             } else if (
                 element instanceof HTMLLinkElement &&
                 element.rel === "stylesheet"
@@ -308,7 +313,7 @@ async function initProjectWindow(projectId: string) {
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach(async (element) => {
             if (element instanceof HTMLScriptElement && element.src) {
-                element = await scriptSrcToBlobURL(element, projectId)
+                element = await scriptSrcToBlobURL(element, projectId);
             } else {
                 element
                     .querySelectorAll<HTMLImageElement>("img")
@@ -352,9 +357,12 @@ function checkForPageBGColor(webview: {
     }
 }
 
-async function scriptSrcToBlobURL(element: HTMLScriptElement, projectId: string) {
+async function scriptSrcToBlobURL(
+    element: HTMLScriptElement,
+    projectId: string
+) {
     const url = new URL(element.src);
-    
+
     if (url.host === window.location.host) {
         const script = window.document.createElement("script");
         script.type = element.type;
@@ -364,10 +372,10 @@ async function scriptSrcToBlobURL(element: HTMLScriptElement, projectId: string)
         );
         const blob = new Blob([content], { type });
         script.src = URL.createObjectURL(blob);
-        return script
+        return script;
     }
 
-    return element
+    return element;
 }
 
 async function replaceImageWithObjectURL(

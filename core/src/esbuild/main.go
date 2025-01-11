@@ -61,6 +61,7 @@ func Build(
 	projectDirectory string,
 	buildId float64,
 ) {
+	setup.Callback("*", "alert", "WE BUILDING")
 	payload := serialize.SerializeNumber(buildId)
 
 	// find entryPoints
@@ -72,12 +73,14 @@ func Build(
 	if entryPointJS == nil {
 		fs.WriteFile(tmpFile, []byte(`
 			import "`+entryPointAbsCSS+`";
+			import "components/snackbar.css";
 			import "bridge";
 		`))
 	} else {
 		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPointJS))
 		fs.WriteFile(tmpFile, []byte(`
 			import "`+entryPointAbsCSS+`";
+			import "components/snackbar.css";
 			import "bridge";
 			import "`+entryPointAbs+`";
 		`))

@@ -1,3 +1,4 @@
+import "../core_message";
 import platform, { Platform } from "../platform";
 import { BridgeAndroid } from "./platform/android";
 import { BridgeApple, initRespondApple } from "./platform/apple";
@@ -33,3 +34,4 @@ switch (platform) {
 }
 
 console.log("FullStacked")
+bridge(new Uint8Array([0]))

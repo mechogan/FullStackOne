@@ -127,8 +127,8 @@ var defaultHTMLElements = []DefaultHTMLElement{
 		},
 	},
 	{
-		Text:   `<script type="module" src="/index.js"></script>`,
-		Atom:   atom.Script,
+		Text: `<script type="module" src="/index.js"></script>`,
+		Atom: atom.Script,
 		Attr: map[string][]string{
 			"type": {"module"},
 			"src":  {"index.js", "/index.js"},

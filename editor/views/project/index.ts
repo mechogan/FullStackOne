@@ -224,7 +224,7 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
         const buildDirectory = `${project.id}/.build`;
         await fs.mkdir(buildDirectory);
         await fs.writeFile(buildDirectory + "/index.css", css);
-    }
+    };
 
     const contents = await fs.readdir(project.id);
     const entryPointSASS = contents.find(
@@ -237,13 +237,17 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
         const entryPointCSS = contents.find((item) => item === "index.css");
         if (entryPointCSS) {
             // TODO: fs.copyFile
-            await writeOutputCSS(await fs.readFile(`${project.id}/${entryPointCSS}`, { encoding: "utf8" }))
+            await writeOutputCSS(
+                await fs.readFile(`${project.id}/${entryPointCSS}`, {
+                    encoding: "utf8"
+                })
+            );
         } else {
             await writeOutputCSS("");
         }
 
         return;
-    };
+    }
 
     const entryData = await fs.readFile(`${project.id}/${entryPointSASS}`, {
         encoding: "utf8"
@@ -261,8 +265,8 @@ async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                                ? "scss"
-                                : "css",
+                              ? "scss"
+                              : "css",
                         contents
                     };
                 },
