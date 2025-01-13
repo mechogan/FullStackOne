@@ -45,43 +45,45 @@ async function ipcCallWithAuth<T extends (...args: any) => any>(
 function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
     repoUrl: string,
     messageType: string,
-    ipcCall: (username: string, password: string) => ReturnType<T>,
-    onDone?: (success: boolean) => void
+    ipcCall: (username: string, password: string) => ReturnType<T>
 ) {
-    const checkForAuthError = (message: string) => {
-        try {
-            errorChecker([message]);
-        } catch (e) {
-            if (e.Error?.startsWith("authentication required")) {
-                const hostname = getHostnameFromRepoURL(repoUrl);
-                GitAuth(hostname).then((retry) => {
-                    if (retry) {
-                        ipcCallWithAuth(repoUrl, ipcCall);
-                    } else {
-                        onDone?.(false);
-                        core_message.removeListener(
-                            messageType,
-                            checkForAuthError
-                        );
-                    }
-                });
-                return;
-            } else if (e.Error) {
-                throw e.Error;
+    return new Promise<void>((resolve, reject) => {
+        const checkForAuthError = (message: string) => {
+            try {
+                errorChecker([message]);
+            } catch (e) {
+                if (e.Error?.startsWith("authentication required")) {
+                    const hostname = getHostnameFromRepoURL(repoUrl);
+                    GitAuth(hostname).then((retry) => {
+                        if (retry) {
+                            ipcCallWithAuth(repoUrl, ipcCall);
+                        } else {
+                            reject(e.Error);
+                            core_message.removeListener(
+                                messageType,
+                                checkForAuthError
+                            );
+                        }
+                    });
+                    return;
+                } else if (e.Error) {
+                    reject(e.Error)
+                    return;
+                }
             }
-        }
-
-        const { Url, Data } = JSON.parse(message);
-        if (Url !== repoUrl) return;
-
-        if (Data.endsWith("done")) {
-            onDone?.(true)
-            core_message.removeListener(messageType, checkForAuthError);
-        }
-    };
-
-    core_message.addListener(messageType, checkForAuthError);
-    ipcCallWithAuth(repoUrl, ipcCall);
+    
+            const { Url, Data } = JSON.parse(message);
+            if (Url !== repoUrl) return;
+    
+            if (Data.endsWith("done")) {
+                resolve()
+                core_message.removeListener(messageType, checkForAuthError);
+            }
+        };
+    
+        core_message.addListener(messageType, checkForAuthError);
+        ipcCallWithAuth(repoUrl, ipcCall);
+    })
 }
 
 async function checkForAuthRequiredOnResponse<T extends (...args: any) => any>(
@@ -149,22 +151,19 @@ export function status(projectId: string): Promise<{
 
 // 73
 export function pull(project: Project) {
-    return new Promise<boolean>((resolve) => {
-        const pullWithAuth = (username: string, password: string) => {
-            const payload = new Uint8Array([
-                73,
-                ...serializeArgs([project.id, username, password])
-            ]);
-            return bridge(payload);
-        };
-    
-        checkForAuthRequiredOnCallback(
-            project.gitRepository.url,
-            "git-pull",
-            pullWithAuth,
-            resolve
-        );
-    });
+    const pullWithAuth = (username: string, password: string) => {
+        const payload = new Uint8Array([
+            73,
+            ...serializeArgs([project.id, username, password])
+        ]);
+        return bridge(payload);
+    };
+
+    return checkForAuthRequiredOnCallback(
+        project.gitRepository.url,
+        "git-pull",
+        pullWithAuth,
+    );
 }
 
 // 74

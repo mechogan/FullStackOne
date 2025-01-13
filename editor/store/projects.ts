@@ -169,10 +169,15 @@ async function coreBuild(project: Project) {
 }
 
 async function pull(project: Project) {
+    if(!project.gitRepository?.url) {
+        return;
+    }
+    
     activeProjectPulls.add(project.id);
     pulls.notify();
-    const success = await git.pull(project);
-    if(!success) {
+    try {
+        await git.pull(project);
+    } catch(e) {
         SnackBar({
             message: `Failed to update <b>${project.title}</b>.`,
             autoDismissTimeout: 4000
