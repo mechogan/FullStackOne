@@ -158,7 +158,7 @@ function FileTreeAndEditor(project: ProjectType) {
     return container;
 }
 
-function RunButton(project: ProjectType){
+function RunButton(project: ProjectType) {
     const container = createElement("div");
 
     const button = Button({
@@ -172,23 +172,23 @@ function RunButton(project: ProjectType){
     loaderContainer.append(Loader());
 
     const onBuild = (projectsBuild: Set<string>) => {
-        if(projectsBuild.has(project.id)) {
+        if (projectsBuild.has(project.id)) {
             button.replaceWith(loaderContainer);
         } else {
             loaderContainer.replaceWith(button);
         }
-    }
-    Store.projects.builds.subscribe(onBuild)
+    };
+    Store.projects.builds.subscribe(onBuild);
 
     button.onclick = () => {
-        Store.projects.build(project)
+        Store.projects.build(project);
     };
 
     container.append(button);
 
     container.ondestroy = () => {
         Store.projects.builds.unsubscribe(onBuild);
-    }
+    };
 
     return container;
 }

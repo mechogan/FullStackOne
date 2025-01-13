@@ -29,12 +29,7 @@ export function Settings() {
 
     const userMode = UserMode();
 
-    scrollable.append(
-        userMode, 
-        Packages(), 
-        GitAuthentications(), 
-        Version(),
-    );
+    scrollable.append(userMode, Packages(), GitAuthentications(), Version());
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
@@ -54,20 +49,20 @@ function UserMode() {
 
     const p = document.createElement("p");
     p.innerText = `Simpler interface, removes all developer-related elements.
-Projects start faster, builds only when needed.`
+Projects start faster, builds only when needed.`;
 
     container.append(top, p);
 
     const cb = (userMode: boolean) => {
-        inputSwitch.input.checked = userMode
-    }
+        inputSwitch.input.checked = userMode;
+    };
     Store.preferences.isUserMode.subscribe(cb);
     container.ondestroy = () => {
         Store.preferences.isUserMode.unsubscribe(cb);
-    }
+    };
     inputSwitch.input.onchange = () => {
         Store.preferences.setUserMode(inputSwitch.input.checked);
-    }
+    };
 
     return container;
 }

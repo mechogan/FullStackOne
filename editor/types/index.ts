@@ -7,7 +7,7 @@ export enum CONFIG_TYPE {
 
 export type CONFIG_DATA_TYPE = {
     [CONFIG_TYPE.GENERAL]: {
-        userMode: boolean
+        userMode: boolean;
     };
     [CONFIG_TYPE.PROJECTS]: {
         projects: Project[];

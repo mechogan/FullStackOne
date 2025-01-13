@@ -11,10 +11,10 @@ import git from "../lib/git";
 
 const list = createSubscribable(listP, []);
 
-const activeProjectBuilds = new Set<string>;
+const activeProjectBuilds = new Set<string>();
 const builds = createSubscribable(() => activeProjectBuilds);
 
-const activeProjectPulls = new Set<string>;
+const activeProjectPulls = new Set<string>();
 const pulls = createSubscribable(() => activeProjectPulls);
 
 export const projects = {
@@ -27,7 +27,7 @@ export const projects = {
     builds: builds.subscription,
 
     pull,
-    pulls: pulls.subscription,
+    pulls: pulls.subscription
 };
 
 async function listP() {
@@ -84,16 +84,19 @@ async function build(project: Project) {
     const removeProjectBuild = () => {
         activeProjectBuilds.delete(project.id);
         builds.notify();
-    }
+    };
 
     let isUserMode = false;
-    const setUM = (um: boolean) => isUserMode = um;
+    const setUM = (um: boolean) => (isUserMode = um);
     Store.preferences.isUserMode.subscribe(setUM);
 
     if (isUserMode && project.gitRepository?.url) {
         const head = await git.head(project.id);
-        const lastBuildHash = await fs.readFile(`${project.id}/${buildHashFile}`, { encoding: "utf8" });
-        if(lastBuildHash === head.Hash) {
+        const lastBuildHash = await fs.readFile(
+            `${project.id}/${buildHashFile}`,
+            { encoding: "utf8" }
+        );
+        if (lastBuildHash === head.Hash) {
             core_open(project.id);
             removeProjectBuild();
             return;
@@ -103,7 +106,7 @@ async function build(project: Project) {
     try {
         const rawErrors = await coreBuild(project);
 
-        const buildErrors = rawErrors.map(error => {
+        const buildErrors = rawErrors.map((error) => {
             return {
                 file: error.location?.file,
                 line: error.location?.line,
@@ -114,7 +117,9 @@ async function build(project: Project) {
         });
 
         if (buildErrors.length) {
-            const nonModuleRelatedErrors = buildErrors.filter(e => !isModuleResolveError(e))
+            const nonModuleRelatedErrors = buildErrors.filter(
+                (e) => !isModuleResolveError(e)
+            );
 
             if (isUserMode && nonModuleRelatedErrors.length) {
                 SnackBar({
@@ -128,19 +133,24 @@ async function build(project: Project) {
             if (nonModuleRelatedErrors.length === 0) {
                 Store.preferences.isUserMode.unsubscribe(setUM);
 
-                return new Promise(resolve => {
-                    const waitForModulesInstallation = (packageInstallation: Map<string, any>) => {
+                return new Promise((resolve) => {
+                    const waitForModulesInstallation = (
+                        packageInstallation: Map<string, any>
+                    ) => {
                         if (packageInstallation.size === 0) {
-                            Store.packages.installingPackages.unsubscribe(waitForModulesInstallation);
-                            resolve(build(project))
+                            Store.packages.installingPackages.unsubscribe(
+                                waitForModulesInstallation
+                            );
+                            resolve(build(project));
                         }
-                    }
+                    };
 
-                    Store.packages.installingPackages.subscribe(waitForModulesInstallation);
+                    Store.packages.installingPackages.subscribe(
+                        waitForModulesInstallation
+                    );
                 });
             }
         } else {
-
             if (project.gitRepository?.url) {
                 const head = await git.head(project.id);
                 fs.writeFile(`${project.id}/.build/.commit`, head.Hash);
@@ -169,15 +179,15 @@ async function coreBuild(project: Project) {
 }
 
 async function pull(project: Project) {
-    if(!project.gitRepository?.url) {
+    if (!project.gitRepository?.url) {
         return;
     }
-    
+
     activeProjectPulls.add(project.id);
     pulls.notify();
     try {
         await git.pull(project);
-    } catch(e) {
+    } catch (e) {
         SnackBar({
             message: `Failed to update <b>${project.title}</b>.`,
             autoDismissTimeout: 4000

@@ -15,7 +15,7 @@ let userMode = false;
 export function List() {
     const container = createElement("div");
 
-    const isUserMode = (um: boolean) => userMode = um
+    const isUserMode = (um: boolean) => (userMode = um);
     Store.preferences.isUserMode.subscribe(isUserMode);
 
     const grid = createRefresheable(Grid);
@@ -26,7 +26,6 @@ export function List() {
         Store.preferences.isUserMode.unsubscribe(isUserMode);
     };
     container.append(grid.element);
-
 
     return container;
 }
@@ -68,7 +67,7 @@ function Grid(projects: ProjectType[]) {
 
     container.ondestroy = () => {
         filteredGrid.element.destroy();
-    }
+    };
 
     return container;
 }
@@ -84,8 +83,8 @@ function GridFiltered(projects: ProjectType[]) {
     container.append(...projectsTiles);
 
     container.ondestroy = () => {
-        projectsTiles.forEach(p => p.destroy());
-    }
+        projectsTiles.forEach((p) => p.destroy());
+    };
 
     return container;
 }
@@ -98,25 +97,26 @@ function ProjectTile(project: ProjectType) {
 
     const onPullAndBuild = (projectIds: Set<string>) => {
         if (projectIds.has(project.id)) {
-            container.classList.add("loading")
+            container.classList.add("loading");
             container.prepend(loader);
         } else {
-            container.classList.remove("loading")
-            loader.remove()
+            container.classList.remove("loading");
+            loader.remove();
         }
-    }
+    };
 
-    Store.projects.builds.subscribe(onPullAndBuild)
-    Store.projects.pulls.subscribe(onPullAndBuild)
+    Store.projects.builds.subscribe(onPullAndBuild);
+    Store.projects.pulls.subscribe(onPullAndBuild);
 
     container.ondestroy = () => {
-        Store.projects.builds.unsubscribe(onPullAndBuild)
-        Store.projects.pulls.unsubscribe(onPullAndBuild)
-    }
+        Store.projects.builds.unsubscribe(onPullAndBuild);
+        Store.projects.pulls.unsubscribe(onPullAndBuild);
+    };
 
     container.onclick = () => {
         if (userMode) {
-            Store.projects.pull(project)
+            Store.projects
+                .pull(project)
                 .then(() => Store.projects.build(project));
         } else {
             Project(project);

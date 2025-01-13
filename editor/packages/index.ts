@@ -17,20 +17,22 @@ function getPackageNameFromBuildError(error: BuildError) {
             ?.at(0)
             ?.slice(1, -1);
     } catch (e) {
-        return null
+        return null;
     }
 }
 
 export function isModuleResolveError(error: BuildError) {
     const packageName = getPackageNameFromBuildError(error);
-    return packageName && !packageName.startsWith(".") && !ignoredPackages.has(packageName);
+    return (
+        packageName &&
+        !packageName.startsWith(".") &&
+        !ignoredPackages.has(packageName)
+    );
 }
 
 function checkForPackageToInstall(buildErrors: BuildError[]) {
-    buildErrors
-        .forEach(e => {
-            const packageName = getPackageNameFromBuildError(e)
-            if (packageName)
-                packages.install(packageName);
-        });
+    buildErrors.forEach((e) => {
+        const packageName = getPackageNameFromBuildError(e);
+        if (packageName) packages.install(packageName);
+    });
 }
