@@ -21,21 +21,16 @@ import { Git } from "./git";
 import { Icon } from "../../components/primitives/icon";
 import { createRefresheable } from "../../components/refresheable";
 import fs from "../../../lib/fs";
-import esbuild from "../../lib/esbuild";
-import core_open from "../../lib/core_open";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
 
-let lastOpenedProjectId: string,
-    autoRunning = false,
-    runFn: () => void;
+let lastOpenedProjectId: string;
 export function Project(project: ProjectType, run = false) {
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();
         Store.editor.codeEditor.clearAllBuildErrors();
         WorkerTS.dispose();
-        autoRunning = false;
     }
 
     lastOpenedProjectId = project.id;
@@ -49,28 +44,14 @@ export function Project(project: ProjectType, run = false) {
 
     container.append(topBar, fileTreeAndEditor);
 
-    const autoRun = (installingPackages: Map<string, any>) => {
-        if (!autoRunning) return;
-        if (installingPackages.size === 0) {
-            autoRunning = false;
-            build(project);
-        }
-    };
-    Store.packages.installingPackages.subscribe(autoRun);
-
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
-            Store.packages.installingPackages.unsubscribe(autoRun);
             topBar.destroy();
             fileTreeAndEditor.destroy();
             container.destroy();
         }
     });
-
-    if (run) {
-        runFn();
-    }
 
     return container;
 }
@@ -78,7 +59,8 @@ export function Project(project: ProjectType, run = false) {
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     const actions: ElementComponent[] = [];
 
-    let gitWidget: ReturnType<typeof GitWidget>;
+    let gitWidget: ReturnType<typeof GitWidget>,
+        runButton: ReturnType<typeof RunButton>;
     if (project.id === "node_modules") {
         const deleteAllButton = Button({
             text: "Delete All",
@@ -119,21 +101,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
             WorkerTS.working.unsubscribe(flashOnWorking);
         };
 
-        const runButton = Button({
-            style: "icon-large",
-            iconLeft: "Play"
-        });
-        runButton.id = RUN_PROJECT_ID;
-
-        runFn = async () => {
-            const loaderContainer = document.createElement("div");
-            loaderContainer.classList.add("loader-container");
-            loaderContainer.append(Loader());
-            runButton.replaceWith(loaderContainer);
-            await build(project);
-            loaderContainer.replaceWith(runButton);
-        };
-        runButton.onclick = runFn;
+        runButton = RunButton(project);
 
         actions.push(gitWidget, tsButton, runButton);
     }
@@ -155,6 +123,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     topBar.ondestroy = () => {
         actions.forEach((e) => e.destroy());
         gitWidget?.destroy();
+        runButton?.destroy();
     };
 
     return topBar;
@@ -189,112 +158,39 @@ function FileTreeAndEditor(project: ProjectType) {
     return container;
 }
 
-async function build(project: ProjectType) {
-    Store.editor.codeEditor.clearAllBuildErrors();
+function RunButton(project: ProjectType){
+    const container = createElement("div");
 
-    await Promise.all([saveAllViews(), fs.rmdir(project.id + "/.build")]);
+    const button = Button({
+        style: "icon-large",
+        iconLeft: "Play"
+    });
+    button.id = RUN_PROJECT_ID;
 
-    const buildErrorsSASS = await buildSASS(project);
-    const buildErrorsEsbuild = await esbuild.build(project);
+    const loaderContainer = document.createElement("div");
+    loaderContainer.classList.add("loader-container");
+    loaderContainer.append(Loader());
 
-    const buildErrors = [buildErrorsSASS, ...(buildErrorsEsbuild || [])]
-        .flat()
-        .filter(Boolean);
-
-    if (buildErrors?.length) {
-        autoRunning = true;
-        buildErrors.forEach((error) => {
-            if (!error?.location) return;
-            Store.editor.codeEditor.addBuildError({
-                file: error.location.file,
-                line: error.location.line,
-                col: error.location.column,
-                length: error.location.length,
-                message: error.text
-            });
-        });
-    } else {
-        autoRunning = false;
-        core_open(project.id);
+    const onBuild = (projectsBuild: Set<string>) => {
+        if(projectsBuild.has(project.id)) {
+            button.replaceWith(loaderContainer);
+        } else {
+            loaderContainer.replaceWith(button);
+        }
     }
-}
+    Store.projects.builds.subscribe(onBuild)
 
-async function buildSASS(project: ProjectType): Promise<Partial<Message>> {
-    const writeOutputCSS = async (css: string) => {
-        const buildDirectory = `${project.id}/.build`;
-        await fs.mkdir(buildDirectory);
-        await fs.writeFile(buildDirectory + "/index.css", css);
+    button.onclick = () => {
+        Store.projects.build(project)
     };
 
-    const contents = await fs.readdir(project.id);
-    const entryPointSASS = contents.find(
-        (item) => item === "index.sass" || item === "index.scss"
-    );
+    container.append(button);
 
-    // check for css file and write to output
-    // esbuild will pick it up and merge with css in js
-    if (!entryPointSASS) {
-        const entryPointCSS = contents.find((item) => item === "index.css");
-        if (entryPointCSS) {
-            // TODO: fs.copyFile
-            await writeOutputCSS(
-                await fs.readFile(`${project.id}/${entryPointCSS}`, {
-                    encoding: "utf8"
-                })
-            );
-        } else {
-            await writeOutputCSS("");
-        }
-
-        return;
+    container.ondestroy = () => {
+        Store.projects.builds.unsubscribe(onBuild);
     }
 
-    const entryData = await fs.readFile(`${project.id}/${entryPointSASS}`, {
-        encoding: "utf8"
-    });
-    let result: sass.CompileResult;
-    try {
-        result = await sass.compileStringAsync(entryData, {
-            importer: {
-                load: async (url) => {
-                    const filePath = `${project.id}${url.pathname}`;
-                    const contents = await fs.readFile(filePath, {
-                        encoding: "utf8"
-                    });
-                    return {
-                        syntax: filePath.endsWith(".sass")
-                            ? "indented"
-                            : filePath.endsWith(".scss")
-                              ? "scss"
-                              : "css",
-                        contents
-                    };
-                },
-                canonicalize: (path) => new URL(path, window.location.href)
-            }
-        });
-    } catch (e) {
-        const error = e as unknown as sass.Exception;
-        const file = error.span.url?.pathname || entryPointSASS;
-        const line = error.span.start.line + 1;
-        const column = error.span.start.column;
-        const length = error.span.text.length;
-        return {
-            text: error.message,
-            location: {
-                file,
-                line,
-                column,
-                length,
-                namespace: "SASS",
-                lineText: error.message,
-                suggestion: ""
-            }
-        };
-    }
-
-    await writeOutputCSS(result.css);
-    return null;
+    return container;
 }
 
 let refreshBranchAndCommit: ReturnType<typeof createRefresheable>["refresh"];

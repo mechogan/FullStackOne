@@ -19,11 +19,26 @@
         }
     }
 
+    .user-mode {
+        padding-top: spacing.$small;
+        display: flex;
+        gap: spacing.$x-small;
+        flex-direction: column;
+
+        > div:first-child {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        > p {
+            font-size: typography.$small;
+        }
+    }
+
     .packages {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-top: spacing.$small;
     }
 
     .connectivity {

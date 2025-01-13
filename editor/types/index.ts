@@ -1,10 +1,14 @@
 export enum CONFIG_TYPE {
+    GENERAL = "general",
     PROJECTS = "projects",
     GIT = "git"
     // CONNECTIVITY = "connectivity"
 }
 
 export type CONFIG_DATA_TYPE = {
+    [CONFIG_TYPE.GENERAL]: {
+        userMode: boolean
+    };
     [CONFIG_TYPE.PROJECTS]: {
         projects: Project[];
     };

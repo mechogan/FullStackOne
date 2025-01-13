@@ -45,7 +45,8 @@ async function ipcCallWithAuth<T extends (...args: any) => any>(
 function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
     repoUrl: string,
     messageType: string,
-    ipcCall: (username: string, password: string) => ReturnType<T>
+    ipcCall: (username: string, password: string) => ReturnType<T>,
+    onDone?: (success: boolean) => void
 ) {
     const checkForAuthError = (message: string) => {
         try {
@@ -57,6 +58,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
                     if (retry) {
                         ipcCallWithAuth(repoUrl, ipcCall);
                     } else {
+                        onDone?.(false);
                         core_message.removeListener(
                             messageType,
                             checkForAuthError
@@ -73,6 +75,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
         if (Url !== repoUrl) return;
 
         if (Data.endsWith("done")) {
+            onDone?.(true)
             core_message.removeListener(messageType, checkForAuthError);
         }
     };
@@ -146,19 +149,22 @@ export function status(projectId: string): Promise<{
 
 // 73
 export function pull(project: Project) {
-    const pullWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            73,
-            ...serializeArgs([project.id, username, password])
-        ]);
-        return bridge(payload);
-    };
-
-    checkForAuthRequiredOnCallback(
-        project.gitRepository.url,
-        "git-pull",
-        pullWithAuth
-    );
+    return new Promise<boolean>((resolve) => {
+        const pullWithAuth = (username: string, password: string) => {
+            const payload = new Uint8Array([
+                73,
+                ...serializeArgs([project.id, username, password])
+            ]);
+            return bridge(payload);
+        };
+    
+        checkForAuthRequiredOnCallback(
+            project.gitRepository.url,
+            "git-pull",
+            pullWithAuth,
+            resolve
+        );
+    });
 }
 
 // 74

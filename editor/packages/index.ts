@@ -8,23 +8,29 @@ export function Packages() {
     Store.editor.codeEditor.buildErrors.subscribe(checkForPackageToInstall);
 }
 
-function checkForPackageToInstall(buildErrors: BuildError[]) {
-    buildErrors.forEach(({ message }) => {
-        if (!message.startsWith("Could not resolve")) return;
+function getPackageNameFromBuildError(error: BuildError) {
+    if (!error.message?.startsWith("Could not resolve")) return null;
 
-        const packageName: string = message
+    try {
+        return error.message
             .match(/\".*\"/)
             ?.at(0)
             ?.slice(1, -1);
+    } catch (e) {
+        return null
+    }
+}
 
-        console.log("install", packageName);
-        if (
-            packageName.startsWith(".") ||
-            !packageName ||
-            ignoredPackages.has(packageName)
-        )
-            return;
+export function isModuleResolveError(error: BuildError) {
+    const packageName = getPackageNameFromBuildError(error);
+    return packageName && !packageName.startsWith(".") && !ignoredPackages.has(packageName);
+}
 
-        packages.install(packageName);
-    });
+function checkForPackageToInstall(buildErrors: BuildError[]) {
+    buildErrors
+        .forEach(e => {
+            const packageName = getPackageNameFromBuildError(e)
+            if (packageName)
+                packages.install(packageName);
+        });
 }

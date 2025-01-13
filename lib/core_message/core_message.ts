@@ -27,13 +27,14 @@ globalThis.oncoremessage = (messageType: string, message: string) => {
     const listeners = coreMessageListeners.get(messageType);
     if (!listeners?.size) {
         console.log(
-            `No core message listener for message of type [${messageType}]`
+            `No core message listener for message of type [${messageType}] [${message}]`
         );
     } else {
         listeners.forEach((cb) => cb(message));
     }
 };
 
+addListener("hello", console.log);
 addListener("log", console.log);
 addListener("alert", (message) => {
     SnackBar({

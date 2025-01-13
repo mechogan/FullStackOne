@@ -75,7 +75,7 @@ func Call(payload []byte) []byte {
 
 	switch {
 	case method == HELLO:
-		setup.Callback("", "", "Hello From Go")
+		setup.Callback(projectId, "hello", "Hello From Go")
 	case method == STATIC_FILE:
 		if isEditor {
 			baseDir = setup.Directories.Editor
