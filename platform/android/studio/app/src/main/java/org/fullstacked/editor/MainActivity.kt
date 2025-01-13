@@ -224,7 +224,7 @@ class MainActivity : ComponentActivity() {
         val editorZipNumber = this.shouldExtractEditorFromZip(editorDir)
 
         if(editorZipNumber == null) {
-            println("UNZIPPED SKIPPED !")
+            println("UNZIP SKIPPED !")
             return
         }
 

@@ -28,7 +28,7 @@ type GitMessageJSON struct {
 
 func errorFmt(e error) string {
 	gitError := GitMessageJSON{
-		Data:  strings.TrimSpace(e.Error()),
+		Data:  strings.ReplaceAll(strings.TrimSpace(e.Error()), "\"", "\\\""),
 		Error: true,
 	}
 	jsonData, _ := json.Marshal(gitError)
@@ -101,7 +101,7 @@ func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 func (gitProgress *GitProgress) Error(message string) {
 	json, _ := json.Marshal(GitMessageJSON{
 		Url:   gitProgress.Url,
-		Data:  strings.TrimSpace(message),
+		Data:  strings.ReplaceAll(strings.TrimSpace(message), "\"", "\\\""),
 		Error: true,
 	})
 
