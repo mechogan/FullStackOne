@@ -8,6 +8,7 @@ import { buildSASS } from "../lib/esbuild/sass";
 import esbuild from "../lib/esbuild";
 import { isModuleResolveError } from "../packages";
 import git from "../lib/git";
+import platform, { Platform } from "../../lib/platform";
 
 const list = createSubscribable(listP, []);
 
@@ -118,7 +119,8 @@ async function build(project: Project) {
 
         if (buildErrors.length) {
             const nonModuleRelatedErrors = buildErrors.filter(
-                (e) => !isModuleResolveError(e)
+                (e) => !isModuleResolveError(e) && 
+                    !(platform === Platform.WASM && e.message.endsWith("not implemented on js"))
             );
 
             if (isUserMode && nonModuleRelatedErrors.length) {
