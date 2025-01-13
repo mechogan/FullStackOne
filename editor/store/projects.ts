@@ -119,8 +119,12 @@ async function build(project: Project) {
 
         if (buildErrors.length) {
             const nonModuleRelatedErrors = buildErrors.filter(
-                (e) => !isModuleResolveError(e) && 
-                    !(platform === Platform.WASM && e.message.endsWith("not implemented on js"))
+                (e) =>
+                    !isModuleResolveError(e) &&
+                    !(
+                        platform === Platform.WASM &&
+                        e.message.endsWith("not implemented on js")
+                    )
             );
 
             if (isUserMode && nonModuleRelatedErrors.length) {

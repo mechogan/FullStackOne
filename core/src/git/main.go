@@ -105,14 +105,8 @@ func (gitProgress *GitProgress) Error(message string) {
 		Data:  strings.ReplaceAll(strings.TrimSpace(message), "\"", "\\\""),
 		Error: true,
 	})
-	jsonDoneData, _ := json.Marshal(GitMessageJSON{
-		Url:   gitProgress.Url,
-		Data:  "done",
-		Error: true,
-	})
 
 	setup.Callback("", gitProgress.Name, string(jsonData))
-	setup.Callback("", gitProgress.Name, string(jsonDoneData))
 }
 
 func Clone(into string, url string, username *string, password *string) {
@@ -629,13 +623,13 @@ func BranchDelete(directory string, branch string) []byte {
 }
 
 type stashedDirectory struct {
-	Id string
+	Id           string
 	OriginalPath string
 }
 
 func stashDirectory(directory string) stashedDirectory {
 	exists, isFile := fs.Exists(directory)
-	if(!exists || isFile) {
+	if !exists || isFile {
 		return stashedDirectory{}
 	}
 
@@ -643,18 +637,20 @@ func stashDirectory(directory string) stashedDirectory {
 	tmpDirectory := path.Join(setup.Directories.Tmp, stashId)
 	fs.Rename(directory, tmpDirectory)
 	return stashedDirectory{
-		Id: stashId,
+		Id:           stashId,
 		OriginalPath: directory,
 	}
 }
 
 func restoreDirectory(stash stashedDirectory) {
-	if(stash.Id == "") { return }
+	if stash.Id == "" {
+		return
+	}
 
 	tmpDirectory := path.Join(setup.Directories.Tmp, stash.Id)
 	exists, isFile := fs.Exists(tmpDirectory)
-	if(!exists || isFile) {
-		return;
+	if !exists || isFile {
+		return
 	}
 
 	fs.Rename(tmpDirectory, stash.OriginalPath)
