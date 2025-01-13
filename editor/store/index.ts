@@ -1,8 +1,10 @@
 import { packages } from "./packages";
 import { editor } from "./editor";
 import { projects } from "./projects";
+import { preferences } from "./preferences";
 
 export const Store = {
+    preferences,
     projects,
     editor,
     packages

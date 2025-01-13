@@ -10,7 +10,7 @@ export function createRefresheable<
     placeholder?: ElementComponent
 ) {
     const refresheable = {
-        element: placeholder || (createElement("div") as ElementComponent<any>),
+        element: (placeholder || (createElement("div") as ElementComponent<any>)) as Awaited<ReturnType<typeof elementRenderer>>,
         refresh: (...newArgs: P) => {
             refresheable.element.destroy();
             const updatedElement = elementRenderer(...newArgs);

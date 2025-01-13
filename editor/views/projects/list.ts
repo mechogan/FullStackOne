@@ -9,17 +9,24 @@ import { Project as ProjectType } from "../../types";
 import { Project } from "../project";
 import { ProjectSettings } from "../project-settings";
 import archive from "../../lib/archive";
+import { Loader } from "../../components/loader";
 
+let userMode = false;
 export function List() {
     const container = createElement("div");
+
+    const isUserMode = (um: boolean) => userMode = um
+    Store.preferences.isUserMode.subscribe(isUserMode);
 
     const grid = createRefresheable(Grid);
     Store.projects.list.subscribe(grid.refresh);
     container.ondestroy = () => {
         grid.element.destroy();
         Store.projects.list.unsubscribe(grid.refresh);
+        Store.preferences.isUserMode.unsubscribe(isUserMode);
     };
     container.append(grid.element);
+
 
     return container;
 }
@@ -59,6 +66,10 @@ function Grid(projects: ProjectType[]) {
 
     container.append(filteredGrid.element);
 
+    container.ondestroy = () => {
+        filteredGrid.element.destroy();
+    }
+
     return container;
 }
 
@@ -72,14 +83,45 @@ function GridFiltered(projects: ProjectType[]) {
 
     container.append(...projectsTiles);
 
+    container.ondestroy = () => {
+        projectsTiles.forEach(p => p.destroy());
+    }
+
     return container;
 }
 
 function ProjectTile(project: ProjectType) {
-    const container = document.createElement("div");
+    const container = createElement("div");
     container.classList.add("project-tile");
 
-    container.onclick = () => Project(project);
+    const loader = Loader();
+
+    const onPullAndBuild = (projectIds: Set<string>) => {
+        if (projectIds.has(project.id)) {
+            container.classList.add("loading")
+            container.prepend(loader);
+        } else {
+            container.classList.remove("loading")
+            loader.remove()
+        }
+    }
+
+    Store.projects.builds.subscribe(onPullAndBuild)
+    Store.projects.pulls.subscribe(onPullAndBuild)
+
+    container.ondestroy = () => {
+        Store.projects.builds.unsubscribe(onPullAndBuild)
+        Store.projects.pulls.unsubscribe(onPullAndBuild)
+    }
+
+    container.onclick = () => {
+        if (userMode) {
+            Store.projects.pull(project)
+                .then(() => Store.projects.build(project));
+        } else {
+            Project(project);
+        }
+    };
 
     const titleAndId = document.createElement("div");
     titleAndId.classList.add("title-id");

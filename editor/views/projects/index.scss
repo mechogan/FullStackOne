@@ -58,6 +58,10 @@
 
             padding: spacing.$small;
 
+            &.loading {
+                background-color: colors.opacity(colors.$light, 25);
+            }
+
             > .title-id {
                 width: 100%;
                 display: flex;
@@ -83,6 +87,14 @@
 
             .options-popover {
                 padding: spacing.$x-small;
+            }
+
+            .loader {
+                position: absolute;
+                top: spacing.$x-small;
+                left: spacing.$x-small;
+                height: 24px;
+                width: 24px;
             }
         }
     }
