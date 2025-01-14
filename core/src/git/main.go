@@ -18,7 +18,7 @@ import (
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
-	"fullstacked/editor/src/utils"
+	utils "fullstacked/editor/src/utils"
 )
 
 type GitMessageJSON struct {
