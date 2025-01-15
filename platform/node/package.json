@@ -1,31 +1,14 @@
 {
-    "name": "@fullstacked/editor",
-    "description": "Create Local-First Web-Like Apps On Any Platform.",
-    "author": "FullStacked Org.",
-    "version": "0.10.0",
-    "main": "index.js",
-    "bin": {
-        "fullstacked": "index.js"
-    },
-    "license": "GPL-3.0",
     "scripts": {
         "build": "esbuild build.ts --outfile=.cache/build.js --packages=external && node .cache/build.js",
         "start": "npm run build && node index.js",
         "prepack": "npm run build"
     },
-    "homepage": "https://docs.fullstacked.org",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/fullstackedorg/editor"
-    },
     "type": "module",
     "dependencies": {
-        "esbuild": "^0.24.0",
-        "ffi-rs": "^1.0.98"
-    },
-    "devDependencies": {
-        "bonjour-service": "^1.2.1",
-        "mime": "^4.0.4",
+        "@types/ws": "^8.5.13",
+        "fast-querystring": "^1.1.2",
+        "ffi-rs": "^1.0.98",
         "ws": "^8.18.0"
     }
 }

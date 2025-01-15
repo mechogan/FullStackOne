@@ -1,13 +1,13 @@
 {
     "scripts": {
         "build": "node build.js",
-        "start": "npm run build && node dev.js"
+        "start": "npm run build && node dev.js",
+        "deploy": "npm run build && npx wrangler pages deploy out"
     },
     "type": "module",
     "dependencies": {
         "@types/winbox": "^0.2.5",
-        "mime-types": "^2.1.35",
-        "open": "^10.1.0",
+        "mime": "^4.0.6",
         "winbox": "^0.2.82"
     }
 }

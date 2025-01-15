@@ -13,8 +13,8 @@ android {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
         targetSdk = 34
-        versionCode = 810
-        versionName = "0.10.3"
+        versionCode = 812
+        versionName = "0.10.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

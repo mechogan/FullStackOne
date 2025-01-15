@@ -4,34 +4,34 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 */
 
 // globals
-@import "./style/globals/colors.scss";
-@import "./style/globals/spacing.scss";
-@import "./style/globals/typography.scss";
-@import "./style/globals/input.scss";
-@import "./style/globals/list.scss";
-@import "./style/globals/winbox.scss";
+@use "style/globals/colors.scss";
+@use "style/globals/spacing.scss";
+@use "style/globals/typography.scss";
+@use "style/globals/input.scss";
+@use "style/globals/list.scss";
+@use "style/globals/winbox.scss";
 
 // components
-@import "./components/primitives/badge.scss";
-@import "./components/primitives/button.scss";
-@import "./components/primitives/icon.scss";
-@import "./components/primitives/inputs.scss";
-@import "./components/top-bar.scss";
-@import "./components/view-scrollable.scss";
-@import "./components/popover.scss";
-@import "./components/loader.scss";
-@import "./components/dialog.scss";
-@import "./components/message.scss";
-@import "../lib/components/snackbar.scss";
+@use "components/primitives/badge.scss";
+@use "components/primitives/button.scss";
+@use "components/primitives/icon.scss";
+@use "components/primitives/inputs.scss";
+@use "components/top-bar.scss";
+@use "components/view-scrollable.scss";
+@use "components/popover.scss";
+@use "components/loader.scss";
+@use "components/dialog.scss";
+@use "components/message.scss";
+@use "../lib/components/snackbar.scss";
 
 // views
-@import "./views/projects/index.scss";
-@import "./views/project-settings.scss";
-@import "./views/add-project/index.scss";
-@import "./views/settings/index.scss";
-@import "./views/project/index.scss";
-@import "./views/project/git/index.scss";
-@import "./views/packages/index.scss";
+@use "views/projects/index.scss";
+@use "views/project-settings.scss";
+@use "views/add-project/index.scss" as index2;
+@use "views/settings/index.scss" as index3;
+@use "views/project/index.scss" as index4;
+@use "views/project/git/index.scss" as index5;
+@use "views/packages/index.scss" as index6;
 
 * {
     -webkit-font-smoothing: antialiased;

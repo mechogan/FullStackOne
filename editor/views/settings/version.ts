@@ -5,6 +5,7 @@ import { Badge } from "../../components/primitives/badge";
 import esbuild from "../../lib/esbuild";
 import { WorkerTS } from "../../typescript";
 import semver from "semver";
+import * as sass from "sass";
 
 export function Version() {
     const container = document.createElement("div");
@@ -12,7 +13,12 @@ export function Version() {
 
     container.innerHTML = `<h2>Version</h2>`;
 
-    container.append(EditorVersion(), EsbuildVersion(), TypescriptVersion());
+    container.append(
+        EditorVersion(),
+        EsbuildVersion(),
+        TypescriptVersion(),
+        SassVersion(),
+    );
 
     return container;
 }
@@ -39,15 +45,15 @@ function EditorVersion() {
 
             const badge = isDev
                 ? Badge({
-                      text: "Development",
-                      type: "info"
-                  })
+                    text: "Development",
+                    type: "info"
+                })
                 : semver.eq(version, latestVersion)
-                  ? Badge({
+                    ? Badge({
                         text: "Latest",
                         type: "info-2"
                     })
-                  : Badge({
+                    : Badge({
                         text: "Update Available",
                         type: "warning"
                     });
@@ -104,6 +110,17 @@ function TypescriptVersion() {
     };
 
     WorkerTS.start("").then(appendTypeScriptVersion);
+
+    return container;
+}
+
+function SassVersion() {
+    const container = document.createElement("div");
+
+    container.innerHTML = `
+        <label>Sass</label>
+        <div>${sass.info.match(/\d+\.\d+\.\d+/)[0]}</div>
+    `;
 
     return container;
 }
