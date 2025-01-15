@@ -161,8 +161,8 @@ function FileTreeAndEditor(project: ProjectType) {
 function RunButton(project: ProjectType) {
     const container = createElement("div");
     const clearContainer = () => {
-        Array.from(container.children).find(c => c.remove())
-    }
+        Array.from(container.children).find((c) => c.remove());
+    };
 
     const button = Button({
         style: "icon-large",
@@ -170,23 +170,23 @@ function RunButton(project: ProjectType) {
     });
     button.id = RUN_PROJECT_ID;
     const showButton = () => {
-        if(Array.from(container.children).find(c => c === button)) {
+        if (Array.from(container.children).find((c) => c === button)) {
             return;
         }
         clearContainer();
         container.append(button);
-    }
+    };
 
     const loaderContainer = document.createElement("div");
     loaderContainer.classList.add("loader-container");
     loaderContainer.append(Loader());
     const showLoader = () => {
-        if(Array.from(container.children).find(c => c === loaderContainer)) {
+        if (Array.from(container.children).find((c) => c === loaderContainer)) {
             return;
         }
         clearContainer();
         container.append(loaderContainer);
-    }
+    };
 
     const onBuild = (projectsBuild: Set<string>) => {
         if (projectsBuild.has(project.id)) {
@@ -198,7 +198,7 @@ function RunButton(project: ProjectType) {
     Store.projects.builds.subscribe(onBuild);
 
     button.onclick = async () => {
-        showLoader()
+        showLoader();
         await saveAllViews();
         Store.projects.build(project);
     };
