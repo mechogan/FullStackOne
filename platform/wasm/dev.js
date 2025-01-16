@@ -58,4 +58,4 @@ const hanlder = (req, res) => {
 };
 
 http.createServer(hanlder).listen(9000, "0.0.0.0");
-// open("http://localhost:9000");
+open("http://localhost:9000");

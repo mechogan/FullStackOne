@@ -44,8 +44,7 @@ export function CodeEditor(project: Project) {
 
     const onBuildErrors = (errors: BuildError[]) => {
         clearBuildErrors();
-        1;
-        buildErrors = errors.filter(({ file }) => file.startsWith(project.id));
+        buildErrors = errors.filter(({ file }) => file?.startsWith(project.id));
         buildErrors.forEach((err) => {
             Store.editor.codeEditor.openFile(err.file);
             Store.editor.codeEditor.focusFile(err.file);
