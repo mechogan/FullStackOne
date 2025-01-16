@@ -4,15 +4,15 @@
 
 [Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org) | [Figma](https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups)
 
-Create local-first web-like apps on any platform.
+Create local-first web-like projects on any platform.
 
 ### Create
 
-Build, run and share applications all within the same environment.
+Build, run and share projects all within the same environment.
 
 ### Local-First
 
-No server needed. Make multi-user functionalities with the built-in peer-to-peer connectivity.
+No server needed.
 
 ### Web-Like Apps
 
@@ -20,14 +20,16 @@ Use some of the most popular tools to rapidly build.
 
 - JavaScript
 - TypeScript
+- esbuild
 - git
+- Sass
 - HTML
 - CSS
-- SASS
-- React
-- MUI
-- ThreeJS
-- Yjs
+- npm
+    - React
+    - MUI
+    - ThreeJS
+    - Yjs
 
 ### On Any Platform
 
@@ -37,5 +39,3 @@ Available on
 - Android
 - MacOS
 - Windows
-- Linux
-- Docker
