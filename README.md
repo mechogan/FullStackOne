@@ -18,24 +18,24 @@ No server needed. Make multi-user functionalities with the built-in peer-to-peer
 
 Use some of the most popular tools to rapidly build.
 
--   JavaScript
--   TypeScript
--   git
--   HTML
--   CSS
--   SASS
--   React
--   MUI
--   ThreeJS
--   Yjs
+- JavaScript
+- TypeScript
+- git
+- HTML
+- CSS
+- SASS
+- React
+- MUI
+- ThreeJS
+- Yjs
 
 ### On Any Platform
 
 Available on
 
--   iOS/iPadOS
--   Android
--   MacOS
--   Windows
--   Linux
--   Docker
+- iOS/iPadOS
+- Android
+- MacOS
+- Windows
+- Linux
+- Docker

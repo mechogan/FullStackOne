@@ -12,7 +12,7 @@
         "platform/node",
         "platform/wasm"
     ],
-    "author": "FullStacked Org.",
+    "author": "FullStacked",
     "license": "GPL-3.0",
     "type": "module",
     "prettier": {

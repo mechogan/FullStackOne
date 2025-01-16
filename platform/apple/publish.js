@@ -50,7 +50,7 @@ if (fs.existsSync(out)) {
 
 const optionsPlist = path.resolve(currentDirectory, "exportOptions.plist");
 
-const schemeiOS = "FullStacked-iOS"
+const schemeiOS = "FullStacked-iOS";
 const archivePathiOS = path.resolve(out, schemeiOS, "FullStacked.xcarchive");
 const pkgDirectoryiOS = path.resolve(out, schemeiOS, "pkg");
 
@@ -73,8 +73,12 @@ child_process.execSync(
     }
 );
 
-const schemeMacOS = "FullStacked-MacOS"
-const archivePathMacOS = path.resolve(out, schemeMacOS, "FullStacked.xcarchive");
+const schemeMacOS = "FullStacked-MacOS";
+const archivePathMacOS = path.resolve(
+    out,
+    schemeMacOS,
+    "FullStacked.xcarchive"
+);
 const pkgDirectoryMacOS = path.resolve(out, schemeMacOS, "pkg");
 
 child_process.execSync(
@@ -98,9 +102,11 @@ child_process.execSync(
 
 // app store upload
 
-const appleKeys = dotenv.parse(fs.readFileSync(path.resolve(currentDirectory, "APPLE_KEYS.env")));
+const appleKeys = dotenv.parse(
+    fs.readFileSync(path.resolve(currentDirectory, "APPLE_KEYS.env"))
+);
 
-const bundleiOS = path.resolve(pkgDirectoryiOS, "FullStacked.ipa")
+const bundleiOS = path.resolve(pkgDirectoryiOS, "FullStacked.ipa");
 child_process.execSync(
     `xcrun altool --upload-app --file ${bundleiOS} -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
     {
@@ -111,7 +117,7 @@ child_process.execSync(
     }
 );
 
-const bundleMacOS = path.resolve(pkgDirectoryMacOS, "FullStacked.pkg")
+const bundleMacOS = path.resolve(pkgDirectoryMacOS, "FullStacked.pkg");
 child_process.execSync(
     `xcrun altool --upload-app --file ${bundleMacOS} -t macosx --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
     {
@@ -121,4 +127,3 @@ child_process.execSync(
         }
     }
 );
-

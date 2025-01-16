@@ -6,10 +6,12 @@ import child_process from "node:child_process";
 const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
 
 const packageJsonFile = path.join(currentDirectory, "package.json");
-const packageJsonContent = fs.readFileSync(packageJsonFile, { encoding: "utf-8" });
+const packageJsonContent = fs.readFileSync(packageJsonFile, {
+    encoding: "utf-8"
+});
 const packageJson = JSON.parse(packageJsonContent);
 
-const [major, minor, patch] = packageJson.version.split(".")
+const [major, minor, patch] = packageJson.version.split(".");
 
 const branch = child_process
     .execSync("git rev-parse --abbrev-ref HEAD")
@@ -26,6 +28,6 @@ const version = {
     patch,
     branch,
     build
-}
+};
 
 export default version;

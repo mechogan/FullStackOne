@@ -25,17 +25,19 @@ child_process.execSync("make android -j4", {
 // update version
 
 const studioDirectory = path.resolve(currentDirectory, "studio");
-const gradleFile = path.resolve(studioDirectory, "app", "build.gradle.kts")
+const gradleFile = path.resolve(studioDirectory, "app", "build.gradle.kts");
 const gradleFileContent = fs.readFileSync(gradleFile, {
     encoding: "utf-8"
 });
 const gradleFileUpdated = gradleFileContent
-    .replace(/versionName = ".*?"/g, `versionName = "${version.major}.${version.minor}.${version.patch}"`)
+    .replace(
+        /versionName = ".*?"/g,
+        `versionName = "${version.major}.${version.minor}.${version.patch}"`
+    )
     .replace(/versionCode = .*?\n/g, `versionCode = ${version.build}\n`);
 fs.writeFileSync(gradleFile, gradleFileUpdated);
 
 // gradle build
-
 
 child_process.execSync("./gradlew bundleRelease", {
     cwd: studioDirectory,
@@ -44,8 +46,18 @@ child_process.execSync("./gradlew bundleRelease", {
 
 // pkg sign
 
-const androidKeys = dotenv.parse(fs.readFileSync(path.resolve(currentDirectory, "ANDROID_KEYS.env")));
-const bundle = path.resolve(studioDirectory, "app", "build", "outputs", "bundle", "release", "app-release.aab");
+const androidKeys = dotenv.parse(
+    fs.readFileSync(path.resolve(currentDirectory, "ANDROID_KEYS.env"))
+);
+const bundle = path.resolve(
+    studioDirectory,
+    "app",
+    "build",
+    "outputs",
+    "bundle",
+    "release",
+    "app-release.aab"
+);
 
 child_process.execSync(
     `jarsigner -keystore ${androidKeys.FILE} -storepass ${androidKeys.PASSPHRASE} ${bundle} ${androidKeys.KEY}`,
