@@ -14,7 +14,7 @@ Build, run and share projects all within the same environment.
 
 No server needed.
 
-### Web-Like Apps
+### Web-Like
 
 Use some of the most popular tools to rapidly build.
 
