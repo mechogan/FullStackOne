@@ -115,6 +115,8 @@ namespace FullStacked
             titleBar.ButtonBackgroundColor = primarycolor;
             titleBar.ButtonHoverBackgroundColor = ColorHelper.FromArgb(1, 64, 73, 88);
 
+            newWindow.AppWindow.SetIcon("Assets/Icon-16.ico");
+
             newWindow.Content = webview.webview;
             newWindow.Activate();
             this.webviews.Add(projectId, (newWindow, webview));

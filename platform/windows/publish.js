@@ -16,7 +16,7 @@ child_process.execSync("npm run build -- --production", {
 
 // build core
 
-child_process.execSync("./windows.bat", {
+child_process.execSync("cmd.exe /c windows.bat", {
     cwd: path.resolve(rootDirectory, "core", "build"),
     stdio: "inherit"
 });
@@ -24,7 +24,7 @@ child_process.execSync("./windows.bat", {
 // update version
 
 const winVersion = `${version.major}.${version.minor}.${version.build}.0`
-const packageFile = "Package.appxmanifest";
+const packageFile = path.resolve(currentDirectory, "Package.appxmanifest");
 let packageContent = fs.readFileSync(packageFile, { encoding: "utf-8" });
 packageContent = packageContent.replace(/\bVersion="\d+\.\d+\.\d+\.\d+"/g, `Version="${winVersion}"`)
 fs.writeFileSync(packageFile, packageContent);
