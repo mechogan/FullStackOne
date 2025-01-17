@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	utils "fullstacked/editor/src/utils"
@@ -87,16 +88,24 @@ func Build(
 
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
-	if fs.WASM {
+	// if fs.WASM {
 		wasmFS := esbuild.Plugin{
-			Name: "wasm-fs",
+			Name: "fullstacked",
 			Setup: func(build esbuild.PluginBuild) {
 				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+						if(strings.HasPrefix(args.Path, "/")) {
+							return esbuild.OnResolveResult{}, nil
+						}
 
 						resolved := vResolve(args.ResolveDir, args.Path)
 
 						if resolved == nil {
+
+							if(!strings.HasPrefix(args.Path, ".")){
+								packages.Install(args.Path)
+							}
+
 							return esbuild.OnResolveResult{}, nil
 						}
 
@@ -110,22 +119,22 @@ func Build(
 						}, nil
 					})
 
-				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-					func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-						contents, _ := fs.ReadFile(args.Path)
-						contentsStr := string(contents)
+				// build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
+				// 	func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+				// 		contents, _ := fs.ReadFile(args.Path)
+				// 		contentsStr := string(contents)
 
-						loader := inferLoader(args.Path)
+				// 		loader := inferLoader(args.Path)
 
-						return esbuild.OnLoadResult{
-							Contents: &contentsStr,
-							Loader:   loader,
-						}, nil
-					})
+				// 		return esbuild.OnLoadResult{
+				// 			Contents: &contentsStr,
+				// 			Loader:   loader,
+				// 		}, nil
+				// 	})
 			},
 		}
 		plugins = append(plugins, wasmFS)
-	}
+	// }
 
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{

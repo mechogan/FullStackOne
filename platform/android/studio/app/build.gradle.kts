@@ -13,7 +13,7 @@ android {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
         targetSdk = 34
-        versionCode = 821
+        versionCode = 824
         versionName = "0.10.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -2,6 +2,7 @@ import { createSubscribable } from ".";
 import core_message from "../../lib/core_message";
 
 export type Progress = {
+    Version: string,
     Stage: "downloading" | "unpacking" | "done" | "error";
     Loaded: number;
     Total: number;

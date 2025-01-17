@@ -75,6 +75,8 @@ function CreatePackageInstallProgressView(packageName: string) {
 
     const name = document.createElement("div");
     name.innerText = packageName;
+    const version = document.createElement("span");
+    name.append(version);
 
     const status = document.createElement("div");
 
@@ -84,6 +86,7 @@ function CreatePackageInstallProgressView(packageName: string) {
     container.append(name, status, progressLine);
 
     const setProgress = (progress: Progress) => {
+        version.innerText = "@" + progress.Version;
         let statusText = progress.Stage as string;
 
         if (progress.Stage === "downloading" && progress.Loaded !== 0) {

@@ -1,6 +1,6 @@
 {
     "name": "@fullstacked/fullstacked",
-    "version": "0.10.5",
+    "version": "0.11.0",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build -- --no-zip && npm start -w platform/node",
