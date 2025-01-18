@@ -57,19 +57,6 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
-func getProjectLock(projectDirectory string) PackagesLock {
-	lockfile := path.Join(projectDirectory, ".lock");
-	exists, isFile := fs.Exists(lockfile)
-
-	packageLock := PackagesLock{}
-	if(exists && isFile) {
-		jsonData, _ := fs.ReadFile(lockfile)
-		json.Unmarshal(jsonData, packageLock)
-	}
-
-	return packageLock
-}
-
 func Build(
 	projectDirectory string,
 	buildId float64,
@@ -112,11 +99,11 @@ func Build(
 							return esbuild.OnResolveResult{}, nil
 						}
 
-						resolved := vResolve(args.ResolveDir, args.Path)
+						resolved := vResolve(args.ResolveDir, args.Path, packageLock)
 
 						if resolved == nil {
 							if(!strings.HasPrefix(args.Path, ".")) {
-								name, version := ParseName(args.Path)
+								name, version, _ := ParseName(args.Path)
 								pName := name + "@" + version
 								lockedVersion := packageLock[pName]
 
@@ -174,11 +161,7 @@ func Build(
 		Format:         esbuild.FormatESModule,
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
 		Write:          !fs.WASM,
-		NodePaths: []string{
-			path.Join(setup.Directories.Editor, "lib"),
-			setup.Directories.NodeModules,
-		},
-		Plugins: plugins,
+		Plugins: 		plugins,
 	})
 
 	if fs.WASM {

@@ -14,8 +14,6 @@ import { createElement, ElementComponent } from "../../components/element";
 import { Editor } from "./editor";
 import { WorkerTS } from "../../typescript";
 import { Loader } from "../../components/loader";
-import * as sass from "sass";
-import type { Message } from "esbuild";
 import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
 import { Icon } from "../../components/primitives/icon";

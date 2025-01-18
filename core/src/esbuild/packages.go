@@ -39,14 +39,27 @@ type Package struct {
 	Dependencies PackagesLock
 }
 
-func ParseName(name string) (string, string) {
+//
+//        name      modulePath
+//  |      ⌄      |   | ⌄ |
+//  @scoped/package@18/file 
+//                  |⌃|
+//            version requested
+func ParseName(name string) (string, string, string) {
 	scoped := strings.HasPrefix(name, "@")
 	parts := strings.Split(name, "/")
+	modulePath := ""
 
 	if(scoped) {
 		name = parts[0] + "/" + parts[1]
+		if(len(parts) > 2) {
+			modulePath = "/" + strings.Join(parts[2:], "/")
+		}
 	} else {
 		name = parts[0]
+		if(len(parts) > 1) {
+			modulePath = "/" + strings.Join(parts[1:], "/")
+		}
 	}
 
 	versionRequested := "latest"
@@ -67,7 +80,7 @@ func ParseName(name string) (string, string) {
 		}
 	}
 
-	return name, versionRequested
+	return name, versionRequested, modulePath
 }
 
 func findAvailableVersion(name string, versionRequested string) *semver.Version {
@@ -113,7 +126,7 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 }
 
 func checkForLockedPackages(directory string) PackagesLock {
-	packageLock := PackagesLock{}
+	packageLock := &PackagesLock{}
 
 	lockfile := path.Join(directory, ".lock")
 	exists, isFile := fs.Exists(lockfile)
@@ -123,7 +136,7 @@ func checkForLockedPackages(directory string) PackagesLock {
 		json.Unmarshal(jsonData, packageLock)
 	}
 
-	return packageLock
+	return *packageLock
 }
 
 // mostly for esbuild onResolve first clean build
@@ -133,7 +146,7 @@ func checkForLockedPackages(directory string) PackagesLock {
 //                   ⌄ 
 //        @scoped/package@18/file 
 func New(name string) *Package {
-	name, versionRequested := ParseName(name)
+	name, versionRequested, _ := ParseName(name)
 	version := findAvailableVersion(name, versionRequested)
 	return &Package{
 		Name: name,
@@ -155,7 +168,7 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 		return nil
 	}
 
-	name, _ = ParseName(name)
+	name, _, _ = ParseName(name)
 	return &Package{
 		Name: name,
 		Version: version,
@@ -171,7 +184,7 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 //          ⌄             ⌄
 //    "loose-envify": "^1.1.0"
 func newWithVersionString(name string, versionStr string) *Package {
-	name, _ = ParseName(name)
+	name, _, _ = ParseName(name)
 	version := findAvailableVersion(name, versionStr)
 	return &Package{
 		Name: name,

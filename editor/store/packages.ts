@@ -19,23 +19,23 @@ export const packages = {
     ignored: ignored.subscription
 };
 
-core_message.addListener("package-install-progress", (dataStr) => {
-    const { Name, ...progress } = JSON.parse(dataStr);
-    activePackageInstall.set(Name, progress);
+// core_message.addListener("package", (dataStr) => {
+//     const { Name, ...progress } = JSON.parse(dataStr);
+//     activePackageInstall.set(Name, progress);
 
-    let allDone = true;
-    for (const progress of activePackageInstall.values()) {
-        if (progress.Stage === "error") {
-            console.log("ignore", Name);
-            ignoredPackages.add(Name);
-            ignored.notify();
-        } else if (progress.Stage !== "done") {
-            allDone = false;
-        }
-    }
-    if (allDone) {
-        activePackageInstall.clear();
-    }
+//     let allDone = true;
+//     for (const progress of activePackageInstall.values()) {
+//         if (progress.Stage === "error") {
+//             console.log("ignore", Name);
+//             ignoredPackages.add(Name);
+//             ignored.notify();
+//         } else if (progress.Stage !== "done") {
+//             allDone = false;
+//         }
+//     }
+//     if (allDone) {
+//         activePackageInstall.clear();
+//     }
 
-    installingPackages.notify();
-});
+//     installingPackages.notify();
+// });
