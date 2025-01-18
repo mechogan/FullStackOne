@@ -76,9 +76,9 @@ func LOAD_AS_DIR(modulePath string) *string {
 	pExsits, _ := fs.Exists(packageJsonPath)
 	if pExsits {
 		packageJsonData, _ := fs.ReadFile(packageJsonPath)
-		packageJSON := PackageJSONMain{}
+		packageJSON := PackageJSON{}
 		err := json.Unmarshal(packageJsonData, &packageJSON)
-		if err != nil {
+		if err != nil || packageJSON.Main == "" {
 			return LOAD_INDEX(modulePath)
 		}
 
@@ -123,13 +123,6 @@ func LOAD_NODE_MODULES(module string) *string {
 	}
 
 	return LOAD_AS_DIR(nodeModulePath)
-}
-
-type PackageJSONMain struct {
-	Main string
-}
-type PackageJSON struct {
-	Exports json.RawMessage
 }
 
 func LOAD_PACKAGE_EXPORTS(nodeModuleDir string, module string) *string {

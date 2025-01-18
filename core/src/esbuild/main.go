@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	fs "fullstacked/editor/src/fs"
-	"fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	utils "fullstacked/editor/src/utils"
@@ -58,6 +57,19 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
+func getProjectLock(projectDirectory string) PackagesLock {
+	lockfile := path.Join(projectDirectory, ".lock");
+	exists, isFile := fs.Exists(lockfile)
+
+	packageLock := PackagesLock{}
+	if(exists && isFile) {
+		jsonData, _ := fs.ReadFile(lockfile)
+		json.Unmarshal(jsonData, packageLock)
+	}
+
+	return packageLock
+}
+
 func Build(
 	projectDirectory string,
 	buildId float64,
@@ -86,11 +98,13 @@ func Build(
 		`))
 	}
 
+	packageLock := checkForLockedPackages(projectDirectory)
+
 	// add WASM fixture plugin
 	plugins := []esbuild.Plugin{}
 	// if fs.WASM {
 		wasmFS := esbuild.Plugin{
-			Name: "fullstacked",
+			Name: "wasm-fs",
 			Setup: func(build esbuild.PluginBuild) {
 				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
@@ -101,9 +115,20 @@ func Build(
 						resolved := vResolve(args.ResolveDir, args.Path)
 
 						if resolved == nil {
+							if(!strings.HasPrefix(args.Path, ".")) {
+								name, version := ParseName(args.Path)
+								pName := name + "@" + version
+								lockedVersion := packageLock[pName]
 
-							if(!strings.HasPrefix(args.Path, ".")){
-								packages.Install(args.Path)
+								p := (*Package)(nil)
+								if(lockedVersion != ""){
+									p = NewWithLockedVersion(args.Path, lockedVersion)
+								} else {
+									p = New(args.Path)
+								}
+
+								p.Install()
+								packageLock[pName] = p.Version.String()
 							}
 
 							return esbuild.OnResolveResult{}, nil
@@ -161,6 +186,9 @@ func Build(
 			fs.WriteFile(file.Path, file.Contents)
 		}
 	}
+
+	jsonData, _ := json.Marshal(packageLock)
+	fs.WriteFile(path.Join(projectDirectory, ".lock"), jsonData)
 
 	// return errors as json string
 	jsonMessagesData, _ := json.Marshal(result.Errors)
