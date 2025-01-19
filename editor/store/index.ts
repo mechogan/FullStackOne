@@ -1,4 +1,3 @@
-import { packages } from "./packages";
 import { editor } from "./editor";
 import { projects } from "./projects";
 import { preferences } from "./preferences";
@@ -6,8 +5,7 @@ import { preferences } from "./preferences";
 export const Store = {
     preferences,
     projects,
-    editor,
-    packages
+    editor
 };
 
 export function createSequential<T extends any[], R extends Promise<any>>(
