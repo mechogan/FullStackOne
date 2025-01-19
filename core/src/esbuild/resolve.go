@@ -11,7 +11,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-func vResolve(resolveDir string, module string, packageLock PackagesLock) *string {
+func vResolve(resolveDir string, module string, packageLock PackagesLock, rootPackageDependency bool) (*string, bool) {
 	if strings.HasPrefix(module, "/") {
 		panic("do not use absolute path for imports")
 	}
@@ -23,22 +23,22 @@ func vResolve(resolveDir string, module string, packageLock PackagesLock) *strin
 			resolvedPath = LOAD_AS_DIR(modulePath)
 		}
 		if resolvedPath != nil {
-			return resolvedPath
+			return resolvedPath, false
 		}
 	} else {
 		exists := existResolve(module)
 		if exists != nil {
-			return exists
+			return exists, false
 		}
 	}
 
 	// FullStacked lib modules
 	resolvedPath := LOAD_FULLSTACKED_LIB_MODULE(module)
 	if(resolvedPath != nil) {
-		return resolvedPath
+		return resolvedPath, true
 	}
 
-	return LOAD_NODE_MODULES(module, packageLock)
+	return LOAD_NODE_MODULES(module, packageLock, rootPackageDependency), false
 }
 
 var resolvingExtensions = []string{
@@ -113,9 +113,13 @@ func LOAD_FULLSTACKED_LIB_MODULE(module string) *string {
 	return LOAD_AS_DIR(libModulePath)
 }
 
-func LOAD_NODE_MODULES(module string, packageLock PackagesLock) *string {
+func LOAD_NODE_MODULES(module string, packageLock PackagesLock, rootPackageDependency bool) *string {
 	name, versionRequested, modulePath := ParseName(module)
-	versionLocked, isLocked := packageLock[name + "@" + versionRequested]
+	versionLocked, isLocked := packageLock[name]
+
+	if(rootPackageDependency) {
+		versionLocked, isLocked = packageLock[name + "@" + versionRequested]
+	}
 
 	if(!isLocked) {
 		return nil
@@ -131,7 +135,6 @@ func LOAD_NODE_MODULES(module string, packageLock PackagesLock) *string {
 		}
 	}
 	
-
 	nodeModulePath := path.Join(packageDirectory, modulePath)
 	resolvedPath = LOAD_AS_FILE(nodeModulePath)
 	if resolvedPath != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime/debug"
 	"strings"
 
@@ -99,25 +100,47 @@ func Build(
 							return esbuild.OnResolveResult{}, nil
 						}
 
-						resolved := vResolve(args.ResolveDir, args.Path, packageLock)
+						rootPackageDependency := true
+						lockLookup := packageLock
 
-						if resolved == nil {
-							if(!strings.HasPrefix(args.Path, ".")) {
-								name, version, _ := ParseName(args.Path)
-								pName := name + "@" + version
-								lockedVersion := packageLock[pName]
+						if(args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil()) {
+							lockLookup = (args.PluginData).(*Package).Dependencies
+							rootPackageDependency = false
+						}
 
-								p := (*Package)(nil)
-								if(lockedVersion != ""){
-									p = NewWithLockedVersion(args.Path, lockedVersion)
-								} else {
-									p = New(args.Path)
-								}
+						p := (*Package)(nil)
 
-								p.Install()
-								packageLock[pName] = p.Version.String()
+						resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
+
+						if(!strings.HasPrefix(args.Path, ".") && !isFullStackedLib) {
+							name, versionRequested, _ := ParseName(args.Path)
+							lockedVersion := lockLookup[name]
+
+							if(rootPackageDependency) {
+								name = name + "@" + versionRequested
+								lockedVersion = lockLookup[name]
 							}
 
+							if(lockedVersion != ""){
+								p = NewWithLockedVersion(args.Path, lockedVersion)
+							} else {
+								p = New(args.Path)
+							}
+
+							p.Install()
+
+							if(rootPackageDependency) {
+								packageLock[name] = p.Version.String()
+							}
+
+							if(resolved == nil) {
+								resolved, _ = vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
+							}
+						} else if(args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil()) {
+							p = (args.PluginData).(*Package)
+						}
+						
+						if resolved == nil {
 							return esbuild.OnResolveResult{}, nil
 						}
 
@@ -128,21 +151,23 @@ func Build(
 
 						return esbuild.OnResolveResult{
 							Path: resolvedStr,
+							PluginData: p,
 						}, nil
 					})
 
-				// build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-				// 	func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-				// 		contents, _ := fs.ReadFile(args.Path)
-				// 		contentsStr := string(contents)
+				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
+					func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+						contents, _ := fs.ReadFile(args.Path)
+						contentsStr := string(contents)
 
-				// 		loader := inferLoader(args.Path)
+						loader := inferLoader(args.Path)
 
-				// 		return esbuild.OnLoadResult{
-				// 			Contents: &contentsStr,
-				// 			Loader:   loader,
-				// 		}, nil
-				// 	})
+						return esbuild.OnLoadResult{
+							Contents: &contentsStr,
+							Loader:   loader,
+							PluginData: args.PluginData,
+						}, nil
+					})
 			},
 		}
 		plugins = append(plugins, wasmFS)

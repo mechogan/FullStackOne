@@ -22,6 +22,7 @@ type PackageJSON struct {
 	Main string `json:"main"`
 	Exports json.RawMessage `json:"exports"`
 	Dependencies map[string]string `json:"dependencies"`
+	PeerDependencies map[string]string `json:"peerDependencies"`
 }
 
 type PackagesLock map[string]string
@@ -341,10 +342,17 @@ func (p *Package) Install() {
 					packageJSON := PackageJSON{}
 					json.Unmarshal(fileData, &packageJSON)
 
+					p.Dependencies[p.Name] = p.Version.String()
+
 					for n, v := range packageJSON.Dependencies {
 						d := newWithVersionString(n, v)
 						p.Dependencies[n] = d.Version.Original()
-						go d.Install()
+						d.Install()
+					}
+
+					for n, v := range packageJSON.PeerDependencies {
+						d := newWithVersionString(n, v)
+						p.Dependencies[n] = d.Version.Original()
 					}
 
 					p.lock()

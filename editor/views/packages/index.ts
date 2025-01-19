@@ -5,7 +5,7 @@ import { PackagesInstallProgress } from "./progress";
 export function Packages() {
     core_message.addListener("package", (dataStr) => {
         const packageInfo = JSON.parse(dataStr);
-        console.log(packageInfo)
+        // console.log(packageInfo)
     });
 
 
