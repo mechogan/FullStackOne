@@ -3,7 +3,6 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -103,20 +102,14 @@ func Build(
 	packageLock := checkForLockedPackages(projectDirectory)
 
 	plugin := esbuild.Plugin{
-		Name: "wasm-fs",
+		Name: "fullstacked",
 		Setup: func(build esbuild.PluginBuild) {
 			build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					fmt.Println(args.Path)
 					if strings.HasPrefix(args.Path, "/") {
-
-						if fs.WASM {
-							return esbuild.OnResolveResult{
-								Path: args.Path,
-							}, nil
-						}
-
-						return esbuild.OnResolveResult{}, nil
+						return esbuild.OnResolveResult{
+							Path: args.Path,
+						}, nil
 					}
 
 					rootPackageDependency := true
