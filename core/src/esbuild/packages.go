@@ -27,11 +27,13 @@ type PackageJSON struct {
 	PeerDependencies map[string]string `json:"peerDependencies"`
 }
 
-type PackagesLock map[string]string
+type PackageDependencies map[string]*Package
 
 type Package struct {
 	Name    string
 	Version *semver.Version
+
+	Installed bool
 
 	Progress struct {
 		Stage  string
@@ -39,17 +41,13 @@ type Package struct {
 		Total  int
 	}
 
-	Dependencies PackagesLock
+	Dependencies PackageDependencies
 }
 
-//	name      modulePath
-//
-// |      ⌄      |   | ⌄ |
-// @scoped/package@18/file
-//
-//	      |⌃|
-//	version requested
-func ParseName(name string) (string, string, string) {
+//	    name    modulePath
+// |      ⌄       | ⌄ |
+// @scoped/package/file
+func ParseName(name string) (string, string) {
 	scoped := strings.HasPrefix(name, "@")
 	parts := strings.Split(name, "/")
 	modulePath := ""
@@ -66,25 +64,7 @@ func ParseName(name string) (string, string, string) {
 		}
 	}
 
-	versionRequested := "latest"
-
-	maybeIncludesVersion := parts[0]
-	if scoped {
-		maybeIncludesVersion = parts[1]
-	}
-
-	versionParts := strings.Split(maybeIncludesVersion, "@")
-	if len(versionParts) == 2 {
-		versionRequested = versionParts[1]
-
-		if scoped {
-			name = parts[0] + "/" + versionParts[0]
-		} else {
-			name = versionParts[0]
-		}
-	}
-
-	return name, versionRequested, modulePath
+	return name, modulePath
 }
 
 func findAvailableVersion(name string, versionRequested string) *semver.Version {
@@ -129,44 +109,42 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	return nil
 }
 
-func checkForLockedPackages(directory string) PackagesLock {
-	packageLock := &PackagesLock{}
-
-	lockfile := path.Join(directory, ".lock")
-	exists, isFile := fs.Exists(lockfile)
-
-	if exists && isFile {
-		jsonData, _ := fs.ReadFile(lockfile)
-		json.Unmarshal(jsonData, packageLock)
-	}
-
-	return *packageLock
-}
+var packagesCache []*Package
 
 // mostly for esbuild onResolve first clean build
 // create package from:
 //
 // import ... from "..."
-//
-//	           ⌄
-//	@scoped/package@18/file
+//	                 ⌄
+//	      @scoped/package/file
 func New(name string) *Package {
-	name, versionRequested, _ := ParseName(name)
-	version := findAvailableVersion(name, versionRequested)
-	return &Package{
+	name, _ = ParseName(name)
+	version := findAvailableVersion(name, "latest")
+
+	for _, p := range packagesCache {
+		if(p.Name == name && p.Version.Equal(version)) {
+			return p
+		}
+	}
+
+	p := &Package{
 		Name:         name,
 		Version:      version,
-		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
+		Installed: 	  false,
+		Dependencies: PackageDependencies{},
 	}
+
+	packagesCache = append(packagesCache, p)
+
+	return p
 }
 
 // if projects has lock file
 // onResolve will create package with
 //
-// import ... from "..."            .lock file
-//
-//	           ⌄                   ⌄
-//	@scoped/package@18/file     18.3.1
+// import ... from "..."               lock.json file
+//	                 ⌄                        ⌄
+//	         @scoped/package/file          18.3.1
 func NewWithLockedVersion(name string, lockedVersion string) *Package {
 	version, err := semver.NewVersion(lockedVersion)
 	if err != nil {
@@ -174,12 +152,24 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 		return nil
 	}
 
-	name, _, _ = ParseName(name)
-	return &Package{
+	name, _ = ParseName(name)
+
+	for _, p := range packagesCache {
+		if(p.Name == name && p.Version.Equal(version)) {
+			return p
+		}
+	}
+
+	p := &Package{
 		Name:         name,
 		Version:      version,
-		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
+		Installed: 	  false,
+		Dependencies: PackageDependencies{},
 	}
+
+	packagesCache = append(packagesCache, p)
+
+	return p
 }
 
 // When installing a package dependencies,
@@ -190,13 +180,25 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 //	      ⌄             ⌄
 //	"loose-envify": "^1.1.0"
 func newWithVersionString(name string, versionStr string) *Package {
-	name, _, _ = ParseName(name)
+	name, _ = ParseName(name)
 	version := findAvailableVersion(name, versionStr)
-	return &Package{
+
+	for _, p := range packagesCache {
+		if(p.Name == name && p.Version.Equal(version)) {
+			return p
+		}
+	}
+	
+	p := &Package{
 		Name:         name,
 		Version:      version,
-		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
+		Installed: 	  false,
+		Dependencies: PackageDependencies{},
 	}
+
+	packagesCache = append(packagesCache, p)
+
+	return p
 }
 
 func (p *Package) Path() string {
@@ -205,23 +207,6 @@ func (p *Package) Path() string {
 	}
 
 	return path.Join(setup.Directories.NodeModules, p.Name, p.Version.Original())
-}
-
-func (p *Package) Installed() bool {
-	exists, _ := fs.Exists(p.Path())
-	return exists
-}
-
-func (p *Package) Locked() bool {
-	lockfile := path.Join(p.Path(), ".lock")
-	exists, isFile := fs.Exists(lockfile)
-	return exists && isFile
-}
-
-func (p *Package) lock() {
-	lockfile := path.Join(p.Path(), ".lock")
-	jsonData, _ := json.Marshal(p.Dependencies)
-	fs.WriteFile(lockfile, jsonData)
 }
 
 // for downloading progress
@@ -250,12 +235,11 @@ type npmPackageInfo struct {
 }
 
 func (p *Package) Install(wg *sync.WaitGroup) {
+	fmt.Println(p.Name, p.Version)
+	p.Installed = true
+
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	if p.Installed() {
-		return
 	}
 
 	if p.Version == nil {
@@ -351,17 +335,17 @@ func (p *Package) Install(wg *sync.WaitGroup) {
 					packageJSON := PackageJSON{}
 					json.Unmarshal(fileData, &packageJSON)
 
-					p.Dependencies[p.Name] = p.Version.String()
-
 					if len(packageJSON.Dependencies) > 0 {
 						wg := sync.WaitGroup{}
-						wg.Add(len(packageJSON.Dependencies))
 
 						for n, v := range packageJSON.Dependencies {
 							d := newWithVersionString(n, v)
-							p.Dependencies[n] = d.Version.Original()
+							p.Dependencies[n] = d
 
-							go d.Install(&wg)
+							if(!d.Installed){
+								wg.Add(1)
+								d.Install(&wg)
+							}
 						}
 
 						wg.Wait()
@@ -369,10 +353,8 @@ func (p *Package) Install(wg *sync.WaitGroup) {
 
 					for n, v := range packageJSON.PeerDependencies {
 						d := newWithVersionString(n, v)
-						p.Dependencies[n] = d.Version.Original()
+						p.Dependencies[n] = d
 					}
-
-					p.lock()
 				}
 			}
 		}

@@ -37,6 +37,10 @@ export function updatePackagesView(packageInfo: PackageInfo) {
             packageInfo.Name === name && packageInfo.Version === version
     );
     if (!packageView) {
+        if(removePackagesViewDialogTimeout) {
+            clearTimeout(removePackagesViewDialogTimeout);
+            removePackagesViewDialogTimeout = null;
+        }
         packageView = {
             name: packageInfo.Name,
             version: packageInfo.Version,

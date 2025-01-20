@@ -58,6 +58,25 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
+type PackageLock struct {
+	Parent *PackageLock
+	Package *Package
+}
+
+// func getPackagesLock(projectDirectory string) *PackageDependencies {
+// 	packagesLock := &PackageDependencies{}
+
+// 	lockfile := path.Join(projectDirectory, "lock.json")
+// 	exists, isFile := fs.Exists(lockfile)
+
+// 	if exists && isFile {
+// 		jsonData, _ := fs.ReadFile(lockfile)
+// 		json.Unmarshal(jsonData, packagesLock)
+// 	}
+
+// 	return packagesLock
+// }
+
 func Build(
 	projectDirectory string,
 	buildId float64,
@@ -99,7 +118,7 @@ func Build(
 		tmpFile = "/" + tmpFile
 	}
 
-	packageLock := checkForLockedPackages(projectDirectory)
+	rootPackageLock := &PackageDependencies{}
 
 	plugin := esbuild.Plugin{
 		Name: "fullstacked",
@@ -112,44 +131,58 @@ func Build(
 						}, nil
 					}
 
-					rootPackageDependency := true
-					lockLookup := packageLock
-
+					currentPackageLock := (*PackageLock)(nil)
 					if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
-						lockLookup = (args.PluginData).(*Package).Dependencies
-						rootPackageDependency = false
+						currentPackageLock = (args.PluginData).(*PackageLock)
+					} else {
+						currentPackageLock = &PackageLock{
+							Parent: nil,
+							Package: &Package{
+								Dependencies: *rootPackageLock,
+							},
+						}
 					}
 
-					p := (*Package)(nil)
-
-					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
+					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package.Dependencies)
 
 					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
-						name, versionRequested, _ := ParseName(args.Path)
-						lockedVersion := lockLookup[name]
+						name, _ := ParseName(args.Path)
 
-						if rootPackageDependency {
-							name = name + "@" + versionRequested
-							lockedVersion = lockLookup[name]
+						foundInParent := false
+						parentSearch := currentPackageLock
+						for parentSearch != nil {
+							if(name == parentSearch.Package.Name) {
+								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package.Dependencies)
+
+								foundInParent = true
+								currentPackageLock = parentSearch
+								break;
+							}
+
+							parentSearch = parentSearch.Parent
 						}
 
-						if lockedVersion != "" {
-							p = NewWithLockedVersion(args.Path, lockedVersion)
-						} else {
-							p = New(args.Path)
-						}
+						if (!foundInParent) {
+							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
 
-						p.Install(nil)
-
-						if rootPackageDependency {
-							packageLock[name] = p.Version.String()
+							if (!isChildLocked) {
+								childPackage = New(args.Path)
+								currentPackageLock.Package.Dependencies[name] = childPackage
+							}
+	
+							if(!childPackage.Installed) {
+								childPackage.Install(nil)
+							}
+	
+							if resolved == nil {
+								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package.Dependencies)
+							}
+	
+							currentPackageLock = &PackageLock{
+								Parent: currentPackageLock,
+								Package: childPackage,
+							}
 						}
-
-						if resolved == nil {
-							resolved, _ = vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
-						}
-					} else if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
-						p = (args.PluginData).(*Package)
 					}
 
 					if resolved == nil {
@@ -163,7 +196,7 @@ func Build(
 
 					return esbuild.OnResolveResult{
 						Path:       resolvedStr,
-						PluginData: p,
+						PluginData: currentPackageLock,
 					}, nil
 				})
 
@@ -205,8 +238,8 @@ func Build(
 		}
 	}
 
-	jsonData, _ := json.Marshal(packageLock)
-	fs.WriteFile(path.Join(projectDirectory, ".lock"), jsonData)
+	jsonData, _ := json.MarshalIndent(packageLockToJSON(*rootPackageLock), "", "    ")
+	fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
 
 	// return errors as json string
 	jsonMessagesData, _ := json.Marshal(result.Errors)
@@ -215,4 +248,24 @@ func Build(
 	payload = append(payload, jsonMessageSerialized...)
 	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
 	fs.Unlink(tmpFile)
+}
+
+type PackagesLockJSON map[string]PackageLockJSON
+
+type PackageLockJSON struct {
+	Version string
+	Dependencies PackagesLockJSON
+}
+
+func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
+	lock := PackagesLockJSON{}
+
+	for n, p := range dependencies {
+		lock[n] = PackageLockJSON{
+			Version: p.Version.String(),
+			Dependencies: packageLockToJSON(p.Dependencies),
+		}
+	}
+
+	return lock
 }

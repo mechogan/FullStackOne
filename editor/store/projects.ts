@@ -105,6 +105,8 @@ async function build(project: Project) {
     try {
         const rawErrors = await coreBuild(project);
 
+        console.log(rawErrors)
+
         const buildErrors = rawErrors.map((error) => {
             return {
                 file: error.location?.file,
