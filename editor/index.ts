@@ -19,7 +19,9 @@ if (navigator.userAgent.includes("Windows")) {
 document.querySelector("#splash")?.remove();
 Projects();
 
-core_message.addListener("package", (dataStr) => updatePackagesView(JSON.parse(dataStr)));
+core_message.addListener("package", (dataStr) =>
+    updatePackagesView(JSON.parse(dataStr))
+);
 
 const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {

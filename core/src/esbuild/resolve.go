@@ -34,7 +34,7 @@ func vResolve(resolveDir string, module string, packageLock PackagesLock, rootPa
 
 	// FullStacked lib modules
 	resolvedPath := LOAD_FULLSTACKED_LIB_MODULE(module)
-	if(resolvedPath != nil) {
+	if resolvedPath != nil {
 		return resolvedPath, true
 	}
 
@@ -88,7 +88,7 @@ func LOAD_AS_DIR(modulePath string) *string {
 			return LOAD_INDEX(modulePath)
 		}
 
-		if(packageJSON.Module != "") {
+		if packageJSON.Module != "" {
 			pModulePath := path.Join(modulePath, packageJSON.Module)
 
 			moduleResolved := LOAD_AS_FILE(pModulePath)
@@ -101,7 +101,7 @@ func LOAD_AS_DIR(modulePath string) *string {
 			}
 		}
 
-		if(packageJSON.Main != "") {
+		if packageJSON.Main != "" {
 			mainPath := path.Join(modulePath, packageJSON.Main)
 
 			mainResolved := LOAD_AS_FILE(mainPath)
@@ -132,24 +132,24 @@ func LOAD_NODE_MODULES(module string, packageLock PackagesLock, rootPackageDepen
 	name, versionRequested, modulePath := ParseName(module)
 	versionLocked, isLocked := packageLock[name]
 
-	if(rootPackageDependency) {
-		versionLocked, isLocked = packageLock[name + "@" + versionRequested]
+	if rootPackageDependency {
+		versionLocked, isLocked = packageLock[name+"@"+versionRequested]
 	}
 
-	if(!isLocked) {
+	if !isLocked {
 		return nil
 	}
 
 	packageDirectory := path.Join(setup.Directories.NodeModules, name, versionLocked)
 	resolvedPath := (*string)(nil)
 
-	if(modulePath != "") {
+	if modulePath != "" {
 		resolvedPath := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
 		if resolvedPath != nil {
 			return resolvedPath
 		}
 	}
-	
+
 	nodeModulePath := path.Join(packageDirectory, modulePath)
 	resolvedPath = LOAD_AS_FILE(nodeModulePath)
 	if resolvedPath != nil {
@@ -162,7 +162,7 @@ func LOAD_NODE_MODULES(module string, packageLock PackagesLock, rootPackageDepen
 func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) *string {
 	packageJsonPath := path.Join(packageDir, "package.json")
 	exists, isFile := fs.Exists(packageJsonPath)
-	if(!exists || !isFile) {
+	if !exists || !isFile {
 		return nil
 	}
 

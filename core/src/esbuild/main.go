@@ -3,6 +3,7 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -68,6 +69,10 @@ func Build(
 	entryPointJS := findEntryPoint(projectDirectory)
 	entryPointAbsCSS := filepath.ToSlash(path.Join(projectDirectory, ".build", "index.css"))
 
+	if fs.WASM {
+		entryPointAbsCSS = "/" + entryPointAbsCSS
+	}
+
 	// create tmp that imports bridge and entryPoint if any
 	tmpFile := path.Join(setup.Directories.Tmp, utils.RandString(10)+".js")
 	if entryPointJS == nil {
@@ -78,6 +83,11 @@ func Build(
 		`))
 	} else {
 		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPointJS))
+
+		if fs.WASM {
+			entryPointAbs = "/" + entryPointAbs
+		}
+
 		fs.WriteFile(tmpFile, []byte(`
 			import "`+entryPointAbsCSS+`";
 			import "components/snackbar.css";
@@ -86,92 +96,99 @@ func Build(
 		`))
 	}
 
+	if fs.WASM {
+		tmpFile = "/" + tmpFile
+	}
+
 	packageLock := checkForLockedPackages(projectDirectory)
 
-	// add WASM fixture plugin
-	plugins := []esbuild.Plugin{}
-	// if fs.WASM {
-		wasmFS := esbuild.Plugin{
-			Name: "wasm-fs",
-			Setup: func(build esbuild.PluginBuild) {
-				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
-					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-						if(strings.HasPrefix(args.Path, "/")) {
-							return esbuild.OnResolveResult{}, nil
+	plugin := esbuild.Plugin{
+		Name: "wasm-fs",
+		Setup: func(build esbuild.PluginBuild) {
+			build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
+				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+					fmt.Println(args.Path)
+					if strings.HasPrefix(args.Path, "/") {
+
+						if fs.WASM {
+							return esbuild.OnResolveResult{
+								Path: args.Path,
+							}, nil
 						}
 
-						rootPackageDependency := true
-						lockLookup := packageLock
+						return esbuild.OnResolveResult{}, nil
+					}
 
-						if(args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil()) {
-							lockLookup = (args.PluginData).(*Package).Dependencies
-							rootPackageDependency = false
+					rootPackageDependency := true
+					lockLookup := packageLock
+
+					if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
+						lockLookup = (args.PluginData).(*Package).Dependencies
+						rootPackageDependency = false
+					}
+
+					p := (*Package)(nil)
+
+					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
+
+					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
+						name, versionRequested, _ := ParseName(args.Path)
+						lockedVersion := lockLookup[name]
+
+						if rootPackageDependency {
+							name = name + "@" + versionRequested
+							lockedVersion = lockLookup[name]
 						}
 
-						p := (*Package)(nil)
-
-						resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
-
-						if(!strings.HasPrefix(args.Path, ".") && !isFullStackedLib) {
-							name, versionRequested, _ := ParseName(args.Path)
-							lockedVersion := lockLookup[name]
-
-							if(rootPackageDependency) {
-								name = name + "@" + versionRequested
-								lockedVersion = lockLookup[name]
-							}
-
-							if(lockedVersion != ""){
-								p = NewWithLockedVersion(args.Path, lockedVersion)
-							} else {
-								p = New(args.Path)
-							}
-
-							p.Install(nil)
-
-							if(rootPackageDependency) {
-								packageLock[name] = p.Version.String()
-							}
-
-							if(resolved == nil) {
-								resolved, _ = vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
-							}
-						} else if(args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil()) {
-							p = (args.PluginData).(*Package)
+						if lockedVersion != "" {
+							p = NewWithLockedVersion(args.Path, lockedVersion)
+						} else {
+							p = New(args.Path)
 						}
-						
+
+						p.Install(nil)
+
+						if rootPackageDependency {
+							packageLock[name] = p.Version.String()
+						}
+
 						if resolved == nil {
-							return esbuild.OnResolveResult{}, nil
+							resolved, _ = vResolve(args.ResolveDir, args.Path, lockLookup, rootPackageDependency)
 						}
+					} else if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
+						p = (args.PluginData).(*Package)
+					}
 
-						resolvedStr := *resolved
-						if !strings.HasPrefix(resolvedStr, "/") {
-							resolvedStr = "/" + resolvedStr
-						}
+					if resolved == nil {
+						return esbuild.OnResolveResult{}, nil
+					}
 
-						return esbuild.OnResolveResult{
-							Path: resolvedStr,
-							PluginData: p,
-						}, nil
-					})
+					resolvedStr := *resolved
+					if !strings.HasPrefix(resolvedStr, "/") {
+						resolvedStr = "/" + resolvedStr
+					}
 
-				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-					func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-						contents, _ := fs.ReadFile(args.Path)
-						contentsStr := string(contents)
+					return esbuild.OnResolveResult{
+						Path:       resolvedStr,
+						PluginData: p,
+					}, nil
+				})
 
-						loader := inferLoader(args.Path)
+			build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
+				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+					contents, _ := fs.ReadFile(args.Path)
+					contentsStr := string(contents)
 
-						return esbuild.OnLoadResult{
-							Contents: &contentsStr,
-							Loader:   loader,
-							PluginData: args.PluginData,
-						}, nil
-					})
-			},
-		}
-		plugins = append(plugins, wasmFS)
-	// }
+					loader := inferLoader(args.Path)
+
+					return esbuild.OnLoadResult{
+						Contents:   &contentsStr,
+						Loader:     loader,
+						PluginData: args.PluginData,
+					}, nil
+				})
+		},
+	}
 
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
@@ -186,8 +203,7 @@ func Build(
 		Format:         esbuild.FormatESModule,
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
 		Write:          !fs.WASM,
-		Plugins: 		plugins,
-		Platform: 		esbuild.PlatformBrowser,
+		Plugins:        []esbuild.Plugin{plugin},
 	})
 
 	if fs.WASM {

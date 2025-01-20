@@ -19,49 +19,49 @@ import (
 	semver "github.com/Masterminds/semver/v3"
 )
 
-
 type PackageJSON struct {
-	Main string `json:"main"`
-	Module string `json:"module"`
-	Exports json.RawMessage `json:"exports"`
-	Dependencies map[string]string `json:"dependencies"`
+	Main             string            `json:"main"`
+	Module           string            `json:"module"`
+	Exports          json.RawMessage   `json:"exports"`
+	Dependencies     map[string]string `json:"dependencies"`
 	PeerDependencies map[string]string `json:"peerDependencies"`
 }
 
 type PackagesLock map[string]string
 
 type Package struct {
-	Name string
+	Name    string
 	Version *semver.Version
 
 	Progress struct {
-		Stage string
+		Stage  string
 		Loaded int
-		Total int
+		Total  int
 	}
 
 	Dependencies PackagesLock
 }
 
+//	name      modulePath
 //
-//        name      modulePath
-//  |      ⌄      |   | ⌄ |
-//  @scoped/package@18/file 
-//                  |⌃|
-//            version requested
+// |      ⌄      |   | ⌄ |
+// @scoped/package@18/file
+//
+//	      |⌃|
+//	version requested
 func ParseName(name string) (string, string, string) {
 	scoped := strings.HasPrefix(name, "@")
 	parts := strings.Split(name, "/")
 	modulePath := ""
 
-	if(scoped) {
+	if scoped {
 		name = parts[0] + "/" + parts[1]
-		if(len(parts) > 2) {
+		if len(parts) > 2 {
 			modulePath = "/" + strings.Join(parts[2:], "/")
 		}
 	} else {
 		name = parts[0]
-		if(len(parts) > 1) {
+		if len(parts) > 1 {
 			modulePath = "/" + strings.Join(parts[1:], "/")
 		}
 	}
@@ -69,15 +69,15 @@ func ParseName(name string) (string, string, string) {
 	versionRequested := "latest"
 
 	maybeIncludesVersion := parts[0]
-	if(scoped) {
+	if scoped {
 		maybeIncludesVersion = parts[1]
 	}
 
 	versionParts := strings.Split(maybeIncludesVersion, "@")
-	if(len(versionParts) == 2) {
+	if len(versionParts) == 2 {
 		versionRequested = versionParts[1]
 
-		if(scoped) {
+		if scoped {
 			name = parts[0] + "/" + versionParts[0]
 		} else {
 			name = versionParts[0]
@@ -90,7 +90,7 @@ func ParseName(name string) (string, string, string) {
 func findAvailableVersion(name string, versionRequested string) *semver.Version {
 	// get available versions and tag on npmjs
 	npmVersions, err := http.Get("https://registry.npmjs.org/" + name)
-	if (err != nil) {
+	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
@@ -104,7 +104,7 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	}
 
 	// version used is not in dist-tags
-	if(npmVersionsJSON.Tags[versionRequested] != "") {
+	if npmVersionsJSON.Tags[versionRequested] != "" {
 		versionRequested = npmVersionsJSON.Tags[versionRequested]
 	}
 
@@ -116,12 +116,12 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 			availableVersions = append(availableVersions, version)
 		}
 	}
-	
+
 	vc := semver.Collection(availableVersions)
 	sort.Sort(sort.Reverse(vc))
 
 	for _, v := range availableVersions {
-		if(constraints.Check(v)){
+		if constraints.Check(v) {
 			return v
 		}
 	}
@@ -135,7 +135,7 @@ func checkForLockedPackages(directory string) PackagesLock {
 	lockfile := path.Join(directory, ".lock")
 	exists, isFile := fs.Exists(lockfile)
 
-	if(exists && isFile) {
+	if exists && isFile {
 		jsonData, _ := fs.ReadFile(lockfile)
 		json.Unmarshal(jsonData, packageLock)
 	}
@@ -147,14 +147,15 @@ func checkForLockedPackages(directory string) PackagesLock {
 // create package from:
 //
 // import ... from "..."
-//                   ⌄ 
-//        @scoped/package@18/file 
+//
+//	           ⌄
+//	@scoped/package@18/file
 func New(name string) *Package {
 	name, versionRequested, _ := ParseName(name)
 	version := findAvailableVersion(name, versionRequested)
 	return &Package{
-		Name: name,
-		Version: version,
+		Name:         name,
+		Version:      version,
 		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
 	}
 }
@@ -163,19 +164,20 @@ func New(name string) *Package {
 // onResolve will create package with
 //
 // import ... from "..."            .lock file
-//                   ⌄                   ⌄
-//        @scoped/package@18/file     18.3.1 
+//
+//	           ⌄                   ⌄
+//	@scoped/package@18/file     18.3.1
 func NewWithLockedVersion(name string, lockedVersion string) *Package {
 	version, err := semver.NewVersion(lockedVersion)
-	if(err != nil) {
+	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
 	name, _, _ = ParseName(name)
 	return &Package{
-		Name: name,
-		Version: version,
+		Name:         name,
+		Version:      version,
 		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
 	}
 }
@@ -183,22 +185,22 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 // When installing a package dependencies,
 // we use the version string from package.json
 // we'll lock in package afterwards
-// 
-//        name      version string
-//          ⌄             ⌄
-//    "loose-envify": "^1.1.0"
+//
+//	    name      version string
+//	      ⌄             ⌄
+//	"loose-envify": "^1.1.0"
 func newWithVersionString(name string, versionStr string) *Package {
 	name, _, _ = ParseName(name)
 	version := findAvailableVersion(name, versionStr)
 	return &Package{
-		Name: name,
-		Version: version,
+		Name:         name,
+		Version:      version,
 		Dependencies: checkForLockedPackages(path.Join(setup.Directories.NodeModules, name, version.String())),
 	}
 }
 
 func (p *Package) Path() string {
-	if(p.Version == nil) {
+	if p.Version == nil {
 		panic("called Path on package without any version")
 	}
 
@@ -248,15 +250,15 @@ type npmPackageInfo struct {
 }
 
 func (p *Package) Install(wg *sync.WaitGroup) {
-	if(wg != nil) {
+	if wg != nil {
 		defer wg.Done()
 	}
 
-	if(p.Installed()) {
+	if p.Installed() {
 		return
 	}
 
-	if(p.Version == nil) {
+	if p.Version == nil {
 		panic("trying to install a package without resolved version")
 	}
 
@@ -264,7 +266,7 @@ func (p *Package) Install(wg *sync.WaitGroup) {
 	fs.Mkdir(pDir)
 
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.Original())
-	if (err != nil) {
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -351,7 +353,7 @@ func (p *Package) Install(wg *sync.WaitGroup) {
 
 					p.Dependencies[p.Name] = p.Version.String()
 
-					if(len(packageJSON.Dependencies) > 0) {
+					if len(packageJSON.Dependencies) > 0 {
 						wg := sync.WaitGroup{}
 						wg.Add(len(packageJSON.Dependencies))
 
@@ -384,4 +386,3 @@ func (p *Package) Install(wg *sync.WaitGroup) {
 	p.Progress.Total = 1
 	p.notify()
 }
-

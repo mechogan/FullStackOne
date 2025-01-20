@@ -3,25 +3,25 @@ import { Dialog } from "../../components/dialog";
 import { createElement } from "../../components/element";
 
 type PackageInfo = {
-    Name: string,
-    Version: string,
+    Name: string;
+    Version: string;
     Progress: {
-        Stage: "error" | "downloading" | "unpacking" | "done",
-        Loaded: number,
-        Total: number
-    }
-}
+        Stage: "error" | "downloading" | "unpacking" | "done";
+        Loaded: number;
+        Total: number;
+    };
+};
 
 let packagesView: {
-    dialog: ReturnType<typeof Dialog>,
-    view: ReturnType<typeof createPackagesView>
+    dialog: ReturnType<typeof Dialog>;
+    view: ReturnType<typeof createPackagesView>;
 };
 let displayedPackages: {
-    name: string,
-    version: string,
-    done: boolean
-    view: ReturnType<typeof createPackageInfoView>
-}[] = []
+    name: string;
+    version: string;
+    done: boolean;
+    view: ReturnType<typeof createPackageInfoView>;
+}[] = [];
 
 export function updatePackagesView(packageInfo: PackageInfo) {
     if (!packagesView) {
@@ -29,39 +29,45 @@ export function updatePackagesView(packageInfo: PackageInfo) {
         packagesView = {
             dialog: Dialog(view.container),
             view
-        }
+        };
     }
 
-    let packageView = displayedPackages.find(({ name, version }) => packageInfo.Name === name && packageInfo.Version === version);
+    let packageView = displayedPackages.find(
+        ({ name, version }) =>
+            packageInfo.Name === name && packageInfo.Version === version
+    );
     if (!packageView) {
         packageView = {
             name: packageInfo.Name,
             version: packageInfo.Version,
             done: false,
             view: createPackageInfoView(packageInfo)
-        }
+        };
         packagesView.view.list.append(packageView.view.container);
-        displayedPackages.push(packageView)
+        displayedPackages.push(packageView);
     }
 
     packageView.view.setProgress(packageInfo.Progress);
 
-    if(packageInfo.Progress.Stage === "done") {
+    if (packageInfo.Progress.Stage === "done") {
         packageView.done = true;
     }
 
-    if(displayedPackages.every(p => p.done)) {
-        if(removePackagesViewDialogTimeout) {
-            clearTimeout(removePackagesViewDialogTimeout)
+    if (displayedPackages.every((p) => p.done)) {
+        if (removePackagesViewDialogTimeout) {
+            clearTimeout(removePackagesViewDialogTimeout);
         }
-       removePackagesViewDialogTimeout = setTimeout(removePackagesViewDialog, 1000)
+        removePackagesViewDialogTimeout = setTimeout(
+            removePackagesViewDialog,
+            1000
+        );
     }
 }
 
 let removePackagesViewDialogTimeout: ReturnType<typeof setTimeout>;
 
 function removePackagesViewDialog() {
-    displayedPackages.forEach(p => p.view.container.remove());
+    displayedPackages.forEach((p) => p.view.container.remove());
     packagesView.view.container.remove();
     packagesView.dialog.remove();
     displayedPackages = [];
