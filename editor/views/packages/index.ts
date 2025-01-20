@@ -34,14 +34,14 @@ export function updatePackagesView(packageInfo: PackageInfo) {
 
     let packageView = displayedPackages.find(({ name, version }) => packageInfo.Name === name && packageInfo.Version === version);
     if (!packageView) {
-        const view = createPackageInfoView(packageInfo);
-        packagesView.view.list.append(view.container);
-        displayedPackages.push({
+        packageView = {
             name: packageInfo.Name,
             version: packageInfo.Version,
             done: false,
-            view
-        })
+            view: createPackageInfoView(packageInfo)
+        }
+        packagesView.view.list.append(packageView.view.container);
+        displayedPackages.push(packageView)
     }
 
     packageView.view.setProgress(packageInfo.Progress);

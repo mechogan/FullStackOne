@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
 	semver "github.com/Masterminds/semver/v3"
 )
 
@@ -245,7 +247,11 @@ type npmPackageInfo struct {
 	Versions map[string]npmPackageInfoVersion `json:"versions"`
 }
 
-func (p *Package) Install() {
+func (p *Package) Install(wg *sync.WaitGroup) {
+	if(wg != nil) {
+		defer wg.Done()
+	}
+
 	if(p.Installed()) {
 		return
 	}
@@ -345,10 +351,18 @@ func (p *Package) Install() {
 
 					p.Dependencies[p.Name] = p.Version.String()
 
-					for n, v := range packageJSON.Dependencies {
-						d := newWithVersionString(n, v)
-						p.Dependencies[n] = d.Version.Original()
-						d.Install()
+					if(len(packageJSON.Dependencies) > 0) {
+						wg := sync.WaitGroup{}
+						wg.Add(len(packageJSON.Dependencies))
+
+						for n, v := range packageJSON.Dependencies {
+							d := newWithVersionString(n, v)
+							p.Dependencies[n] = d.Version.Original()
+
+							go d.Install(&wg)
+						}
+
+						wg.Wait()
 					}
 
 					for n, v := range packageJSON.PeerDependencies {

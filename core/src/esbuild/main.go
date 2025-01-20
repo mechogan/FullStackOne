@@ -127,7 +127,7 @@ func Build(
 								p = New(args.Path)
 							}
 
-							p.Install()
+							p.Install(nil)
 
 							if(rootPackageDependency) {
 								packageLock[name] = p.Version.String()
