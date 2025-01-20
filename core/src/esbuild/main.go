@@ -187,6 +187,7 @@ func Build(
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
 		Write:          !fs.WASM,
 		Plugins: 		plugins,
+		Platform: 		esbuild.PlatformBrowser,
 	})
 
 	if fs.WASM {

@@ -79,24 +79,39 @@ func LOAD_AS_DIR(modulePath string) *string {
 	}
 
 	packageJsonPath := path.Join(modulePath, "package.json")
-	pExsits, _ := fs.Exists(packageJsonPath)
-	if pExsits {
+	pExists, _ := fs.Exists(packageJsonPath)
+	if pExists {
 		packageJsonData, _ := fs.ReadFile(packageJsonPath)
 		packageJSON := PackageJSON{}
 		err := json.Unmarshal(packageJsonData, &packageJSON)
-		if err != nil || packageJSON.Main == "" {
+		if err != nil {
 			return LOAD_INDEX(modulePath)
 		}
 
-		mainPath := path.Join(modulePath, packageJSON.Main)
+		if(packageJSON.Module != "") {
+			pModulePath := path.Join(modulePath, packageJSON.Module)
 
-		mainResolved := LOAD_AS_FILE(mainPath)
-		if mainResolved != nil {
-			return mainResolved
+			moduleResolved := LOAD_AS_FILE(pModulePath)
+			if moduleResolved != nil {
+				return moduleResolved
+			}
+			moduleResolved = LOAD_INDEX(pModulePath)
+			if moduleResolved != nil {
+				return moduleResolved
+			}
 		}
-		mainResolved = LOAD_INDEX(mainPath)
-		if mainResolved != nil {
-			return mainResolved
+
+		if(packageJSON.Main != "") {
+			mainPath := path.Join(modulePath, packageJSON.Main)
+
+			mainResolved := LOAD_AS_FILE(mainPath)
+			if mainResolved != nil {
+				return mainResolved
+			}
+			mainResolved = LOAD_INDEX(mainPath)
+			if mainResolved != nil {
+				return mainResolved
+			}
 		}
 	}
 
@@ -349,6 +364,8 @@ func inferLoader(filePath string) esbuild.Loader {
 	ext := pathComponents[len(pathComponents)-1]
 
 	switch ext {
+	case "json":
+		return esbuild.LoaderJSON
 	case "ts":
 		return esbuild.LoaderTS
 	case "tsx":
