@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
@@ -59,29 +60,116 @@ func findEntryPoint(directory string) *string {
 }
 
 type PackageLock struct {
-	Parent *PackageLock
+	Parent  *PackageLock
 	Package *Package
 }
 
-// func getPackagesLock(projectDirectory string) *PackageDependencies {
-// 	packagesLock := &PackageDependencies{}
+type PackagesLockJSON map[string]PackageLockJSON
 
-// 	lockfile := path.Join(projectDirectory, "lock.json")
-// 	exists, isFile := fs.Exists(lockfile)
+type PackageLockJSON struct {
+	Version      string
+	Dependencies PackagesLockJSON
+}
 
-// 	if exists && isFile {
-// 		jsonData, _ := fs.ReadFile(lockfile)
-// 		json.Unmarshal(jsonData, packagesLock)
-// 	}
+type ProjectBuild struct {
+	id            float64
+	lock          PackageDependencies
+	packagesCache []*Package
+}
 
-// 	return packagesLock
-// }
+func (projectBuild *ProjectBuild) reusePackageFromCache(p *Package) (*Package, bool) {
+	for _, cached := range projectBuild.packagesCache {
+		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
+			return cached, true
+		}
+	}
+
+	return p, false
+}
+func (projectBuild *ProjectBuild) removePackageFromCache(p *Package) {
+	for i, cached := range projectBuild.packagesCache {
+		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
+			projectBuild.packagesCache[i] = projectBuild.packagesCache[len(projectBuild.packagesCache)-1]
+			projectBuild.packagesCache = projectBuild.packagesCache[:len(projectBuild.packagesCache)-1]
+			return;
+		}
+	}
+}
+
+func prepareBuildPackages(lockfile PackagesLockJSON, projectBuild *ProjectBuild) PackageDependencies {
+	dependencies := PackageDependencies{}
+
+	for n, lock := range lockfile {
+		p := NewWithLockedVersion(n, lock.Version)
+
+		p, foundInCache := projectBuild.reusePackageFromCache(p)
+
+		if !foundInCache {
+			projectBuild.packagesCache = append(projectBuild.packagesCache, p)
+		}
+
+		dependencies[n] = p
+		dependencies[n].Dependencies = prepareBuildPackages(lock.Dependencies, projectBuild)
+	}
+
+	return dependencies
+}
+
+func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
+	lockfile := path.Join(projectDirectory, "lock.json")
+	exists, isFile := fs.Exists(lockfile)
+
+	projectBuild := ProjectBuild{
+		id:            buildId,
+		lock:          PackageDependencies{},
+		packagesCache: []*Package{},
+	}
+
+	if exists && isFile {
+		packagesLockData, _ := fs.ReadFile(lockfile)
+		packageLockJSON := &PackagesLockJSON{}
+		json.Unmarshal(packagesLockData, packageLockJSON)
+		projectBuild.lock = prepareBuildPackages(*packageLockJSON, &projectBuild)
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(projectBuild.packagesCache))
+
+		for _, p := range projectBuild.packagesCache {
+			go p.InstallFromLock(&wg)
+
+			if(p.Dependencies == nil) {
+				p.Dependencies = PackageDependencies{}
+			}
+		}
+		
+		wg.Wait()
+	}
+
+	return projectBuild
+}
+
+func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
+	lock := PackagesLockJSON{}
+
+	for n, p := range dependencies {
+		if(p == nil) {
+			continue
+		}
+
+		lock[n] = PackageLockJSON{
+			Version:      p.Version.String(),
+			Dependencies: packageLockToJSON(p.Dependencies),
+		}
+	}
+
+	return lock
+}
 
 func Build(
 	projectDirectory string,
 	buildId float64,
 ) {
-	payload := serialize.SerializeNumber(buildId)
+	projectBuild := newProjectBuild(projectDirectory, buildId)
 
 	// find entryPoints
 	entryPointJS := findEntryPoint(projectDirectory)
@@ -118,7 +206,7 @@ func Build(
 		tmpFile = "/" + tmpFile
 	}
 
-	rootPackageLock := &PackageDependencies{}
+	mutexLock := sync.RWMutex{}
 
 	plugin := esbuild.Plugin{
 		Name: "fullstacked",
@@ -138,48 +226,56 @@ func Build(
 						currentPackageLock = &PackageLock{
 							Parent: nil,
 							Package: &Package{
-								Dependencies: *rootPackageLock,
+								Dependencies: projectBuild.lock,
 							},
 						}
 					}
 
-					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package.Dependencies)
+					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
 
 					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
 						name, _ := ParseName(args.Path)
 
+						// prevent circular loop
 						foundInParent := false
 						parentSearch := currentPackageLock
-						for parentSearch != nil {
-							if(name == parentSearch.Package.Name) {
-								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package.Dependencies)
-
-								foundInParent = true
-								currentPackageLock = parentSearch
-								break;
+						for parentSearch != nil && !foundInParent {
+							if name == parentSearch.Package.Name {
+								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package)
+								foundInParent = resolved != nil
 							}
 
 							parentSearch = parentSearch.Parent
 						}
-
-						if (!foundInParent) {
+						
+						if !foundInParent {
 							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
 
-							if (!isChildLocked) {
+							if !isChildLocked {
 								childPackage = New(args.Path)
-								currentPackageLock.Package.Dependencies[name] = childPackage
 							}
-	
-							if(!childPackage.Installed) {
-								childPackage.Install(nil)
+							
+							childPackage, _ = projectBuild.reusePackageFromCache(childPackage)
+
+							mutexLock.Lock()
+							currentPackageLock.Package.Dependencies[name] = childPackage
+							mutexLock.Unlock()
+
+							if !childPackage.Installed {
+								if(currentPackageLock.Parent == nil) {
+									childPackage.Install(nil, &projectBuild)
+								} else {
+									projectBuild.removePackageFromCache(currentPackageLock.Package)
+									currentPackageLock.Package.Install(nil, &projectBuild)
+								}
 							}
-	
+
 							if resolved == nil {
-								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package.Dependencies)
+								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
 							}
-	
+
 							currentPackageLock = &PackageLock{
-								Parent: currentPackageLock,
+								Parent:  currentPackageLock,
 								Package: childPackage,
 							}
 						}
@@ -202,6 +298,11 @@ func Build(
 
 			build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+					exists, isFile := fs.Exists(args.Path)
+					if(!exists || !isFile) {
+						return esbuild.OnLoadResult{}, nil
+					}
+
 					contents, _ := fs.ReadFile(args.Path)
 					contentsStr := string(contents)
 
@@ -238,34 +339,19 @@ func Build(
 		}
 	}
 
-	jsonData, _ := json.MarshalIndent(packageLockToJSON(*rootPackageLock), "", "    ")
-	fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
+	if(len(projectBuild.lock) > 0) {
+		jsonData, _ := json.MarshalIndent(packageLockToJSON(projectBuild.lock), "", "    ")
+		fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
+	}
 
 	// return errors as json string
+	payload := serialize.SerializeNumber(projectBuild.id)
+
 	jsonMessagesData, _ := json.Marshal(result.Errors)
 	jsonMessagesStr := string(jsonMessagesData)
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
 	payload = append(payload, jsonMessageSerialized...)
+
 	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
 	fs.Unlink(tmpFile)
-}
-
-type PackagesLockJSON map[string]PackageLockJSON
-
-type PackageLockJSON struct {
-	Version string
-	Dependencies PackagesLockJSON
-}
-
-func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
-	lock := PackagesLockJSON{}
-
-	for n, p := range dependencies {
-		lock[n] = PackageLockJSON{
-			Version: p.Version.String(),
-			Dependencies: packageLockToJSON(p.Dependencies),
-		}
-	}
-
-	return lock
 }

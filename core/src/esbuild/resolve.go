@@ -11,7 +11,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-func vResolve(resolveDir string, module string, dependencies PackageDependencies) (*string, bool) {
+func vResolve(resolveDir string, module string, p *Package) (*string, bool) {
 	if strings.HasPrefix(module, "/") {
 		panic("do not use absolute path for imports")
 	}
@@ -38,7 +38,7 @@ func vResolve(resolveDir string, module string, dependencies PackageDependencies
 		return resolvedPath, true
 	}
 
-	return LOAD_NODE_MODULES(module, dependencies), false
+	return LOAD_NODE_MODULES(module, p), false
 }
 
 var resolvingExtensions = []string{
@@ -128,14 +128,21 @@ func LOAD_FULLSTACKED_LIB_MODULE(module string) *string {
 	return LOAD_AS_DIR(libModulePath)
 }
 
-func LOAD_NODE_MODULES(module string, dependencies PackageDependencies) *string {
+func LOAD_NODE_MODULES(module string, p *Package) *string {
 	name, modulePath := ParseName(module)
-	lockedDependency, isLocked := dependencies[name]
 
-	if !isLocked {
-		return nil
+	lockedDependency, isLocked := p.Dependencies[name]
+	
+	if(name == p.Name) {
+		lockedDependency = p
+	} else if !isLocked {
+		lockedDependency = nil
 	}
 
+	if(lockedDependency == nil) {
+		return nil
+	}
+	
 	packageDirectory := path.Join(setup.Directories.NodeModules, name, lockedDependency.Version.String())
 	resolvedPath := (*string)(nil)
 
