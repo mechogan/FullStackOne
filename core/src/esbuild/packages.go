@@ -311,12 +311,12 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 			if header.Typeflag == tar.TypeDir {
 				fs.Mkdir(target)
 			} else if header.Typeflag == tar.TypeReg {
-				dir, fileName := path.Split(target)
+				dir, _ := path.Split(target)
 				fs.Mkdir(dir)
 				fileData, _ := io.ReadAll(tarReader)
 				fs.WriteFile(target, fileData)
 
-				if projectBuild != nil && fileName == "package.json" {
+				if projectBuild != nil && filePath == "package.json" {
 					packageJSON := PackageJSON{}
 					json.Unmarshal(fileData, &packageJSON)
 

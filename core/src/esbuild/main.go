@@ -3,6 +3,7 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -131,6 +132,8 @@ func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 		json.Unmarshal(packagesLockData, packageLockJSON)
 		projectBuild.lock = prepareBuildPackages(*packageLockJSON, &projectBuild)
 
+		fmt.Println(len(projectBuild.packagesCache))
+
 		wg := sync.WaitGroup{}
 		wg.Add(len(projectBuild.packagesCache))
 
@@ -231,7 +234,9 @@ func Build(
 						}
 					}
 
+					mutexLock.RLock()
 					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
+					mutexLock.RUnlock()
 
 					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
 						name, _ := ParseName(args.Path)
@@ -241,7 +246,10 @@ func Build(
 						parentSearch := currentPackageLock
 						for parentSearch != nil && !foundInParent {
 							if name == parentSearch.Package.Name {
+								mutexLock.RLock()
 								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package)
+								mutexLock.RUnlock()
+
 								foundInParent = resolved != nil
 							}
 
@@ -249,7 +257,9 @@ func Build(
 						}
 
 						if !foundInParent {
+							mutexLock.RLock()
 							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
+							mutexLock.RUnlock()
 
 							if !isChildLocked {
 								childPackage = New(args.Path)
@@ -271,7 +281,9 @@ func Build(
 							}
 
 							if resolved == nil {
+								mutexLock.RLock()
 								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
+								mutexLock.RUnlock()
 							}
 
 							currentPackageLock = &PackageLock{
