@@ -3,7 +3,6 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -131,8 +130,6 @@ func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 		packageLockJSON := &PackagesLockJSON{}
 		json.Unmarshal(packagesLockData, packageLockJSON)
 		projectBuild.lock = prepareBuildPackages(*packageLockJSON, &projectBuild)
-
-		fmt.Println(len(projectBuild.packagesCache))
 
 		wg := sync.WaitGroup{}
 		wg.Add(len(projectBuild.packagesCache))
