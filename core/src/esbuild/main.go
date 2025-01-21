@@ -91,7 +91,7 @@ func (projectBuild *ProjectBuild) removePackageFromCache(p *Package) {
 		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
 			projectBuild.packagesCache[i] = projectBuild.packagesCache[len(projectBuild.packagesCache)-1]
 			projectBuild.packagesCache = projectBuild.packagesCache[:len(projectBuild.packagesCache)-1]
-			return;
+			return
 		}
 	}
 }
@@ -137,11 +137,11 @@ func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 		for _, p := range projectBuild.packagesCache {
 			go p.InstallFromLock(&wg)
 
-			if(p.Dependencies == nil) {
+			if p.Dependencies == nil {
 				p.Dependencies = PackageDependencies{}
 			}
 		}
-		
+
 		wg.Wait()
 	}
 
@@ -152,7 +152,7 @@ func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
 	lock := PackagesLockJSON{}
 
 	for n, p := range dependencies {
-		if(p == nil) {
+		if p == nil {
 			continue
 		}
 
@@ -247,14 +247,14 @@ func Build(
 
 							parentSearch = parentSearch.Parent
 						}
-						
+
 						if !foundInParent {
 							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
 
 							if !isChildLocked {
 								childPackage = New(args.Path)
 							}
-							
+
 							childPackage, _ = projectBuild.reusePackageFromCache(childPackage)
 
 							mutexLock.Lock()
@@ -262,7 +262,7 @@ func Build(
 							mutexLock.Unlock()
 
 							if !childPackage.Installed {
-								if(currentPackageLock.Parent == nil) {
+								if currentPackageLock.Parent == nil {
 									childPackage.Install(nil, &projectBuild)
 								} else {
 									projectBuild.removePackageFromCache(currentPackageLock.Package)
@@ -299,7 +299,7 @@ func Build(
 			build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 					exists, isFile := fs.Exists(args.Path)
-					if(!exists || !isFile) {
+					if !exists || !isFile {
 						return esbuild.OnLoadResult{}, nil
 					}
 
@@ -339,7 +339,7 @@ func Build(
 		}
 	}
 
-	if(len(projectBuild.lock) > 0) {
+	if len(projectBuild.lock) > 0 {
 		jsonData, _ := json.MarshalIndent(packageLockToJSON(projectBuild.lock), "", "    ")
 		fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
 	}

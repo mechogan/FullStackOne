@@ -44,7 +44,8 @@ type Package struct {
 	Dependencies PackageDependencies
 }
 
-//	    name    modulePath
+//	name    modulePath
+//
 // |      ⌄       | ⌄ |
 // @scoped/package/file
 func ParseName(name string) (string, string) {
@@ -109,13 +110,13 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	return nil
 }
 
-
 // mostly for esbuild onResolve first clean build
 // create package from:
 //
 // import ... from "..."
-//	                 ⌄
-//	      @scoped/package/file
+//
+//	           ⌄
+//	@scoped/package/file
 func New(name string) *Package {
 	name, _ = ParseName(name)
 	version := findAvailableVersion(name, "latest")
@@ -123,7 +124,7 @@ func New(name string) *Package {
 	return &Package{
 		Name:         name,
 		Version:      version,
-		Installed: 	  false,
+		Installed:    false,
 		Dependencies: PackageDependencies{},
 	}
 }
@@ -132,8 +133,9 @@ func New(name string) *Package {
 // onResolve will create package with
 //
 // import ... from "..."               lock.json file
-//	                 ⌄                        ⌄
-//	         @scoped/package/file          18.3.1
+//
+//	        ⌄                        ⌄
+//	@scoped/package/file          18.3.1
 func NewWithLockedVersion(name string, lockedVersion string) *Package {
 	version, err := semver.NewVersion(lockedVersion)
 	if err != nil {
@@ -146,7 +148,7 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 	return &Package{
 		Name:         name,
 		Version:      version,
-		Installed: 	  false,
+		Installed:    false,
 		Dependencies: PackageDependencies{},
 	}
 }
@@ -161,11 +163,11 @@ func NewWithLockedVersion(name string, lockedVersion string) *Package {
 func newWithVersionString(name string, versionStr string) *Package {
 	name, _ = ParseName(name)
 	version := findAvailableVersion(name, versionStr)
-	
+
 	return &Package{
 		Name:         name,
 		Version:      version,
-		Installed: 	  false,
+		Installed:    false,
 		Dependencies: PackageDependencies{},
 	}
 }
@@ -207,7 +209,7 @@ func (p *Package) InstallFromLock(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	exists, isFile := fs.Exists(path.Join(p.Path(), "package.json"))
-	if(!exists || !isFile) {
+	if !exists || !isFile {
 		p.Install(nil, nil)
 	}
 
@@ -217,7 +219,7 @@ func (p *Package) InstallFromLock(wg *sync.WaitGroup) {
 func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 	p.Installed = true
 
-	if(projectBuild != nil) {
+	if projectBuild != nil {
 		projectBuild.packagesCache = append(projectBuild.packagesCache, p)
 	}
 
@@ -326,7 +328,7 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 							d, _ = projectBuild.reusePackageFromCache(d)
 							p.Dependencies[n] = d
 
-							if(!d.Installed){
+							if !d.Installed {
 								wg.Add(1)
 								go d.Install(&wg, projectBuild)
 							}

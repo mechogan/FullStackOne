@@ -105,7 +105,7 @@ async function build(project: Project) {
     try {
         const rawErrors = await coreBuild(project);
 
-        console.log(rawErrors)
+        console.log(rawErrors);
 
         const buildErrors = rawErrors.map((error) => {
             return {

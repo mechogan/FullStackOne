@@ -132,17 +132,17 @@ func LOAD_NODE_MODULES(module string, p *Package) *string {
 	name, modulePath := ParseName(module)
 
 	lockedDependency, isLocked := p.Dependencies[name]
-	
-	if(name == p.Name) {
+
+	if name == p.Name {
 		lockedDependency = p
 	} else if !isLocked {
 		lockedDependency = nil
 	}
 
-	if(lockedDependency == nil) {
+	if lockedDependency == nil {
 		return nil
 	}
-	
+
 	packageDirectory := path.Join(setup.Directories.NodeModules, name, lockedDependency.Version.String())
 	resolvedPath := (*string)(nil)
 
