@@ -11,8 +11,7 @@ import {
     ScriptSnapshot,
     ScriptTarget,
     isSourceFile,
-    version,
-    DefinitionInfo
+    version
 } from "typescript";
 import { parsePackageName } from "./utils";
 import fs_sync from "../lib/fs_sync";
