@@ -344,7 +344,7 @@ async function loadJsTsExtensions(filePath: string) {
     }
     // load typescript
     else {
-        // extensions.push(...(await loadTypeScript(filePath)));
+        extensions.push(...(await loadTypeScript(filePath)));
     }
 
     return extensions;

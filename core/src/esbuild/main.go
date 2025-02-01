@@ -86,6 +86,7 @@ func (projectBuild *ProjectBuild) reusePackageFromCache(p *Package) (*Package, b
 
 	return p, false
 }
+
 func (projectBuild *ProjectBuild) removePackageFromCache(p *Package) {
 	for i, cached := range projectBuild.packagesCache {
 		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
@@ -115,6 +116,19 @@ func prepareBuildPackages(lockfile PackagesLockJSON, projectBuild *ProjectBuild)
 	return dependencies
 }
 
+func installPackageFromLockWorker(ch chan *Package, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for p := range ch {
+		exists, isFile := fs.Exists(path.Join(p.Path(), "package.json"))
+		if !exists || !isFile {
+			p.Install(nil, nil)
+		}
+
+		p.Installed = true
+	}
+}
+
 func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 	lockfile := path.Join(projectDirectory, "lock.json")
 	exists, isFile := fs.Exists(lockfile)
@@ -132,15 +146,20 @@ func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 		projectBuild.lock = prepareBuildPackages(*packageLockJSON, &projectBuild)
 
 		wg := sync.WaitGroup{}
-		wg.Add(len(projectBuild.packagesCache))
+		workerCount := 10
+		wg.Add(workerCount)
+
+		ch := make(chan *Package)
+
+		for range workerCount {
+			go installPackageFromLockWorker(ch, &wg)
+		}
 
 		for _, p := range projectBuild.packagesCache {
-			go p.InstallFromLock(&wg)
-
-			if p.Dependencies == nil {
-				p.Dependencies = PackageDependencies{}
-			}
+			ch <- p
 		}
+
+		close(ch)
 
 		wg.Wait()
 	}
@@ -148,7 +167,7 @@ func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
 	return projectBuild
 }
 
-func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
+func packageLockToJSON(parents []*Package, dependencies PackageDependencies) PackagesLockJSON {
 	lock := PackagesLockJSON{}
 
 	for n, p := range dependencies {
@@ -156,9 +175,19 @@ func packageLockToJSON(dependencies PackageDependencies) PackagesLockJSON {
 			continue
 		}
 
-		lock[n] = PackageLockJSON{
-			Version:      p.Version.String(),
-			Dependencies: packageLockToJSON(p.Dependencies),
+		foundInParents := false
+		for _, parent := range parents {
+			if parent.Name == p.Name && parent.Version.Equal(p.Version) {
+				foundInParents = true
+				break
+			}
+		}
+
+		if !foundInParents {
+			lock[n] = PackageLockJSON{
+				Version:      p.Version.String(),
+				Dependencies: packageLockToJSON(append(parents, p), p.Dependencies),
+			}
 		}
 	}
 
@@ -349,7 +378,7 @@ func Build(
 	}
 
 	if len(projectBuild.lock) > 0 {
-		jsonData, _ := json.MarshalIndent(packageLockToJSON(projectBuild.lock), "", "    ")
+		jsonData, _ := json.MarshalIndent(packageLockToJSON([]*Package{}, projectBuild.lock), "", "    ")
 		fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
 	}
 

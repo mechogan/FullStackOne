@@ -2,12 +2,6 @@ import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { Store } from "../../store";
-import packages from "../../lib/packages";
-
-let ignoredPackages = new Set<string>();
-export function Packages() {
-    Store.packages.ignored.subscribe((ignored) => (ignoredPackages = ignored));
-}
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -23,36 +17,6 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     };
 
     let tsErrors = await getAllTsError();
-
-    const needsTypes = tsErrors.filter((e) => {
-        if (!e?.code || (e.code !== 7016 && e.code !== 2307)) return false;
-
-        const text = e.file?.text || view.state.doc.toString();
-
-        const moduleName = text
-            .toString()
-            .slice(e.start, e.start + e.length)
-            .slice(1, -1);
-
-        return (
-            !moduleName.startsWith(".") &&
-            !ignoredPackages.has(`@types/${moduleName}`)
-        );
-    });
-
-    if (needsTypes.length) {
-        needsTypes.forEach((e) => {
-            const text = e.file?.text || view.state.doc.toString();
-            const moduleName = text
-                .toString()
-                .slice(e.start, e.start + e.length)
-                .slice(1, -1);
-            packages.install(`@types/${moduleName}`);
-        });
-        await WorkerTS.restart();
-        tsErrors = await getAllTsError();
-    }
-
     return tsErrors
         .filter((tsError) => !!tsError)
         .map((tsError) => {
@@ -189,7 +153,7 @@ export const tsTypeDefinition =
             pos: info.textSpan.start,
             end: info.textSpan.start + info.textSpan.length,
             above: true,
-            create(view) {
+            create: () => {
                 let dom = document.createElement("div");
                 const pre = document.createElement("pre");
                 pre.innerText = text;
@@ -208,7 +172,7 @@ export const navigateToDefinition =
         if (!pos) return;
 
         WorkerTS.call()
-            .getDefinitionAtPosition(filePath, pos)
+            .getDefinitionAtPositionExt(filePath, pos)
             .then((defs) => {
                 if (!defs?.length) return;
 

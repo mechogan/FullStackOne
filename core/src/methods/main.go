@@ -43,8 +43,6 @@ const (
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
 
-	PACKAGES_INSTALL = 60
-
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
 	GIT_STATUS        = 72

@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	semver "github.com/Masterminds/semver/v3"
 )
@@ -41,7 +42,8 @@ type Package struct {
 		Total  int
 	}
 
-	Dependencies PackageDependencies
+	// ignore this for json notify
+	Dependencies PackageDependencies `json:"-"`
 }
 
 //	name    modulePath
@@ -105,6 +107,11 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 		if constraints.Check(v) {
 			return v
 		}
+	}
+
+	// return latest
+	if len(availableVersions) > 0 {
+		return availableVersions[0]
 	}
 
 	return nil
@@ -189,8 +196,14 @@ func (p *Package) Write(data []byte) (int, error) {
 }
 
 func (p *Package) notify() {
-	jsonData, _ := json.Marshal(p)
+	jsonData, err := json.Marshal(p)
 	jsonStr := string(jsonData)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	setup.Callback("", "package", jsonStr)
 }
 
@@ -205,26 +218,32 @@ type npmPackageInfo struct {
 	Versions map[string]npmPackageInfoVersion `json:"versions"`
 }
 
-func (p *Package) InstallFromLock(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	exists, isFile := fs.Exists(path.Join(p.Path(), "package.json"))
-	if !exists || !isFile {
-		p.Install(nil, nil)
+func CheckIfTypesExists(name string) bool {
+	if strings.HasPrefix(name, "@types/") {
+		return false
 	}
 
-	p.Installed = true
+	request, _ := http.NewRequest("GET", "https://registry.npmjs.org/@types/"+name, nil)
+	client := &http.Client{}
+	client.Timeout = 5 * time.Second
+
+	res, err := client.Do(request)
+	if err != nil {
+		return false
+	}
+
+	return res.StatusCode <= 299
 }
 
-func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
+func (p *Package) Install(parentWG *sync.WaitGroup, projectBuild *ProjectBuild) {
 	p.Installed = true
 
 	if projectBuild != nil {
 		projectBuild.packagesCache = append(projectBuild.packagesCache, p)
 	}
 
-	if wg != nil {
-		defer wg.Done()
+	if parentWG != nil {
+		defer parentWG.Done()
 	}
 
 	if p.Version == nil {
@@ -234,7 +253,7 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 	pDir := p.Path()
 	fs.Mkdir(pDir)
 
-	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.Original())
+	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -259,7 +278,7 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 
 	// download tarball
 	dlTotal, _ := strconv.Atoi(tarballResponse.Header.Get("content-length"))
-	p.Progress.Stage = "download"
+	p.Progress.Stage = "downloading"
 	p.Progress.Loaded = 0
 	p.Progress.Total = dlTotal
 	p.notify()
@@ -291,9 +310,11 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 	// untar
 	packageDataGZIPBuffer := bytes.NewBuffer(packageDataGZIP)
 	gunzipReader, _ := gzip.NewReader(packageDataGZIPBuffer)
-	defer gunzipReaderCount.Close()
+	defer gunzipReader.Close()
 
 	tarReader := tar.NewReader(gunzipReader)
+
+	wg := (*sync.WaitGroup)(nil)
 	for {
 		header, err := tarReader.Next()
 
@@ -320,8 +341,16 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 					packageJSON := PackageJSON{}
 					json.Unmarshal(fileData, &packageJSON)
 
+					if packageJSON.Dependencies == nil {
+						packageJSON.Dependencies = map[string]string{}
+					}
+
+					if CheckIfTypesExists(p.Name) {
+						packageJSON.Dependencies["@types/"+p.Name] = "^" + p.Version.String()
+					}
+
 					if len(packageJSON.Dependencies) > 0 {
-						wg := sync.WaitGroup{}
+						wg = &sync.WaitGroup{}
 
 						for n, v := range packageJSON.Dependencies {
 							d := newWithVersionString(n, v)
@@ -330,11 +359,9 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 
 							if !d.Installed {
 								wg.Add(1)
-								go d.Install(&wg, projectBuild)
+								go d.Install(wg, projectBuild)
 							}
 						}
-
-						wg.Wait()
 					}
 
 					for n, v := range packageJSON.PeerDependencies {
@@ -353,4 +380,8 @@ func (p *Package) Install(wg *sync.WaitGroup, projectBuild *ProjectBuild) {
 	p.Progress.Loaded = 1
 	p.Progress.Total = 1
 	p.notify()
+
+	if wg != nil {
+		wg.Wait()
+	}
 }
