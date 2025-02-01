@@ -96,7 +96,7 @@ export let methods = {
 
         for (const [fileName, data] of Object.entries(node_modules)) {
             const modulePath = fileName.slice("projects/node_modules/".length);
-            const { name, version, path } = parsePackageName(modulePath);
+            const { name, path } = parsePackageName(modulePath);
 
             let files = nodeModules.get(name);
             if (!files) {
