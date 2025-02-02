@@ -246,8 +246,6 @@ func (p *Package) Install(parentWG *sync.WaitGroup, projectBuild *ProjectBuild) 
 		defer parentWG.Done()
 	}
 
-	fmt.Println(p.Name)
-
 	if p.Version == nil {
 		panic("trying to install a package without resolved version")
 	}

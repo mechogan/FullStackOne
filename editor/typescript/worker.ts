@@ -169,7 +169,7 @@ export let methods = {
 };
 
 let workingDirectory: string;
-let packagesVersions: Map<string, string>;
+let packagesVersions: Map<string, string> = null;
 let sourceFiles: {
     [filename: string]: {
         contents: string;
@@ -177,9 +177,10 @@ let sourceFiles: {
     };
 } = null;
 function makeSureSourceFilesAreLoaded() {
-    makeSurePackagesVersionsAreLoaded();
-
-    if (sourceFiles !== null) return;
+    if (sourceFiles !== null) {
+        makeSurePackagesVersionsAreLoaded();
+        return;
+    };
 
     if (!workingDirectory) {
         throw new Error(
@@ -199,6 +200,8 @@ function makeSureSourceFilesAreLoaded() {
             version: 0
         };
     });
+
+    makeSurePackagesVersionsAreLoaded();
 }
 
 function makeSurePackagesVersionsAreLoaded() {
@@ -335,7 +338,6 @@ function initLanguageServiceHost(): LanguageServiceHost {
                     const packageVersion =
                         version || packagesVersions?.get(name);
 
-                    console.log(scriptSnapshotCache, fileName);
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
                         fs_sync.readFile(
                             "node_modules/" +
@@ -368,6 +370,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
         },
         fileExists: function (fileName: string) {
             // console.log("fileExists", path);
+            makeSureSourceFilesAreLoaded();
 
             if (fileName.startsWith("node_modules")) {
                 const modulePath = fileName.slice("node_modules/".length);
@@ -402,8 +405,6 @@ function initLanguageServiceHost(): LanguageServiceHost {
 
                 return moduleFiles.includes(fileName);
             }
-
-            makeSureSourceFilesAreLoaded();
 
             return Object.keys(sourceFiles).includes(fileName);
         }
