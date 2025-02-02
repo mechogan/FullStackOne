@@ -231,6 +231,7 @@ func Build(
 		`))
 	}
 
+
 	if fs.WASM {
 		tmpFile = "/" + tmpFile
 	}
@@ -242,7 +243,7 @@ func Build(
 		Setup: func(build esbuild.PluginBuild) {
 			build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					if strings.HasPrefix(args.Path, "/") {
+					if filepath.IsAbs(args.Path) {
 						return esbuild.OnResolveResult{
 							Path: args.Path,
 						}, nil
@@ -323,8 +324,10 @@ func Build(
 						return esbuild.OnResolveResult{}, nil
 					}
 
+					// sometimes wasm resolves without leading slash
+					// not sure why
 					resolvedStr := *resolved
-					if !strings.HasPrefix(resolvedStr, "/") {
+					if !filepath.IsAbs(resolvedStr) {
 						resolvedStr = "/" + resolvedStr
 					}
 
