@@ -24,17 +24,20 @@ function receivedResponse(base64Data: string) {
     const data = toByteArray(base64Data);
     const [id, statusCode, statusMessage, headersStr, body] =
         deserializeArgs(data);
+
     const fetchRequest = activeFetchRequest.get(id);
 
+    const response = {
+        statusCode,
+        statusMessage,
+        headers: headersStr ? JSON.parse(headersStr) : {},
+        body
+    }
+
     if (statusCode >= 400) {
-        fetchRequest.reject(body);
+        fetchRequest.reject(JSON.stringify(response));
     } else {
-        fetchRequest.resolve({
-            statusCode,
-            statusMessage,
-            headers: headersStr ? JSON.parse(headersStr) : {},
-            body
-        });
+        fetchRequest.resolve(response);
     }
 
     activeFetchRequest.delete(id);

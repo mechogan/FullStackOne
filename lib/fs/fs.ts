@@ -123,13 +123,19 @@ export function stat(path: string): Promise<FileStats> {
     const transformer = (responseArgs: any[]) => {
         if (!responseArgs.length) return null;
 
-        const [name, size, modTime, isDirectory] = responseArgs;
+        const [name, size, atimeMs, mtimeMs, ctimeMs, isDirectory, mode] = responseArgs;
 
         return {
             name,
             size,
-            modTime,
-            isDirectory
+            atimeMs,
+            mtimeMs,
+            ctimeMs,
+            atime: new Date(atimeMs),
+            mtime: new Date(mtimeMs),
+            ctime: new Date(ctimeMs),
+            isDirectory,
+            mode
         };
     };
 
