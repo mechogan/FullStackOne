@@ -22,6 +22,7 @@ import (
 
 type PackageJSON struct {
 	Main             string            `json:"main"`
+	Browser          json.RawMessage   `json:"browser"`
 	Module           string            `json:"module"`
 	Exports          json.RawMessage   `json:"exports"`
 	Dependencies     map[string]string `json:"dependencies"`

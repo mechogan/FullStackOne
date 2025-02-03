@@ -11,3 +11,13 @@ func RandString(n int) string {
 	}
 	return string(b)
 }
+
+func Contains(arr []string, e string) bool {
+	for _, i := range arr {
+		if i == e {
+			return true
+		}
+	}
+
+	return false
+}

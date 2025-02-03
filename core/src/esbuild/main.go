@@ -194,6 +194,13 @@ func packageLockToJSON(parents []*Package, dependencies PackageDependencies) Pac
 	return lock
 }
 
+var nodeBuiltInModules = []string{
+	"stream",
+	"module",
+	"path",
+	"util",
+}
+
 func Build(
 	projectDirectory string,
 	buildId float64,
@@ -231,7 +238,6 @@ func Build(
 		`))
 	}
 
-
 	if fs.WASM {
 		tmpFile = "/" + tmpFile
 	}
@@ -267,6 +273,12 @@ func Build(
 
 					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
 						name, _ := ParseName(args.Path)
+
+						if utils.Contains(nodeBuiltInModules, name) {
+							return esbuild.OnResolveResult{
+								External: true,
+							}, nil
+						}
 
 						// prevent circular loop
 						foundInParent := false

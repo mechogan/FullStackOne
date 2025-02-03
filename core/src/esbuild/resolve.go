@@ -144,29 +144,34 @@ func LOAD_NODE_MODULES(module string, p *Package) *string {
 	}
 
 	packageDirectory := path.Join(setup.Directories.NodeModules, name, lockedDependency.Version.String())
-	resolvedPath := (*string)(nil)
+	resolvedPath, packageJSON := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
 
-	if modulePath != "" {
-		resolvedPath := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
-		if resolvedPath != nil {
-			return resolvedPath
+	nodeModulePath := path.Join(packageDirectory, modulePath)
+	if resolvedPath == nil {
+		resolvedPath = LOAD_AS_FILE(nodeModulePath)
+	}
+
+	if resolvedPath == nil {
+		resolvedPath = LOAD_AS_DIR(nodeModulePath)
+	}
+
+	if resolvedPath != nil && packageJSON != nil && packageJSON.Browser != nil {
+		modulePath := "." + (*resolvedPath)[len(packageDirectory):]
+		browserResolve := PACKAGE_BROWSER_RESOLVE(modulePath, packageJSON.Browser)
+		if browserResolve != nil {
+			browserResolveJoined := path.Join(packageDirectory, *browserResolve)
+			resolvedPath = &browserResolveJoined
 		}
 	}
 
-	nodeModulePath := path.Join(packageDirectory, modulePath)
-	resolvedPath = LOAD_AS_FILE(nodeModulePath)
-	if resolvedPath != nil {
-		return resolvedPath
-	}
-
-	return LOAD_AS_DIR(nodeModulePath)
+	return resolvedPath
 }
 
-func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) *string {
+func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) (*string, *PackageJSON) {
 	packageJsonPath := path.Join(packageDir, "package.json")
 	exists, isFile := fs.Exists(packageJsonPath)
 	if !exists || !isFile {
-		return nil
+		return nil, nil
 	}
 
 	packageJsonData, _ := fs.ReadFile(packageJsonPath)
@@ -174,16 +179,16 @@ func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) *string {
 	err := json.Unmarshal(packageJsonData, &packageJSON)
 
 	if err != nil || packageJSON.Exports == nil {
-		return nil
+		return nil, &packageJSON
 	}
 
 	match := PACKAGE_EXPORTS_RESOLVE(packageDir, "."+modulePath, packageJSON.Exports)
 
 	if match == nil {
-		return nil
+		return nil, &packageJSON
 	}
 
-	return existResolve(*match)
+	return existResolve(*match), &packageJSON
 }
 
 // https://github.com/nodejs/node/blob/main/doc/api/esm.md
@@ -276,12 +281,21 @@ func arrayEquals(arrA []string, arrB []string) bool {
 //	   "./jsx-runtime": "./jsx-runtime.js",
 //	   "./jsx-dev-runtime": "./jsx-dev-runtime.js"
 //	}
+//
+//	"exports": {
+//		  "types": "./types/index.d.ts",
+//		  "node": {
+//		  	  "require": "./sass.node.js",
+//		  	  "default": "./sass.node.mjs"
+//		  },
+//		  "default": {
+//		  	  "require": "./sass.default.cjs",
+//		  	  "default": "./sass.default.js"   <= this is the one we want
+//		  }
+//	}
 func PACKAGE_EXPORTS_RESOLVE_OBJECT(moduleDirectory string, subpath string, exports map[string]json.RawMessage) *string {
-	// no idea how to handle none-dot exports
-	for key := range exports {
-		if !strings.HasPrefix(key, ".") {
-			return nil
-		}
+	if subpath == "." && exports["default"] != nil {
+		return PACKAGE_EXPORTS_RESOLVE(moduleDirectory, ".", exports["default"])
 	}
 
 	if subpath == "./" {
@@ -357,6 +371,30 @@ func PACKAGE_EXPORTS_RESOLVE_OBJECT(moduleDirectory string, subpath string, expo
 		resolvedPath := strings.Join(resolvedComponents, "/")
 		modulePath := path.Join(moduleDirectory, resolvedPath)
 		return &modulePath
+	}
+
+	return nil
+}
+
+func PACKAGE_BROWSER_RESOLVE(path string, browser json.RawMessage) *string {
+	if path == "." {
+		browserString := ""
+		err := json.Unmarshal(browser, &browserString)
+		if err == nil {
+			return &browserString
+		}
+	}
+
+	browserObject := (map[string]string)(nil)
+	err := json.Unmarshal(browser, &browserObject)
+	if err != nil {
+		return nil
+	}
+
+	for key, modulePath := range browserObject {
+		if key == path {
+			return &modulePath
+		}
 	}
 
 	return nil

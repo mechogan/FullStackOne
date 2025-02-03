@@ -180,7 +180,7 @@ function makeSureSourceFilesAreLoaded() {
     if (sourceFiles !== null) {
         makeSurePackagesVersionsAreLoaded();
         return;
-    };
+    }
 
     if (!workingDirectory) {
         throw new Error(
