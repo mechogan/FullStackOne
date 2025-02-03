@@ -105,22 +105,22 @@ func (f File) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (f File) Size() int64 {
-	info := fs.Stat(f.path)
+	info, _ := fs.Stat(f.path)
 	if info == nil {
 		return 0
 	}
 	return info.Size
 }
 func (f File) Mode() os.FileMode {
-	info := fs.Stat(f.path)
+	info, _ := fs.Stat(f.path)
 	if info != nil {
 		return info.Mode
 	}
 	return os.ModeDir
 }
 func (f File) ModTime() time.Time {
-	info := fs.Stat(f.path)
-	return info.ModTime
+	info, _ := fs.Stat(f.path)
+	return info.MTime
 }
 func (f File) IsDir() bool {
 	_, isFile := fs.Exists(f.path)

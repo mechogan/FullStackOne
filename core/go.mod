@@ -3,9 +3,10 @@ module fullstacked/editor
 go 1.23.1
 
 require (
+	github.com/Masterminds/semver/v3 v3.3.1 // direct
 	github.com/evanw/esbuild v0.24.2 // direct
 	github.com/go-git/go-git/v5 v5.13.1 // direct
-	github.com/Masterminds/semver/v3 v3.3.1 // direct
+	github.com/djherbis/times v1.6.0 // direct
 )
 
 require (

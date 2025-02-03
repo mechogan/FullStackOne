@@ -1,7 +1,9 @@
 package fs
 
 import (
+	"errors"
 	serialize "fullstacked/editor/src/serialize"
+	"github.com/djherbis/times"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +16,16 @@ var WASM = false
 func ReadFile(path string) ([]byte, error) {
 	fileData := ([]byte)(nil)
 	err := (error)(nil)
+
+	exists, isFile := Exists(path)
+
+	if !exists {
+		return nil, errors.New("ENOENT")
+	}
+
+	if !isFile {
+		return nil, errors.New("EISDIR")
+	}
 
 	if WASM {
 		fileData, err = vReadFile(path)
@@ -32,7 +44,7 @@ func ReadFileSerialized(path string, asString bool) []byte {
 	fileData, err := ReadFile(path)
 
 	if err != nil {
-		return nil
+		return serialize.SerializeError(err)
 	}
 
 	if asString {
@@ -56,10 +68,13 @@ func WriteFile(path string, data []byte) error {
 
 func WriteFileSerialized(path string, data []byte) []byte {
 	err := WriteFile(path, data)
-	return serialize.SerializeBoolean(err != nil)
+	if err == nil {
+		return []byte{}
+	}
+	return serialize.SerializeString(err.Error())
 }
 
-func Unlink(path string) bool {
+func Unlink(path string) error {
 	err := (error)(nil)
 
 	if WASM {
@@ -68,15 +83,28 @@ func Unlink(path string) bool {
 		err = os.Remove(path)
 	}
 
-	return err == nil
+	return err
 }
 
 func UnlinkSerialized(path string) []byte {
-	return serialize.SerializeBoolean(Unlink(path))
+	err := Unlink(path)
+	if err == nil {
+		return []byte{}
+	}
+	return serialize.SerializeString(err.Error())
 }
 
-func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
-	items := []SmallFileInfo{}
+func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
+	items := []FileInfo2{}
+
+	exists, isFile := Exists(path)
+	if !exists {
+		return nil, errors.New("ENOENT")
+	}
+
+	if isFile {
+		return nil, errors.New("ENOTDIR")
+	}
 
 	if WASM {
 		items = vReadDir(path, recursive)
@@ -91,7 +119,7 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 
 				itemPathComponents := splitPath(filepath.ToSlash(path))
 
-				items = append(items, SmallFileInfo{
+				items = append(items, FileInfo2{
 					Name:  strings.Join(itemPathComponents[len(pathComponents):], "/"),
 					IsDir: d.IsDir(),
 				})
@@ -111,7 +139,7 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 			}
 
 			for _, item := range entries {
-				items = append(items, SmallFileInfo{
+				items = append(items, FileInfo2{
 					Name:  item.Name(),
 					IsDir: item.IsDir(),
 				})
@@ -123,7 +151,7 @@ func ReadDir(path string, recursive bool) ([]SmallFileInfo, error) {
 }
 
 func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
-	items := ([]SmallFileInfo)(nil)
+	items := ([]FileInfo2)(nil)
 	err := (error)(nil)
 
 	if WASM {
@@ -132,7 +160,7 @@ func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
 		items, err = ReadDir(path, recursive)
 
 		if err != nil {
-			return nil
+			return serialize.SerializeError(err)
 		}
 	}
 
@@ -206,46 +234,68 @@ func ExistsSerialized(path string) []byte {
 	return bytes
 }
 
-type SmallFileInfo struct {
-	Name    string
-	Size    int64
-	ModTime time.Time
-	IsDir   bool
-	Mode    os.FileMode
+type FileInfo2 struct {
+	Name  string
+	Size  int64
+	ATime time.Time
+	MTime time.Time
+	CTime time.Time
+	IsDir bool
+	Mode  os.FileMode
 }
 
-func Stat(path string) *SmallFileInfo {
+func Stat(path string) (*FileInfo2, error) {
+	exists, _ := Exists(path)
+
+	if !exists {
+		return nil, errors.New("ENOENT")
+	}
+
 	if WASM {
-		return vStat(path)
+		return vStat(path), nil
 	}
 
 	fileInfo, err := os.Stat(path)
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return &SmallFileInfo{
-		fileInfo.Name(),
-		fileInfo.Size(),
-		fileInfo.ModTime(),
-		fileInfo.IsDir(),
-		fileInfo.Mode(),
+	t, _ := times.Stat(path)
+
+	mTime := t.ModTime()
+	aTime := t.AccessTime()
+
+	cTime := mTime
+	if t.HasChangeTime() {
+		cTime = t.ChangeTime()
 	}
+
+	return &FileInfo2{
+		Name:  fileInfo.Name(),
+		Size:  fileInfo.Size(),
+		ATime: aTime,
+		MTime: mTime,
+		CTime: cTime,
+		IsDir: fileInfo.IsDir(),
+		Mode:  fileInfo.Mode(),
+	}, nil
 }
 
 func StatSerialized(path string) []byte {
-	stats := Stat(path)
+	stats, err := Stat(path)
 
-	if stats == nil {
-		return nil
+	if err != nil {
+		return serialize.SerializeError(err)
 	}
 
 	bytes := []byte{}
 
 	bytes = append(bytes, serialize.SerializeString(stats.Name)...)
 	bytes = append(bytes, serialize.SerializeNumber(float64(stats.Size))...)
-	bytes = append(bytes, serialize.SerializeNumber(float64(stats.ModTime.UnixMilli()))...)
+	bytes = append(bytes, serialize.SerializeNumber(float64(stats.ATime.UnixMilli()))...)
+	bytes = append(bytes, serialize.SerializeNumber(float64(stats.MTime.UnixMilli()))...)
+	bytes = append(bytes, serialize.SerializeNumber(float64(stats.CTime.UnixMilli()))...)
 	bytes = append(bytes, serialize.SerializeBoolean(stats.IsDir)...)
 
 	return bytes

@@ -6,7 +6,8 @@ enum DataType {
     BOOLEAN = 1,
     STRING = 2,
     NUMBER = 3,
-    UINT8ARRAY = 4
+    BUFFER = 4,
+    ERROR = 5
 }
 
 function serializeNumber(n) {
@@ -55,7 +56,7 @@ export function serializeArgs(args: any[]) {
             type = DataType.UNDEFINED;
             data = new Uint8Array(0);
         } else if (ArrayBuffer.isView(arg)) {
-            type = DataType.UINT8ARRAY;
+            type = DataType.BUFFER;
             data = new Uint8Array(arg.buffer);
         } else if (typeof arg === "boolean") {
             type = DataType.BOOLEAN;
@@ -118,9 +119,11 @@ export function deserializeArgs(data: Uint8Array) {
             case DataType.NUMBER:
                 args.push(deserializeNumber(arg));
                 break;
-            case DataType.UINT8ARRAY:
+            case DataType.BUFFER:
                 args.push(arg);
                 break;
+            case DataType.ERROR:
+                throw td.decode(arg);
         }
     }
 

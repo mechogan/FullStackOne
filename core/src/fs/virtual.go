@@ -113,7 +113,7 @@ func vExists(path string) (bool, bool) {
 	return false, false
 }
 
-func vStat(path string) *SmallFileInfo {
+func vStat(path string) *FileInfo2 {
 	f := VirtFS[path]
 	d := false
 
@@ -130,12 +130,14 @@ func vStat(path string) *SmallFileInfo {
 
 	pathComponents := strings.Split(path, "/")
 
-	return &SmallFileInfo{
-		pathComponents[len(pathComponents)-1],
-		int64(len(f.Data)),
-		f.ModTime,
-		d,
-		0644,
+	return &FileInfo2{
+		Name:  pathComponents[len(pathComponents)-1],
+		Size:  int64(len(f.Data)),
+		ATime: f.ModTime,
+		MTime: f.ModTime,
+		CTime: f.ModTime,
+		IsDir: d,
+		Mode:  0644,
 	}
 }
 
@@ -202,8 +204,8 @@ func pathIsChildOfPath(childPath string, parentPath string) bool {
 //	projects/node_modules/react-dom/index.js
 //
 // path: projects/node_modules/react
-func vReadDir(path string, recursive bool) []SmallFileInfo {
-	items := []SmallFileInfo{}
+func vReadDir(path string, recursive bool) []FileInfo2 {
+	items := []FileInfo2{}
 
 	pathComponents := splitPath(path)
 
@@ -212,7 +214,7 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
 			if recursive || len(dirComponents)-len(pathComponents) == 1 {
-				items = append(items, SmallFileInfo{
+				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: true,
 				})
@@ -225,7 +227,7 @@ func vReadDir(path string, recursive bool) []SmallFileInfo {
 			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)
 			if recursive || len(fileComponents)-len(pathComponents) == 1 {
-				items = append(items, SmallFileInfo{
+				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: false,
 				})

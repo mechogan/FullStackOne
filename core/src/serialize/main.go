@@ -11,6 +11,7 @@ const (
 	STRING    = 2
 	NUMBER    = 3
 	BUFFER    = 4
+	ERROR     = 5
 )
 
 func DeserializeBytesToInt(bytes []byte) int {
@@ -61,6 +62,14 @@ func SerializeBuffer(buffer []byte) []byte {
 	bytes := []byte{BUFFER}
 	bytes = append(bytes, SerializeIntToBytes(len(buffer))...)
 	bytes = append(bytes, buffer...)
+	return bytes
+}
+
+func SerializeError(err error) []byte {
+	bytes := []byte{ERROR}
+	errStrData := []byte(err.Error())
+	bytes = append(bytes, SerializeIntToBytes(len(errStrData))...)
+	bytes = append(bytes, errStrData...)
 	return bytes
 }
 
