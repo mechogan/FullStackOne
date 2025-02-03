@@ -10,7 +10,6 @@ import (
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
 	git "fullstacked/editor/src/git"
-	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -43,8 +42,6 @@ const (
 
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
-
-	PACKAGES_INSTALL = 60
 
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
@@ -171,9 +168,6 @@ func editorSwitch(method int, args []any) []byte {
 	case method == ARCHIVE_ZIP:
 		directory := path.Join(setup.Directories.Root, args[0].(string))
 		return serialize.SerializeBuffer(archive.Zip(directory))
-	case method == PACKAGES_INSTALL:
-		packages.Install(args[0].(string))
-		return nil
 	case method == OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil

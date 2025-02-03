@@ -131,7 +131,7 @@ while (tries) {
     if (dependenciesDialogTitle === "Dependencies") {
         caughtDependencies = true;
     } else {
-        await sleep(200);
+        await sleep(500);
     }
 
     if (caughtDependencies) {

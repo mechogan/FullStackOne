@@ -11,9 +11,9 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-func vResolve(resolveDir string, module string) *string {
+func vResolve(resolveDir string, module string, p *Package) (*string, bool) {
 	if strings.HasPrefix(module, "/") {
-		panic("Please do not use absolute path for imports")
+		panic("do not use absolute path for imports")
 	}
 
 	if strings.HasPrefix(module, ".") {
@@ -23,16 +23,22 @@ func vResolve(resolveDir string, module string) *string {
 			resolvedPath = LOAD_AS_DIR(modulePath)
 		}
 		if resolvedPath != nil {
-			return resolvedPath
+			return resolvedPath, false
 		}
 	} else {
 		exists := existResolve(module)
 		if exists != nil {
-			return exists
+			return exists, false
 		}
 	}
 
-	return LOAD_NODE_MODULES(module)
+	// FullStacked lib modules
+	resolvedPath := LOAD_FULLSTACKED_LIB_MODULE(module)
+	if resolvedPath != nil {
+		return resolvedPath, true
+	}
+
+	return LOAD_NODE_MODULES(module, p), false
 }
 
 var resolvingExtensions = []string{
@@ -73,50 +79,81 @@ func LOAD_AS_DIR(modulePath string) *string {
 	}
 
 	packageJsonPath := path.Join(modulePath, "package.json")
-	pExsits, _ := fs.Exists(packageJsonPath)
-	if pExsits {
+	pExists, _ := fs.Exists(packageJsonPath)
+	if pExists {
 		packageJsonData, _ := fs.ReadFile(packageJsonPath)
-		packageJSON := PackageJSONMain{}
+		packageJSON := PackageJSON{}
 		err := json.Unmarshal(packageJsonData, &packageJSON)
 		if err != nil {
 			return LOAD_INDEX(modulePath)
 		}
 
-		mainPath := path.Join(modulePath, packageJSON.Main)
+		if packageJSON.Module != "" {
+			pModulePath := path.Join(modulePath, packageJSON.Module)
 
-		mainResolved := LOAD_AS_FILE(mainPath)
-		if mainResolved != nil {
-			return mainResolved
+			moduleResolved := LOAD_AS_FILE(pModulePath)
+			if moduleResolved != nil {
+				return moduleResolved
+			}
+			moduleResolved = LOAD_INDEX(pModulePath)
+			if moduleResolved != nil {
+				return moduleResolved
+			}
 		}
-		mainResolved = LOAD_INDEX(mainPath)
-		if mainResolved != nil {
-			return mainResolved
+
+		if packageJSON.Main != "" {
+			mainPath := path.Join(modulePath, packageJSON.Main)
+
+			mainResolved := LOAD_AS_FILE(mainPath)
+			if mainResolved != nil {
+				return mainResolved
+			}
+			mainResolved = LOAD_INDEX(mainPath)
+			if mainResolved != nil {
+				return mainResolved
+			}
 		}
 	}
 
 	return LOAD_INDEX(modulePath)
 }
 
-func LOAD_NODE_MODULES(module string) *string {
-	resolvedPath := LOAD_PACKAGE_EXPORTS(setup.Directories.NodeModules, module)
+func LOAD_FULLSTACKED_LIB_MODULE(module string) *string {
+	libModulePath := path.Join(setup.Directories.Editor, "lib", module)
+	resolvedPath := LOAD_AS_FILE(libModulePath)
 	if resolvedPath != nil {
 		return resolvedPath
 	}
 
-	// actual node_modules directory
-	nodeModulePath := path.Join(setup.Directories.NodeModules, module)
-	resolvedPath = LOAD_AS_FILE(nodeModulePath)
-	if resolvedPath != nil {
-		return resolvedPath
+	return LOAD_AS_DIR(libModulePath)
+}
+
+func LOAD_NODE_MODULES(module string, p *Package) *string {
+	name, modulePath := ParseName(module)
+
+	lockedDependency, isLocked := p.Dependencies[name]
+
+	if name == p.Name {
+		lockedDependency = p
+	} else if !isLocked {
+		lockedDependency = nil
 	}
 
-	resolvedPath = LOAD_AS_DIR(nodeModulePath)
-	if resolvedPath != nil {
-		return resolvedPath
+	if lockedDependency == nil {
+		return nil
 	}
 
-	// FullStacked lib
-	nodeModulePath = path.Join(setup.Directories.Editor, "lib", module)
+	packageDirectory := path.Join(setup.Directories.NodeModules, name, lockedDependency.Version.String())
+	resolvedPath := (*string)(nil)
+
+	if modulePath != "" {
+		resolvedPath := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
+		if resolvedPath != nil {
+			return resolvedPath
+		}
+	}
+
+	nodeModulePath := path.Join(packageDirectory, modulePath)
 	resolvedPath = LOAD_AS_FILE(nodeModulePath)
 	if resolvedPath != nil {
 		return resolvedPath
@@ -125,33 +162,14 @@ func LOAD_NODE_MODULES(module string) *string {
 	return LOAD_AS_DIR(nodeModulePath)
 }
 
-type PackageJSONMain struct {
-	Main string
-}
-type PackageJSON struct {
-	Exports json.RawMessage
-}
-
-func LOAD_PACKAGE_EXPORTS(nodeModuleDir string, module string) *string {
-	packageJsonPath := (*string)(nil)
-	modulePathComponents := strings.Split(module, "/")
-	subpath := []string{}
-	for len(modulePathComponents) > 0 && packageJsonPath == nil {
-		testPath := path.Join(nodeModuleDir, strings.Join(modulePathComponents, "/"), "package.json")
-		exists, isFile := fs.Exists(testPath)
-		if exists && isFile {
-			packageJsonPath = &testPath
-		} else {
-			subpath = append(subpath, modulePathComponents[len(modulePathComponents)-1])
-			modulePathComponents = modulePathComponents[:len(modulePathComponents)-1]
-		}
-	}
-
-	if packageJsonPath == nil {
+func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) *string {
+	packageJsonPath := path.Join(packageDir, "package.json")
+	exists, isFile := fs.Exists(packageJsonPath)
+	if !exists || !isFile {
 		return nil
 	}
 
-	packageJsonData, _ := fs.ReadFile(*packageJsonPath)
+	packageJsonData, _ := fs.ReadFile(packageJsonPath)
 	packageJSON := PackageJSON{}
 	err := json.Unmarshal(packageJsonData, &packageJSON)
 
@@ -159,8 +177,7 @@ func LOAD_PACKAGE_EXPORTS(nodeModuleDir string, module string) *string {
 		return nil
 	}
 
-	moduleDirectory := path.Join(nodeModuleDir, strings.Join(modulePathComponents, "/"))
-	match := PACKAGE_EXPORTS_RESOLVE(moduleDirectory, "./"+strings.Join(subpath, "/"), packageJSON.Exports)
+	match := PACKAGE_EXPORTS_RESOLVE(packageDir, "."+modulePath, packageJSON.Exports)
 
 	if match == nil {
 		return nil
@@ -350,6 +367,8 @@ func inferLoader(filePath string) esbuild.Loader {
 	ext := pathComponents[len(pathComponents)-1]
 
 	switch ext {
+	case "json":
+		return esbuild.LoaderJSON
 	case "ts":
 		return esbuild.LoaderTS
 	case "tsx":

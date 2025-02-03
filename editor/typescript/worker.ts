@@ -15,6 +15,7 @@ import {
 } from "typescript";
 import { parsePackageName } from "./utils";
 import fs_sync from "../lib/fs_sync";
+import semver from "semver";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -92,23 +93,23 @@ export let methods = {
                 ScriptSnapshot.fromString(td.decode(data));
         }
 
-        for (const [path, data] of Object.entries(node_modules)) {
-            if (data === null) continue;
+        for (const [fileName, data] of Object.entries(node_modules)) {
+            const modulePath = fileName.slice("projects/node_modules/".length);
+            const { name, path } = parsePackageName(modulePath);
 
-            const modulePath = path.slice("projects/node_modules/".length);
-            const moduleName = parsePackageName(modulePath);
-
-            let files = nodeModules.get(moduleName);
+            let files = nodeModules.get(name);
             if (!files) {
                 files = [];
-                nodeModules.set(moduleName, files);
+                nodeModules.set(name, files);
             }
-            if (modulePath != moduleName) {
-                files.push(`node_modules/${modulePath}`);
-            }
+            const filePath = "node_modules/" + name + (path ? "/" + path : "");
+            files.push(filePath);
 
-            scriptSnapshotCache[`node_modules/${modulePath}`] =
-                ScriptSnapshot.fromString(td.decode(data));
+            if (data !== null) {
+                scriptSnapshotCache[filePath] = ScriptSnapshot.fromString(
+                    td.decode(data)
+                );
+            }
         }
     },
     start(currentDirectory: string) {
@@ -139,18 +140,47 @@ export let methods = {
                 : 1
         };
     },
-    ...services
+
+    ...services,
+
+    getDefinitionAtPositionExt(filePath: string, pos: number) {
+        const defs = services.getDefinitionAtPosition(filePath, pos);
+
+        return defs.map((def) => {
+            if (def.fileName.startsWith("node_modules")) {
+                const modulePath = def.fileName.slice("node_modules/".length);
+                const { name, path } = parsePackageName(modulePath);
+                const packgeVersion = packagesVersions?.get(name);
+                return {
+                    ...def,
+                    fileName:
+                        "node_modules/" +
+                        name +
+                        "/" +
+                        packgeVersion +
+                        "/" +
+                        path
+                };
+            }
+
+            return def;
+        });
+    }
 };
 
 let workingDirectory: string;
+let packagesVersions: Map<string, string> = null;
 let sourceFiles: {
     [filename: string]: {
         contents: string;
         version: number;
     };
 } = null;
-const makeSureSourceFilesAreLoaded = () => {
-    if (sourceFiles !== null) return;
+function makeSureSourceFilesAreLoaded() {
+    if (sourceFiles !== null) {
+        makeSurePackagesVersionsAreLoaded();
+        return;
+    };
 
     if (!workingDirectory) {
         throw new Error(
@@ -170,7 +200,43 @@ const makeSureSourceFilesAreLoaded = () => {
             version: 0
         };
     });
+
+    makeSurePackagesVersionsAreLoaded();
+}
+
+function makeSurePackagesVersionsAreLoaded() {
+    if (packagesVersions !== null) return;
+
+    const lockfile = workingDirectory + "/lock.json";
+    if (sourceFiles[lockfile]) {
+        packagesVersions = new Map();
+        recurseInLockfile(JSON.parse(fs_sync.readFile(lockfile)));
+    }
+}
+
+type PackagesLock = { [p: string]: PackageLock };
+
+type PackageLock = {
+    Version: string;
+    Dependencies: PackagesLock;
 };
+
+function recurseInLockfile(lock: PackagesLock) {
+    if (packagesVersions === null) {
+        throw new Error("packagesVersions is null");
+    }
+
+    Object.entries(lock).forEach(([name, pkg]) => {
+        const existingVersion = packagesVersions.get(name);
+
+        if (existingVersion && semver.lt(pkg.Version, existingVersion)) {
+            return;
+        }
+
+        packagesVersions.set(name, pkg.Version);
+        if (pkg.Dependencies) recurseInLockfile(pkg.Dependencies);
+    });
+}
 
 const scriptSnapshotCache: {
     [path: string]: IScriptSnapshot;
@@ -212,11 +278,29 @@ function initLanguageServiceHost(): LanguageServiceHost {
                 }
                 return scriptSnapshotCache[fileName];
             } else if (fileName.startsWith("node_modules")) {
+                const modulePath = fileName.slice("node_modules/".length);
+                const { name, version, path } = parsePackageName(modulePath);
+
+                if (version !== null) {
+                    fileName = "node_modules/" + name + "/" + path;
+                }
+
                 if (!scriptSnapshotCache[fileName]) {
+                    const packageVersion =
+                        version || packagesVersions?.get(name);
+
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(fileName)
+                        fs_sync.readFile(
+                            "node_modules/" +
+                                name +
+                                "/" +
+                                packageVersion +
+                                "/" +
+                                path
+                        )
                     );
                 }
+
                 return scriptSnapshotCache[fileName];
             }
 
@@ -240,63 +324,89 @@ function initLanguageServiceHost(): LanguageServiceHost {
             // console.log("getDefaultLibFileName");
             return "tsLib/lib.d.ts";
         },
-        readFile: function (path: string) {
+        readFile: function (fileName: string) {
             // console.log("readFile", path);
-            if (path.startsWith("node_modules")) {
-                if (!scriptSnapshotCache[path]) {
-                    scriptSnapshotCache[path] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(path)
+            if (fileName.startsWith("node_modules")) {
+                const modulePath = fileName.slice("node_modules/".length);
+                const { name, version, path } = parsePackageName(modulePath);
+
+                if (version !== null) {
+                    fileName = "node_modules/" + name + "/" + path;
+                }
+
+                if (!scriptSnapshotCache[fileName]) {
+                    const packageVersion =
+                        version || packagesVersions?.get(name);
+
+                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
+                        fs_sync.readFile(
+                            "node_modules/" +
+                                name +
+                                "/" +
+                                packageVersion +
+                                "/" +
+                                path
+                        )
                     );
                 }
 
-                return scriptSnapshotCache[path].getText(
+                return scriptSnapshotCache[fileName].getText(
                     0,
-                    scriptSnapshotCache[path].getLength()
+                    scriptSnapshotCache[fileName].getLength()
                 );
             }
 
             makeSureSourceFilesAreLoaded();
 
-            if (!sourceFiles[path]) {
+            if (!sourceFiles[fileName]) {
                 return null;
             }
 
-            if (sourceFiles[path].contents === null) {
-                sourceFiles[path].contents = fs_sync.readFile(path);
+            if (sourceFiles[fileName].contents === null) {
+                sourceFiles[fileName].contents = fs_sync.readFile(fileName);
             }
 
-            return sourceFiles[path].contents;
+            return sourceFiles[fileName].contents;
         },
-        fileExists: function (path: string) {
+        fileExists: function (fileName: string) {
             // console.log("fileExists", path);
+            makeSureSourceFilesAreLoaded();
 
-            if (path.startsWith("node_modules")) {
-                const modulePath = path.slice("node_modules/".length);
-                const moduleName = parsePackageName(modulePath);
+            if (fileName.startsWith("node_modules")) {
+                const modulePath = fileName.slice("node_modules/".length);
+                const { name, version } = parsePackageName(modulePath);
 
-                let moduleFiles = nodeModules.get(moduleName);
+                if (version !== null) {
+                    fileName = "node_modules/" + name + "/" + version;
+                }
+
+                const packageVersion = version || packagesVersions?.get(name);
+
+                let moduleFiles = nodeModules.get(name);
 
                 if (!moduleFiles) {
                     try {
                         moduleFiles = fs_sync
-                            .readdir("node_modules/" + moduleName)
+                            .readdir(
+                                "node_modules/" + name + "/" + packageVersion
+                            )
                             .map(
                                 (file) =>
-                                    "node_modules/" + moduleName + "/" + file
+                                    "node_modules/" +
+                                    name +
+                                    (file ? "/" + file : "")
                             );
                     } catch (e) {
                         moduleFiles = [];
                     }
 
-                    nodeModules.set(moduleName, moduleFiles);
+                    nodeModules.set(name, moduleFiles);
                 }
 
-                return moduleFiles.includes(path);
+                return moduleFiles.includes(fileName);
             }
 
-            makeSureSourceFilesAreLoaded();
-
-            return Object.keys(sourceFiles).includes(path);
+            return Object.keys(sourceFiles).includes(fileName);
         }
     };
 }

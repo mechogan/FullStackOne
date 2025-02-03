@@ -1,10 +1,9 @@
-import { SnackBar } from "../lib/components/snackbar";
 import core_message from "../lib/core_message";
 import { deeplink } from "./deeplink";
 import { Demo } from "./demo";
 import config from "./lib/config";
 import { CONFIG_TYPE } from "./types";
-import { Packages } from "./views/packages";
+import { updatePackagesView } from "./views/packages";
 import { Projects } from "./views/projects";
 
 core_message.addListener("deeplink", deeplink);
@@ -19,7 +18,14 @@ if (navigator.userAgent.includes("Windows")) {
 
 document.querySelector("#splash")?.remove();
 Projects();
-Packages();
+
+core_message.addListener("package", (dataStr) => {
+    try {
+        updatePackagesView(JSON.parse(dataStr));
+    } catch (e) {
+        console.log(dataStr);
+    }
+});
 
 const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {

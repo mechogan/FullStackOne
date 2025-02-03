@@ -6,9 +6,7 @@ import { SnackBar } from "../../lib/components/snackbar";
 import core_open from "../lib/core_open";
 import { buildSASS } from "../lib/esbuild/sass";
 import esbuild from "../lib/esbuild";
-import { isModuleResolveError } from "../packages";
 import git from "../lib/git";
-import platform, { Platform } from "../../lib/platform";
 
 const list = createSubscribable(listP, []);
 
@@ -107,6 +105,8 @@ async function build(project: Project) {
     try {
         const rawErrors = await coreBuild(project);
 
+        console.log(rawErrors);
+
         const buildErrors = rawErrors.map((error) => {
             return {
                 file: error.location?.file,
@@ -118,16 +118,7 @@ async function build(project: Project) {
         });
 
         if (buildErrors.length) {
-            const nonModuleRelatedErrors = buildErrors.filter(
-                (e) =>
-                    !isModuleResolveError(e) &&
-                    !(
-                        platform === Platform.WASM &&
-                        e.message.endsWith("not implemented on js")
-                    )
-            );
-
-            if (isUserMode && nonModuleRelatedErrors.length) {
+            if (isUserMode) {
                 SnackBar({
                     message: `Encountered errors while building <b>${project.title}</b>.`,
                     autoDismissTimeout: 4000
@@ -135,27 +126,6 @@ async function build(project: Project) {
             }
 
             buildErrors.forEach(Store.editor.codeEditor.addBuildError);
-
-            if (nonModuleRelatedErrors.length === 0) {
-                Store.preferences.isUserMode.unsubscribe(setUM);
-
-                return new Promise((resolve) => {
-                    const waitForModulesInstallation = (
-                        packageInstallation: Map<string, any>
-                    ) => {
-                        if (packageInstallation.size === 0) {
-                            Store.packages.installingPackages.unsubscribe(
-                                waitForModulesInstallation
-                            );
-                            resolve(build(project));
-                        }
-                    };
-
-                    Store.packages.installingPackages.subscribe(
-                        waitForModulesInstallation
-                    );
-                });
-            }
         } else {
             if (project.gitRepository?.url) {
                 const head = await git.head(project.id);

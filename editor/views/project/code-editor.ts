@@ -18,6 +18,7 @@ import prettierPluginHTML from "prettier/plugins/html";
 import prettierPluginCSS from "prettier/plugins/postcss";
 import prettierPluginMD from "prettier/plugins/markdown";
 import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginBabel from "prettier/plugins/babel";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
 import { EditorSelection } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
@@ -368,6 +369,7 @@ const prettierPlugins = [
     prettierPluginCSS,
     prettierPluginMD,
     prettierPluginEstree,
+    prettierPluginBabel,
     prettierPluginTypeScript
 ];
 
