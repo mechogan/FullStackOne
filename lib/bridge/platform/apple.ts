@@ -14,15 +14,17 @@ export const BridgeApple: Bridge = (
         new Uint8Array([...numberTo4Bytes(requestId), ...payload])
     );
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         requests.set(requestId, (data) => {
-            const args = deserializeArgs(data);
-
-            if (transformer) {
-                return resolve(transformer(args));
+            try {
+                const args = deserializeArgs(data);
+                if (transformer) {
+                    return resolve(transformer(args));
+                }
+                resolve(args);
+            } catch (e) {
+                reject(e);
             }
-
-            resolve(args);
         });
         globalThis.webkit.messageHandlers.bridge.postMessage(base64);
     });
