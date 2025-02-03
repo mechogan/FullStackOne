@@ -131,13 +131,13 @@ func vStat(path string) *FileInfo2 {
 	pathComponents := strings.Split(path, "/")
 
 	return &FileInfo2{
-		Name: pathComponents[len(pathComponents)-1],
-		Size: int64(len(f.Data)),
+		Name:  pathComponents[len(pathComponents)-1],
+		Size:  int64(len(f.Data)),
 		ATime: f.ModTime,
 		MTime: f.ModTime,
 		CTime: f.ModTime,
 		IsDir: d,
-		Mode: 0644,
+		Mode:  0644,
 	}
 }
 

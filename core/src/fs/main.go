@@ -3,11 +3,11 @@ package fs
 import (
 	"errors"
 	serialize "fullstacked/editor/src/serialize"
+	"github.com/djherbis/times"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -17,14 +17,14 @@ func ReadFile(path string) ([]byte, error) {
 	fileData := ([]byte)(nil)
 	err := (error)(nil)
 
-	exists, isFile := Exists(path);
+	exists, isFile := Exists(path)
 
-	if(!exists) {
-		return nil, errors.New("ENOENT");
+	if !exists {
+		return nil, errors.New("ENOENT")
 	}
 
-	if(!isFile) {
-		return nil, errors.New("EISDIR");
+	if !isFile {
+		return nil, errors.New("EISDIR")
 	}
 
 	if WASM {
@@ -98,11 +98,11 @@ func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
 	items := []FileInfo2{}
 
 	exists, isFile := Exists(path)
-	if(!exists) {
+	if !exists {
 		return nil, errors.New("ENOENT")
 	}
 
-	if(isFile) {
+	if isFile {
 		return nil, errors.New("ENOTDIR")
 	}
 
@@ -247,7 +247,7 @@ type FileInfo2 struct {
 func Stat(path string) (*FileInfo2, error) {
 	exists, _ := Exists(path)
 
-	if(!exists) {
+	if !exists {
 		return nil, errors.New("ENOENT")
 	}
 
@@ -261,19 +261,24 @@ func Stat(path string) (*FileInfo2, error) {
 		return nil, err
 	}
 
-	mTime := fileInfo.ModTime()
-    stat := fileInfo.Sys().(*syscall.Stat_t)
-    aTime := time.Unix(int64(stat.Atimespec.Sec), int64(stat.Atimespec.Nsec))
-    cTime := time.Unix(int64(stat.Ctimespec.Sec), int64(stat.Ctimespec.Nsec))
+	t, _ := times.Stat(path)
+
+	mTime := t.ModTime()
+	aTime := t.AccessTime()
+
+	cTime := mTime
+	if t.HasChangeTime() {
+		cTime = t.ChangeTime()
+	}
 
 	return &FileInfo2{
-		Name: fileInfo.Name(),
-		Size: fileInfo.Size(),
+		Name:  fileInfo.Name(),
+		Size:  fileInfo.Size(),
 		ATime: aTime,
 		MTime: mTime,
 		CTime: cTime,
 		IsDir: fileInfo.IsDir(),
-		Mode: fileInfo.Mode(),
+		Mode:  fileInfo.Mode(),
 	}, nil
 }
 
@@ -292,12 +297,6 @@ func StatSerialized(path string) []byte {
 	bytes = append(bytes, serialize.SerializeNumber(float64(stats.MTime.UnixMilli()))...)
 	bytes = append(bytes, serialize.SerializeNumber(float64(stats.CTime.UnixMilli()))...)
 	bytes = append(bytes, serialize.SerializeBoolean(stats.IsDir)...)
-
-	if(stats.IsDir) {
-		bytes = append(bytes, serialize.SerializeNumber(16877)...)
-	} else {
-		bytes = append(bytes, serialize.SerializeNumber(33188)...)
-	}
 
 	return bytes
 }

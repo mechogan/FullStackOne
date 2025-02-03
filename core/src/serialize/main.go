@@ -11,7 +11,7 @@ const (
 	STRING    = 2
 	NUMBER    = 3
 	BUFFER    = 4
-	ERROR	  = 5
+	ERROR     = 5
 )
 
 func DeserializeBytesToInt(bytes []byte) int {

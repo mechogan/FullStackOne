@@ -210,7 +210,7 @@ function makeSurePackagesVersionsAreLoaded() {
     const lockfile = workingDirectory + "/lock.json";
     if (sourceFiles[lockfile]) {
         packagesVersions = new Map();
-        recurseInLockfile(JSON.parse(fs_sync.readFile(lockfile)));
+        recurseInLockfile(JSON.parse(sourceFiles[lockfile].contents));
     }
 }
 
