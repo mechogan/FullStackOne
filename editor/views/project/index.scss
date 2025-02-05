@@ -93,6 +93,10 @@ $file-tree-panel-width: 235px;
                 }
             }
 
+            + .terminal-container {
+                border-top-left-radius: 0;
+            }
+
             .file-tree {
                 width: 0;
             }
@@ -297,7 +301,6 @@ $file-tree-panel-width: 235px;
         padding: 0;
         background-color: black;
         border-top-left-radius: spacing.$small;
-        border-top-right-radius: spacing.$small;
 
         &.open {
             padding: spacing.$x-small;

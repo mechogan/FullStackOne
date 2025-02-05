@@ -1,10 +1,11 @@
 import createTerminal, { Command } from "@fullstacked/terminal";
 import { createElement } from "../../components/element";
 import { Store } from "../../store";
-import esbuild from "../../lib/esbuild";
+import { npm } from "../../commands/npm";
 
 
 const commands: Command[] = [
+    ...npm,
     {
         name: "close",
         alias: ["exit"],
@@ -12,16 +13,6 @@ const commands: Command[] = [
             (document.activeElement as HTMLElement).blur()
             Store.editor.setTerminalOpen(false);
         }
-    },{
-        name: "npm",
-        exec: () => {},
-        subcommands: [{
-            name: "install",
-            alias: ["i"],
-            exec: (args, it) => {
-                args.forEach(p => esbuild.install(p))
-            }
-        }]
     }
 ]
 
