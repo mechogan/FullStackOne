@@ -54,6 +54,26 @@ $file-tree-panel-width: 235px;
         margin-left: 0 - spacing.$medium;
         width: calc(100% + (spacing.$medium + spacing.$medium));
 
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            
+            > div:last-child {
+                padding-left: spacing.$small;
+                padding-bottom: spacing.$small;
+                transition: 0.2s all;
+                overflow: hidden;
+
+                &.hide {
+                    padding-left: 0;
+                    padding-bottom: 0;
+                    height: 0;
+                    overflow: hidden;
+                }
+            }
+        }
+
         .file-tree {
             width: $file-tree-panel-width;
             transition: 0.2s all;
@@ -66,6 +86,13 @@ $file-tree-panel-width: 235px;
         }
 
         &.closed-panel {
+            .left-panel {
+                > div:last-child {
+                    width: 0;
+                    padding-left: 0;
+                }
+            }
+
             .file-tree {
                 width: 0;
             }
@@ -257,6 +284,24 @@ $file-tree-panel-width: 235px;
                     opacity: 1;
                 }
             }
+        }
+    }
+
+    .terminal-container {
+        margin: 0 0 - spacing.$medium;
+        height: 0%;
+        max-height: 300px;
+        transition: 0.2s height;
+        overflow: hidden;
+
+        padding: 0;
+        background-color: black;
+        border-top-left-radius: spacing.$small;
+        border-top-right-radius: spacing.$small;
+
+        &.open {
+            padding: spacing.$x-small;
+            height: 50%;
         }
     }
 

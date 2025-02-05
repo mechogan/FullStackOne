@@ -21,6 +21,7 @@ import { createRefresheable } from "../../components/refresheable";
 import fs from "../../../lib/fs";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
+import { Terminal } from "./terminal";
 
 let lastOpenedProjectId: string;
 export function Project(project: ProjectType, run = false) {
@@ -39,14 +40,16 @@ export function Project(project: ProjectType, run = false) {
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
     const topBar = TopBar(project, fileTreeAndEditor);
+    const terminal = Terminal();
 
-    container.append(topBar, fileTreeAndEditor);
+    container.append(topBar, fileTreeAndEditor, terminal);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
             topBar.destroy();
             fileTreeAndEditor.destroy();
+            terminal.destroy();
             container.destroy();
         }
     });
@@ -146,11 +149,37 @@ function FileTreeAndEditor(project: ProjectType) {
     const fileTree = FileTree(project);
     const editor = Editor(project);
 
-    container.append(fileTree, editor);
+    const leftPanel = document.createElement("div");
+    leftPanel.classList.add("left-panel");
+
+    const buttonContainer = document.createElement("div");
+
+    const toggleButtonVisibility = (terminalOpen: boolean) => {
+        if(terminalOpen) {
+            buttonContainer.classList.add("hide")
+        } else {
+            buttonContainer.classList.remove("hide")
+        }
+    }
+    Store.editor.terminalOpen.subscribe(toggleButtonVisibility)
+
+    const terminalButton = Button({
+        style: "text",
+        iconLeft: "Terminal",
+    });
+    terminalButton.onclick = () => {
+        Store.editor.setTerminalOpen(true);
+    }
+    buttonContainer.append(terminalButton);
+
+    leftPanel.append(fileTree, buttonContainer);
+
+    container.append(leftPanel, editor);
 
     container.ondestroy = () => {
         fileTree.destroy();
         editor.destroy();
+        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility)
     };
 
     return container;
