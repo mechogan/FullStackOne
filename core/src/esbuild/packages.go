@@ -185,7 +185,9 @@ func (p *Package) Path() string {
 		panic("called Path on package without any version")
 	}
 
-	return path.Join(setup.Directories.NodeModules, p.Name, p.Version.Original())
+	return path.Join(
+		// setup.Directories.NodeModules, 
+		p.Name, p.Version.Original())
 }
 
 // for downloading progress

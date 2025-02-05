@@ -10,6 +10,7 @@ import (
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
 	git "fullstacked/editor/src/git"
+	"fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -158,8 +159,16 @@ func editorSwitch(method int, args []any) []byte {
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		go esbuild.Build(projectDirectory, args[1].(float64))
 	case method == PACKAGE_INSTALL:
-		p := esbuild.New(args[0].(string))
-		go p.Install(nil, nil)
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		installationId := args[1].(float64)
+		packagesToInstall := []string{}
+		for i, p := range args {
+			if i < 2 {
+				continue
+			}
+			packagesToInstall = append(packagesToInstall, p.(string))
+		}
+		go packages.Install(installationId, projectDirectory, packagesToInstall)
 	case method == ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 

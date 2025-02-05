@@ -31,7 +31,6 @@ func directories(root *C.char,
 
 	fs.Mkdir(setup.Directories.Root)
 	fs.Mkdir(setup.Directories.Config)
-	fs.Mkdir(setup.Directories.NodeModules)
 	fs.Mkdir(setup.Directories.Tmp)
 	fs.Mkdir(setup.Directories.Editor)
 }

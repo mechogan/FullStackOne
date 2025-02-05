@@ -143,7 +143,10 @@ func LOAD_NODE_MODULES(module string, p *Package) *string {
 		return nil
 	}
 
-	packageDirectory := path.Join(setup.Directories.NodeModules, name, lockedDependency.Version.String())
+	packageDirectory := path.Join(
+		// setup.Directories.NodeModules, 
+		name,
+		lockedDependency.Version.String())
 	resolvedPath, packageJSON := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
 
 	nodeModulePath := path.Join(packageDirectory, modulePath)

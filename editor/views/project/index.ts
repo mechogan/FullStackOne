@@ -40,7 +40,7 @@ export function Project(project: ProjectType, run = false) {
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
     const topBar = TopBar(project, fileTreeAndEditor);
-    const terminal = Terminal();
+    const terminal = Terminal(project);
 
     container.append(topBar, fileTreeAndEditor, terminal);
 

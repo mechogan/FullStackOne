@@ -2,6 +2,7 @@ import createTerminal, { Command } from "@fullstacked/terminal";
 import { createElement } from "../../components/element";
 import { Store } from "../../store";
 import { npm } from "../../commands/npm";
+import { Project } from "../../types";
 
 
 const commands: Command[] = [
@@ -17,11 +18,15 @@ const commands: Command[] = [
 ]
 
 
-export function Terminal() {
+export function Terminal(project: Project) {
     const container = createElement("div");
     container.classList.add("terminal-container");
 
-    const { dispose } = createTerminal(container, commands)
+    const { dispose } = createTerminal(
+        container, 
+        commands,
+        project
+    )
 
     const toggleTerminal = (open: boolean) => {
         if (open) {
