@@ -43,6 +43,8 @@ const (
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
 
+	PACKAGE_INSTALL = 60
+
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
 	GIT_STATUS        = 72
@@ -155,6 +157,9 @@ func editorSwitch(method int, args []any) []byte {
 	case method == ESBUILD_BUILD:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		go esbuild.Build(projectDirectory, args[1].(float64))
+	case method == PACKAGE_INSTALL:
+		p := esbuild.New(args[0].(string))
+		go p.Install(nil, nil)
 	case method == ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 

@@ -89,3 +89,13 @@ function uncapitalizeKeys<T>(obj: T) {
     }
     return final as T;
 }
+
+
+// 60
+export function install(packageName: string){
+    const payload = new Uint8Array([
+        60,
+        ...serializeArgs([packageName])
+    ]);
+    bridge(payload)
+}
