@@ -9,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	semver "github.com/Masterminds/semver/v3"
@@ -169,7 +170,15 @@ func getDependencies(installation *Installation, checked []*Package) {
 
 			alreadyAdded := false
 			for _, iP := range installation.Packages {
-				if iP.Name == pDep.Name && iP.Version.Equal(pDep.Version) {
+				if iP.Name == pDep.Name {
+
+					// grab the most recent of both
+					// should warn user or something
+					if(pDep.Version.GreaterThan(iP.Version)) {
+						iP.Version = pDep.Version
+					}
+
+
 					alreadyAdded = true
 					break
 				}
@@ -210,28 +219,21 @@ func Install(installationId float64, directory string, packagesName []string) {
 		return
 	}
 
-	for i, p := range installation.Packages {
-		for j, pp := range installation.Packages {
-			if i < j {
-				continue
-			}
-
-			if p.Name == pp.Name && !p.Version.Equal(pp.Version) {
-				panic("trying to install the same package with 2 different version")
-			}
-		}
-	}
-
 	packageDirectory := path.Join(directory, "node_modules")
 	exists, _ := fs.Exists(packageDirectory)
 	if !exists {
 		fs.Mkdir(packageDirectory)
 	}
 
+	wg := sync.WaitGroup{}
+
 	for _, p := range installation.Packages {
 		p.Installation = &installation
-		p.Install(packageDirectory, &installation)
+		wg.Add(1)
+		go p.Install(packageDirectory, &installation, &wg)
 	}
+
+	wg.Wait()
 
 	installation.Duration = float64(time.Now().UnixMilli() - start)
 	installation.notify()

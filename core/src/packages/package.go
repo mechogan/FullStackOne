@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	semver "github.com/Masterminds/semver/v3"
 )
@@ -64,7 +65,9 @@ func (p *Package) getDependencies() []Package {
 	return dependencies
 }
 
-func (p *Package) Install(directory string, i *Installation){
+func (p *Package) Install(directory string, i *Installation, wg *sync.WaitGroup){
+	defer wg.Done()
+	
 	pDir := path.Join(directory, p.Name)
 	fs.Mkdir(pDir)
 

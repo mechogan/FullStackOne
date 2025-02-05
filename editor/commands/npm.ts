@@ -12,6 +12,7 @@ export const npm: Command[] = [
             name: "install",
             alias: ["i"],
             exec: async (args, it, ctx) => {
+                it.print("getting packages info...");
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()
                     it.print(installProgressToText(p))

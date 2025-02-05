@@ -40,7 +40,7 @@ function installationsListener(messageStr: string) {
     const activeInstallation = activeInstallations.get(message.id);
 
     if (!activeInstallation) {
-        console.log("received pacakges installation notification for unknown active installation");
+        console.log("received packages installation notification for unknown active installation");
         return;
     }
 
