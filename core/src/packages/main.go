@@ -108,7 +108,7 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	vc := semver.Collection(availableVersions)
 	sort.Sort(sort.Reverse(vc))
 
-	if(constraints != nil) {
+	if constraints != nil {
 		for _, v := range availableVersions {
 			if constraints.Check(v) {
 				return v
@@ -143,69 +143,88 @@ func NewPackageWithVersionStr(name string, versionStr string) Package {
 	}
 }
 
-func (installation *Installation) getDependencies() {
-	packages := installation.Packages
-	i := 0
+func (installation *Installation) getPackageDependencies(p *Package, wg *sync.WaitGroup, mutex *sync.Mutex) {
+	defer wg.Done()
 
-	for i < len(packages) {
-		p := packages[i]
+	deps := p.getDependencies()
 
-		deps := p.getDependencies()
+	newPackages := []*Package{}
+	for _, dep := range deps {
+		seen := false
 
-		for _, dep := range deps {
-
-			otherVersionSeen := false
-			for k, pp := range installation.Packages {
-				if pp.Name == dep.Name && !pp.Version.Equal(dep.Version) {
-
-					// keep greater version in root install
-					if pp.Version.GreaterThan(dep.Version) {
-						otherVersionSeen = true
-						p.Dependencies = append(p.Dependencies, &dep)
-					} else {
-						// we need to swap the package in root
-
-						// add other version in dependants deps
-						for _, ppp := range pp.Dependant {
-							ppp.Dependencies = append(ppp.Dependencies, pp)
-						}
-
-						// remove at k
-						installation.Packages[k] = installation.Packages[len(installation.Packages)-1]
-						installation.Packages = installation.Packages[:len(installation.Packages)-1]
-					}
-
-					break
-				}
+		mutex.Lock()
+		for _, pp := range installation.Packages {
+			if pp.Name == dep.Name && pp.Version.Equal(dep.Version) {
+				seen = true
+				pp.Dependants = append(pp.Dependants, p)
+				break
 			}
+		}
+		mutex.Unlock()
 
-			// verify if already in list
-			seen := false
-			j := 0
-			for j < len(packages) {
+		if !seen {
+			newPackages = append(newPackages, &dep)
+			mutex.Lock()
+			installation.Packages = append(installation.Packages, &dep)
+			mutex.Unlock()
+		}
+	}
 
-				if packages[j].Name == dep.Name && packages[j].Version.Equal(dep.Version) {
-					seen = true
-					packages[j].Dependant = append(packages[j].Dependant, p)
-					break
-				}
+	if len(newPackages) > 0 {
+		installation.getDependencies(newPackages, wg, mutex)
+	}
+}
 
-				j += 1
-			}
-			if seen {
-				continue
-			}
+func (installation *Installation) getDependencies(
+	packages []*Package,
+	wg *sync.WaitGroup,
+	mutex *sync.Mutex,
+) {
+	for _, p := range packages {
+		wg.Add(1)
+		go installation.getPackageDependencies(p, wg, mutex)
+	}
+}
 
-			packages = append(packages, &dep)
+func (installation *Installation) untanglePackages() {
+	// sort by version descending 
+	// this will assure we have most recent version up
+	/*
+	*   - foo v3.0.0
+	*	- bar v1.0.0
+	*		- foo v2.0.0
+	*	- baz
+	*		- foo v1.0.0
+	*/
 
-			if !otherVersionSeen {
-				installation.Packages = append(installation.Packages, &dep)
+	sort.Slice(installation.Packages, func(i, j int) bool {
+		return installation.Packages[i].Version.GreaterThan(installation.Packages[j].Version)
+	})
+
+	toInstall := []*Package{}
+	for _, p := range installation.Packages {
+
+		alreadyAdded := false
+		for _, pp := range toInstall{
+			if(p.Name == pp.Name) {
+				alreadyAdded = true;
+				break;
 			}
 		}
 
-		i += 1
+		if(alreadyAdded) {
+
+			// place it in dependants dependencies
+			for _, pp := range p.Dependants {
+				pp.Dependencies = append(pp.Dependencies, p)
+			}
+
+		} else {
+			toInstall = append(toInstall, p)
+		}
 	}
 
+	installation.Packages = toInstall
 }
 
 func Install(installationId float64, directory string, packagesName []string) {
@@ -215,26 +234,33 @@ func Install(installationId float64, directory string, packagesName []string) {
 		Id: installationId,
 	}
 
+	directPackages := []*Package{}
 	for _, pName := range packagesName {
 		p := NewPackage(pName)
 		p.Direct = true
-		installation.Packages = append(installation.Packages, &p)
+		directPackages = append(directPackages, &p)
 	}
 
-	installation.getDependencies()
+	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+
+	installation.Packages = directPackages
+	installation.getDependencies(directPackages, &wg, &mutex)
+
+	wg.Wait()
 
 	if len(installation.Packages) == 0 {
 		fmt.Println("no package to install")
 		return
 	}
 
+	installation.untanglePackages()
+
 	packageDirectory := path.Join(directory, "node_modules")
 	exists, _ := fs.Exists(packageDirectory)
 	if !exists {
 		fs.Mkdir(packageDirectory)
 	}
-
-	wg := sync.WaitGroup{}
 
 	for _, p := range installation.Packages {
 		p.InstallationId = installation.Id

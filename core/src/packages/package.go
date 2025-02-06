@@ -25,8 +25,8 @@ type Package struct {
 
 	InstallationId float64 `json:"id"`
 
-	Dependant    []*Package `json:"-"`
-	Dependencies []*Package`json:"dependencies"`
+	Dependants   []*Package `json:"-"`
+	Dependencies []*Package `json:"dependencies"`
 
 	Progress struct {
 		Stage  string `json:"stage"`
@@ -43,7 +43,7 @@ func (p *Package) Write(data []byte) (int, error) {
 	return n, nil
 }
 
-func (p *Package) notify(){
+func (p *Package) notify() {
 	jsonData, err := json.Marshal(p)
 	if err != nil {
 		fmt.Println(err)
@@ -99,7 +99,7 @@ func NewDependency(
 ) {
 	defer wg.Done()
 	p := NewPackageWithVersionStr(name, version)
-	p.Dependant = []*Package{dependant}
+	p.Dependants = []*Package{dependant}
 	dependencies.packages = append(dependencies.packages, p)
 }
 
