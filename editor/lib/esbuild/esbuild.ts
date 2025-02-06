@@ -23,8 +23,6 @@ const activeBuilds = new Map<
 >();
 
 function buildResponse(buildResult: string) {
-    console.log(buildResult)
-    // const { id, errors } = JSON.parse(buildResult) as { id: number, errors: Message[] }
     const responseData = toByteArray(buildResult);
     const [id, errorsStr] = deserializeArgs(responseData);
     const activeBuild = activeBuilds.get(id);

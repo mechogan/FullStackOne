@@ -200,11 +200,6 @@ var nodeBuiltInModules = []string{
 	"util",
 }
 
-type BuildResult struct {
-	Id     float64           `json:"id"`
-	Errors []esbuild.Message `json:"errors"`
-}
-
 func Build(
 	projectDirectory string,
 	buildId float64,
@@ -269,17 +264,10 @@ func Build(
 		}
 	}
 
-	// buildResult := BuildResult{
-	// 	Id: buildId,
-	// 	Errors: result.Errors,
-	// }
-
-	// jsonMessagesData, _ := json.Marshal(buildResult)
-	// jsonMessagesStr := string(jsonMessagesData)
-	// setup.Callback("", "build", jsonMessagesStr)
-	// return errors as json string
+	// don't try to directly send JSON string.
+	// apple platform and probably others
+	// have issues with escaping some chars going through bridge
 	payload := serialize.SerializeNumber(buildId)
-
 	jsonMessagesData, _ := json.Marshal(result.Errors)
 	jsonMessagesStr := string(jsonMessagesData)
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)

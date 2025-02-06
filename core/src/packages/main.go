@@ -108,9 +108,11 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	vc := semver.Collection(availableVersions)
 	sort.Sort(sort.Reverse(vc))
 
-	for _, v := range availableVersions {
-		if constraints.Check(v) {
-			return v
+	if(constraints != nil) {
+		for _, v := range availableVersions {
+			if constraints.Check(v) {
+				return v
+			}
 		}
 	}
 
@@ -129,7 +131,7 @@ func NewPackage(packageName string) Package {
 }
 
 func NewPackageWithVersionStr(name string, versionStr string) Package {
-	if(versionStr == "") {
+	if versionStr == "" {
 		versionStr = "latest"
 	}
 
@@ -141,7 +143,7 @@ func NewPackageWithVersionStr(name string, versionStr string) Package {
 	}
 }
 
-func getDependencies(installation *Installation) {
+func (installation *Installation) getDependencies() {
 	packages := installation.Packages
 	i := 0
 
@@ -152,33 +154,12 @@ func getDependencies(installation *Installation) {
 
 		for _, dep := range deps {
 
-			// verify if already in list
-			seen := false
-			j := i + 1
-			for j < len(packages) {
-
-				if packages[j].Name == dep.Name && packages[j].Version.Equal(dep.Version) {
-					seen = true
-					packages[j].Dependant = append(packages[j].Dependant, p)
-					break
-				}
-
-				j += 1
-			}
-			if seen {
-				continue
-			}
-
-			packages = append(packages, &dep)
-
-			// look for same package with different version
 			otherVersionSeen := false
 			for k, pp := range installation.Packages {
 				if pp.Name == dep.Name && !pp.Version.Equal(dep.Version) {
-					
 
 					// keep greater version in root install
-					if(pp.Version.GreaterThan(dep.Version)) {
+					if pp.Version.GreaterThan(dep.Version) {
 						otherVersionSeen = true
 						p.Dependencies = append(p.Dependencies, &dep)
 					} else {
@@ -198,7 +179,26 @@ func getDependencies(installation *Installation) {
 				}
 			}
 
-			if(!otherVersionSeen) {
+			// verify if already in list
+			seen := false
+			j := 0
+			for j < len(packages) {
+
+				if packages[j].Name == dep.Name && packages[j].Version.Equal(dep.Version) {
+					seen = true
+					packages[j].Dependant = append(packages[j].Dependant, p)
+					break
+				}
+
+				j += 1
+			}
+			if seen {
+				continue
+			}
+
+			packages = append(packages, &dep)
+
+			if !otherVersionSeen {
 				installation.Packages = append(installation.Packages, &dep)
 			}
 		}
@@ -221,7 +221,7 @@ func Install(installationId float64, directory string, packagesName []string) {
 		installation.Packages = append(installation.Packages, &p)
 	}
 
-	getDependencies(&installation)
+	installation.getDependencies()
 
 	if len(installation.Packages) == 0 {
 		fmt.Println("no package to install")
