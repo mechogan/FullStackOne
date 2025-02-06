@@ -34,7 +34,7 @@ export const npm: Command[] = [
                     it.print(installProgressToText(p))
                 })
                 it.clear();
-                it.println(`installed ${c.bold.green(result.packages.length.toString())} package${result.packages.length > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`)
+                it.println(`installed ${c.bold.green(result.packagesInstalledCount)} package${result.packagesInstalledCount > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`)
             }
         }]
     }

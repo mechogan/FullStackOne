@@ -16,9 +16,10 @@ import (
 )
 
 type Installation struct {
-	Id       float64    `json:"id"`
-	Packages []*Package `json:"packages"`
-	Duration float64    `json:"duration"`
+	Id                     float64    `json:"id"`
+	Packages               []*Package `json:"-"`
+	PackagesInstalledCount float64    `json:"packagesInstalledCount"`
+	Duration               float64    `json:"duration"`
 }
 
 func (i *Installation) notify() {
@@ -187,15 +188,15 @@ func (installation *Installation) getDependencies(
 }
 
 func (installation *Installation) untanglePackages() {
-	// sort by version descending 
-	// this will assure we have most recent version up
+	// sort by version descending
+	// this will assure we have most recent version in root install
 	/*
 	*   - foo v3.0.0
-	*	- bar v1.0.0
+	*	- bar v1.2.3
 	*		- foo v2.0.0
-	*	- baz
+	*	- baz v3.2.1
 	*		- foo v1.0.0
-	*/
+	 */
 
 	sort.Slice(installation.Packages, func(i, j int) bool {
 		return installation.Packages[i].Version.GreaterThan(installation.Packages[j].Version)
@@ -205,14 +206,14 @@ func (installation *Installation) untanglePackages() {
 	for _, p := range installation.Packages {
 
 		alreadyAdded := false
-		for _, pp := range toInstall{
-			if(p.Name == pp.Name) {
-				alreadyAdded = true;
-				break;
+		for _, pp := range toInstall {
+			if p.Name == pp.Name {
+				alreadyAdded = true
+				break
 			}
 		}
 
-		if(alreadyAdded) {
+		if alreadyAdded {
 
 			// place it in dependants dependencies
 			for _, pp := range p.Dependants {
@@ -249,10 +250,7 @@ func Install(installationId float64, directory string, packagesName []string) {
 
 	wg.Wait()
 
-	if len(installation.Packages) == 0 {
-		fmt.Println("no package to install")
-		return
-	}
+	installation.PackagesInstalledCount = float64(len(installation.Packages))
 
 	installation.untanglePackages()
 
@@ -270,6 +268,35 @@ func Install(installationId float64, directory string, packagesName []string) {
 
 	wg.Wait()
 
+	installation.updatePackageAndLock(directory)
+
 	installation.Duration = float64(time.Now().UnixMilli() - start)
 	installation.notify()
+}
+
+type DirectPackageJSON struct {
+	Dependencies map[string]string `json:"dependencies,omitempty"`
+}
+
+func (installation *Installation) updatePackageAndLock(directory string){
+	lock := map[string]PackageJSON{}
+	direct := DirectPackageJSON{}
+
+	for _, p := range installation.Packages {
+		lock[p.Name] = p.toJSON()
+
+		if(p.Direct) {
+			if(direct.Dependencies == nil) {
+				direct.Dependencies = map[string]string{}
+			}
+
+			direct.Dependencies[p.Name] = "^" + p.Version.String()
+		}
+	}
+
+	jsonData, _ := json.MarshalIndent(lock, "", "    ")
+	fs.WriteFile(path.Join(directory, "lock.json"), jsonData)
+
+	jsonData, _ = json.MarshalIndent(direct, "", "    ")
+	fs.WriteFile(path.Join(directory, "package.json"), jsonData)
 }

@@ -35,6 +35,29 @@ type Package struct {
 	} `json:"progress"`
 }
 
+type PackageJSON struct {
+	Version *semver.Version `json:"version"`
+	Dependencies map[string]PackageJSON `json:"dependencies,omitempty"`
+}
+
+func (p *Package) toJSON() PackageJSON {
+	if(len(p.Dependencies) > 0) {
+		deps := map[string]PackageJSON{}
+		for _, dep := range p.Dependencies {
+			deps[dep.Name] = dep.toJSON()
+		}
+	
+		return PackageJSON{
+			Version: p.Version,
+			Dependencies: deps,
+		}
+	}
+	
+	return PackageJSON{
+		Version: p.Version,
+	}
+}
+
 // for downloading progress
 func (p *Package) Write(data []byte) (int, error) {
 	n := len(data)
