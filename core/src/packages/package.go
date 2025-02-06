@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"fullstacked/editor/src/fs"
+	setup "fullstacked/editor/src/setup"
 	"io"
 	"net/http"
 	"path"
@@ -20,10 +21,12 @@ import (
 type Package struct {
 	Name    string          `json:"name"`
 	Version *semver.Version `json:"version"`
+	Direct  bool            `json:"direct"`
 
-	// only to keep ref on parent installation
-	// to allow download write method
-	Installation *Installation `json:"-"`
+	InstallationId float64 `json:"id"`
+
+	Dependant    []*Package `json:"-"`
+	Dependencies []*Package`json:"dependencies"`
 
 	Progress struct {
 		Stage  string `json:"stage"`
@@ -36,17 +39,37 @@ type Package struct {
 func (p *Package) Write(data []byte) (int, error) {
 	n := len(data)
 	p.Progress.Loaded += n
-	p.Installation.notify()
+	p.notify()
 	return n, nil
 }
 
+func (p *Package) notify(){
+	jsonData, err := json.Marshal(p)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	jsonStr := string(jsonData)
+
+	setup.Callback("", "packages-installation", jsonStr)
+}
+
+type Dependencies struct {
+	packages []Package
+}
+
 func (p *Package) getDependencies() []Package {
-	packages := []Package{}
+	dependencies := Dependencies{}
+
+	if p.Version == nil {
+		panic("trying to get dependencies without resolved version [" + p.Name + "]")
+	}
 
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
 		fmt.Println(err)
-		return packages
+		return dependencies.packages
 	}
 	defer npmPackageInfo.Body.Close()
 
@@ -54,20 +77,35 @@ func (p *Package) getDependencies() []Package {
 	err = json.NewDecoder(npmPackageInfo.Body).Decode(npmPackageInfoJSON)
 	if err != nil {
 		fmt.Println(err)
-		return packages
+		return dependencies.packages
 	}
 
-	dependencies := []Package{}
+	wg := sync.WaitGroup{}
 	for n, v := range npmPackageInfoJSON.Dependencies {
-		dependencies = append(dependencies, NewPackageWithVersionStr(n, v))
+		wg.Add(1)
+		go NewDependency(p, n, v, &dependencies, &wg)
 	}
+	wg.Wait()
 
-	return dependencies
+	return dependencies.packages
 }
 
-func (p *Package) Install(directory string, i *Installation, wg *sync.WaitGroup){
+func NewDependency(
+	dependant *Package,
+	name string,
+	version string,
+	dependencies *Dependencies,
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
-	
+	p := NewPackageWithVersionStr(name, version)
+	p.Dependant = []*Package{dependant}
+	dependencies.packages = append(dependencies.packages, p)
+}
+
+func (p *Package) Install(directory string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	pDir := path.Join(directory, p.Name)
 	fs.Mkdir(pDir)
 
@@ -98,14 +136,14 @@ func (p *Package) Install(directory string, i *Installation, wg *sync.WaitGroup)
 	p.Progress.Stage = "downloading"
 	p.Progress.Loaded = 0
 	p.Progress.Total = dlTotal
-	i.notify()
+	p.notify()
 	dlReader := io.TeeReader(tarballResponse.Body, p)
 	packageDataGZIP, _ := io.ReadAll(dlReader)
 
 	p.Progress.Stage = "unpacking"
 	p.Progress.Loaded = 0
 	p.Progress.Total = 0
-	i.notify()
+	p.notify()
 
 	// get item count
 	packageDataGZIPBufferCount := bytes.NewBuffer(packageDataGZIP)
@@ -122,7 +160,7 @@ func (p *Package) Install(directory string, i *Installation, wg *sync.WaitGroup)
 		totalItemCount += 1
 	}
 	p.Progress.Total = totalItemCount
-	i.notify()
+	p.notify()
 
 	// untar
 	packageDataGZIPBuffer := bytes.NewBuffer(packageDataGZIP)
@@ -156,11 +194,18 @@ func (p *Package) Install(directory string, i *Installation, wg *sync.WaitGroup)
 		}
 
 		p.Progress.Loaded += 1
-		i.notify()
+		p.notify()
 	}
 
 	p.Progress.Stage = "done"
 	p.Progress.Loaded = 1
 	p.Progress.Total = 1
-	i.notify()
+	p.notify()
+
+	if len(p.Dependencies) > 0 {
+		for _, dep := range p.Dependencies {
+			wg.Add(1)
+			go dep.Install(path.Join(pDir, "node_modules"), wg)
+		}
+	}
 }

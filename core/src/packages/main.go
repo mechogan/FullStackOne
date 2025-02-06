@@ -16,19 +16,19 @@ import (
 )
 
 type Installation struct {
-	Id       float64      `json:"id"`
+	Id       float64    `json:"id"`
 	Packages []*Package `json:"packages"`
-	Duration float64      `json:"duration"`
+	Duration float64    `json:"duration"`
 }
 
 func (i *Installation) notify() {
 	jsonData, err := json.Marshal(i)
-	jsonStr := string(jsonData)
-
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	jsonStr := string(jsonData)
 
 	setup.Callback("", "packages-installation", jsonStr)
 }
@@ -125,14 +125,14 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 func NewPackage(packageName string) Package {
 	name, versionStr := ParsePackageName(packageName)
 
-	if versionStr == "" {
-		versionStr = "latest"
-	}
-
 	return NewPackageWithVersionStr(name, versionStr)
 }
 
 func NewPackageWithVersionStr(name string, versionStr string) Package {
+	if(versionStr == "") {
+		versionStr = "latest"
+	}
+
 	version := findAvailableVersion(name, versionStr)
 
 	return Package{
@@ -141,63 +141,71 @@ func NewPackageWithVersionStr(name string, versionStr string) Package {
 	}
 }
 
-func getDependencies(installation *Installation, checked []*Package) {
-	foundNewDependencies := false
+func getDependencies(installation *Installation) {
+	packages := installation.Packages
+	i := 0
 
-	if checked == nil {
-		checked = []*Package{}
-	}
+	for i < len(packages) {
+		p := packages[i]
 
-	for _, p := range installation.Packages {
-		pChecked := false
+		deps := p.getDependencies()
 
-		// dont lookup a package already checked
-		for _, c := range checked {
-			if c.Name == p.Name && c.Version.Equal(p.Version) {
-				pChecked = true
-				break
+		for _, dep := range deps {
+
+			// verify if already in list
+			seen := false
+			j := i + 1
+			for j < len(packages) {
+
+				if packages[j].Name == dep.Name && packages[j].Version.Equal(dep.Version) {
+					seen = true
+					packages[j].Dependant = append(packages[j].Dependant, p)
+					break
+				}
+
+				j += 1
 			}
-		}
-		if pChecked {
-			continue
-		}
+			if seen {
+				continue
+			}
 
-		// get deps
-		pDeps := p.getDependencies()
+			packages = append(packages, &dep)
 
-		// add every deps not seen previously
-		for _, pDep := range pDeps {
+			// look for same package with different version
+			otherVersionSeen := false
+			for k, pp := range installation.Packages {
+				if pp.Name == dep.Name && !pp.Version.Equal(dep.Version) {
+					
 
-			alreadyAdded := false
-			for _, iP := range installation.Packages {
-				if iP.Name == pDep.Name {
+					// keep greater version in root install
+					if(pp.Version.GreaterThan(dep.Version)) {
+						otherVersionSeen = true
+						p.Dependencies = append(p.Dependencies, &dep)
+					} else {
+						// we need to swap the package in root
 
-					// grab the most recent of both
-					// should warn user or something
-					if(pDep.Version.GreaterThan(iP.Version)) {
-						iP.Version = pDep.Version
+						// add other version in dependants deps
+						for _, ppp := range pp.Dependant {
+							ppp.Dependencies = append(ppp.Dependencies, pp)
+						}
+
+						// remove at k
+						installation.Packages[k] = installation.Packages[len(installation.Packages)-1]
+						installation.Packages = installation.Packages[:len(installation.Packages)-1]
 					}
 
-
-					alreadyAdded = true
 					break
 				}
 			}
-			if !alreadyAdded {
-				foundNewDependencies = true
-				installation.Packages = append(installation.Packages, &pDep)
+
+			if(!otherVersionSeen) {
+				installation.Packages = append(installation.Packages, &dep)
 			}
 		}
 
-		// add this package to checked to avoid lookup twice
-		checked = append(checked, p)
+		i += 1
 	}
 
-	// if we found new dependencies
-	// continue lookups
-	if foundNewDependencies {
-		getDependencies(installation, checked)
-	}
 }
 
 func Install(installationId float64, directory string, packagesName []string) {
@@ -209,10 +217,11 @@ func Install(installationId float64, directory string, packagesName []string) {
 
 	for _, pName := range packagesName {
 		p := NewPackage(pName)
+		p.Direct = true
 		installation.Packages = append(installation.Packages, &p)
 	}
 
-	getDependencies(&installation, nil)
+	getDependencies(&installation)
 
 	if len(installation.Packages) == 0 {
 		fmt.Println("no package to install")
@@ -228,9 +237,9 @@ func Install(installationId float64, directory string, packagesName []string) {
 	wg := sync.WaitGroup{}
 
 	for _, p := range installation.Packages {
-		p.Installation = &installation
+		p.InstallationId = installation.Id
 		wg.Add(1)
-		go p.Install(packageDirectory, &installation, &wg)
+		go p.Install(packageDirectory, &wg)
 	}
 
 	wg.Wait()

@@ -3,6 +3,8 @@ import packages, { PackageInfo } from "../lib/packages"
 import c from "console-log-colors"
 import prettyMilliseconds from "pretty-ms"
 import prettyBytes from "pretty-bytes"
+import fs from "../../lib/fs"
+import { Project } from "../types"
 
 export const npm: Command[] = [
     {
@@ -11,7 +13,21 @@ export const npm: Command[] = [
         subcommands: [{
             name: "install",
             alias: ["i"],
-            exec: async (args, it, ctx) => {
+            exec: async (args, it, ctx: Project) => {
+                // check for package.json
+                if(args.length === 0) {
+                    const packageJsonPath = ctx.id + "/package.json";
+                    const exists = await fs.exists(packageJsonPath);
+                    if(exists?.isFile) {
+                        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, {encoding: "utf8"}));
+                        args = Object.entries(packageJson.dependencies).map(([n, v]) => `${n}@${v}`);
+                    }
+                }
+
+                if(args.length === 0) {
+                    return;
+                }
+
                 it.print("getting packages info...");
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()
@@ -24,24 +40,20 @@ export const npm: Command[] = [
     }
 ]
 
-function installProgressToText(p: PackageInfo[]): string {
+function installProgressToText(p: [string, PackageInfo["progress"]][]): string {
     const lines: string[] = []
 
-    const activeInstalls = p
-        .filter(({ progress }) => progress.stage != "" && progress.stage != "done")
-
     let longestNameVersionLength = 0;
-    activeInstalls.forEach(({ name, version, progress: { stage } }) => {
-        const nameAndVersion = name + version;
-        if (nameAndVersion.length > longestNameVersionLength) {
-            longestNameVersionLength = nameAndVersion.length
+    p.forEach(([name]) => {
+        if (name.length > longestNameVersionLength) {
+            longestNameVersionLength = name.length
         }
     });
 
-    for (const i of activeInstalls) {
-        const nameAndVersion = `${i.name}@${i.version}`.padEnd(longestNameVersionLength + 1, " ");
-        const stage = (i.progress.stage || "waiting").padEnd(12); // longest: "downloading"
-        lines.push(`${nameAndVersion} ${stage} ${progressBar(i.progress)}`);
+    for (const [name, progress] of p) {
+        const nameAndVersion = `${name}`.padEnd(longestNameVersionLength, " ");
+        const stage = (progress.stage || "waiting").padEnd(12); // longest: "downloading"
+        lines.push(`${nameAndVersion} ${stage} ${progressBar(progress)}`);
     }
 
     return lines.join("\n");

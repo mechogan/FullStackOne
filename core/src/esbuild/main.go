@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"path"
 	"path/filepath"
-	"reflect"
 	"runtime/debug"
 	"strings"
 	"sync"
 
 	fs "fullstacked/editor/src/fs"
-	serialize "fullstacked/editor/src/serialize"
+	"fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	utils "fullstacked/editor/src/utils"
 
@@ -201,12 +200,15 @@ var nodeBuiltInModules = []string{
 	"util",
 }
 
+type BuildResult struct {
+	Id     float64           `json:"id"`
+	Errors []esbuild.Message `json:"errors"`
+}
+
 func Build(
 	projectDirectory string,
 	buildId float64,
 ) {
-	projectBuild := newProjectBuild(projectDirectory, buildId)
-
 	// find entryPoints
 	entryPointJS := findEntryPoint(projectDirectory)
 	entryPointAbsCSS := filepath.ToSlash(path.Join(projectDirectory, ".build", "index.css"))
@@ -242,134 +244,6 @@ func Build(
 		tmpFile = "/" + tmpFile
 	}
 
-	mutexLock := sync.RWMutex{}
-
-	plugin := esbuild.Plugin{
-		Name: "fullstacked",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
-				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					if filepath.IsAbs(args.Path) {
-						return esbuild.OnResolveResult{
-							Path: args.Path,
-						}, nil
-					}
-
-					currentPackageLock := (*PackageLock)(nil)
-					if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
-						currentPackageLock = (args.PluginData).(*PackageLock)
-					} else {
-						currentPackageLock = &PackageLock{
-							Parent: nil,
-							Package: &Package{
-								Dependencies: projectBuild.lock,
-							},
-						}
-					}
-
-					mutexLock.RLock()
-					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
-					mutexLock.RUnlock()
-
-					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
-						name, _ := ParseName(args.Path)
-
-						if utils.Contains(nodeBuiltInModules, name) {
-							return esbuild.OnResolveResult{
-								External: true,
-							}, nil
-						}
-
-						// prevent circular loop
-						foundInParent := false
-						parentSearch := currentPackageLock
-						for parentSearch != nil && !foundInParent {
-							if name == parentSearch.Package.Name {
-								mutexLock.RLock()
-								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package)
-								mutexLock.RUnlock()
-
-								foundInParent = resolved != nil
-							}
-
-							parentSearch = parentSearch.Parent
-						}
-
-						if !foundInParent {
-							mutexLock.RLock()
-							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
-							mutexLock.RUnlock()
-
-							if !isChildLocked {
-								childPackage = New(args.Path)
-							}
-
-							childPackage, _ = projectBuild.reusePackageFromCache(childPackage)
-
-							mutexLock.Lock()
-							currentPackageLock.Package.Dependencies[name] = childPackage
-							mutexLock.Unlock()
-
-							if !childPackage.Installed {
-								if currentPackageLock.Parent == nil {
-									childPackage.Install(nil, &projectBuild)
-								} else {
-									projectBuild.removePackageFromCache(currentPackageLock.Package)
-									currentPackageLock.Package.Install(nil, &projectBuild)
-								}
-							}
-
-							if resolved == nil {
-								mutexLock.RLock()
-								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
-								mutexLock.RUnlock()
-							}
-
-							currentPackageLock = &PackageLock{
-								Parent:  currentPackageLock,
-								Package: childPackage,
-							}
-						}
-					}
-
-					if resolved == nil {
-						return esbuild.OnResolveResult{}, nil
-					}
-
-					// sometimes wasm resolves without leading slash
-					// not sure why
-					resolvedStr := *resolved
-					if !filepath.IsAbs(resolvedStr) {
-						resolvedStr = "/" + resolvedStr
-					}
-
-					return esbuild.OnResolveResult{
-						Path:       resolvedStr,
-						PluginData: currentPackageLock,
-					}, nil
-				})
-
-			build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					exists, isFile := fs.Exists(args.Path)
-					if !exists || !isFile {
-						return esbuild.OnLoadResult{}, nil
-					}
-
-					contents, _ := fs.ReadFile(args.Path)
-					contentsStr := string(contents)
-
-					loader := inferLoader(args.Path)
-
-					return esbuild.OnLoadResult{
-						Contents:   &contentsStr,
-						Loader:     loader,
-						PluginData: args.PluginData,
-					}, nil
-				})
-		},
-	}
-
 	// build
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{{
@@ -383,7 +257,10 @@ func Build(
 		Format:         esbuild.FormatESModule,
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
 		Write:          !fs.WASM,
-		Plugins:        []esbuild.Plugin{plugin},
+		NodePaths: []string{
+			path.Join(setup.Directories.Editor, "lib"),
+			path.Join(projectDirectory, "node_modules"),
+		},
 	})
 
 	if fs.WASM {
@@ -392,13 +269,16 @@ func Build(
 		}
 	}
 
-	if len(projectBuild.lock) > 0 {
-		jsonData, _ := json.MarshalIndent(packageLockToJSON([]*Package{}, projectBuild.lock), "", "    ")
-		fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
-	}
+	// buildResult := BuildResult{
+	// 	Id: buildId,
+	// 	Errors: result.Errors,
+	// }
 
+	// jsonMessagesData, _ := json.Marshal(buildResult)
+	// jsonMessagesStr := string(jsonMessagesData)
+	// setup.Callback("", "build", jsonMessagesStr)
 	// return errors as json string
-	payload := serialize.SerializeNumber(projectBuild.id)
+	payload := serialize.SerializeNumber(buildId)
 
 	jsonMessagesData, _ := json.Marshal(result.Errors)
 	jsonMessagesStr := string(jsonMessagesData)
