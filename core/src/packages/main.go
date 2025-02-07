@@ -138,13 +138,22 @@ func NewPackageWithVersionStr(name string, versionStr string) Package {
 
 	version := findAvailableVersion(name, versionStr)
 
+	return NewPackageFromLock(name, version, versionStr)
+}
+
+func NewPackageFromLock(name string, version *semver.Version, versionStr string) Package {
 	return Package{
 		Name:    name,
 		Version: version,
+		As:      []string{versionStr},
 	}
 }
 
-func (installation *Installation) getPackageDependencies(p *Package, wg *sync.WaitGroup, mutex *sync.Mutex) {
+func (installation *Installation) getPackageDependencies(
+	p *Package,
+	wg *sync.WaitGroup,
+	mutex *sync.Mutex,
+) {
 	defer wg.Done()
 
 	deps := p.getDependencies()
@@ -157,6 +166,7 @@ func (installation *Installation) getPackageDependencies(p *Package, wg *sync.Wa
 		for _, pp := range installation.Packages {
 			if pp.Name == dep.Name && pp.Version.Equal(dep.Version) {
 				seen = true
+				pp.As = mergeSlices(pp.As, dep.As)
 				pp.Dependants = append(pp.Dependants, p)
 				break
 			}
@@ -254,16 +264,10 @@ func Install(installationId float64, directory string, packagesName []string) {
 
 	installation.untanglePackages()
 
-	packageDirectory := path.Join(directory, "node_modules")
-	exists, _ := fs.Exists(packageDirectory)
-	if !exists {
-		fs.Mkdir(packageDirectory)
-	}
-
 	for _, p := range installation.Packages {
 		p.InstallationId = installation.Id
 		wg.Add(1)
-		go p.Install(packageDirectory, &wg)
+		go p.Install(directory, "node_modules", &wg)
 	}
 
 	wg.Wait()
@@ -278,25 +282,78 @@ type DirectPackageJSON struct {
 	Dependencies map[string]string `json:"dependencies,omitempty"`
 }
 
-func (installation *Installation) updatePackageAndLock(directory string){
-	lock := map[string]PackageJSON{}
+type PackageLock struct {
+	Packages []PackageLockJSON `json:"packages"`
+}
+
+func (installation *Installation) updatePackageAndLock(directory string) {
+	lock := &PackageLock{
+		Packages: []PackageLockJSON{},
+	}
 	direct := DirectPackageJSON{}
 
-	for _, p := range installation.Packages {
-		lock[p.Name] = p.toJSON()
+	lock.addPackagesToLock(installation.Packages)
 
-		if(p.Direct) {
-			if(direct.Dependencies == nil) {
-				direct.Dependencies = map[string]string{}
-			}
-
-			direct.Dependencies[p.Name] = "^" + p.Version.String()
+	sort.Slice(lock.Packages, func(i, j int) bool {
+		if lock.Packages[i].Name == lock.Packages[j].Name {
+			return lock.Packages[i].Version < lock.Packages[j].Version
 		}
-	}
+		return lock.Packages[i].Name < lock.Packages[j].Name
+	})
 
-	jsonData, _ := json.MarshalIndent(lock, "", "    ")
+	jsonData, err := json.MarshalIndent(lock, "", "    ")
+	if err != nil {
+		fmt.Println(err)
+	}
 	fs.WriteFile(path.Join(directory, "lock.json"), jsonData)
 
-	jsonData, _ = json.MarshalIndent(direct, "", "    ")
+	for _, p := range installation.Packages {
+		if !p.Direct {
+			continue
+		}
+
+		if direct.Dependencies == nil {
+			direct.Dependencies = map[string]string{}
+		}
+
+		direct.Dependencies[p.Name] = "^" + p.Version.String()
+	}
+
+	jsonData, err = json.MarshalIndent(direct, "", "    ")
+	if err != nil {
+		fmt.Println(err)
+	}
 	fs.WriteFile(path.Join(directory, "package.json"), jsonData)
+}
+
+func (lock *PackageLock) addPackagesToLock(packages []*Package) {
+	for _, p := range packages {
+		for _, pp := range lock.Packages {
+			if pp.Name == p.Name && pp.Version == p.Version.String() {
+				return
+			}
+		}
+
+		lock.Packages = append(lock.Packages, p.toJSON())
+
+		if len(p.Dependencies) > 0 {
+			lock.addPackagesToLock(p.Dependencies)
+		}
+	}
+}
+
+func mergeSlices(arr1 []string, arr2 []string) []string {
+	for _, b := range arr2 {
+		seen := false
+		for _, a := range arr1 {
+			if a == b {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			arr1 = append(arr1, b)
+		}
+	}
+	return arr1
 }

@@ -6,7 +6,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"fullstacked/editor/src/fs"
+	fs "fullstacked/editor/src/fs"
 	setup "fullstacked/editor/src/setup"
 	"io"
 	"net/http"
@@ -21,7 +21,10 @@ import (
 type Package struct {
 	Name    string          `json:"name"`
 	Version *semver.Version `json:"version"`
+	As      []string        `json:"as"`
 	Direct  bool            `json:"direct"`
+
+	Locations []string `json:"-"`
 
 	InstallationId float64 `json:"id"`
 
@@ -36,25 +39,37 @@ type Package struct {
 }
 
 type PackageJSON struct {
-	Version *semver.Version `json:"version"`
-	Dependencies map[string]PackageJSON `json:"dependencies,omitempty"`
+	Version      string            `json:"version"`
+	Dependencies map[string]string `json:"dependencies"`
 }
 
-func (p *Package) toJSON() PackageJSON {
-	if(len(p.Dependencies) > 0) {
-		deps := map[string]PackageJSON{}
-		for _, dep := range p.Dependencies {
-			deps[dep.Name] = dep.toJSON()
-		}
-	
-		return PackageJSON{
-			Version: p.Version,
-			Dependencies: deps,
-		}
-	}
-	
-	return PackageJSON{
-		Version: p.Version,
+type PackageLockJSON struct {
+	Name         string                     `json:"name"`
+	Version      string                     `json:"version"`
+	As           []string                   `json:"as,omitempty"`
+	Locations     []string                   `json:"location"`
+	Dependencies map[string]PackageLockJSON `json:"dependencies,omitempty"`
+}
+
+func (p *Package) toJSON() PackageLockJSON {
+	// if len(p.Dependencies) > 0 {
+	// 	deps := map[string]PackageLockJSON{}
+	// 	for _, dep := range p.Dependencies {
+	// 		deps[dep.Name] = dep.toJSON()
+	// 	}
+
+	// 	return PackageLockJSON{
+	// 		Name:         p.Name,
+	// 		Version:      p.Version.String(),
+	// 		Dependencies: deps,
+	// 	}
+	// }
+
+	return PackageLockJSON{
+		Name:    p.Name,
+		As: p.As,
+		Locations: p.Locations,
+		Version: p.Version.String(),
 	}
 }
 
@@ -83,11 +98,15 @@ type Dependencies struct {
 }
 
 func (p *Package) getDependencies() []Package {
-	dependencies := Dependencies{}
-
 	if p.Version == nil {
 		panic("trying to get dependencies without resolved version [" + p.Name + "]")
 	}
+
+	return p.getDependenciesFromRemote()
+}
+
+func (p *Package) getDependenciesFromRemote() []Package {
+	dependencies := Dependencies{}
 
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
@@ -116,21 +135,83 @@ func (p *Package) getDependencies() []Package {
 func NewDependency(
 	dependant *Package,
 	name string,
-	version string,
+	versionStr string,
 	dependencies *Dependencies,
 	wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
-	p := NewPackageWithVersionStr(name, version)
+	p := NewPackageWithVersionStr(name, versionStr)
 	p.Dependants = []*Package{dependant}
 	dependencies.packages = append(dependencies.packages, p)
 }
 
-func (p *Package) Install(directory string, wg *sync.WaitGroup) {
+func (p *Package) isInstalled(directory string) bool {
+	packageJsonFile := path.Join(directory, "package.json")
+	exists, isFile := fs.Exists(packageJsonFile)
+
+	if !exists || !isFile {
+		return false
+	}
+
+	packageJson := &PackageJSON{}
+	packageJsonData, err := fs.ReadFile(packageJsonFile)
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	err = json.Unmarshal(packageJsonData, packageJson)
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	installedVersion, err := semver.NewVersion(packageJson.Version)
+
+	if err != nil || installedVersion == nil {
+		fmt.Println(err)
+		return false
+	}
+
+	return installedVersion.Equal(p.Version)
+}
+
+func (p *Package) Install(
+	baseDirectory string,
+	directory string,
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
-	pDir := path.Join(directory, p.Name)
-	fs.Mkdir(pDir)
+	pLocation := path.Join(directory, p.Name)
+	pDir := path.Join(baseDirectory, pLocation)
+
+	if p.Locations == nil {
+		p.Locations = []string{}
+	}
+	p.Locations = append(p.Locations, pLocation)
+
+	if !p.isInstalled(pDir) {
+		p.installFromRemote(pDir)
+	}
+
+	if len(p.Dependencies) > 0 {
+		for _, dep := range p.Dependencies {
+			wg.Add(1)
+			go dep.Install(baseDirectory, path.Join(pLocation, "node_modules"), wg)
+		}
+	}
+}
+
+func (p *Package) installFromRemote(directory string) {
+	// clean
+	exists, _ := fs.Exists(directory)
+	if exists {
+		fs.Rmdir(directory)
+	}
+	fs.Mkdir(directory)
 
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
@@ -204,7 +285,7 @@ func (p *Package) Install(directory string, wg *sync.WaitGroup) {
 			// strip 1
 			filePath := strings.Join(strings.Split(header.Name, "/")[1:], "/")
 
-			target := path.Join(pDir, filePath)
+			target := path.Join(directory, filePath)
 
 			if header.Typeflag == tar.TypeDir {
 				fs.Mkdir(target)
@@ -224,11 +305,4 @@ func (p *Package) Install(directory string, wg *sync.WaitGroup) {
 	p.Progress.Loaded = 1
 	p.Progress.Total = 1
 	p.notify()
-
-	if len(p.Dependencies) > 0 {
-		for _, dep := range p.Dependencies {
-			wg.Add(1)
-			go dep.Install(path.Join(pDir, "node_modules"), wg)
-		}
-	}
 }
