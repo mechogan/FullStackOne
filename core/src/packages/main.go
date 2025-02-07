@@ -271,7 +271,9 @@ func Install(installationId float64, directory string, packagesName []string) {
 			}
 		}
 
-		directPackages = append(directPackages, &p)
+		if(p.Version != nil) {
+			directPackages = append(directPackages, &p)
+		}
 	}
 
 	wg := sync.WaitGroup{}
