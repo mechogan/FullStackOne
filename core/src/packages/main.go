@@ -251,8 +251,9 @@ func Install(installationId float64, directory string, packagesName []string) {
 	start := time.Now().UnixMilli()
 
 	installation := Installation{
-		Id: installationId,
-		BaseDirectory: directory,
+		Id:                     installationId,
+		BaseDirectory:          directory,
+		PackagesInstalledCount: 0,
 	}
 
 	installation.loadLocalPackages()
@@ -283,7 +284,6 @@ func Install(installationId float64, directory string, packagesName []string) {
 
 	installation.untanglePackages()
 
-	installation.PackagesInstalledCount = 0
 	for _, p := range installation.Packages {
 		p.InstallationId = installation.Id
 		wg.Add(1)
@@ -293,6 +293,54 @@ func Install(installationId float64, directory string, packagesName []string) {
 	wg.Wait()
 
 	installation.updatePackageAndLock()
+
+	installation.Duration = float64(time.Now().UnixMilli() - start)
+	installation.notify()
+}
+
+func InstallQuick(installationId float64, directory string) {
+	start := time.Now().UnixMilli()
+
+	installation := Installation{
+		Id:                     installationId,
+		BaseDirectory:          directory,
+		PackagesInstalledCount: 0,
+	}
+
+	lockFile := path.Join(installation.BaseDirectory, "lock.json")
+	exists, isFile := fs.Exists(lockFile)
+
+	if !exists || !isFile {
+		installation.Duration = float64(time.Now().UnixMilli() - start)
+		installation.notify()
+		return
+	}
+
+	installation.loadLocalPackages()
+
+	// shortest path first to avoid cleaning a directory where a sub-dependency was installed
+	sort.Slice(installation.LocalPackages, func(i, j int) bool {
+		return installation.LocalPackages[i].Locations[0] < installation.LocalPackages[j].Locations[0]
+	})
+
+	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+
+	for _, pInfo := range installation.LocalPackages {
+		v, _ := semver.NewVersion(pInfo.Version)
+		p := NewPackageFromLock(pInfo.Name, v, "")
+
+		sort.Slice(pInfo.Locations, func(i, j int) bool {
+			return pInfo.Locations[i] < pInfo.Locations[j]
+		})
+
+		for _, l := range pInfo.Locations {
+			wg.Add(1)
+			go p.Install(&installation, l, &wg, &mutex)
+		}
+	}
+
+	wg.Wait()
 
 	installation.Duration = float64(time.Now().UnixMilli() - start)
 	installation.notify()
@@ -320,7 +368,7 @@ func (installation *Installation) updatePackageAndLock() {
 
 		v := "^" + p.Version.String()
 		p.As = appendIfContainsNot(p.As, v)
-		if(p.VersionOriginal != "") {
+		if p.VersionOriginal != "" {
 			v = p.VersionOriginal
 			p.As = appendIfContainsNot(p.As, v)
 		}

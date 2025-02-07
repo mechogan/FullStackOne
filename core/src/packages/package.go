@@ -117,7 +117,7 @@ func (p *Package) getDependenciesList(i *Installation) map[string]string {
 		}
 
 		for _, l := range pp.Locations {
-			pDir := path.Join(i.BaseDirectory, l)
+			pDir := path.Join(i.BaseDirectory, l, p.Name)
 			ppp := NewPackageFromLock(pp.Name, p.Version, "")
 			if ppp.isInstalled(pDir) {
 				return ppp.getDependenciesFromLocal(pDir)
@@ -229,7 +229,7 @@ func (p *Package) Install(
 	if p.Locations == nil {
 		p.Locations = []string{}
 	}
-	p.Locations = append(p.Locations, pLocation)
+	p.Locations = append(p.Locations, directory)
 
 	if !p.isInstalled(pDir) {
 		mutex.Lock()

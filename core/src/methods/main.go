@@ -45,6 +45,7 @@ const (
 	ESBUILD_BUILD   = 56
 
 	PACKAGE_INSTALL = 60
+	PACKAGE_INSTALL_QUICK = 61
 
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
@@ -169,6 +170,10 @@ func editorSwitch(method int, args []any) []byte {
 			packagesToInstall = append(packagesToInstall, p.(string))
 		}
 		go packages.Install(installationId, projectDirectory, packagesToInstall)
+	case method == PACKAGE_INSTALL_QUICK:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		installationId := args[1].(float64)
+		go packages.InstallQuick(installationId, projectDirectory)
 	case method == ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 

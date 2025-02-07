@@ -8,7 +8,7 @@ const activeInstallations = new Map<
     {
         project: Project,
         installing: Map<string, PackageInfoProgress>
-        progress: InstallationProgressCb,
+        progress?: InstallationProgressCb,
         resolve: (result: InstallationResult) => void
     }
 >();
@@ -60,7 +60,7 @@ function installationsListener(messageStr: string) {
         const arr = Array.from(activeInstallation.installing)
             .sort((a, b) => a[0] < b[0] ? -1 : 1)
 
-        activeInstallation.progress(arr);
+        activeInstallation.progress?.(arr);
         return
     }
 
@@ -72,11 +72,12 @@ function installationsListener(messageStr: string) {
     activeInstallations.delete(message.id);
 }
 
-// 60
+// 60 and 61
 export function install(
     project: Project,
     packagesNames: string[],
-    progress: InstallationProgressCb
+    progress?: InstallationProgressCb,
+    quick = false
 ) {
     if (!addedListener) {
         core_message.addListener("packages-installation", installationsListener)
@@ -85,9 +86,16 @@ export function install(
 
     const installationId = getLowestKeyIdAvailable(activeInstallations);
 
+    const method = quick ? 61 : 60
+    let args = [project.id, installationId]
+
+    if (!quick) {
+        args = args.concat(packagesNames)
+    }
+
     const payload = new Uint8Array([
-        60,
-        ...serializeArgs([project.id, installationId, ...packagesNames])
+        method,
+        ...serializeArgs(args)
     ]);
 
     return new Promise<InstallationResult>(resolve => {

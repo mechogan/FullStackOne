@@ -18,7 +18,7 @@ export const npm: Command[] = [
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()
                     it.print(installProgressToText(p))
-                })
+                }, args.includes("--quick"))
                 it.clear();
                 it.println(`installed ${c.bold.green(result.packagesInstalledCount)} package${result.packagesInstalledCount > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`)
             }
