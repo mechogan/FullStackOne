@@ -19,10 +19,11 @@ import (
 )
 
 type Package struct {
-	Name    string          `json:"name"`
-	Version *semver.Version `json:"version"`
-	As      []string        `json:"as"`
-	Direct  bool            `json:"direct"`
+	Name            string          `json:"name"`
+	Version         *semver.Version `json:"version"`
+	VersionOriginal string          `json:"-"`
+	As              []string        `json:"as"`
+	Direct          bool            `json:"direct"`
 
 	Locations []string `json:"-"`
 
@@ -44,32 +45,18 @@ type PackageJSON struct {
 }
 
 type PackageLockJSON struct {
-	Name         string                     `json:"name"`
-	Version      string                     `json:"version"`
-	As           []string                   `json:"as,omitempty"`
-	Locations     []string                   `json:"location"`
-	Dependencies map[string]PackageLockJSON `json:"dependencies,omitempty"`
+	Name      string   `json:"name"`
+	Version   string   `json:"version"`
+	As        []string `json:"as,omitempty"`
+	Locations []string `json:"location"`
 }
 
 func (p *Package) toJSON() PackageLockJSON {
-	// if len(p.Dependencies) > 0 {
-	// 	deps := map[string]PackageLockJSON{}
-	// 	for _, dep := range p.Dependencies {
-	// 		deps[dep.Name] = dep.toJSON()
-	// 	}
-
-	// 	return PackageLockJSON{
-	// 		Name:         p.Name,
-	// 		Version:      p.Version.String(),
-	// 		Dependencies: deps,
-	// 	}
-	// }
-
 	return PackageLockJSON{
-		Name:    p.Name,
-		As: p.As,
+		Name:      p.Name,
+		As:        p.As,
 		Locations: p.Locations,
-		Version: p.Version.String(),
+		Version:   p.Version.String(),
 	}
 }
 
@@ -97,21 +84,74 @@ type Dependencies struct {
 	packages []Package
 }
 
-func (p *Package) getDependencies() []Package {
+func (p *Package) getDependencies(i *Installation) []Package {
 	if p.Version == nil {
 		panic("trying to get dependencies without resolved version [" + p.Name + "]")
+	}
+
+	dependencies := Dependencies{
+		packages: []Package{},
+	}
+
+	deps := p.getDependenciesList(i)
+
+	if deps == nil {
+		return dependencies.packages
+	}
+
+	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+	for n, v := range deps {
+		wg.Add(1)
+		go NewDependency(i, p, n, v, &dependencies, &wg, &mutex)
+	}
+	wg.Wait()
+
+	return dependencies.packages
+}
+
+func (p *Package) getDependenciesList(i *Installation) map[string]string {
+	for _, pp := range i.LocalPackages {
+		if pp.Name != p.Name || pp.Version != p.Version.String() {
+			continue
+		}
+
+		for _, l := range pp.Locations {
+			pDir := path.Join(i.BaseDirectory, l)
+			ppp := NewPackageFromLock(pp.Name, p.Version, "")
+			if ppp.isInstalled(pDir) {
+				return ppp.getDependenciesFromLocal(pDir)
+			}
+		}
 	}
 
 	return p.getDependenciesFromRemote()
 }
 
-func (p *Package) getDependenciesFromRemote() []Package {
-	dependencies := Dependencies{}
+func (p *Package) getDependenciesFromLocal(directory string) map[string]string {
+	packageJsonFile := path.Join(directory, "package.json")
 
+	packageJsonData, err := fs.ReadFile(packageJsonFile)
+
+	if err != nil {
+		return nil
+	}
+
+	packageJson := &PackageJSON{}
+	err = json.Unmarshal(packageJsonData, packageJson)
+
+	if err != nil {
+		return nil
+	}
+
+	return packageJson.Dependencies
+}
+
+func (p *Package) getDependenciesFromRemote() map[string]string {
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
 		fmt.Println(err)
-		return dependencies.packages
+		return nil
 	}
 	defer npmPackageInfo.Body.Close()
 
@@ -119,30 +159,27 @@ func (p *Package) getDependenciesFromRemote() []Package {
 	err = json.NewDecoder(npmPackageInfo.Body).Decode(npmPackageInfoJSON)
 	if err != nil {
 		fmt.Println(err)
-		return dependencies.packages
+		return nil
 	}
 
-	wg := sync.WaitGroup{}
-	for n, v := range npmPackageInfoJSON.Dependencies {
-		wg.Add(1)
-		go NewDependency(p, n, v, &dependencies, &wg)
-	}
-	wg.Wait()
-
-	return dependencies.packages
+	return npmPackageInfoJSON.Dependencies
 }
 
 func NewDependency(
+	installation *Installation,
 	dependant *Package,
 	name string,
 	versionStr string,
 	dependencies *Dependencies,
 	wg *sync.WaitGroup,
+	mutex *sync.Mutex,
 ) {
 	defer wg.Done()
-	p := NewPackageWithVersionStr(name, versionStr)
+	p := NewPackageWithVersionStr(name, versionStr, installation.LocalPackages)
 	p.Dependants = []*Package{dependant}
+	mutex.Lock()
 	dependencies.packages = append(dependencies.packages, p)
+	mutex.Unlock()
 }
 
 func (p *Package) isInstalled(directory string) bool {
@@ -179,14 +216,15 @@ func (p *Package) isInstalled(directory string) bool {
 }
 
 func (p *Package) Install(
-	baseDirectory string,
+	i *Installation,
 	directory string,
 	wg *sync.WaitGroup,
+	mutex *sync.Mutex,
 ) {
 	defer wg.Done()
 
 	pLocation := path.Join(directory, p.Name)
-	pDir := path.Join(baseDirectory, pLocation)
+	pDir := path.Join(i.BaseDirectory, pLocation)
 
 	if p.Locations == nil {
 		p.Locations = []string{}
@@ -194,13 +232,16 @@ func (p *Package) Install(
 	p.Locations = append(p.Locations, pLocation)
 
 	if !p.isInstalled(pDir) {
+		mutex.Lock()
+		i.PackagesInstalledCount += 1
+		mutex.Unlock()
 		p.installFromRemote(pDir)
 	}
 
 	if len(p.Dependencies) > 0 {
 		for _, dep := range p.Dependencies {
 			wg.Add(1)
-			go dep.Install(baseDirectory, path.Join(pLocation, "node_modules"), wg)
+			go dep.Install(i, path.Join(pLocation, "node_modules"), wg, mutex)
 		}
 	}
 }

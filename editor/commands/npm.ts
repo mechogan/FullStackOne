@@ -14,20 +14,6 @@ export const npm: Command[] = [
             name: "install",
             alias: ["i"],
             exec: async (args, it, ctx: Project) => {
-                // check for package.json
-                if(args.length === 0) {
-                    const packageJsonPath = ctx.id + "/package.json";
-                    const exists = await fs.exists(packageJsonPath);
-                    if(exists?.isFile) {
-                        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, {encoding: "utf8"}));
-                        args = Object.entries(packageJson.dependencies).map(([n, v]) => `${n}@${v}`);
-                    }
-                }
-
-                if(args.length === 0) {
-                    return;
-                }
-
                 it.print("getting packages info...");
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()
