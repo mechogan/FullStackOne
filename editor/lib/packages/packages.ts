@@ -18,7 +18,7 @@ type InstallationResult = {
     packagesInstalledCount: number
 }
 
-type PackageInfoProgress = {
+export type PackageInfoProgress = {
     stage: string,
     loaded: number,
     total: number

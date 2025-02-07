@@ -60,52 +60,33 @@ export function Project(project: ProjectType, run = false) {
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     const actions: ElementComponent[] = [];
 
-    let gitWidget: ReturnType<typeof GitWidget>,
-        runButton: ReturnType<typeof RunButton>;
-    if (project.id === "node_modules") {
-        const deleteAllButton = Button({
-            text: "Delete All",
-            color: "red"
-        });
-        deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
+    const gitWidget = GitWidget(project);
 
-        deleteAllButton.onclick = async () => {
-            deleteAllButton.disabled = true;
-            await fs.rmdir("node_modules");
-            await fs.mkdir("node_modules");
-            stackNavigation.back();
-        };
+    const tsButton = Button({
+        style: "icon-large",
+        iconLeft: "TypeScript"
+    });
 
-        actions.push(deleteAllButton);
-    } else {
-        gitWidget = GitWidget(project);
+    tsButton.disabled = true;
+    const flashOnWorking = (request: Map<number, Function>) => {
+        if (request.size > 0) {
+            tsButton.disabled = false;
+            tsButton.classList.add("working");
+        } else {
+            tsButton.classList.remove("working");
+        }
+    };
+    WorkerTS.working.subscribe(flashOnWorking);
+    tsButton.onclick = () => {
+        WorkerTS.restart();
+    };
+    tsButton.ondestroy = () => {
+        WorkerTS.working.unsubscribe(flashOnWorking);
+    };
 
-        const tsButton = Button({
-            style: "icon-large",
-            iconLeft: "TypeScript"
-        });
+    const runButton = RunButton(project);
 
-        tsButton.disabled = true;
-        const flashOnWorking = (request: Map<number, Function>) => {
-            if (request.size > 0) {
-                tsButton.disabled = false;
-                tsButton.classList.add("working");
-            } else {
-                tsButton.classList.remove("working");
-            }
-        };
-        WorkerTS.working.subscribe(flashOnWorking);
-        tsButton.onclick = () => {
-            WorkerTS.restart();
-        };
-        tsButton.ondestroy = () => {
-            WorkerTS.working.unsubscribe(flashOnWorking);
-        };
-
-        runButton = RunButton(project);
-
-        actions.push(gitWidget, tsButton, runButton);
-    }
+    actions.push(gitWidget, tsButton, runButton);
 
     const topBar = TopBarComponent({
         title: project.title,
@@ -155,7 +136,7 @@ function FileTreeAndEditor(project: ProjectType) {
     const buttonContainer = document.createElement("div");
 
     const toggleButtonVisibility = (terminalOpen: boolean) => {
-        if(terminalOpen) {
+        if (terminalOpen) {
             buttonContainer.classList.add("hide")
         } else {
             buttonContainer.classList.remove("hide")

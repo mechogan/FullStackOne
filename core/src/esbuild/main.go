@@ -3,7 +3,6 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
@@ -102,8 +101,6 @@ func Build(
 			Setup: func(build esbuild.PluginBuild) {
 				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-						fmt.Println(args.ResolveDir, args.Path)
-
 						if(strings.HasPrefix(args.Path, "/")) {
 							return esbuild.OnResolveResult{
 								Path: args.Path,

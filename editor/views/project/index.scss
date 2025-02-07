@@ -63,7 +63,6 @@ $file-tree-panel-width: 235px;
                 padding-left: spacing.$small;
                 padding-bottom: spacing.$small;
                 transition: 0.2s all;
-                overflow: hidden;
 
                 &.hide {
                     padding-left: 0;
