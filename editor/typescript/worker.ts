@@ -76,12 +76,32 @@ export let methods = {
 
         const td = new TextDecoder();
         for (const [path, data] of Object.entries(files)) {
-            if (data === null) continue;
+            const fileName = path.slice("projects/".length)
 
-            sourceFiles[path.slice("projects/".length)] = {
-                contents: td.decode(data),
-                version: 1
-            };
+            if (path.includes("node_modules")) {
+                const [_, ...rest] = fileName.split("/node_modules/")
+
+                const { name, path } = parseModuleName(rest.join("/"));
+
+                let files = nodeModules.get(name);
+                if (!files) {
+                    files = [];
+                    nodeModules.set(name, files);
+                }
+                files.push(path)
+
+                if (data !== null) {
+                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
+                        td.decode(data)
+                    );
+                }
+
+            } else if (data !== null) {
+                sourceFiles[fileName] = {
+                    contents: td.decode(data),
+                    version: 1
+                };
+            }
         }
 
         for (const [path, data] of Object.entries(tsLib)) {
@@ -113,7 +133,7 @@ export let methods = {
     updateFile(fileName: string, contents: string) {
         makeSureSourceFilesAreLoaded();
 
-        if(fileName.startsWith(workingDirectoryNodeModules)) {
+        if (fileName.startsWith(workingDirectoryNodeModules)) {
             scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(contents)
             return;
         }
@@ -218,7 +238,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
                 return scriptSnapshotCache[fileName];
             }
 
-            
+
 
             makeSureSourceFilesAreLoaded();
 
@@ -291,7 +311,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
                     try {
                         contents = fs_sync.readdir(workingDirectoryNodeModules + "/" + name, []);
                         nodeModules.set(name, contents)
-                    } catch(e) {
+                    } catch (e) {
                         return false
                     }
                 }
