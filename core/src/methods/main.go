@@ -44,7 +44,7 @@ const (
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
 
-	PACKAGE_INSTALL = 60
+	PACKAGE_INSTALL       = 60
 	PACKAGE_INSTALL_QUICK = 61
 
 	GIT_CLONE         = 70
@@ -130,7 +130,16 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 	case FS_UNLINK:
 		return fs.UnlinkSerialized(filePath)
 	case FS_READDIR:
-		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool))
+		skip := []string{}
+		if len(args) > 2 {
+			for i, arg := range args {
+				if i < 3 {
+					continue
+				}
+				skip = append(skip, arg.(string))
+			}
+		}
+		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool), skip)
 	case FS_MKDIR:
 		return fs.MkdirSerialized(filePath)
 	case FS_RMDIR:

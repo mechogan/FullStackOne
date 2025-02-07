@@ -2,6 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { WorkerTS } from "../../typescript";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { Store } from "../../store";
+import type ts from "typescript";
 
 export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
@@ -16,7 +17,10 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
         return tsErrors.flat();
     };
 
-    let tsErrors = await getAllTsError();
+    const tsErrors = await getAllTsError();
+
+
+
     return tsErrors
         .filter((tsError) => !!tsError)
         .map((tsError) => {
@@ -24,13 +28,21 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
                 from: tsError.start,
                 to: tsError.start + tsError.length,
                 severity: tsError.code === 7016 ? "warning" : "error",
-                message:
-                    typeof tsError.messageText === "string"
-                        ? tsError.messageText
-                        : (tsError?.messageText?.messageText ?? "")
+                message: messageChainToArr(tsError.messageText).join("\n\n")
             };
         });
 };
+
+function messageChainToArr(messageChain: ts.Diagnostic["messageText"]): string[] {
+    if (!messageChain) {
+        return []
+    } else if (typeof messageChain === "string") {
+        return [messageChain]
+    }
+
+    const nextMessages = messageChain.next?.map(messageChainToArr)?.flat()
+    return [messageChain.messageText, ...(nextMessages || [])]
+}
 
 export const tsAutocomplete =
     (filePath: string) => async (ctx: CompletionContext) => {
@@ -172,7 +184,7 @@ export const navigateToDefinition =
         if (!pos) return;
 
         WorkerTS.call()
-            .getDefinitionAtPositionExt(filePath, pos)
+            .getDefinitionAtPosition(filePath, pos)
             .then((defs) => {
                 if (!defs?.length) return;
 

@@ -65,7 +65,7 @@ func Zip(directory string) []byte {
 	acc := inMemoryZipData{}
 	w := zip.NewWriter(&acc)
 
-	files, _ := fs.ReadDir(directory, true)
+	files, _ := fs.ReadDir(directory, true, []string{})
 
 	for _, f := range files {
 		if strings.HasPrefix(f.Name, "data") ||

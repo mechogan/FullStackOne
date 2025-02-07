@@ -35,7 +35,7 @@ func findEntryPoint(directory string) *string {
 		"index.tsx",
 	}
 
-	items, _ := fs.ReadDir(directory, false)
+	items, _ := fs.ReadDir(directory, false, []string{})
 
 	entryPoint := (*string)(nil)
 

@@ -14,6 +14,7 @@ export const npm: Command[] = [
             name: "install",
             alias: ["i"],
             exec: async (args, it, ctx: Project) => {
+                args = args.filter(a => a !== "--save-dev" && a !== "-D")
                 it.print("getting packages info...");
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()

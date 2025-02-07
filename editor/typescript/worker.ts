@@ -13,9 +13,8 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import { parsePackageName } from "./utils";
+import { parseModuleName } from "./utils";
 import fs_sync from "../lib/fs_sync";
-import semver from "semver";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -71,8 +70,7 @@ export let methods = {
     },
     preloadFS(
         files: { [path: string]: Uint8Array },
-        tsLib: { [path: string]: Uint8Array },
-        node_modules: { [path: string]: Uint8Array }
+        tsLib: { [path: string]: Uint8Array }
     ) {
         sourceFiles = {};
 
@@ -92,30 +90,12 @@ export let methods = {
             scriptSnapshotCache[path.slice("editor/".length)] =
                 ScriptSnapshot.fromString(td.decode(data));
         }
-
-        for (const [fileName, data] of Object.entries(node_modules)) {
-            const modulePath = fileName.slice("projects/node_modules/".length);
-            const { name, path } = parsePackageName(modulePath);
-
-            let files = nodeModules.get(name);
-            if (!files) {
-                files = [];
-                nodeModules.set(name, files);
-            }
-            const filePath = "node_modules/" + name + (path ? "/" + path : "");
-            files.push(filePath);
-
-            if (data !== null) {
-                scriptSnapshotCache[filePath] = ScriptSnapshot.fromString(
-                    td.decode(data)
-                );
-            }
-        }
     },
     start(currentDirectory: string) {
         if (services) return;
 
         workingDirectory = currentDirectory;
+        workingDirectoryNodeModules = currentDirectory + "/node_modules";
 
         const servicesHost = initLanguageServiceHost();
         services = createLanguageService(
@@ -130,57 +110,48 @@ export let methods = {
     invalidateWorkingDirectory() {
         sourceFiles = null;
     },
-    updateFile(sourceFile: string, contents: string) {
+    updateFile(fileName: string, contents: string) {
         makeSureSourceFilesAreLoaded();
 
-        sourceFiles[sourceFile] = {
+        if(fileName.startsWith(workingDirectoryNodeModules)) {
+            scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(contents)
+            return;
+        }
+
+        sourceFiles[fileName] = {
             contents,
-            version: sourceFiles?.[sourceFile]?.version
-                ? sourceFiles?.[sourceFile]?.version + 1
+            version: sourceFiles?.[fileName]?.version
+                ? sourceFiles?.[fileName]?.version + 1
                 : 1
         };
     },
 
-    ...services,
-
-    getDefinitionAtPositionExt(filePath: string, pos: number) {
-        const defs = services.getDefinitionAtPosition(filePath, pos);
-
-        return defs.map((def) => {
-            if (def.fileName.startsWith("node_modules")) {
-                const modulePath = def.fileName.slice("node_modules/".length);
-                const { name, path } = parsePackageName(modulePath);
-                const packgeVersion = packagesVersions?.get(name);
-                return {
-                    ...def,
-                    fileName:
-                        "node_modules/" +
-                        name +
-                        "/" +
-                        packgeVersion +
-                        "/" +
-                        path
-                };
-            }
-
-            return def;
-        });
-    }
+    ...services
 };
 
+// the root dir of our project
 let workingDirectory: string;
-let packagesVersions: Map<string, string> = null;
+let workingDirectoryNodeModules: string;
+
+// all files in prooject dir 
+// EXCEPT node_modules directory
 let sourceFiles: {
     [filename: string]: {
         contents: string;
         version: number;
     };
 } = null;
+
+// all node_modules directories with there containing files
+let nodeModules: Map<string, string[]> = new Map();
+
+// cache scripts
+const scriptSnapshotCache: {
+    [path: string]: IScriptSnapshot;
+} = {};
+
 function makeSureSourceFilesAreLoaded() {
-    if (sourceFiles !== null) {
-        makeSurePackagesVersionsAreLoaded();
-        return;
-    }
+    if (sourceFiles !== null) return;
 
     if (!workingDirectory) {
         throw new Error(
@@ -189,7 +160,7 @@ function makeSureSourceFilesAreLoaded() {
     }
 
     const files = fs_sync
-        .readdir(workingDirectory)
+        .readdir(workingDirectory, ["node_modules", ".build", "data", ".git"])
         .map((filename) => workingDirectory + "/" + filename);
 
     sourceFiles = {};
@@ -200,49 +171,7 @@ function makeSureSourceFilesAreLoaded() {
             version: 0
         };
     });
-
-    makeSurePackagesVersionsAreLoaded();
 }
-
-function makeSurePackagesVersionsAreLoaded() {
-    if (packagesVersions !== null) return;
-
-    const lockfile = workingDirectory + "/lock.json";
-    if (sourceFiles[lockfile]) {
-        packagesVersions = new Map();
-        const lockfileContents = sourceFiles[lockfile].contents || fs_sync.readFile(lockfile);;
-        recurseInLockfile(JSON.parse(lockfileContents));
-    }
-}
-
-type PackagesLock = { [p: string]: PackageLock };
-
-type PackageLock = {
-    Version: string;
-    Dependencies: PackagesLock;
-};
-
-function recurseInLockfile(lock: PackagesLock) {
-    if (packagesVersions === null) {
-        throw new Error("packagesVersions is null");
-    }
-
-    Object.entries(lock).forEach(([name, pkg]) => {
-        const existingVersion = packagesVersions.get(name);
-
-        if (existingVersion && semver.lt(pkg.Version, existingVersion)) {
-            return;
-        }
-
-        packagesVersions.set(name, pkg.Version);
-        if (pkg.Dependencies) recurseInLockfile(pkg.Dependencies);
-    });
-}
-
-const scriptSnapshotCache: {
-    [path: string]: IScriptSnapshot;
-} = {};
-let nodeModules: Map<string, string[]> = new Map();
 
 function initLanguageServiceHost(): LanguageServiceHost {
     return {
@@ -259,7 +188,7 @@ function initLanguageServiceHost(): LanguageServiceHost {
 
             if (
                 fileName.includes("tsLib") ||
-                fileName.startsWith("node_modules")
+                fileName.startsWith(workingDirectoryNodeModules)
             ) {
                 return "1";
             }
@@ -277,33 +206,19 @@ function initLanguageServiceHost(): LanguageServiceHost {
                         fs_sync.staticFile(fileName)
                     );
                 }
+
                 return scriptSnapshotCache[fileName];
-            } else if (fileName.startsWith("node_modules")) {
-                const modulePath = fileName.slice("node_modules/".length);
-                const { name, version, path } = parsePackageName(modulePath);
-
-                if (version !== null) {
-                    fileName = "node_modules/" + name + "/" + path;
-                }
-
+            } else if (fileName.startsWith(workingDirectoryNodeModules)) {
                 if (!scriptSnapshotCache[fileName]) {
-                    const packageVersion =
-                        version || packagesVersions?.get(name);
-
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(
-                            "node_modules/" +
-                                name +
-                                "/" +
-                                packageVersion +
-                                "/" +
-                                path
-                        )
+                        fs_sync.readFile(fileName)
                     );
                 }
 
                 return scriptSnapshotCache[fileName];
             }
+
+            
 
             makeSureSourceFilesAreLoaded();
 
@@ -326,28 +241,22 @@ function initLanguageServiceHost(): LanguageServiceHost {
             return "tsLib/lib.d.ts";
         },
         readFile: function (fileName: string) {
-            // console.log("readFile", path);
-            if (fileName.startsWith("node_modules")) {
-                const modulePath = fileName.slice("node_modules/".length);
-                const { name, version, path } = parsePackageName(modulePath);
-
-                if (version !== null) {
-                    fileName = "node_modules/" + name + "/" + path;
+            // console.log("readFile", fileName);
+            if (fileName.startsWith("tsLib")) {
+                if (!scriptSnapshotCache[fileName]) {
+                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
+                        fs_sync.staticFile(fileName)
+                    );
                 }
 
+                return scriptSnapshotCache[fileName].getText(
+                    0,
+                    scriptSnapshotCache[fileName].getLength()
+                );
+            } else if (fileName.startsWith(workingDirectoryNodeModules)) {
                 if (!scriptSnapshotCache[fileName]) {
-                    const packageVersion =
-                        version || packagesVersions?.get(name);
-
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(
-                            "node_modules/" +
-                                name +
-                                "/" +
-                                packageVersion +
-                                "/" +
-                                path
-                        )
+                        fs_sync.readFile(fileName)
                     );
                 }
 
@@ -370,41 +279,24 @@ function initLanguageServiceHost(): LanguageServiceHost {
             return sourceFiles[fileName].contents;
         },
         fileExists: function (fileName: string) {
-            // console.log("fileExists", path);
+            // console.log("fileExists", fileName)
+
             makeSureSourceFilesAreLoaded();
 
-            if (fileName.startsWith("node_modules")) {
-                const modulePath = fileName.slice("node_modules/".length);
-                const { name, version } = parsePackageName(modulePath);
+            if (fileName.startsWith(workingDirectoryNodeModules)) {
+                const { name, path } = parseModuleName(fileName.slice(workingDirectoryNodeModules.length + 1))
 
-                if (version !== null) {
-                    fileName = "node_modules/" + name + "/" + version;
-                }
-
-                const packageVersion = version || packagesVersions?.get(name);
-
-                let moduleFiles = nodeModules.get(name);
-
-                if (!moduleFiles) {
+                let contents = nodeModules.get(name);
+                if (!contents) {
                     try {
-                        moduleFiles = fs_sync
-                            .readdir(
-                                "node_modules/" + name + "/" + packageVersion
-                            )
-                            .map(
-                                (file) =>
-                                    "node_modules/" +
-                                    name +
-                                    (file ? "/" + file : "")
-                            );
-                    } catch (e) {
-                        moduleFiles = [];
+                        contents = fs_sync.readdir(workingDirectoryNodeModules + "/" + name, []);
+                        nodeModules.set(name, contents)
+                    } catch(e) {
+                        return false
                     }
-
-                    nodeModules.set(name, moduleFiles);
                 }
 
-                return moduleFiles.includes(fileName);
+                return contents.includes(path)
             }
 
             return Object.keys(sourceFiles).includes(fileName);
