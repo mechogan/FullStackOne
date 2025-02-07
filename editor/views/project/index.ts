@@ -21,6 +21,7 @@ import { createRefresheable } from "../../components/refresheable";
 import fs from "../../../lib/fs";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
+import { Terminal } from "./terminal";
 
 let lastOpenedProjectId: string;
 export function Project(project: ProjectType, run = false) {
@@ -39,14 +40,16 @@ export function Project(project: ProjectType, run = false) {
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
     const topBar = TopBar(project, fileTreeAndEditor);
+    const terminal = Terminal(project);
 
-    container.append(topBar, fileTreeAndEditor);
+    container.append(topBar, fileTreeAndEditor, terminal);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
             topBar.destroy();
             fileTreeAndEditor.destroy();
+            terminal.destroy();
             container.destroy();
         }
     });
@@ -57,52 +60,33 @@ export function Project(project: ProjectType, run = false) {
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     const actions: ElementComponent[] = [];
 
-    let gitWidget: ReturnType<typeof GitWidget>,
-        runButton: ReturnType<typeof RunButton>;
-    if (project.id === "node_modules") {
-        const deleteAllButton = Button({
-            text: "Delete All",
-            color: "red"
-        });
-        deleteAllButton.id = DELETE_ALL_PACKAGES_ID;
+    const gitWidget = GitWidget(project);
 
-        deleteAllButton.onclick = async () => {
-            deleteAllButton.disabled = true;
-            await fs.rmdir("node_modules");
-            await fs.mkdir("node_modules");
-            stackNavigation.back();
-        };
+    const tsButton = Button({
+        style: "icon-large",
+        iconLeft: "TypeScript"
+    });
 
-        actions.push(deleteAllButton);
-    } else {
-        gitWidget = GitWidget(project);
+    tsButton.disabled = true;
+    const flashOnWorking = (request: Map<number, Function>) => {
+        if (request.size > 0) {
+            tsButton.disabled = false;
+            tsButton.classList.add("working");
+        } else {
+            tsButton.classList.remove("working");
+        }
+    };
+    WorkerTS.working.subscribe(flashOnWorking);
+    tsButton.onclick = () => {
+        WorkerTS.restart();
+    };
+    tsButton.ondestroy = () => {
+        WorkerTS.working.unsubscribe(flashOnWorking);
+    };
 
-        const tsButton = Button({
-            style: "icon-large",
-            iconLeft: "TypeScript"
-        });
+    const runButton = RunButton(project);
 
-        tsButton.disabled = true;
-        const flashOnWorking = (request: Map<number, Function>) => {
-            if (request.size > 0) {
-                tsButton.disabled = false;
-                tsButton.classList.add("working");
-            } else {
-                tsButton.classList.remove("working");
-            }
-        };
-        WorkerTS.working.subscribe(flashOnWorking);
-        tsButton.onclick = () => {
-            WorkerTS.restart();
-        };
-        tsButton.ondestroy = () => {
-            WorkerTS.working.unsubscribe(flashOnWorking);
-        };
-
-        runButton = RunButton(project);
-
-        actions.push(gitWidget, tsButton, runButton);
-    }
+    actions.push(gitWidget, tsButton, runButton);
 
     const topBar = TopBarComponent({
         title: project.title,
@@ -146,11 +130,37 @@ function FileTreeAndEditor(project: ProjectType) {
     const fileTree = FileTree(project);
     const editor = Editor(project);
 
-    container.append(fileTree, editor);
+    const leftPanel = document.createElement("div");
+    leftPanel.classList.add("left-panel");
+
+    const buttonContainer = document.createElement("div");
+
+    const toggleButtonVisibility = (terminalOpen: boolean) => {
+        if (terminalOpen) {
+            buttonContainer.classList.add("hide")
+        } else {
+            buttonContainer.classList.remove("hide")
+        }
+    }
+    Store.editor.terminalOpen.subscribe(toggleButtonVisibility)
+
+    const terminalButton = Button({
+        style: "text",
+        iconLeft: "Terminal",
+    });
+    terminalButton.onclick = () => {
+        Store.editor.setTerminalOpen(true);
+    }
+    buttonContainer.append(terminalButton);
+
+    leftPanel.append(fileTree, buttonContainer);
+
+    container.append(leftPanel, editor);
 
     container.ondestroy = () => {
         fileTree.destroy();
         editor.destroy();
+        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility)
     };
 
     return container;

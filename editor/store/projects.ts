@@ -7,6 +7,8 @@ import core_open from "../lib/core_open";
 import { buildSASS } from "../lib/esbuild/sass";
 import esbuild from "../lib/esbuild";
 import git from "../lib/git";
+import packages from "../lib/packages";
+import { updatePackagesView } from "../views/packages";
 
 const list = createSubscribable(listP, []);
 
@@ -86,7 +88,10 @@ async function build(project: Project) {
     };
 
     let isUserMode = false;
-    const setUM = (um: boolean) => (isUserMode = um);
+    const setUM = (um: boolean) => {
+        isUserMode = um;
+        Store.preferences.isUserMode.unsubscribe(setUM)
+    };
     Store.preferences.isUserMode.subscribe(setUM);
 
     if (isUserMode && project.gitRepository?.url) {
@@ -96,6 +101,7 @@ async function build(project: Project) {
             { encoding: "utf8" }
         );
         if (lastBuildHash === head.Hash) {
+            console.log("ici")
             core_open(project.id);
             removeProjectBuild();
             return;
@@ -103,9 +109,8 @@ async function build(project: Project) {
     }
 
     try {
+        await packages.install(project, null, updatePackagesView, true);
         const rawErrors = await coreBuild(project);
-
-        console.log(rawErrors);
 
         const buildErrors = rawErrors.map((error) => {
             return {

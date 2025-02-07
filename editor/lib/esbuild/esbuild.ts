@@ -22,36 +22,31 @@ const activeBuilds = new Map<
     { project: Project; resolve: (buildErrors: Message[]) => void }
 >();
 
-function buildResponse(responseBase64: string) {
-    const responseData = toByteArray(responseBase64);
-    const [buildId, buildErrors] = deserializeArgs(responseData);
-    const activeBuild = activeBuilds.get(buildId);
-    activeBuilds.delete(buildId);
+function buildResponse(buildResult: string) {
+    const responseData = toByteArray(buildResult);
+    const [id, errorsStr] = deserializeArgs(responseData);
+    const activeBuild = activeBuilds.get(id);
 
-    if (!buildErrors) {
-        activeBuild.resolve(null);
+    if(!errorsStr) {
         return;
     }
 
-    const json = JSON.parse(buildErrors);
-    if (!json) {
-        activeBuild.resolve(null);
-        return;
-    }
-
-    const messages = json.map(uncapitalizeKeys).map((error) => ({
+    const errors = JSON.parse(errorsStr);
+    const messages = errors?.map(uncapitalizeKeys).map((error) => ({
         ...error,
         location: error.location
             ? {
-                  ...error.location,
-                  file: error.location.file.includes(activeBuild.project.id)
-                      ? activeBuild.project.id +
-                        error.location.file.split(activeBuild.project.id).pop()
-                      : error.location.file
-              }
+                ...error.location,
+                file: error.location.file.includes(activeBuild.project.id)
+                    ? activeBuild.project.id +
+                    error.location.file.split(activeBuild.project.id).pop()
+                    : error.location.file
+            }
             : null
     }));
     activeBuild.resolve(messages);
+    
+    activeBuilds.delete(id);
 }
 
 // 56

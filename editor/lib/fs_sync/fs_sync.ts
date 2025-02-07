@@ -30,11 +30,12 @@ export function readFile(path: string): string {
 }
 
 // 5
-export function readdir(path: string): string[] {
+export function readdir(path: string, skip: string[]): string[] {
     return syncRequest(
         5,
         path,
         true, // recursive
-        false // withFileType
+        false, // withFileType
+        ...skip
     );
 }

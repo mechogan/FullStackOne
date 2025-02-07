@@ -76,7 +76,8 @@ func getWorktree(directory string) (*git.Worktree, error) {
 	// always ignore FullStacked artifacts
 	worktree.Excludes = append(worktree.Excludes,
 		gitignore.ParsePattern("/.build", []string{}),
-		gitignore.ParsePattern("/data", []string{}))
+		gitignore.ParsePattern("/data", []string{}),
+		gitignore.ParsePattern("/node_modules", []string{}))
 
 	return worktree, nil
 }

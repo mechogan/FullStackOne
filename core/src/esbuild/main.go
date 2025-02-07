@@ -3,17 +3,14 @@ package esbuild
 import (
 	"encoding/base64"
 	"encoding/json"
-	"path"
-	"path/filepath"
-	"reflect"
-	"runtime/debug"
-	"strings"
-	"sync"
-
 	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	utils "fullstacked/editor/src/utils"
+	"path"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
@@ -38,7 +35,7 @@ func findEntryPoint(directory string) *string {
 		"index.tsx",
 	}
 
-	items, _ := fs.ReadDir(directory, false)
+	items, _ := fs.ReadDir(directory, false, []string{})
 
 	entryPoint := (*string)(nil)
 
@@ -59,154 +56,10 @@ func findEntryPoint(directory string) *string {
 	return entryPoint
 }
 
-type PackageLock struct {
-	Parent  *PackageLock
-	Package *Package
-}
-
-type PackagesLockJSON map[string]PackageLockJSON
-
-type PackageLockJSON struct {
-	Version      string
-	Dependencies PackagesLockJSON
-}
-
-type ProjectBuild struct {
-	id            float64
-	lock          PackageDependencies
-	packagesCache []*Package
-}
-
-func (projectBuild *ProjectBuild) reusePackageFromCache(p *Package) (*Package, bool) {
-	for _, cached := range projectBuild.packagesCache {
-		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
-			return cached, true
-		}
-	}
-
-	return p, false
-}
-
-func (projectBuild *ProjectBuild) removePackageFromCache(p *Package) {
-	for i, cached := range projectBuild.packagesCache {
-		if cached.Name == p.Name && cached.Version.Equal(p.Version) {
-			projectBuild.packagesCache[i] = projectBuild.packagesCache[len(projectBuild.packagesCache)-1]
-			projectBuild.packagesCache = projectBuild.packagesCache[:len(projectBuild.packagesCache)-1]
-			return
-		}
-	}
-}
-
-func prepareBuildPackages(lockfile PackagesLockJSON, projectBuild *ProjectBuild) PackageDependencies {
-	dependencies := PackageDependencies{}
-
-	for n, lock := range lockfile {
-		p := NewWithLockedVersion(n, lock.Version)
-
-		p, foundInCache := projectBuild.reusePackageFromCache(p)
-
-		if !foundInCache {
-			projectBuild.packagesCache = append(projectBuild.packagesCache, p)
-		}
-
-		dependencies[n] = p
-		dependencies[n].Dependencies = prepareBuildPackages(lock.Dependencies, projectBuild)
-	}
-
-	return dependencies
-}
-
-func installPackageFromLockWorker(ch chan *Package, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	for p := range ch {
-		exists, isFile := fs.Exists(path.Join(p.Path(), "package.json"))
-		if !exists || !isFile {
-			p.Install(nil, nil)
-		}
-
-		p.Installed = true
-	}
-}
-
-func newProjectBuild(projectDirectory string, buildId float64) ProjectBuild {
-	lockfile := path.Join(projectDirectory, "lock.json")
-	exists, isFile := fs.Exists(lockfile)
-
-	projectBuild := ProjectBuild{
-		id:            buildId,
-		lock:          PackageDependencies{},
-		packagesCache: []*Package{},
-	}
-
-	if exists && isFile {
-		packagesLockData, _ := fs.ReadFile(lockfile)
-		packageLockJSON := &PackagesLockJSON{}
-		json.Unmarshal(packagesLockData, packageLockJSON)
-		projectBuild.lock = prepareBuildPackages(*packageLockJSON, &projectBuild)
-
-		wg := sync.WaitGroup{}
-		workerCount := 10
-		wg.Add(workerCount)
-
-		ch := make(chan *Package)
-
-		for range workerCount {
-			go installPackageFromLockWorker(ch, &wg)
-		}
-
-		for _, p := range projectBuild.packagesCache {
-			ch <- p
-		}
-
-		close(ch)
-
-		wg.Wait()
-	}
-
-	return projectBuild
-}
-
-func packageLockToJSON(parents []*Package, dependencies PackageDependencies) PackagesLockJSON {
-	lock := PackagesLockJSON{}
-
-	for n, p := range dependencies {
-		if p == nil {
-			continue
-		}
-
-		foundInParents := false
-		for _, parent := range parents {
-			if parent.Name == p.Name && parent.Version.Equal(p.Version) {
-				foundInParents = true
-				break
-			}
-		}
-
-		if !foundInParents {
-			lock[n] = PackageLockJSON{
-				Version:      p.Version.String(),
-				Dependencies: packageLockToJSON(append(parents, p), p.Dependencies),
-			}
-		}
-	}
-
-	return lock
-}
-
-var nodeBuiltInModules = []string{
-	"stream",
-	"module",
-	"path",
-	"util",
-}
-
 func Build(
 	projectDirectory string,
 	buildId float64,
 ) {
-	projectBuild := newProjectBuild(projectDirectory, buildId)
-
 	// find entryPoints
 	entryPointJS := findEntryPoint(projectDirectory)
 	entryPointAbsCSS := filepath.ToSlash(path.Join(projectDirectory, ".build", "index.css"))
@@ -238,136 +91,53 @@ func Build(
 		`))
 	}
 
+	// add WASM fixture plugin
+	plugins := []esbuild.Plugin{}
 	if fs.WASM {
 		tmpFile = "/" + tmpFile
-	}
 
-	mutexLock := sync.RWMutex{}
-
-	plugin := esbuild.Plugin{
-		Name: "fullstacked",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
-				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					if filepath.IsAbs(args.Path) {
-						return esbuild.OnResolveResult{
-							Path: args.Path,
-						}, nil
-					}
-
-					currentPackageLock := (*PackageLock)(nil)
-					if args.PluginData != nil && !reflect.ValueOf(args.PluginData).IsNil() {
-						currentPackageLock = (args.PluginData).(*PackageLock)
-					} else {
-						currentPackageLock = &PackageLock{
-							Parent: nil,
-							Package: &Package{
-								Dependencies: projectBuild.lock,
-							},
-						}
-					}
-
-					mutexLock.RLock()
-					resolved, isFullStackedLib := vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
-					mutexLock.RUnlock()
-
-					if !strings.HasPrefix(args.Path, ".") && !isFullStackedLib {
-						name, _ := ParseName(args.Path)
-
-						if utils.Contains(nodeBuiltInModules, name) {
+		wasmFS := esbuild.Plugin{
+			Name: "wasm-fs",
+			Setup: func(build esbuild.PluginBuild) {
+				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
+					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+						if(strings.HasPrefix(args.Path, "/")) {
 							return esbuild.OnResolveResult{
-								External: true,
+								Path: args.Path,
 							}, nil
 						}
 
-						// prevent circular loop
-						foundInParent := false
-						parentSearch := currentPackageLock
-						for parentSearch != nil && !foundInParent {
-							if name == parentSearch.Package.Name {
-								mutexLock.RLock()
-								resolved, _ = vResolve(args.ResolveDir, args.Path, parentSearch.Package)
-								mutexLock.RUnlock()
+						resolved := vResolve(projectDirectory, args.ResolveDir, args.Path)
 
-								foundInParent = resolved != nil
-							}
-
-							parentSearch = parentSearch.Parent
+						if resolved == nil {
+							return esbuild.OnResolveResult{}, nil
 						}
 
-						if !foundInParent {
-							mutexLock.RLock()
-							childPackage, isChildLocked := currentPackageLock.Package.Dependencies[name]
-							mutexLock.RUnlock()
-
-							if !isChildLocked {
-								childPackage = New(args.Path)
-							}
-
-							childPackage, _ = projectBuild.reusePackageFromCache(childPackage)
-
-							mutexLock.Lock()
-							currentPackageLock.Package.Dependencies[name] = childPackage
-							mutexLock.Unlock()
-
-							if !childPackage.Installed {
-								if currentPackageLock.Parent == nil {
-									childPackage.Install(nil, &projectBuild)
-								} else {
-									projectBuild.removePackageFromCache(currentPackageLock.Package)
-									currentPackageLock.Package.Install(nil, &projectBuild)
-								}
-							}
-
-							if resolved == nil {
-								mutexLock.RLock()
-								resolved, _ = vResolve(args.ResolveDir, args.Path, currentPackageLock.Package)
-								mutexLock.RUnlock()
-							}
-
-							currentPackageLock = &PackageLock{
-								Parent:  currentPackageLock,
-								Package: childPackage,
-							}
+						resolvedStr := *resolved
+						if !strings.HasPrefix(resolvedStr, "/") {
+							resolvedStr = "/" + resolvedStr
 						}
-					}
 
-					if resolved == nil {
-						return esbuild.OnResolveResult{}, nil
-					}
+						return esbuild.OnResolveResult{
+							Path: resolvedStr,
+						}, nil
+					})
 
-					// sometimes wasm resolves without leading slash
-					// not sure why
-					resolvedStr := *resolved
-					if !filepath.IsAbs(resolvedStr) {
-						resolvedStr = "/" + resolvedStr
-					}
+				build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
+					func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+						contents, _ := fs.ReadFile(args.Path)
+						contentsStr := string(contents)
 
-					return esbuild.OnResolveResult{
-						Path:       resolvedStr,
-						PluginData: currentPackageLock,
-					}, nil
-				})
+						loader := inferLoader(args.Path)
 
-			build.OnLoad(esbuild.OnLoadOptions{Filter: `.*`},
-				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					exists, isFile := fs.Exists(args.Path)
-					if !exists || !isFile {
-						return esbuild.OnLoadResult{}, nil
-					}
-
-					contents, _ := fs.ReadFile(args.Path)
-					contentsStr := string(contents)
-
-					loader := inferLoader(args.Path)
-
-					return esbuild.OnLoadResult{
-						Contents:   &contentsStr,
-						Loader:     loader,
-						PluginData: args.PluginData,
-					}, nil
-				})
-		},
+						return esbuild.OnLoadResult{
+							Contents: &contentsStr,
+							Loader:   loader,
+						}, nil
+					})
+			},
+		}
+		plugins = append(plugins, wasmFS)
 	}
 
 	// build
@@ -383,7 +153,11 @@ func Build(
 		Format:         esbuild.FormatESModule,
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
 		Write:          !fs.WASM,
-		Plugins:        []esbuild.Plugin{plugin},
+		Plugins:        plugins,
+		NodePaths: []string{
+			path.Join(setup.Directories.Editor, "lib"),
+			path.Join(projectDirectory, "node_modules"),
+		},
 	})
 
 	if fs.WASM {
@@ -392,14 +166,10 @@ func Build(
 		}
 	}
 
-	if len(projectBuild.lock) > 0 {
-		jsonData, _ := json.MarshalIndent(packageLockToJSON([]*Package{}, projectBuild.lock), "", "    ")
-		fs.WriteFile(path.Join(projectDirectory, "lock.json"), jsonData)
-	}
-
-	// return errors as json string
-	payload := serialize.SerializeNumber(projectBuild.id)
-
+	// don't try to directly send JSON string.
+	// apple platform and probably others
+	// have issues with escaping some chars going through bridge
+	payload := serialize.SerializeNumber(buildId)
 	jsonMessagesData, _ := json.Marshal(result.Errors)
 	jsonMessagesStr := string(jsonMessagesData)
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)

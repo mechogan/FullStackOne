@@ -10,6 +10,7 @@ import (
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
 	git "fullstacked/editor/src/git"
+	"fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -42,6 +43,9 @@ const (
 
 	ESBUILD_VERSION = 55
 	ESBUILD_BUILD   = 56
+
+	PACKAGE_INSTALL       = 60
+	PACKAGE_INSTALL_QUICK = 61
 
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
@@ -126,7 +130,16 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 	case FS_UNLINK:
 		return fs.UnlinkSerialized(filePath)
 	case FS_READDIR:
-		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool))
+		skip := []string{}
+		if len(args) > 2 {
+			for i, arg := range args {
+				if i < 3 {
+					continue
+				}
+				skip = append(skip, arg.(string))
+			}
+		}
+		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool), skip)
 	case FS_MKDIR:
 		return fs.MkdirSerialized(filePath)
 	case FS_RMDIR:
@@ -155,6 +168,21 @@ func editorSwitch(method int, args []any) []byte {
 	case method == ESBUILD_BUILD:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		go esbuild.Build(projectDirectory, args[1].(float64))
+	case method == PACKAGE_INSTALL:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		installationId := args[1].(float64)
+		packagesToInstall := []string{}
+		for i, p := range args {
+			if i < 2 {
+				continue
+			}
+			packagesToInstall = append(packagesToInstall, p.(string))
+		}
+		go packages.Install(installationId, projectDirectory, packagesToInstall)
+	case method == PACKAGE_INSTALL_QUICK:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		installationId := args[1].(float64)
+		go packages.InstallQuick(installationId, projectDirectory)
 	case method == ARCHIVE_UNZIP:
 		destination := path.Join(setup.Directories.Root, args[0].(string))
 

@@ -240,7 +240,7 @@ func (w WasmFS) TempFile(dir, prefix string) (billy.File, error) {
 func (w WasmFS) ReadDir(path string) ([]os.FileInfo, error) {
 	f := w.createFile(path)
 
-	contents, _ := fs.ReadDir(f.path, false)
+	contents, _ := fs.ReadDir(f.path, false, []string{})
 
 	items := []os.FileInfo{}
 	for _, item := range contents {

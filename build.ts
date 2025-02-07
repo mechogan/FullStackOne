@@ -38,6 +38,15 @@ if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true });
 }
 
+async function processScss(entryPoint: string, out: string) {
+    const { css } = await sass.compileAsync(entryPoint, {
+        style: production ? "compressed" : "expanded"
+    });
+    await fs.promises.writeFile(out, css);
+}
+
+await processScss("editor/index.scss", `editor/index.css`);
+
 const toBuild = [
     ["editor/index.ts", "index"],
     ["editor/typescript/worker.ts", "worker-ts"]
@@ -60,19 +69,13 @@ for (const [input, output] of toBuild) {
     });
 }
 
+fs.rmSync("editor/index.css");
+
 fs.cpSync("editor/index.html", `${outDirEditor}/index.html`);
 fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
     recursive: true
 });
 
-async function processScss(entryPoint: string, out: string) {
-    const { css } = await sass.compileAsync(entryPoint, {
-        style: production ? "compressed" : "expanded"
-    });
-    await fs.promises.writeFile(out, css);
-}
-
-await processScss("editor/index.scss", `${outDirEditor}/index.css`);
 await processScss(
     "editor/style/globals/scrollbars.scss",
     `${outDirEditor}/scrollbars.css`

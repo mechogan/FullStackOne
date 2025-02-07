@@ -1,16 +1,7 @@
 import prettyBytes from "pretty-bytes";
 import { Dialog } from "../../components/dialog";
 import { createElement } from "../../components/element";
-
-type PackageInfo = {
-    Name: string;
-    Version: string;
-    Progress: {
-        Stage: "error" | "downloading" | "unpacking" | "done";
-        Loaded: number;
-        Total: number;
-    };
-};
+import { PackageInfoProgress } from "../../lib/packages";
 
 let packagesView: {
     dialog: ReturnType<typeof Dialog>;
@@ -18,12 +9,10 @@ let packagesView: {
 };
 let displayedPackages: {
     name: string;
-    version: string;
-    done: boolean;
     view: ReturnType<typeof createPackageInfoView>;
 }[] = [];
 
-export function updatePackagesView(packageInfo: PackageInfo) {
+export function updatePackagesView(packagesInfos: [string, PackageInfoProgress][]) {
     if (!packagesView) {
         const view = createPackagesView();
         packagesView = {
@@ -32,39 +21,33 @@ export function updatePackagesView(packageInfo: PackageInfo) {
         };
     }
 
-    let packageView = displayedPackages.find(
-        ({ name, version }) =>
-            packageInfo.Name === name && packageInfo.Version === version
-    );
-    if (!packageView) {
-        if (removePackagesViewDialogTimeout) {
-            clearTimeout(removePackagesViewDialogTimeout);
-            removePackagesViewDialogTimeout = null;
-        }
-        packageView = {
-            name: packageInfo.Name,
-            version: packageInfo.Version,
-            done: false,
-            view: createPackageInfoView(packageInfo)
-        };
-        packagesView.view.list.append(packageView.view.container);
-        displayedPackages.push(packageView);
+    if (removePackagesViewDialogTimeout) {
+        clearTimeout(removePackagesViewDialogTimeout)
     }
 
-    packageView.view.setProgress(packageInfo.Progress);
-
-    if (packageInfo.Progress.Stage === "done") {
-        packageView.done = true;
-    }
-
-    if (displayedPackages.every((p) => p.done)) {
-        if (removePackagesViewDialogTimeout) {
-            clearTimeout(removePackagesViewDialogTimeout);
+    if (packagesInfos.length === 0) {
+        removePackagesViewDialogTimeout = setTimeout(removePackagesViewDialog, 200)
+    } else {
+        for (const [name, info] of packagesInfos) {
+            let packageView = displayedPackages.find(p => p.name === name);
+            if (!packageView) {
+                packageView = {
+                    name,
+                    view: createPackageInfoView(name)
+                }
+                packagesView.view.list.append(packageView.view.container);
+                displayedPackages.push(packageView);
+            }
+            packageView.view.setProgress(info)
         }
-        removePackagesViewDialogTimeout = setTimeout(
-            removePackagesViewDialog,
-            1000
-        );
+    
+        for (let i = displayedPackages.length - 1; i >= 0; i--) {
+            const stillActive = packagesInfos.find(([name]) => name === displayedPackages[i].name);
+            if (!stillActive) {
+                displayedPackages[i].view.container.remove();
+                displayedPackages.splice(i, 1);
+            }
+        }
     }
 }
 
@@ -90,11 +73,11 @@ function createPackagesView() {
     return { container, list };
 }
 
-function createPackageInfoView(packageInfo: PackageInfo) {
+function createPackageInfoView(packageName: string) {
     const container = createElement("li");
 
     const name = document.createElement("div");
-    name.innerText = packageInfo.Name + "@" + packageInfo.Version;
+    name.innerText = packageName;
 
     const status = document.createElement("div");
 
@@ -103,22 +86,22 @@ function createPackageInfoView(packageInfo: PackageInfo) {
 
     container.append(name, status, progressLine);
 
-    const setProgress = (progress: PackageInfo["Progress"]) => {
-        let statusText = progress.Stage as string;
+    const setProgress = (progress: PackageInfoProgress) => {
+        let statusText = progress.stage;
 
-        if (progress.Stage === "downloading" && progress.Loaded !== 0) {
-            statusText = `(${prettyBytes(progress.Loaded)}/${prettyBytes(progress.Total)}) ${statusText}`;
-        } else if (progress.Stage === "unpacking" && progress.Loaded !== 0) {
-            statusText = `(${progress.Loaded}/${progress.Total}) ${statusText}`;
-        } else if (progress.Stage === "done") {
+        if (progress.stage === "downloading" && progress.loaded !== 0) {
+            statusText = `(${prettyBytes(progress.loaded)}/${prettyBytes(progress.total)}) ${statusText}`;
+        } else if (progress.stage === "unpacking" && progress.loaded !== 0) {
+            statusText = `(${progress.loaded}/${progress.total}) ${statusText}`;
+        } else if (progress.stage === "done") {
             statusText = "installed";
         } else {
-            statusText = progress.Stage;
+            statusText = progress.stage;
         }
 
         status.innerText = statusText;
         progressLine.style.width =
-            ((progress.Loaded / progress.Total) * 100).toFixed(2) + "%";
+            ((progress.loaded / progress.total) * 100).toFixed(2) + "%";
     };
 
     return { container, setProgress };

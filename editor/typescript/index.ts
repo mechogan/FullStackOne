@@ -141,7 +141,6 @@ function getWorkerDataWASM(workerPath: string) {
 function preloadFS() {
     return WorkerTS.call().preloadFS(
         globalThis.vfs(`projects/${directory}`),
-        globalThis.vfs("editor/tsLib"),
-        globalThis.vfs("projects/node_modules")
+        globalThis.vfs("editor/tsLib")
     );
 }

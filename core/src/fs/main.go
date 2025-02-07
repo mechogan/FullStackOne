@@ -94,7 +94,17 @@ func UnlinkSerialized(path string) []byte {
 	return serialize.SerializeString(err.Error())
 }
 
-func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
+func containsStartWith(arr []string, e string) bool {
+	for _, i := range arr {
+		if(strings.HasPrefix(e, i)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 	items := []FileInfo2{}
 
 	exists, isFile := Exists(path)
@@ -107,7 +117,7 @@ func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
 	}
 
 	if WASM {
-		items = vReadDir(path, recursive)
+		items = vReadDir(path, recursive, skip)
 	} else {
 		pathComponents := splitPath(filepath.ToSlash(path))
 
@@ -119,8 +129,14 @@ func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
 
 				itemPathComponents := splitPath(filepath.ToSlash(path))
 
+				relativeName := strings.Join(itemPathComponents[len(pathComponents):], "/")
+
+				if(containsStartWith(skip, relativeName)) {
+					return nil
+				}
+
 				items = append(items, FileInfo2{
-					Name:  strings.Join(itemPathComponents[len(pathComponents):], "/"),
+					Name:  relativeName,
 					IsDir: d.IsDir(),
 				})
 
@@ -150,14 +166,14 @@ func ReadDir(path string, recursive bool) ([]FileInfo2, error) {
 	return items, nil
 }
 
-func ReadDirSerialized(path string, recursive bool, withFileTypes bool) []byte {
+func ReadDirSerialized(path string, recursive bool, withFileTypes bool, skip []string) []byte {
 	items := ([]FileInfo2)(nil)
 	err := (error)(nil)
 
 	if WASM {
-		items = vReadDir(path, recursive)
+		items = vReadDir(path, recursive, skip)
 	} else {
-		items, err = ReadDir(path, recursive)
+		items, err = ReadDir(path, recursive, skip)
 
 		if err != nil {
 			return serialize.SerializeError(err)
