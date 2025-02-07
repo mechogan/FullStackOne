@@ -11,7 +11,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-func vResolve(resolveDir string, module string, p *Package) (*string, bool) {
+func vResolve(projectDir string, resolveDir string, module string) *string {
 	if strings.HasPrefix(module, "/") {
 		panic("do not use absolute path for imports")
 	}
@@ -23,22 +23,22 @@ func vResolve(resolveDir string, module string, p *Package) (*string, bool) {
 			resolvedPath = LOAD_AS_DIR(modulePath)
 		}
 		if resolvedPath != nil {
-			return resolvedPath, false
+			return resolvedPath
 		}
 	} else {
 		exists := existResolve(module)
 		if exists != nil {
-			return exists, false
+			return exists
 		}
 	}
 
 	// FullStacked lib modules
 	resolvedPath := LOAD_FULLSTACKED_LIB_MODULE(module)
 	if resolvedPath != nil {
-		return resolvedPath, true
+		return resolvedPath
 	}
 
-	return LOAD_NODE_MODULES(module, p), false
+	return LOAD_NODE_MODULES(projectDir, module)
 }
 
 var resolvingExtensions = []string{
@@ -128,25 +128,35 @@ func LOAD_FULLSTACKED_LIB_MODULE(module string) *string {
 	return LOAD_AS_DIR(libModulePath)
 }
 
-func LOAD_NODE_MODULES(module string, p *Package) *string {
+/*
+*      name    modulePath
+* |      ⌄       | ⌄ |
+*  @scoped/package/file
+ */
+func ParseName(name string) (string, string) {
+	scoped := strings.HasPrefix(name, "@")
+	parts := strings.Split(name, "/")
+	modulePath := ""
+
+	if scoped {
+		name = parts[0] + "/" + parts[1]
+		if len(parts) > 2 {
+			modulePath = "/" + strings.Join(parts[2:], "/")
+		}
+	} else {
+		name = parts[0]
+		if len(parts) > 1 {
+			modulePath = "/" + strings.Join(parts[1:], "/")
+		}
+	}
+
+	return name, modulePath
+}
+
+func LOAD_NODE_MODULES(projectDir string, module string) *string {
 	name, modulePath := ParseName(module)
 
-	lockedDependency, isLocked := p.Dependencies[name]
-
-	if name == p.Name {
-		lockedDependency = p
-	} else if !isLocked {
-		lockedDependency = nil
-	}
-
-	if lockedDependency == nil {
-		return nil
-	}
-
-	packageDirectory := path.Join(
-		// setup.Directories.NodeModules, 
-		name,
-		lockedDependency.Version.String())
+	packageDirectory := path.Join(projectDir, "node_modules", name)
 	resolvedPath, packageJSON := LOAD_PACKAGE_EXPORTS(packageDirectory, modulePath)
 
 	nodeModulePath := path.Join(packageDirectory, modulePath)
@@ -168,6 +178,15 @@ func LOAD_NODE_MODULES(module string, p *Package) *string {
 	}
 
 	return resolvedPath
+}
+
+type PackageJSON struct {
+	Main             string            `json:"main"`
+	Browser          json.RawMessage   `json:"browser"`
+	Module           string            `json:"module"`
+	Exports          json.RawMessage   `json:"exports"`
+	Dependencies     map[string]string `json:"dependencies"`
+	PeerDependencies map[string]string `json:"peerDependencies"`
 }
 
 func LOAD_PACKAGE_EXPORTS(packageDir string, modulePath string) (*string, *PackageJSON) {
