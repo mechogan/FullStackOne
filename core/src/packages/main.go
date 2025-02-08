@@ -15,6 +15,8 @@ import (
 	semver "github.com/Masterminds/semver/v3"
 )
 
+var fileEventOrigin = "packages"
+
 type Installation struct {
 	Id                     float64           `json:"id"`
 	PackagesInstalledCount float64           `json:"packagesInstalledCount"`
@@ -381,7 +383,7 @@ func (installation *Installation) updatePackageAndLock() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fs.WriteFile(path.Join(installation.BaseDirectory, "package.json"), jsonData)
+	fs.WriteFile(path.Join(installation.BaseDirectory, "package.json"), jsonData, fileEventOrigin)
 
 	lock := &PackageLock{
 		Packages: []PackageLockJSON{},
@@ -399,7 +401,7 @@ func (installation *Installation) updatePackageAndLock() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fs.WriteFile(path.Join(installation.BaseDirectory, "lock.json"), jsonData)
+	fs.WriteFile(path.Join(installation.BaseDirectory, "lock.json"), jsonData, fileEventOrigin)
 }
 
 func (lock *PackageLock) addPackagesToLock(packages []*Package) {

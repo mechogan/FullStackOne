@@ -18,19 +18,19 @@ export function readFile(path: string, options?: { encoding: "utf8" }) {
 }
 
 // 3
-export function writeFile(path: string, data: string | Uint8Array): Promise<boolean> {
+export function writeFile(path: string, data: string | Uint8Array, origin = ""): Promise<boolean> {
     if (typeof data === "string") {
         data = te.encode(data);
     }
 
-    const payload = new Uint8Array([3, ...serializeArgs([path, data])]);
+    const payload = new Uint8Array([3, ...serializeArgs([path, data, origin])]);
 
     return bridge(payload, ([success]) => success);
 }
 
 // 4
-export function unlink(path: string): Promise<boolean> {
-    const payload = new Uint8Array([4, ...serializeArgs([path])]);
+export function unlink(path: string, origin = ""): Promise<boolean> {
+    const payload = new Uint8Array([4, ...serializeArgs([path, origin])]);
 
     return bridge(payload, ([success]) => success);
 }
@@ -77,15 +77,15 @@ export function readdir(
 }
 
 // 6
-export function mkdir(path: string): Promise<boolean> {
-    const payload = new Uint8Array([6, ...serializeArgs([path])]);
+export function mkdir(path: string, origin = ""): Promise<boolean> {
+    const payload = new Uint8Array([6, ...serializeArgs([path, origin])]);
 
     return bridge(payload, ([success]) => success);
 }
 
 // 7
-export function rmdir(path: string): Promise<boolean> {
-    const payload = new Uint8Array([7, ...serializeArgs([path])]);
+export function rmdir(path: string, origin = ""): Promise<boolean> {
+    const payload = new Uint8Array([7, ...serializeArgs([path, origin])]);
 
     return bridge(payload, ([success]) => success);
 }
@@ -103,8 +103,8 @@ export function exists(path: string): Promise<{ isFile: boolean }> {
 }
 
 // 9
-export function rename(oldPath: string, newPath: string): Promise<boolean> {
-    const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath])]);
+export function rename(oldPath: string, newPath: string, origin = ""): Promise<boolean> {
+    const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath, origin])]);
 
     return bridge(payload, ([success]) => success);
 }

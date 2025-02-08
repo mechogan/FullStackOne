@@ -15,6 +15,8 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
+var fileEventOrigin = "esbuild"
+
 func Version() string {
 	bi, _ := debug.ReadBuildInfo()
 
@@ -75,7 +77,7 @@ func Build(
 			import "`+entryPointAbsCSS+`";
 			import "components/snackbar.css";
 			import "bridge";
-		`))
+		`), fileEventOrigin)
 	} else {
 		entryPointAbs := filepath.ToSlash(path.Join(projectDirectory, *entryPointJS))
 
@@ -88,7 +90,7 @@ func Build(
 			import "components/snackbar.css";
 			import "bridge";
 			import "`+entryPointAbs+`";
-		`))
+		`), fileEventOrigin)
 	}
 
 	// add WASM fixture plugin
@@ -152,7 +154,7 @@ func Build(
 		Bundle:         true,
 		Format:         esbuild.FormatESModule,
 		Sourcemap:      esbuild.SourceMapInlineAndExternal,
-		Write:          !fs.WASM,
+		Write:          false,
 		Plugins:        plugins,
 		NodePaths: []string{
 			path.Join(setup.Directories.Editor, "lib"),
@@ -160,10 +162,8 @@ func Build(
 		},
 	})
 
-	if fs.WASM {
-		for _, file := range result.OutputFiles {
-			fs.WriteFile(file.Path, file.Contents)
-		}
+	for _, file := range result.OutputFiles {
+		fs.WriteFile(file.Path, file.Contents, fileEventOrigin)
 	}
 
 	// don't try to directly send JSON string.
@@ -176,5 +176,5 @@ func Build(
 	payload = append(payload, jsonMessageSerialized...)
 
 	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
-	fs.Unlink(tmpFile)
+	fs.Unlink(tmpFile, fileEventOrigin)
 }

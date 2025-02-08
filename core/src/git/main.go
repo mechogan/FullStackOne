@@ -2,7 +2,6 @@ package git
 
 import (
 	"encoding/json"
-	"path"
 	"strings"
 	"time"
 
@@ -15,11 +14,15 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
-	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
-	utils "fullstacked/editor/src/utils"
 )
+
+var ignoredDirectories = []string{
+	".build",
+	"data",
+	"node_modules",
+}
 
 type GitMessageJSON struct {
 	Url   string
@@ -41,17 +44,15 @@ func getRepo(directory string) (*git.Repository, error) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
 
-	if fs.WASM {
-		wfs := WasmFS{
-			root: directory + "/.git",
-		}
-		wfs2 := WasmFS{
-			root: directory,
-		}
-		repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
-	} else {
-		repo, err = git.PlainOpen(directory)
+	wfs := BillyFS{
+		root: directory + "/.git",
+		ignore: ignoredDirectories,
 	}
+	wfs2 := BillyFS{
+		root: directory,
+		ignore: ignoredDirectories,
+	}
+	repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
 
 	if err != nil {
 		return nil, err
@@ -74,10 +75,10 @@ func getWorktree(directory string) (*git.Worktree, error) {
 	}
 
 	// always ignore FullStacked artifacts
-	worktree.Excludes = append(worktree.Excludes,
-		gitignore.ParsePattern("/.build", []string{}),
-		gitignore.ParsePattern("/data", []string{}),
-		gitignore.ParsePattern("/node_modules", []string{}))
+	for _, d := range ignoredDirectories {
+		worktree.Excludes = append(worktree.Excludes, gitignore.ParsePattern("/" + d, []string{}))
+	}
+	
 
 	return worktree, nil
 }
@@ -125,25 +126,19 @@ func Clone(into string, url string, username *string, password *string) {
 	}
 
 	err := (error)(nil)
-	if fs.WASM {
-		wfs := WasmFS{
-			root: into + "/.git",
-		}
-		wfs2 := WasmFS{
-			root: into,
-		}
-		_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
-			Auth:     auth,
-			URL:      url,
-			Progress: &progress,
-		})
-	} else {
-		_, err = git.PlainClone(into, false, &git.CloneOptions{
-			Auth:     auth,
-			URL:      url,
-			Progress: &progress,
-		})
+	wfs := BillyFS{
+		root: into + "/.git",
+		ignore: ignoredDirectories,
 	}
+	wfs2 := BillyFS{
+		root: into,
+		ignore: ignoredDirectories,
+	}
+	_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
+		Auth:     auth,
+		URL:      url,
+		Progress: &progress,
+	})
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -276,15 +271,11 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
-	stash := stashDirectory(path.Join(directory, "data"))
-
 	err = worktree.Pull(&git.PullOptions{
 		Auth:          auth,
 		ReferenceName: head.Name(),
 		Progress:      &progress,
 	})
-
-	restoreDirectory(stash)
 
 	if err != nil && err.Error() != "already up-to-date" {
 		progress.Error(err.Error())
@@ -590,15 +581,10 @@ func Checkout(
 		branchRefName = &rName
 	}
 
-	// checkout clears all untracked files
-	stash := stashDirectory(path.Join(directory, "data"))
-
 	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,
 		Create: create,
 	})
-
-	restoreDirectory(stash)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -621,38 +607,4 @@ func BranchDelete(directory string, branch string) []byte {
 	}
 
 	return nil
-}
-
-type stashedDirectory struct {
-	Id           string
-	OriginalPath string
-}
-
-func stashDirectory(directory string) stashedDirectory {
-	exists, isFile := fs.Exists(directory)
-	if !exists || isFile {
-		return stashedDirectory{}
-	}
-
-	stashId := utils.RandString(6)
-	tmpDirectory := path.Join(setup.Directories.Tmp, stashId)
-	fs.Rename(directory, tmpDirectory)
-	return stashedDirectory{
-		Id:           stashId,
-		OriginalPath: directory,
-	}
-}
-
-func restoreDirectory(stash stashedDirectory) {
-	if stash.Id == "" {
-		return
-	}
-
-	tmpDirectory := path.Join(setup.Directories.Tmp, stash.Id)
-	exists, isFile := fs.Exists(tmpDirectory)
-	if !exists || isFile {
-		return
-	}
-
-	fs.Rename(tmpDirectory, stash.OriginalPath)
 }

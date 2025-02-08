@@ -213,7 +213,7 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 		if pathIsChildOfPath(dir, path) {
 			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
-			if(containsStartWith(skip, relativeName)) {
+			if(containsStartsWith(skip, relativeName)) {
 				continue;
 			}
 			if recursive || len(dirComponents)-len(pathComponents) == 1 {
@@ -229,7 +229,7 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 		if pathIsChildOfPath(file, path) {
 			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)
-			if(containsStartWith(skip, relativeName)) {
+			if(containsStartsWith(skip, relativeName)) {
 				continue;
 			}
 			if recursive || len(fileComponents)-len(pathComponents) == 1 {

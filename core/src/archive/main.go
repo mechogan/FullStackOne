@@ -10,6 +10,8 @@ import (
 	fs "fullstacked/editor/src/fs"
 )
 
+var fileEventOrigin = "archive"
+
 func Unzip(dest string, data []byte) bool {
 	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
@@ -18,22 +20,22 @@ func Unzip(dest string, data []byte) bool {
 
 	exists, isFile := fs.Exists(dest)
 	if exists && isFile {
-		fs.Unlink(dest)
+		fs.Unlink(dest, fileEventOrigin)
 	} else if exists && !isFile {
-		fs.Rmdir(dest)
+		fs.Rmdir(dest, fileEventOrigin)
 	}
 
-	fs.Mkdir(dest)
+	fs.Mkdir(dest, fileEventOrigin)
 
 	for _, zipFile := range zipReader.File {
 		if zipFile.FileInfo().IsDir() {
-			fs.Mkdir(dest + "/" + zipFile.Name)
+			fs.Mkdir(dest + "/" + zipFile.Name, fileEventOrigin)
 		} else {
 			data, err := readZipFile(zipFile)
 			if err != nil {
 				continue
 			}
-			err = fs.WriteFile(dest+"/"+zipFile.Name, data)
+			err = fs.WriteFile(dest+"/"+zipFile.Name, data, fileEventOrigin)
 			if err != nil {
 				continue
 			}

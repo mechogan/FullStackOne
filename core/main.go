@@ -29,10 +29,11 @@ func directories(root *C.char,
 		C.GoString(editor),
 	)
 
-	fs.Mkdir(setup.Directories.Root)
-	fs.Mkdir(setup.Directories.Config)
-	fs.Mkdir(setup.Directories.Tmp)
-	fs.Mkdir(setup.Directories.Editor)
+	fileEventOrigin := "setup"
+	fs.Mkdir(setup.Directories.Root, fileEventOrigin)
+	fs.Mkdir(setup.Directories.Config, fileEventOrigin)
+	fs.Mkdir(setup.Directories.Tmp, fileEventOrigin)
+	fs.Mkdir(setup.Directories.Editor, fileEventOrigin)
 }
 
 var cCallback = (unsafe.Pointer)(nil)
