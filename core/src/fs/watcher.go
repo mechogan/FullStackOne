@@ -20,6 +20,7 @@ const (
 type FileEvent struct {
 	Type FileEventType
 	Paths []string
+	IsFile bool
 	Origin string
 }
 

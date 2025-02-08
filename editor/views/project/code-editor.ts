@@ -460,6 +460,7 @@ enum IMAGE_Ext {
 
 enum BINARY_Ext {
     ZIP = "zip",
+    TGZ = ".tgz",
     WOFF2 = "woff2",
     WOFF = "woff"
 }

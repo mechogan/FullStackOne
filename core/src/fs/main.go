@@ -71,12 +71,14 @@ func WriteFile(path string, data []byte, origin string) error {
 			Type: CREATED,
 			Paths: []string{path},
 			Origin: origin,
+			IsFile: true,
 		})
 	} else {
 		watchEvent(FileEvent{
 			Type: MODIFIED,
 			Paths: []string{path},
 			Origin: origin,
+			IsFile: true,
 		})
 	}
 
@@ -104,6 +106,7 @@ func Unlink(path string, origin string) error {
 		Type: DELETED,
 		Paths: []string{path},
 		Origin: origin,
+		IsFile: true,
 	})
 
 	return err
@@ -232,6 +235,7 @@ func Mkdir(path string, origin string) bool {
 			Type: CREATED,
 			Paths: []string{path},
 			Origin: origin,
+			IsFile: false,
 		})
 	}
 
@@ -255,6 +259,7 @@ func Rmdir(path string, origin string) bool {
 		Type: DELETED,
 		Paths: []string{path},
 		Origin: origin,
+		IsFile: false,
 	})
 
 	return err == nil
@@ -359,6 +364,8 @@ func StatSerialized(path string) []byte {
 func Rename(oldPath string, newPath string, origin string) bool {
 	err := (error)(nil)
 
+	_, isFile := Exists(oldPath)
+
 	if WASM {
 		err = vRename(oldPath, newPath)
 	} else {
@@ -369,6 +376,7 @@ func Rename(oldPath string, newPath string, origin string) bool {
 		Type: RENAME,
 		Paths: []string{oldPath, newPath},
 		Origin: origin,
+		IsFile: isFile,
 	})
 
 	return err == nil
