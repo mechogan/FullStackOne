@@ -2,6 +2,7 @@ package fs
 
 import (
 	"errors"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -130,6 +131,11 @@ func vStat(path string) *FileInfo2 {
 
 	pathComponents := strings.Split(path, "/")
 
+	mode := os.ModeDir
+	if(!d) {
+		mode = 0666
+	}
+
 	return &FileInfo2{
 		Name:  pathComponents[len(pathComponents)-1],
 		Size:  int64(len(f.Data)),
@@ -137,7 +143,7 @@ func vStat(path string) *FileInfo2 {
 		MTime: f.ModTime,
 		CTime: f.ModTime,
 		IsDir: d,
-		Mode:  0644,
+		Mode:  mode,
 	}
 }
 
@@ -220,6 +226,7 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: true,
+					Mode: os.ModeDir,
 				})
 			}
 		}
@@ -236,6 +243,7 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: false,
+					Mode: 0666,
 				})
 			}
 		}

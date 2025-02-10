@@ -93,7 +93,7 @@ globalThis.onmessageWASM = function (
 ) {
     if (projectId === "*") {
         for (const w of webviews.values()) {
-            w.window.oncoremessage(messageType, message);
+            w.window.oncoremessage?.(messageType, message);
         }
         return;
     } else if (projectId === "" && messageType === "open") {
@@ -102,7 +102,7 @@ globalThis.onmessageWASM = function (
     }
 
     const webview = webviews.get(projectId);
-    webview.window.oncoremessage(messageType, message);
+    webview.window.oncoremessage?.(messageType, message);
 };
 
 const expectedWasmSize = parseInt(process.env.wasmSize);
@@ -429,5 +429,5 @@ async function launchDeeplink(url: URL) {
     }
 
     const urlStr = `fullstacked://${url.protocol.slice(0, -1)}//${url.host}${url.pathname}${url.search ? "?" + url.search : ""}`;
-    globalThis.oncoremessage("deeplink", urlStr);
+    globalThis.oncoremessage?.("deeplink", urlStr);
 }

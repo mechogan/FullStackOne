@@ -161,9 +161,12 @@ func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 					return nil
 				}
 
+				info, _ := d.Info();
+
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: d.IsDir(),
+					Mode: info.Mode(),
 				})
 
 				return nil
@@ -181,9 +184,11 @@ func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 			}
 
 			for _, item := range entries {
+				info, _ := item.Info()
 				items = append(items, FileInfo2{
 					Name:  item.Name(),
 					IsDir: item.IsDir(),
+					Mode: info.Mode(),
 				})
 			}
 		}

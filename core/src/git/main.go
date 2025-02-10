@@ -2,6 +2,7 @@ package git
 
 import (
 	"encoding/json"
+	"path"
 	"strings"
 	"time"
 
@@ -19,9 +20,9 @@ import (
 )
 
 var ignoredDirectories = []string{
-	".build",
-	"data",
-	"node_modules",
+	"/.build",
+	"/data",
+	"/node_modules",
 }
 
 type GitMessageJSON struct {
@@ -44,15 +45,9 @@ func getRepo(directory string) (*git.Repository, error) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
 
-	wfs := BillyFS{
-		root: directory + "/.git",
-		ignore: ignoredDirectories,
-	}
-	wfs2 := BillyFS{
-		root: directory,
-		ignore: ignoredDirectories,
-	}
-	repo, err = git.Open(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2)
+	wfs := newStorage(path.Join(directory, ".git"))
+	wfs2 := newStorage(directory)
+	repo, err = git.Open(filesystem.NewStorage(NewBillyFS(wfs, []string{}), cache.NewObjectLRUDefault()), NewBillyFS(wfs2, ignoredDirectories))
 
 	if err != nil {
 		return nil, err
@@ -76,9 +71,8 @@ func getWorktree(directory string) (*git.Worktree, error) {
 
 	// always ignore FullStacked artifacts
 	for _, d := range ignoredDirectories {
-		worktree.Excludes = append(worktree.Excludes, gitignore.ParsePattern("/" + d, []string{}))
+		worktree.Excludes = append(worktree.Excludes, gitignore.ParsePattern("/"+d, []string{}))
 	}
-	
 
 	return worktree, nil
 }
@@ -126,14 +120,8 @@ func Clone(into string, url string, username *string, password *string) {
 	}
 
 	err := (error)(nil)
-	wfs := BillyFS{
-		root: into + "/.git",
-		ignore: ignoredDirectories,
-	}
-	wfs2 := BillyFS{
-		root: into,
-		ignore: ignoredDirectories,
-	}
+	wfs := NewBillyFS(newStorage(path.Join(into, ".git")), []string{})
+	wfs2 := NewBillyFS(newStorage(into), ignoredDirectories)
 	_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
 		Auth:     auth,
 		URL:      url,

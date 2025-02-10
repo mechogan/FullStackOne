@@ -1,310 +1,460 @@
+// this is copied from go-billy memfs
+// source: https://github.com/go-git/go-billy/tree/main/memfs
+/*
+* This memory fs is used as a layer between go-git and fullstacked 
+* WASM agnostic simple fs. It allows to skip ignored/unwanted files from git
+* and track all fs events.
+*/
+
 package git
 
 import (
-	fs "fullstacked/editor/src/fs"
-	utils "fullstacked/editor/src/utils"
+	"errors"
+	"fmt"
 	"io"
+	"io/fs"
+	"log"
 	"os"
-	"path"
+	"path/filepath"
+	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/helper/chroot"
+	"github.com/go-git/go-billy/v5/util"
+
+	realFs "fullstacked/editor/src/fs"
 )
 
-var fileEventOrigin = "git"
+const separator = filepath.Separator
 
-type BillyFS struct {
-	root string
+type Memory struct {
 	ignore []string
+	s *storage
 }
 
-type File struct {
-	filename string
-	path     string
-	reader   *FileReader
-}
-
-type FileReader struct {
-	path   string
-	data   []byte
-	cursor int64
-}
-
-func (f *FileReader) Read(p []byte) (n int, err error) {
-	f.data, err = fs.ReadFile(f.path)
-
-	pLength := int64(len(p))
-	fLength := int64(len(f.data))
-
-	if err != nil || f.cursor >= fLength {
-		return 0, io.EOF
+// New returns a new Memory filesystem.
+func NewBillyFS(storage *storage, ignore []string) billy.Filesystem {
+	fs := &Memory{
+		s: storage,
+		ignore: ignore,
 	}
-
-	from := f.cursor
-	f.cursor = f.cursor + pLength
-
-	if f.cursor > fLength {
-		f.cursor = fLength
+	_, err := fs.s.New("/", 0755|os.ModeDir, 0)
+	if err != nil {
+		log.Printf("failed to create root dir: %v", err)
 	}
-
-	copy(p, f.data[from:f.cursor])
-
-	if f.cursor >= fLength {
-		return int(f.cursor - from), nil
-	}
-
-	return len(p), nil
+	return chroot.New(fs, string(separator))
 }
 
-func (f File) ReadAt(p []byte, off int64) (n int, err error) {
-	return len(p), nil
+func (fs *Memory) Create(filename string) (billy.File, error) {
+	return fs.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 }
 
-func (f File) Close() error {
-	return nil
+func (fs *Memory) Open(filename string) (billy.File, error) {
+	return fs.OpenFile(filename, os.O_RDONLY, 0)
 }
 
-func (f File) Write(p []byte) (n int, err error) {
-	chunk := make([]byte, len(p))
-	copy(chunk, p)
+func (fs *Memory) OpenFile(filename string, flag int, perm fs.FileMode) (billy.File, error) {
+	f, has := fs.s.Get(filename)
+	if !has {
+		if !isCreate(flag) {
+			return nil, os.ErrNotExist
+		}
 
-	if f.reader.cursor == 0 {
-		f.reader.data = chunk
-	} else if f.reader.cursor == int64(len(f.reader.data)) {
-		f.reader.data = append(f.reader.data, chunk...)
+		var err error
+		f, err = fs.s.New(filename, perm, flag)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		data := []byte{}
+		if isExclusive(flag) {
+			return nil, os.ErrExist
+		}
 
-		before := make([]byte, f.reader.cursor)
-		copy(before, f.reader.data[0:f.reader.cursor])
-
-		data = append(data, chunk...)
-
-		after := make([]byte, int64(len(f.reader.data))-f.reader.cursor)
-		copy(after, f.reader.data[f.reader.cursor:])
-
-		f.reader.data = data
+		if target, isLink := fs.resolveLink(filename, f); isLink {
+			if target != filename {
+				return fs.OpenFile(target, flag, perm)
+			}
+		}
 	}
 
-	fs.WriteFile(f.path, f.reader.data, fileEventOrigin)
-	f.reader.cursor += int64(len(chunk))
-	return len(chunk), nil
+	if f.mode.IsDir() {
+		return nil, fmt.Errorf("cannot open directory: %s", filename)
+	}
+
+	return f.Duplicate(filename, perm, flag), nil
 }
 
-func (f File) Read(p []byte) (n int, err error) {
-	return f.reader.Read(p)
+func (fs *Memory) resolveLink(fullpath string, f *file) (target string, isLink bool) {
+	if !isSymlink(f.mode) {
+		return fullpath, false
+	}
+
+	target = string(f.content.bytes)
+	if !isAbs(target) {
+		target = fs.Join(filepath.Dir(fullpath), target)
+	}
+
+	return target, true
 }
 
-func (f File) Seek(offset int64, whence int) (int64, error) {
+// On Windows OS, IsAbs validates if a path is valid based on if stars with a
+// unit (eg.: `C:\`)  to assert that is absolute, but in this mem implementation
+// any path starting by `separator` is also considered absolute.
+func isAbs(path string) bool {
+	return filepath.IsAbs(path) || strings.HasPrefix(path, string(separator))
+}
+
+func (fs *Memory) Stat(filename string) (os.FileInfo, error) {
+	f, has := fs.s.Get(filename)
+	if !has {
+		return nil, os.ErrNotExist
+	}
+
+	fi, _ := f.Stat()
+
+	var err error
+	if target, isLink := fs.resolveLink(filename, f); isLink {
+		fi, err = fs.Stat(target)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// the name of the file should always the name of the stated file, so we
+	// overwrite the Stat returned from the storage with it, since the
+	// filename may belong to a link.
+	fi.(*fileInfo).name = filepath.Base(filename)
+	return fi, nil
+}
+
+func (fs *Memory) Lstat(filename string) (os.FileInfo, error) {
+	f, has := fs.s.Get(filename)
+	if !has {
+		return nil, os.ErrNotExist
+	}
+
+	return f.Stat()
+}
+
+type ByName []os.FileInfo
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+func (fs *Memory) ReadDir(path string) ([]os.FileInfo, error) {
+	// Read with fs and populate memory storage
+	// skip ignored files
+	filePath := filepath.Join(fs.s.Root, path)
+	exists, isFile := realFs.Exists(filePath)
+	if exists && !isFile {
+		contents, _ := realFs.ReadDir(filePath, false, []string{})
+		for _, item := range contents {
+			filePath := filepath.Join(path, item.Name)
+
+			isIgnored := false
+			for _, ignored := range fs.ignore {
+				if filePath == ignored {
+					isIgnored = true
+					break
+				}
+			}
+
+			if !isIgnored {
+				fs.s.New(filePath, item.Mode, 0)
+			}
+		}
+	}
+	// end
+
+	if f, has := fs.s.Get(path); has {
+		if target, isLink := fs.resolveLink(path, f); isLink {
+			if target != path {
+				return fs.ReadDir(target)
+			}
+		}
+	} else {
+		return nil, &os.PathError{Op: "open", Path: path, Err: syscall.ENOENT}
+	}
+
+	var entries []os.FileInfo
+	for _, f := range fs.s.Children(path) {
+		fi, _ := f.Stat()
+		entries = append(entries, fi)
+	}
+
+	sort.Sort(ByName(entries))
+
+	return entries, nil
+}
+
+func (fs *Memory) MkdirAll(path string, perm fs.FileMode) error {
+	_, err := fs.s.New(path, perm|os.ModeDir, 0)
+	return err
+}
+
+func (fs *Memory) TempFile(dir, prefix string) (billy.File, error) {
+	return util.TempFile(fs, dir, prefix)
+}
+
+func (fs *Memory) Rename(from, to string) error {
+	return fs.s.Rename(from, to)
+}
+
+func (fs *Memory) Remove(filename string) error {
+	return fs.s.Remove(filename)
+}
+
+// Falls back to Go's filepath.Join, which works differently depending on the
+// OS where the code is being executed.
+func (fs *Memory) Join(elem ...string) string {
+	return filepath.Join(elem...)
+}
+
+func (fs *Memory) Symlink(target, link string) error {
+	_, err := fs.Lstat(link)
+	if err == nil {
+		return os.ErrExist
+	}
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	return util.WriteFile(fs, link, []byte(target), 0777|os.ModeSymlink)
+}
+
+func (fs *Memory) Readlink(link string) (string, error) {
+	f, has := fs.s.Get(link)
+	if !has {
+		return "", os.ErrNotExist
+	}
+
+	if !isSymlink(f.mode) {
+		return "", &os.PathError{
+			Op:   "readlink",
+			Path: link,
+			Err:  fmt.Errorf("not a symlink"),
+		}
+	}
+
+	return string(f.content.bytes), nil
+}
+
+// Capabilities implements the Capable interface.
+func (fs *Memory) Capabilities() billy.Capability {
+	return billy.WriteCapability |
+		billy.ReadCapability |
+		billy.ReadAndWriteCapability |
+		billy.SeekCapability |
+		billy.TruncateCapability
+}
+
+type file struct {
+	name     string
+	content  *content
+	position int64
+	flag     int
+	mode     os.FileMode
+	modTime  time.Time
+
+	isClosed bool
+}
+
+func (f *file) Name() string {
+	return f.name
+}
+
+func (f *file) Read(b []byte) (int, error) {
+	n, err := f.ReadAt(b, f.position)
+	f.position += int64(n)
+
+	if errors.Is(err, io.EOF) && n != 0 {
+		err = nil
+	}
+
+	return n, err
+}
+
+func (f *file) ReadAt(b []byte, off int64) (int, error) {
+	if f.isClosed {
+		return 0, os.ErrClosed
+	}
+
+	if !isReadAndWrite(f.flag) && !isReadOnly(f.flag) {
+		return 0, errors.New("read not supported")
+	}
+
+	n, err := f.content.ReadAt(b, off)
+
+	return n, err
+}
+
+func (f *file) Seek(offset int64, whence int) (int64, error) {
+	if f.isClosed {
+		return 0, os.ErrClosed
+	}
+
 	switch whence {
-	case 0:
-		f.reader.cursor = offset
-	case 1:
-		f.reader.cursor += offset
-	case 2:
-		f.reader.cursor = int64(len(f.reader.data)) - offset
+	case io.SeekCurrent:
+		f.position += offset
+	case io.SeekStart:
+		f.position = offset
+	case io.SeekEnd:
+		f.position = int64(f.content.Len()) + offset
 	}
-	return f.reader.cursor, nil
+
+	return f.position, nil
 }
 
-func (f File) Size() int64 {
-	info, _ := fs.Stat(f.path)
-	if info == nil {
-		return 0
+func (f *file) Write(p []byte) (int, error) {
+	return f.WriteAt(p, f.position)
+}
+
+func (f *file) WriteAt(p []byte, off int64) (int, error) {
+	if f.isClosed {
+		return 0, os.ErrClosed
 	}
-	return info.Size
-}
-func (f File) Mode() os.FileMode {
-	info, _ := fs.Stat(f.path)
-	if info != nil {
-		return info.Mode
+
+	if !isReadAndWrite(f.flag) && !isWriteOnly(f.flag) {
+		return 0, errors.New("write not supported")
 	}
-	return os.ModeDir
+
+	f.modTime = time.Now()
+	n, err := f.content.WriteAt(p, off)
+	f.position = off + int64(n)
+
+	return n, err
 }
-func (f File) ModTime() time.Time {
-	info, _ := fs.Stat(f.path)
-	return info.MTime
-}
-func (f File) IsDir() bool {
-	_, isFile := fs.Exists(f.path)
-	return !isFile
-}
-func (f File) Sys() any {
+
+func (f *file) Close() error {
+	if f.isClosed {
+		return os.ErrClosed
+	}
+
+	f.isClosed = true
 	return nil
 }
 
-func (f File) Name() string {
-	return f.filename
-}
-
-func (f File) Lock() error {
-	return nil
-}
-func (f File) Unlock() error {
-	return nil
-
-}
-func (f File) Truncate(size int64) error {
-	return nil
-}
-
-func (b BillyFS) createFile(filename string) File {
-	filePath := path.Join(b.root, filename)
-	return File{
-		filename: filename,
-		path:     filePath,
-		reader: &FileReader{
-			path: filePath,
-		},
-	}
-}
-
-func (b BillyFS) createFileWithName(filename string, name string) File {
-	filePath := path.Join(b.root, filename)
-	return File{
-		filename: name,
-		path:     filePath,
-		reader: &FileReader{
-			path: filePath,
-		},
-	}
-}
-
-func (b BillyFS) Create(filename string) (billy.File, error) {
-	f := b.createFile(filename)
-
-	dir := path.Dir(f.path)
-	fs.Mkdir(dir, fileEventOrigin)
-
-	fs.WriteFile(f.path, []byte{}, fileEventOrigin)
-
-	return f, nil
-}
-
-func (b BillyFS) Open(filename string) (billy.File, error) {
-	f := b.createFile(filename)
-
-	exists, _ := fs.Exists(f.path)
-	if !exists {
-		return nil, os.ErrNotExist
+func (f *file) Truncate(size int64) error {
+	if size < int64(len(f.content.bytes)) {
+		f.content.bytes = f.content.bytes[:size]
+	} else if more := int(size) - len(f.content.bytes); more > 0 {
+		f.content.bytes = append(f.content.bytes, make([]byte, more)...)
 	}
 
-	return f, nil
+	return nil
 }
 
-func (b BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
-	f := b.createFile(filename)
-
-	exists, _ := fs.Exists(f.path)
-	if !exists {
-		return b.Create(filename)
+func (f *file) Duplicate(filename string, mode fs.FileMode, flag int) billy.File {
+	nf := &file{
+		name:    filename,
+		content: f.content,
+		mode:    mode,
+		flag:    flag,
+		modTime: f.modTime,
 	}
 
-	return f, nil
-}
-
-func (b BillyFS) Stat(filename string) (os.FileInfo, error) {
-	f := b.createFile(filename)
-
-	exists, _ := fs.Exists(f.path)
-	if !exists {
-		return nil, os.ErrNotExist
+	if isTruncate(flag) {
+		nf.content.Truncate()
 	}
 
-	return f, nil
-}
-
-func (b BillyFS) Rename(oldpath, newpath string) error {
-	fs.Rename(b.Join(b.root, oldpath), b.Join(b.root, newpath), fileEventOrigin)
-	return nil
-}
-
-func (b BillyFS) Remove(filename string) error {
-	for _, d := range b.ignore {
-		if(strings.HasPrefix(filename, d)) {
-			return nil
-		}
+	if isAppend(flag) {
+		nf.position = int64(nf.content.Len())
 	}
 
-	path := b.Join(b.root, filename)
-
-	_, isFile := fs.Exists(path)
-	if isFile {
-		fs.Unlink(path, fileEventOrigin)
-	} else {
-		fs.Rmdir(path, fileEventOrigin)
-	}
-	return nil
+	return nf
 }
 
-func (BillyFS) Join(elem ...string) string {
-	return path.Join(elem...)
-}
-
-func (b BillyFS) TempFile(dir, prefix string) (billy.File, error) {
-	filePath := path.Join(dir, prefix+utils.RandString(6))
-	return b.Create(filePath)
-}
-
-func (b BillyFS) ReadDir(path string) ([]os.FileInfo, error) {
-	for _, d := range b.ignore {
-		if(strings.HasPrefix(path, d)) {
-			return []os.FileInfo{}, nil
-		}
-	}
-
-	f := b.createFile(path)
-
-	contents, _ := fs.ReadDir(f.path, false, []string{})
-
-	items := []os.FileInfo{}
-	for _, item := range contents {
-		items = append(items, b.createFileWithName(b.Join(path, item.Name), item.Name))
-	}
-	return items, nil
-}
-
-func (b BillyFS) MkdirAll(filename string, perm os.FileMode) error {
-	f := b.createFile(filename)
-	fs.Mkdir(f.path, fileEventOrigin)
-	return nil
-}
-
-func (b BillyFS) Lstat(filename string) (os.FileInfo, error) {
-	return b.Stat(filename)
-}
-
-func (BillyFS) Symlink(target, link string) error {
-	return nil
-}
-
-func (BillyFS) Readlink(link string) (string, error) {
-	return "", nil
-}
-
-func (BillyFS) Chmod(name string, mode os.FileMode) error {
-	return nil
-}
-
-func (BillyFS) Lchown(name string, uid, gid int) error {
-	return nil
-}
-
-func (BillyFS) Chown(name string, uid, gid int) error {
-	return nil
-}
-
-func (BillyFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
-	return nil
-}
-
-func (b BillyFS) Chroot(path string) (billy.Filesystem, error) {
-	return BillyFS{
-		root: path,
+func (f *file) Stat() (os.FileInfo, error) {
+	return &fileInfo{
+		name:    f.Name(),
+		mode:    f.mode,
+		size:    f.content.Len(),
+		modTime: f.modTime,
 	}, nil
 }
 
-func (b BillyFS) Root() string {
-	return b.root
+// Lock is a no-op in memfs.
+func (f *file) Lock() error {
+	return nil
+}
+
+// Unlock is a no-op in memfs.
+func (f *file) Unlock() error {
+	return nil
+}
+
+type fileInfo struct {
+	name    string
+	size    int
+	mode    os.FileMode
+	modTime time.Time
+}
+
+func (fi *fileInfo) Name() string {
+	return fi.name
+}
+
+func (fi *fileInfo) Size() int64 {
+	return int64(fi.size)
+}
+
+func (fi *fileInfo) Mode() fs.FileMode {
+	return fi.mode
+}
+
+func (fi *fileInfo) ModTime() time.Time {
+	return fi.modTime
+}
+
+func (fi *fileInfo) IsDir() bool {
+	return fi.mode.IsDir()
+}
+
+func (*fileInfo) Sys() interface{} {
+	return nil
+}
+
+func (c *content) Truncate() {
+	c.bytes = make([]byte, 0)
+}
+
+func (c *content) Len() int {
+	return len(c.bytes)
+}
+
+func isCreate(flag int) bool {
+	return flag&os.O_CREATE != 0
+}
+
+func isExclusive(flag int) bool {
+	return flag&os.O_EXCL != 0
+}
+
+func isAppend(flag int) bool {
+	return flag&os.O_APPEND != 0
+}
+
+func isTruncate(flag int) bool {
+	return flag&os.O_TRUNC != 0
+}
+
+func isReadAndWrite(flag int) bool {
+	return flag&os.O_RDWR != 0
+}
+
+func isReadOnly(flag int) bool {
+	return flag == os.O_RDONLY
+}
+
+func isWriteOnly(flag int) bool {
+	return flag&os.O_WRONLY != 0
+}
+
+func isSymlink(m fs.FileMode) bool {
+	return m&os.ModeSymlink != 0
 }
