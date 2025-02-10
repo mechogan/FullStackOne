@@ -24,6 +24,7 @@ type Package struct {
 	VersionOriginal string          `json:"-"`
 	As              []string        `json:"as"`
 	Direct          bool            `json:"direct"`
+	Dev             bool            `json:"-"`
 
 	Locations []string `json:"-"`
 
@@ -40,8 +41,9 @@ type Package struct {
 }
 
 type PackageJSON struct {
-	Version      string            `json:"version"`
-	Dependencies map[string]string `json:"dependencies"`
+	Version         string            `json:"version"`
+	Dependencies    map[string]string `json:"dependencies"`
+	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 type PackageLockJSON struct {
@@ -250,9 +252,9 @@ func (p *Package) installFromRemote(directory string) {
 	// clean
 	exists, _ := fs.Exists(directory)
 	if exists {
-		fs.Rmdir(directory)
+		fs.Rmdir(directory, fileEventOrigin)
 	}
-	fs.Mkdir(directory)
+	fs.Mkdir(directory, fileEventOrigin)
 
 	npmPackageInfo, err := http.Get("https://registry.npmjs.org/" + p.Name + "/" + p.Version.String())
 	if err != nil {
@@ -329,12 +331,12 @@ func (p *Package) installFromRemote(directory string) {
 			target := path.Join(directory, filePath)
 
 			if header.Typeflag == tar.TypeDir {
-				fs.Mkdir(target)
+				fs.Mkdir(target, fileEventOrigin)
 			} else if header.Typeflag == tar.TypeReg {
 				dir, _ := path.Split(target)
-				fs.Mkdir(dir)
+				fs.Mkdir(dir, fileEventOrigin)
 				fileData, _ := io.ReadAll(tarReader)
-				fs.WriteFile(target, fileData)
+				fs.WriteFile(target, fileData, fileEventOrigin)
 			}
 		}
 

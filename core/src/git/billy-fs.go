@@ -6,13 +6,17 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-billy/v5"
 )
 
-type WasmFS struct {
+var fileEventOrigin = "git"
+
+type BillyFS struct {
 	root string
+	ignore []string
 }
 
 type File struct {
@@ -83,7 +87,7 @@ func (f File) Write(p []byte) (n int, err error) {
 		f.reader.data = data
 	}
 
-	fs.WriteFile(f.path, f.reader.data)
+	fs.WriteFile(f.path, f.reader.data, fileEventOrigin)
 	f.reader.cursor += int64(len(chunk))
 	return len(chunk), nil
 }
@@ -145,8 +149,8 @@ func (f File) Truncate(size int64) error {
 	return nil
 }
 
-func (w WasmFS) createFile(filename string) File {
-	filePath := path.Join(w.root, filename)
+func (b BillyFS) createFile(filename string) File {
+	filePath := path.Join(b.root, filename)
 	return File{
 		filename: filename,
 		path:     filePath,
@@ -156,8 +160,8 @@ func (w WasmFS) createFile(filename string) File {
 	}
 }
 
-func (w WasmFS) createFileWithName(filename string, name string) File {
-	filePath := path.Join(w.root, filename)
+func (b BillyFS) createFileWithName(filename string, name string) File {
+	filePath := path.Join(b.root, filename)
 	return File{
 		filename: name,
 		path:     filePath,
@@ -167,19 +171,19 @@ func (w WasmFS) createFileWithName(filename string, name string) File {
 	}
 }
 
-func (w WasmFS) Create(filename string) (billy.File, error) {
-	f := w.createFile(filename)
+func (b BillyFS) Create(filename string) (billy.File, error) {
+	f := b.createFile(filename)
 
 	dir := path.Dir(f.path)
-	fs.Mkdir(dir)
+	fs.Mkdir(dir, fileEventOrigin)
 
-	fs.WriteFile(f.path, []byte{})
+	fs.WriteFile(f.path, []byte{}, fileEventOrigin)
 
 	return f, nil
 }
 
-func (w WasmFS) Open(filename string) (billy.File, error) {
-	f := w.createFile(filename)
+func (b BillyFS) Open(filename string) (billy.File, error) {
+	f := b.createFile(filename)
 
 	exists, _ := fs.Exists(f.path)
 	if !exists {
@@ -189,19 +193,19 @@ func (w WasmFS) Open(filename string) (billy.File, error) {
 	return f, nil
 }
 
-func (w WasmFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
-	f := w.createFile(filename)
+func (b BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
+	f := b.createFile(filename)
 
 	exists, _ := fs.Exists(f.path)
 	if !exists {
-		return w.Create(filename)
+		return b.Create(filename)
 	}
 
 	return f, nil
 }
 
-func (w WasmFS) Stat(filename string) (os.FileInfo, error) {
-	f := w.createFile(filename)
+func (b BillyFS) Stat(filename string) (os.FileInfo, error) {
+	f := b.createFile(filename)
 
 	exists, _ := fs.Exists(f.path)
 	if !exists {
@@ -211,84 +215,96 @@ func (w WasmFS) Stat(filename string) (os.FileInfo, error) {
 	return f, nil
 }
 
-func (w WasmFS) Rename(oldpath, newpath string) error {
-	fs.Rename(w.Join(w.root, oldpath), w.Join(w.root, newpath))
+func (b BillyFS) Rename(oldpath, newpath string) error {
+	fs.Rename(b.Join(b.root, oldpath), b.Join(b.root, newpath), fileEventOrigin)
 	return nil
 }
 
-func (w WasmFS) Remove(filename string) error {
-	path := w.Join(w.root, filename)
+func (b BillyFS) Remove(filename string) error {
+	for _, d := range b.ignore {
+		if(strings.HasPrefix(filename, d)) {
+			return nil
+		}
+	}
+
+	path := b.Join(b.root, filename)
 
 	_, isFile := fs.Exists(path)
 	if isFile {
-		fs.Unlink(path)
+		fs.Unlink(path, fileEventOrigin)
 	} else {
-		fs.Rmdir(path)
+		fs.Rmdir(path, fileEventOrigin)
 	}
 	return nil
 }
 
-func (WasmFS) Join(elem ...string) string {
+func (BillyFS) Join(elem ...string) string {
 	return path.Join(elem...)
 }
 
-func (w WasmFS) TempFile(dir, prefix string) (billy.File, error) {
+func (b BillyFS) TempFile(dir, prefix string) (billy.File, error) {
 	filePath := path.Join(dir, prefix+utils.RandString(6))
-	return w.Create(filePath)
+	return b.Create(filePath)
 }
 
-func (w WasmFS) ReadDir(path string) ([]os.FileInfo, error) {
-	f := w.createFile(path)
+func (b BillyFS) ReadDir(path string) ([]os.FileInfo, error) {
+	for _, d := range b.ignore {
+		if(strings.HasPrefix(path, d)) {
+			return []os.FileInfo{}, nil
+		}
+	}
+
+	f := b.createFile(path)
 
 	contents, _ := fs.ReadDir(f.path, false, []string{})
 
 	items := []os.FileInfo{}
 	for _, item := range contents {
-		items = append(items, w.createFileWithName(w.Join(path, item.Name), item.Name))
+		items = append(items, b.createFileWithName(b.Join(path, item.Name), item.Name))
 	}
 	return items, nil
 }
 
-func (w WasmFS) MkdirAll(filename string, perm os.FileMode) error {
-	f := w.createFile(filename)
-	fs.Mkdir(f.path)
+func (b BillyFS) MkdirAll(filename string, perm os.FileMode) error {
+	f := b.createFile(filename)
+	fs.Mkdir(f.path, fileEventOrigin)
 	return nil
 }
 
-func (w WasmFS) Lstat(filename string) (os.FileInfo, error) {
-	return w.Stat(filename)
+func (b BillyFS) Lstat(filename string) (os.FileInfo, error) {
+	return b.Stat(filename)
 }
 
-func (WasmFS) Symlink(target, link string) error {
+func (BillyFS) Symlink(target, link string) error {
 	return nil
 }
 
-func (WasmFS) Readlink(link string) (string, error) {
+func (BillyFS) Readlink(link string) (string, error) {
 	return "", nil
 }
 
-func (WasmFS) Chmod(name string, mode os.FileMode) error {
+func (BillyFS) Chmod(name string, mode os.FileMode) error {
 	return nil
 }
 
-func (WasmFS) Lchown(name string, uid, gid int) error {
+func (BillyFS) Lchown(name string, uid, gid int) error {
 	return nil
 }
 
-func (WasmFS) Chown(name string, uid, gid int) error {
+func (BillyFS) Chown(name string, uid, gid int) error {
 	return nil
 }
 
-func (WasmFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
+func (BillyFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	return nil
 }
 
-func (w WasmFS) Chroot(path string) (billy.Filesystem, error) {
-	return WasmFS{
+func (b BillyFS) Chroot(path string) (billy.Filesystem, error) {
+	return BillyFS{
 		root: path,
 	}, nil
 }
 
-func (w WasmFS) Root() string {
-	return w.root
+func (b BillyFS) Root() string {
+	return b.root
 }

@@ -126,9 +126,17 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 	case FS_READFILE:
 		return fs.ReadFileSerialized(filePath, args[1].(bool))
 	case FS_WRITEFILE:
-		return fs.WriteFileSerialized(filePath, args[1].([]byte))
+		fileEventOrigin := ""
+		if len(args) > 2 {
+			fileEventOrigin = args[2].(string)
+		}
+		return fs.WriteFileSerialized(filePath, args[1].([]byte), fileEventOrigin)
 	case FS_UNLINK:
-		return fs.UnlinkSerialized(filePath)
+		fileEventOrigin := ""
+		if len(args) > 1 {
+			fileEventOrigin = args[1].(string)
+		}
+		return fs.UnlinkSerialized(filePath, fileEventOrigin)
 	case FS_READDIR:
 		skip := []string{}
 		if len(args) > 2 {
@@ -141,14 +149,26 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 		}
 		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool), skip)
 	case FS_MKDIR:
-		return fs.MkdirSerialized(filePath)
+		fileEventOrigin := ""
+		if len(args) > 1 {
+			fileEventOrigin = args[1].(string)
+		}
+		return fs.MkdirSerialized(filePath, fileEventOrigin)
 	case FS_RMDIR:
-		return fs.RmdirSerialized(filePath)
+		fileEventOrigin := ""
+		if len(args) > 1 {
+			fileEventOrigin = args[1].(string)
+		}
+		return fs.RmdirSerialized(filePath, fileEventOrigin)
 	case FS_EXISTS:
 		return fs.ExistsSerialized(filePath)
 	case FS_RENAME:
+		fileEventOrigin := ""
+		if len(args) > 2 {
+			fileEventOrigin = args[2].(string)
+		}
 		newPath := path.Join(baseDir, args[1].(string))
-		return fs.RenameSerialized(filePath, newPath)
+		return fs.RenameSerialized(filePath, newPath, fileEventOrigin)
 	case FS_STAT:
 		return fs.StatSerialized(filePath)
 	}
@@ -173,12 +193,12 @@ func editorSwitch(method int, args []any) []byte {
 		installationId := args[1].(float64)
 		packagesToInstall := []string{}
 		for i, p := range args {
-			if i < 2 {
+			if i < 3 {
 				continue
 			}
 			packagesToInstall = append(packagesToInstall, p.(string))
 		}
-		go packages.Install(installationId, projectDirectory, packagesToInstall)
+		go packages.Install(installationId, projectDirectory, args[2].(bool), packagesToInstall)
 	case method == PACKAGE_INSTALL_QUICK:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		installationId := args[1].(float64)

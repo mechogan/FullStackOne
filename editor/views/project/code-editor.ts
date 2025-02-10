@@ -262,12 +262,13 @@ function createViewEditor(filePath: string) {
                 if (!exists?.isFile) return;
                 await fs.writeFile(
                     filePath,
-                    view.editorView.state.doc.toString()
+                    view.editorView.state.doc.toString(),
+                    "code-editor"
                 );
             };
 
             if (throttled) {
-                throttler = setTimeout(saveFile, 2000);
+                throttler = setTimeout(saveFile, 1000);
             } else {
                 return saveFile();
             }
@@ -459,6 +460,7 @@ enum IMAGE_Ext {
 
 enum BINARY_Ext {
     ZIP = "zip",
+    TGZ = ".tgz",
     WOFF2 = "woff2",
     WOFF = "woff"
 }

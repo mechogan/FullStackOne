@@ -3,12 +3,13 @@ package fs
 import (
 	"errors"
 	serialize "fullstacked/editor/src/serialize"
-	"github.com/djherbis/times"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/djherbis/times"
 )
 
 var WASM = false
@@ -54,8 +55,10 @@ func ReadFileSerialized(path string, asString bool) []byte {
 	return serialize.SerializeBuffer(fileData)
 }
 
-func WriteFile(path string, data []byte) error {
+func WriteFile(path string, data []byte, origin string) error {
 	err := (error)(nil)
+
+	exists, _ := Exists(path);
 
 	if WASM {
 		err = vWriteFile(path, data)
@@ -63,18 +66,34 @@ func WriteFile(path string, data []byte) error {
 		err = os.WriteFile(path, data, 0644)
 	}
 
+	if(!exists) {
+		watchEvent(FileEvent{
+			Type: CREATED,
+			Paths: []string{path},
+			Origin: origin,
+			IsFile: true,
+		})
+	} else {
+		watchEvent(FileEvent{
+			Type: MODIFIED,
+			Paths: []string{path},
+			Origin: origin,
+			IsFile: true,
+		})
+	}
+
 	return err
 }
 
-func WriteFileSerialized(path string, data []byte) []byte {
-	err := WriteFile(path, data)
+func WriteFileSerialized(path string, data []byte, origin string) []byte {
+	err := WriteFile(path, data, origin)
 	if err == nil {
 		return []byte{}
 	}
 	return serialize.SerializeString(err.Error())
 }
 
-func Unlink(path string) error {
+func Unlink(path string, origin string) error {
 	err := (error)(nil)
 
 	if WASM {
@@ -83,18 +102,25 @@ func Unlink(path string) error {
 		err = os.Remove(path)
 	}
 
+	watchEvent(FileEvent{
+		Type: DELETED,
+		Paths: []string{path},
+		Origin: origin,
+		IsFile: true,
+	})
+
 	return err
 }
 
-func UnlinkSerialized(path string) []byte {
-	err := Unlink(path)
+func UnlinkSerialized(path string, origin string) []byte {
+	err := Unlink(path, origin)
 	if err == nil {
 		return []byte{}
 	}
 	return serialize.SerializeString(err.Error())
 }
 
-func containsStartWith(arr []string, e string) bool {
+func containsStartsWith(arr []string, e string) bool {
 	for _, i := range arr {
 		if(strings.HasPrefix(e, i)) {
 			return true
@@ -131,7 +157,7 @@ func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 
 				relativeName := strings.Join(itemPathComponents[len(pathComponents):], "/")
 
-				if(containsStartWith(skip, relativeName)) {
+				if(containsStartsWith(skip, relativeName)) {
 					return nil
 				}
 
@@ -193,8 +219,10 @@ func ReadDirSerialized(path string, recursive bool, withFileTypes bool, skip []s
 	return bytes
 }
 
-func Mkdir(path string) bool {
+func Mkdir(path string, origin string) bool {
 	err := (error)(nil)
+
+	exists, _ := Exists(path);
 
 	if WASM {
 		err = vMkdir(path)
@@ -202,14 +230,23 @@ func Mkdir(path string) bool {
 		err = os.MkdirAll(path, 0755)
 	}
 
+	if(!exists) {
+		watchEvent(FileEvent{
+			Type: CREATED,
+			Paths: []string{path},
+			Origin: origin,
+			IsFile: false,
+		})
+	}
+
 	return err == nil
 }
 
-func MkdirSerialized(path string) []byte {
-	return serialize.SerializeBoolean(Mkdir(path))
+func MkdirSerialized(path string, origin string) []byte {
+	return serialize.SerializeBoolean(Mkdir(path, origin))
 }
 
-func Rmdir(path string) bool {
+func Rmdir(path string, origin string) bool {
 	err := (error)(nil)
 
 	if WASM {
@@ -218,11 +255,18 @@ func Rmdir(path string) bool {
 		err = os.RemoveAll(path)
 	}
 
+	watchEvent(FileEvent{
+		Type: DELETED,
+		Paths: []string{path},
+		Origin: origin,
+		IsFile: false,
+	})
+
 	return err == nil
 }
 
-func RmdirSerialized(path string) []byte {
-	return serialize.SerializeBoolean(Rmdir(path))
+func RmdirSerialized(path string, origin string) []byte {
+	return serialize.SerializeBoolean(Rmdir(path, origin))
 }
 
 func Exists(path string) (bool, bool) {
@@ -317,8 +361,10 @@ func StatSerialized(path string) []byte {
 	return bytes
 }
 
-func Rename(oldPath string, newPath string) bool {
+func Rename(oldPath string, newPath string, origin string) bool {
 	err := (error)(nil)
+
+	_, isFile := Exists(oldPath)
 
 	if WASM {
 		err = vRename(oldPath, newPath)
@@ -326,9 +372,16 @@ func Rename(oldPath string, newPath string) bool {
 		err = os.Rename(oldPath, newPath)
 	}
 
+	watchEvent(FileEvent{
+		Type: RENAME,
+		Paths: []string{oldPath, newPath},
+		Origin: origin,
+		IsFile: isFile,
+	})
+
 	return err == nil
 }
 
-func RenameSerialized(oldPath string, newPath string) []byte {
-	return serialize.SerializeBoolean(Rename(oldPath, newPath))
+func RenameSerialized(oldPath string, newPath string, origin string) []byte {
+	return serialize.SerializeBoolean(Rename(oldPath, newPath, origin))
 }

@@ -145,7 +145,7 @@ function TopActions(project: Project) {
         const path = parentPath + "/" + file.name;
         const data = new Uint8Array(await file.arrayBuffer());
 
-        fs.writeFile(path, data).then(() => OpenDirectory(parentPath));
+        fs.writeFile(path, data, "file-tree").then(() => OpenDirectory(parentPath));
         form.reset();
     };
     form.append(fileInput);
@@ -383,10 +383,10 @@ function fileTreeItemOptions(
 
     deleteButton.onclick = async () => {
         if (fileTreeItem.type === "file") {
-            await fs.unlink(fileTreeItemPath);
+            await fs.unlink(fileTreeItemPath, "file-tree");
             Store.editor.codeEditor.closeFile(fileTreeItemPath);
         } else {
-            await fs.rmdir(fileTreeItemPath);
+            await fs.rmdir(fileTreeItemPath, "file-tree");
             Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
         }
         OpenDirectory(fileTreeItem.parent);
@@ -448,11 +448,11 @@ function fileTreeItemForm(fileTreeItemPath: string) {
         }
 
         if (fileTreeItem.type === "file") {
-            await fs.rename(fileTreeItemPath, newPath);
+            await fs.rename(fileTreeItemPath, newPath, "file-tree");
             tree.delete(fileTreeItemPath);
             Store.editor.codeEditor.closeFile(fileTreeItemPath);
         } else if (fileTreeItem.type === "directory") {
-            await fs.rename(fileTreeItemPath, newPath);
+            await fs.rename(fileTreeItemPath, newPath, "file-tree");
             Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
         }
 
@@ -509,9 +509,9 @@ async function newFileItemForm(project: Project, forDirectory: boolean) {
         const path = parentPath + "/" + value;
 
         if (forDirectory) {
-            await fs.mkdir(path);
+            await fs.mkdir(path, "file-tree");
         } else {
-            await fs.writeFile(path, "\n");
+            await fs.writeFile(path, "\n", "file-tree");
         }
 
         itemElement.remove();

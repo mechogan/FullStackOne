@@ -15,6 +15,8 @@ import (
 	semver "github.com/Masterminds/semver/v3"
 )
 
+var fileEventOrigin = "packages"
+
 type Installation struct {
 	Id                     float64           `json:"id"`
 	PackagesInstalledCount float64           `json:"packagesInstalledCount"`
@@ -247,7 +249,7 @@ func (installation *Installation) untanglePackages() {
 	installation.Packages = toInstall
 }
 
-func Install(installationId float64, directory string, packagesName []string) {
+func Install(installationId float64, directory string, devDependencies bool, packagesName []string) {
 	start := time.Now().UnixMilli()
 
 	installation := Installation{
@@ -262,6 +264,7 @@ func Install(installationId float64, directory string, packagesName []string) {
 	for _, pName := range packagesName {
 		p := NewPackage(pName)
 		p.Direct = true
+		p.Dev = devDependencies
 
 		for i, pp := range directPackages {
 			if pp.Name == p.Name {
@@ -271,7 +274,7 @@ func Install(installationId float64, directory string, packagesName []string) {
 			}
 		}
 
-		if(p.Version != nil) {
+		if p.Version != nil {
 			directPackages = append(directPackages, &p)
 		}
 	}
@@ -349,7 +352,8 @@ func InstallQuick(installationId float64, directory string) {
 }
 
 type DirectPackageJSON struct {
-	Dependencies map[string]string `json:"dependencies,omitempty"`
+	Dependencies    map[string]string `json:"dependencies,omitempty"`
+	DevDependencies map[string]string `json:"devDependencies,omitempty"`
 }
 
 type PackageLock struct {
@@ -364,24 +368,38 @@ func (installation *Installation) updatePackageAndLock() {
 			continue
 		}
 
-		if direct.Dependencies == nil {
-			direct.Dependencies = map[string]string{}
-		}
+		if p.Dev {
+			if direct.DevDependencies == nil {
+				direct.DevDependencies = map[string]string{}
+			}
 
-		v := "^" + p.Version.String()
-		p.As = appendIfContainsNot(p.As, v)
-		if p.VersionOriginal != "" {
-			v = p.VersionOriginal
+			v := "^" + p.Version.String()
 			p.As = appendIfContainsNot(p.As, v)
+			if p.VersionOriginal != "" {
+				v = p.VersionOriginal
+				p.As = appendIfContainsNot(p.As, v)
+			}
+			direct.DevDependencies[p.Name] = v
+		} else {
+			if direct.Dependencies == nil {
+				direct.Dependencies = map[string]string{}
+			}
+
+			v := "^" + p.Version.String()
+			p.As = appendIfContainsNot(p.As, v)
+			if p.VersionOriginal != "" {
+				v = p.VersionOriginal
+				p.As = appendIfContainsNot(p.As, v)
+			}
+			direct.Dependencies[p.Name] = v
 		}
-		direct.Dependencies[p.Name] = v
 	}
 
 	jsonData, err := json.MarshalIndent(direct, "", "    ")
 	if err != nil {
 		fmt.Println(err)
 	}
-	fs.WriteFile(path.Join(installation.BaseDirectory, "package.json"), jsonData)
+	fs.WriteFile(path.Join(installation.BaseDirectory, "package.json"), jsonData, fileEventOrigin)
 
 	lock := &PackageLock{
 		Packages: []PackageLockJSON{},
@@ -399,7 +417,7 @@ func (installation *Installation) updatePackageAndLock() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fs.WriteFile(path.Join(installation.BaseDirectory, "lock.json"), jsonData)
+	fs.WriteFile(path.Join(installation.BaseDirectory, "lock.json"), jsonData, fileEventOrigin)
 }
 
 func (lock *PackageLock) addPackagesToLock(packages []*Package) {
@@ -440,15 +458,23 @@ func (installation *Installation) loadDirectPackages() []*Package {
 		return directPackages
 	}
 
-	if packageJson.Dependencies == nil {
-		return directPackages
+	if packageJson.Dependencies != nil {
+		for n, v := range packageJson.Dependencies {
+			p := NewPackageWithVersionStr(n, v, installation.LocalPackages)
+			p.VersionOriginal = v
+			p.Direct = true
+			directPackages = append(directPackages, &p)
+		}
 	}
 
-	for n, v := range packageJson.Dependencies {
-		p := NewPackageWithVersionStr(n, v, installation.LocalPackages)
-		p.VersionOriginal = v
-		p.Direct = true
-		directPackages = append(directPackages, &p)
+	if packageJson.DevDependencies != nil {
+		for n, v := range packageJson.DevDependencies {
+			p := NewPackageWithVersionStr(n, v, installation.LocalPackages)
+			p.VersionOriginal = v
+			p.Direct = true
+			p.Dev = true
+			directPackages = append(directPackages, &p)
+		}
 	}
 
 	return directPackages
