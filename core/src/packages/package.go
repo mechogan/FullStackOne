@@ -24,6 +24,7 @@ type Package struct {
 	VersionOriginal string          `json:"-"`
 	As              []string        `json:"as"`
 	Direct          bool            `json:"direct"`
+	Dev             bool            `json:"-"`
 
 	Locations []string `json:"-"`
 
@@ -40,8 +41,9 @@ type Package struct {
 }
 
 type PackageJSON struct {
-	Version      string            `json:"version"`
-	Dependencies map[string]string `json:"dependencies"`
+	Version         string            `json:"version"`
+	Dependencies    map[string]string `json:"dependencies"`
+	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 type PackageLockJSON struct {

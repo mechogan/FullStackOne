@@ -77,7 +77,8 @@ export function install(
     project: Project,
     packagesNames: string[],
     progress?: InstallationProgressCb,
-    quick = false
+    quick = false,
+    dev: boolean = false
 ) {
     if (!addedListener) {
         core_message.addListener("packages-installation", installationsListener)
@@ -87,10 +88,10 @@ export function install(
     const installationId = getLowestKeyIdAvailable(activeInstallations);
 
     const method = quick ? 61 : 60
-    let args = [project.id, installationId]
+    let args: any[] = [project.id, installationId]
 
     if (!quick) {
-        args = args.concat(packagesNames)
+        args.push(dev, ...packagesNames)
     }
 
     const payload = new Uint8Array([

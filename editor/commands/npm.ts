@@ -14,12 +14,13 @@ export const npm: Command[] = [
             name: "install",
             alias: ["i"],
             exec: async (args, it, ctx: Project) => {
+                const dev = args.includes("--save-dev") || args.includes("-D")
                 args = args.filter(a => a !== "--save-dev" && a !== "-D")
                 it.print("getting packages info...");
                 const result = await packages.install(ctx, args, (p) => {
                     it.clear()
                     it.print(installProgressToText(p))
-                }, args.includes("--quick"))
+                }, args.includes("--quick"), dev)
                 it.clear();
                 it.println(`installed ${c.bold.green(result.packagesInstalledCount)} package${result.packagesInstalledCount > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`)
             }

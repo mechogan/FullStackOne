@@ -193,12 +193,12 @@ func editorSwitch(method int, args []any) []byte {
 		installationId := args[1].(float64)
 		packagesToInstall := []string{}
 		for i, p := range args {
-			if i < 2 {
+			if i < 3 {
 				continue
 			}
 			packagesToInstall = append(packagesToInstall, p.(string))
 		}
-		go packages.Install(installationId, projectDirectory, packagesToInstall)
+		go packages.Install(installationId, projectDirectory, args[2].(bool), packagesToInstall)
 	case method == PACKAGE_INSTALL_QUICK:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		installationId := args[1].(float64)
