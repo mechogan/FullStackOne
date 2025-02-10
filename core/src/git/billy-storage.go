@@ -3,7 +3,8 @@ package git
 import (
 	"errors"
 	"fmt"
-	"fullstacked/editor/src/fs"
+	fs "fullstacked/editor/src/fs"
+	utils "fullstacked/editor/src/utils"
 	"io"
 	ioFs "io/fs"
 	"os"
@@ -16,14 +17,16 @@ import (
 var fileEventOrigin = "git"
 
 type storage struct {
-	Root     string // track the base directory
+	Root     string          // track the base directory
+	wg       *sync.WaitGroup // global wait group to wait for all writeTofile to finish
 	files    map[string]*file
 	children map[string]map[string]*file
 }
 
-func newStorage(root string) *storage {
+func newStorage(root string, wg *sync.WaitGroup) *storage {
 	return &storage{
 		Root:     root,
+		wg: wg,
 		files:    make(map[string]*file, 0),
 		children: make(map[string]map[string]*file, 0),
 	}
@@ -52,12 +55,30 @@ func (s *storage) New(path string, mode ioFs.FileMode, flag int) (*file, error) 
 	filePath := filepath.Join(s.Root, path)
 	//end
 
+	content := &content{
+		name:     name,
+		path:     filePath,
+		debounce: utils.NewDebouncer(time.Millisecond * 50), // 50ms
+	}
+
+	// debounce the write func
+	// avoids writing the file at every writeAt
+	content.writeToFile = func() func() {
+		// lock to prevent operation happening before write
+		if content.debounceLock.TryLock() {
+			s.wg.Add(1)
+		}
+		
+		return func() {
+			fs.WriteFile(filePath, content.bytes, fileEventOrigin)
+			content.debounceLock.Unlock()
+			s.wg.Done()
+		}
+	}
+
 	f := &file{
-		name: name,
-		content: &content{
-			name: name,
-			path: filePath,
-		},
+		name:    name,
+		content: content,
 		mode:    mode,
 		flag:    flag,
 		modTime: time.Now(),
@@ -129,7 +150,7 @@ func (s *storage) Get(path string) (*file, bool) {
 	// if path isnt in memory
 	// check if exists in real fs and load into memory
 	if !s.Has(path) &&
-		path != "/.git" { // that's probably a bug
+		filepath.ToSlash(path) != "/.git" { // that's probably a bug
 		filePath := filepath.Join(s.Root, path)
 		exists, _ := fs.Exists(filePath)
 		if exists {
@@ -187,11 +208,16 @@ func (s *storage) Rename(from, to string) error {
 }
 
 func (s *storage) move(from, to string) error {
+	// make sure there is no debounced writeToFile
+	s.files[from].content.debounceLock.Lock()
+	// end
+
 	s.files[to] = s.files[from]
 	s.files[to].name = filepath.Base(to)
 	s.children[to] = s.children[from]
 
 	defer func() {
+		s.files[from].content.debounceLock.Unlock()
 		delete(s.children, from)
 		delete(s.files, from)
 		delete(s.children[filepath.Dir(from)], filepath.Base(from))
@@ -238,6 +264,10 @@ type content struct {
 	bytes []byte
 
 	m sync.RWMutex
+
+	debounceLock sync.Mutex
+	debounce     func(fn func())
+	writeToFile  func() func()
 }
 
 func (c *content) WriteAt(p []byte, off int64) (int, error) {
@@ -261,12 +291,11 @@ func (c *content) WriteAt(p []byte, off int64) (int, error) {
 	if len(c.bytes) < prev {
 		c.bytes = c.bytes[:prev]
 	}
-
-	// write to real file
-	fs.WriteFile(c.path, c.bytes, fileEventOrigin)
-	//end
-
 	c.m.Unlock()
+
+	// write to real file, debounced
+	c.debounce(c.writeToFile())
+	//end
 
 	return len(p), nil
 }

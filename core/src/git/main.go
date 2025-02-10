@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	git "github.com/go-git/go-git/v5"
@@ -45,13 +46,22 @@ func getRepo(directory string) (*git.Repository, error) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
 
-	wfs := newStorage(path.Join(directory, ".git"))
-	wfs2 := newStorage(directory)
-	repo, err = git.Open(filesystem.NewStorage(NewBillyFS(wfs, []string{}), cache.NewObjectLRUDefault()), NewBillyFS(wfs2, ignoredDirectories))
+	
+	wg := sync.WaitGroup{}
+
+	gitStorage := newStorage(path.Join(directory, ".git"), &wg)
+	gitFs := NewBillyFS(gitStorage, []string{})
+
+	repoStorage := newStorage(directory, &wg)
+	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
+
+	repo, err = git.Open(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs)
 
 	if err != nil {
 		return nil, err
 	}
+
+	wg.Wait()
 
 	return repo, nil
 }
@@ -119,10 +129,15 @@ func Clone(into string, url string, username *string, password *string) {
 		Url:  url,
 	}
 
-	err := (error)(nil)
-	wfs := NewBillyFS(newStorage(path.Join(into, ".git")), []string{})
-	wfs2 := NewBillyFS(newStorage(into), ignoredDirectories)
-	_, err = git.Clone(filesystem.NewStorage(wfs, cache.NewObjectLRUDefault()), wfs2, &git.CloneOptions{
+	wg := sync.WaitGroup{}
+
+	gitStorage := newStorage(path.Join(into, ".git"), &wg)
+	gitFs := NewBillyFS(gitStorage, []string{})
+
+	repoStorage := newStorage(into, &wg)
+	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
+
+	_, err := git.Clone(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs, &git.CloneOptions{
 		Auth:     auth,
 		URL:      url,
 		Progress: &progress,
@@ -132,6 +147,8 @@ func Clone(into string, url string, username *string, password *string) {
 		progress.Error(err.Error())
 		return
 	}
+
+	wg.Wait()
 
 	progress.Write([]byte("done"))
 }

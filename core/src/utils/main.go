@@ -1,6 +1,10 @@
 package utils
 
-import "math/rand"
+import (
+	"math/rand"
+	"sync"
+	"time"
+)
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -20,4 +24,32 @@ func Contains(arr []string, e string) bool {
 	}
 
 	return false
+}
+
+// source: https://stackoverflow.com/a/77944299
+func NewDebouncer(dur time.Duration) func(fn func()) {
+    d := &debouncer{
+        dur: dur,
+    }
+
+    return func(fn func()) {
+        d.reset(fn)
+    }
+}
+
+type debouncer struct {
+    mu    sync.Mutex
+    dur   time.Duration
+    delay *time.Timer
+}
+
+func (d *debouncer) reset(fn func()) {
+    d.mu.Lock()
+    defer d.mu.Unlock()
+
+    if d.delay != nil {
+        d.delay.Stop()
+    }
+
+    d.delay = time.AfterFunc(d.dur, fn)
 }

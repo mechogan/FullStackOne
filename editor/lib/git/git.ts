@@ -48,6 +48,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
     ipcCall: (username: string, password: string) => ReturnType<T>
 ) {
     return new Promise<void>((resolve, reject) => {
+        const start = Date.now();
         const checkForAuthError = (message: string) => {
             try {
                 errorChecker([message]);
@@ -76,6 +77,7 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
             if (Url !== repoUrl) return;
     
             if (Data.endsWith("done")) {
+                console.log("DONE IN", Date.now() - start , "ms")
                 resolve()
                 core_message.removeListener(messageType, checkForAuthError);
             }

@@ -32,6 +32,7 @@ const separator = filepath.Separator
 
 type Memory struct {
 	ignore []string
+	
 	s *storage
 }
 
@@ -157,7 +158,7 @@ func (fs *Memory) ReadDir(path string) ([]os.FileInfo, error) {
 
 			isIgnored := false
 			for _, ignored := range fs.ignore {
-				if filePath == ignored {
+				if filepath.ToSlash(filePath) == ignored {
 					isIgnored = true
 					break
 				}
