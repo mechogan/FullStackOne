@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
 	git "github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -16,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
+	"fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 )
@@ -49,8 +52,14 @@ func getRepo(directory string) (*git.Repository, error) {
 	
 	wg := sync.WaitGroup{}
 
-	gitStorage := newStorage(path.Join(directory, ".git"), &wg)
-	gitFs := NewBillyFS(gitStorage, []string{})
+	dotDir := path.Join(directory, ".git");
+	gitFs := (billy.Filesystem)(nil)
+	if(fs.WASM) {
+		gitStorage := newStorage(dotDir, &wg)
+		gitFs = NewBillyFS(gitStorage, []string{})
+	} else {
+		gitFs = osfs.New(dotDir)
+	}
 
 	repoStorage := newStorage(directory, &wg)
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
@@ -131,8 +140,14 @@ func Clone(into string, url string, username *string, password *string) {
 
 	wg := sync.WaitGroup{}
 
-	gitStorage := newStorage(path.Join(into, ".git"), &wg)
-	gitFs := NewBillyFS(gitStorage, []string{})
+	dotDir := path.Join(into, ".git");
+	gitFs := (billy.Filesystem)(nil)
+	if(fs.WASM) {
+		gitStorage := newStorage(dotDir, &wg)
+		gitFs = NewBillyFS(gitStorage, []string{})
+	} else {
+		gitFs = osfs.New(dotDir)
+	}
 
 	repoStorage := newStorage(into, &wg)
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
