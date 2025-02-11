@@ -45,23 +45,20 @@ func errorFmt(e error) string {
 	return jsonStr
 }
 
-func getRepo(directory string) (*git.Repository, error) {
+func getRepo(directory string, wg *sync.WaitGroup) (*git.Repository, error) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
-
-	
-	wg := sync.WaitGroup{}
 
 	dotDir := path.Join(directory, ".git");
 	gitFs := (billy.Filesystem)(nil)
 	if(fs.WASM) {
-		gitStorage := newStorage(dotDir, &wg)
+		gitStorage := newStorage(dotDir, wg)
 		gitFs = NewBillyFS(gitStorage, []string{})
 	} else {
 		gitFs = osfs.New(dotDir)
 	}
 
-	repoStorage := newStorage(directory, &wg)
+	repoStorage := newStorage(directory, wg)
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
 
 	repo, err = git.Open(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs)
@@ -70,18 +67,10 @@ func getRepo(directory string) (*git.Repository, error) {
 		return nil, err
 	}
 
-	wg.Wait()
-
 	return repo, nil
 }
 
-func getWorktree(directory string) (*git.Worktree, error) {
-	repo, err := getRepo(directory)
-
-	if err != nil {
-		return nil, err
-	}
-
+func getWorktree(repo *git.Repository) (*git.Worktree, error) {
 	worktree, err := repo.Worktree()
 
 	if err != nil {
@@ -176,7 +165,9 @@ type HeadObj struct {
 }
 
 func Head(directory string) []byte {
-	repo, err := getRepo(directory)
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -195,6 +186,9 @@ func Head(directory string) []byte {
 
 	jsonData, _ := json.Marshal(headObj)
 	jsonStr := string(jsonData)
+
+	wg.Wait();
+
 	return serialize.SerializeString(jsonStr)
 }
 
@@ -205,7 +199,15 @@ type GitStatus struct {
 }
 
 func Status(directory string) []byte {
-	worktree, err := getWorktree(directory)
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return serialize.SerializeString(errorFmt(err))
+	}
+
+	worktree, err := getWorktree(repo)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -215,6 +217,8 @@ func Status(directory string) []byte {
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
 	}
+
+	wg.Wait()
 
 	status, err := worktree.Status()
 	if err != nil {
@@ -243,18 +247,20 @@ func Status(directory string) []byte {
 }
 
 func Pull(directory string, username *string, password *string) {
+	wg := sync.WaitGroup{}
+
 	progress := GitProgress{
 		Name: "git-pull",
 	}
 
-	worktree, err := getWorktree(directory)
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		progress.Error(err.Error())
 		return
 	}
 
-	repo, err := getRepo(directory)
+	worktree, err := getWorktree(repo)
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -267,6 +273,8 @@ func Pull(directory string, username *string, password *string) {
 		progress.Error(err.Error())
 		return
 	}
+
+	wg.Wait()
 
 	progress.Url = remote.Config().URLs[0]
 
@@ -286,12 +294,16 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
+	wg.Wait()
+
 	head, err := repo.Head()
 
 	if err != nil {
 		progress.Error(err.Error())
 		return
 	}
+
+	wg.Wait()
 
 	err = worktree.Pull(&git.PullOptions{
 		Auth:          auth,
@@ -304,15 +316,19 @@ func Pull(directory string, username *string, password *string) {
 		return
 	}
 
+	wg.Wait()
+
 	progress.Write([]byte("done"))
 }
 
 func Push(directory string, username *string, password *string) {
+	wg := sync.WaitGroup{}
+
 	progress := GitProgress{
 		Name: "git-push",
 	}
 
-	repo, err := getRepo(directory)
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -325,6 +341,8 @@ func Push(directory string, username *string, password *string) {
 		progress.Error(err.Error())
 		return
 	}
+
+	wg.Wait()
 
 	progress.Url = remote.Config().URLs[0]
 
@@ -350,11 +368,21 @@ func Push(directory string, username *string, password *string) {
 		return
 	}
 
+	wg.Wait()
+
 	progress.Write([]byte("done"))
 }
 
 func Restore(directory string, files []string) []byte {
-	worktree, err := getWorktree(directory)
+	wg := sync.WaitGroup{};
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return serialize.SerializeString(errorFmt(err))
+	}
+
+	worktree, err := getWorktree(repo)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -370,11 +398,15 @@ func Restore(directory string, files []string) []byte {
 		return serialize.SerializeString(errorFmt(err))
 	}
 
+	wg.Wait()
+
 	return nil
 }
 
 func Fetch(directory string, username *string, password *string) []byte {
-	repo, err := getRepo(directory)
+	wg := sync.WaitGroup{};
+
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -396,11 +428,21 @@ func Fetch(directory string, username *string, password *string) []byte {
 		return serialize.SerializeString(errorFmt(err))
 	}
 
+	wg.Wait()
+
 	return nil
 }
 
 func Commit(directory string, commitMessage string, authorName string, authorEmail string) []byte {
-	worktree, err := getWorktree(directory)
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return serialize.SerializeString(errorFmt(err))
+	}
+
+	worktree, err := getWorktree(repo)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -419,11 +461,15 @@ func Commit(directory string, commitMessage string, authorName string, authorEma
 		return serialize.SerializeString(errorFmt(err))
 	}
 
+	wg.Wait()
+
 	return nil
 }
 
 func getRemoteBranches(directory string, username *string, password *string) ([]plumbing.Reference, error) {
-	repo, err := getRepo(directory)
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		return nil, err
@@ -458,6 +504,8 @@ func getRemoteBranches(directory string, username *string, password *string) ([]
 		}
 	}
 
+	wg.Wait()
+
 	return remoteBranches, nil
 }
 
@@ -468,12 +516,6 @@ type Branch struct {
 }
 
 func Branches(directory string, username *string, password *string) []byte {
-	repo, err := getRepo(directory)
-
-	if err != nil {
-		return serialize.SerializeString(errorFmt(err))
-	}
-
 	remoteBranches, err := getRemoteBranches(directory, username, password)
 
 	if err != nil {
@@ -490,10 +532,20 @@ func Branches(directory string, username *string, password *string) []byte {
 		})
 	}
 
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return serialize.SerializeString(errorFmt(err))
+	}
+
 	localRefs, err := repo.Branches()
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
 	}
+
+	wg.Wait()
 
 	localRefs.ForEach(func(r *plumbing.Reference) error {
 		for i := range branches {
@@ -529,9 +581,10 @@ func Checkout(
 	username *string,
 	password *string,
 ) []byte {
+	wg := sync.WaitGroup{}
 	branchRefName := (*plumbing.ReferenceName)(nil)
 
-	repo, err := getRepo(directory)
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -542,6 +595,7 @@ func Checkout(
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
 	}
+	wg.Wait()
 
 	localBranches.ForEach(func(r *plumbing.Reference) error {
 		if r.Name().Short() == branch {
@@ -590,9 +644,11 @@ func Checkout(
 		if err != nil && err.Error() != "already up-to-date" {
 			return serialize.SerializeString(errorFmt(err))
 		}
+
+		wg.Wait()
 	}
 
-	worktree, err := getWorktree(directory)
+	worktree, err := getWorktree(repo)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -603,6 +659,8 @@ func Checkout(
 		branchRefName = &rName
 	}
 
+	wg.Wait()
+
 	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,
 		Create: create,
@@ -612,11 +670,15 @@ func Checkout(
 		return serialize.SerializeString(errorFmt(err))
 	}
 
+	wg.Wait()
+
 	return nil
 }
 
 func BranchDelete(directory string, branch string) []byte {
-	repo, err := getRepo(directory)
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -627,6 +689,8 @@ func BranchDelete(directory string, branch string) []byte {
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
 	}
+
+	wg.Wait()
 
 	return nil
 }

@@ -26,7 +26,7 @@ type storage struct {
 func newStorage(root string, wg *sync.WaitGroup) *storage {
 	return &storage{
 		Root:     root,
-		wg: wg,
+		wg:       wg,
 		files:    make(map[string]*file, 0),
 		children: make(map[string]map[string]*file, 0),
 	}
@@ -65,14 +65,16 @@ func (s *storage) New(path string, mode ioFs.FileMode, flag int) (*file, error) 
 	// avoids writing the file at every writeAt
 	content.writeToFile = func() func() {
 		// lock to prevent operation happening before write
-		if content.debounceLock.TryLock() {
+		if content.debounceLock.TryLock() && s.wg != nil {
 			s.wg.Add(1)
 		}
-		
+
 		return func() {
 			fs.WriteFile(filePath, content.bytes, fileEventOrigin)
 			content.debounceLock.Unlock()
-			s.wg.Done()
+			if s.wg != nil {
+				s.wg.Done()
+			}
 		}
 	}
 
