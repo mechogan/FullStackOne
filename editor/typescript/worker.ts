@@ -76,10 +76,10 @@ export let methods = {
 
         const td = new TextDecoder();
         for (const [path, data] of Object.entries(files)) {
-            const fileName = path.slice("projects/".length)
+            const fileName = path.slice("projects/".length);
 
             if (path.includes("node_modules")) {
-                const [_, ...rest] = fileName.split("/node_modules/")
+                const [_, ...rest] = fileName.split("/node_modules/");
 
                 const { name, path } = parseModuleName(rest.join("/"));
 
@@ -88,14 +88,13 @@ export let methods = {
                     files = [];
                     nodeModules.set(name, files);
                 }
-                files.push(path)
+                files.push(path);
 
                 if (data !== null) {
                     scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
                         td.decode(data)
                     );
                 }
-
             } else if (data !== null) {
                 sourceFiles[fileName] = {
                     contents: td.decode(data),
@@ -134,7 +133,7 @@ export let methods = {
         makeSureSourceFilesAreLoaded();
 
         if (fileName.startsWith(workingDirectoryNodeModules)) {
-            scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(contents)
+            scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(contents);
             return;
         }
 
@@ -153,7 +152,7 @@ export let methods = {
 let workingDirectory: string;
 let workingDirectoryNodeModules: string;
 
-// all files in prooject dir 
+// all files in prooject dir
 // EXCEPT node_modules directory
 let sourceFiles: {
     [filename: string]: {
@@ -238,8 +237,6 @@ function initLanguageServiceHost(): LanguageServiceHost {
                 return scriptSnapshotCache[fileName];
             }
 
-
-
             makeSureSourceFilesAreLoaded();
 
             if (!sourceFiles[fileName]) {
@@ -304,19 +301,24 @@ function initLanguageServiceHost(): LanguageServiceHost {
             makeSureSourceFilesAreLoaded();
 
             if (fileName.startsWith(workingDirectoryNodeModules)) {
-                const { name, path } = parseModuleName(fileName.slice(workingDirectoryNodeModules.length + 1))
+                const { name, path } = parseModuleName(
+                    fileName.slice(workingDirectoryNodeModules.length + 1)
+                );
 
                 let contents = nodeModules.get(name);
                 if (!contents) {
                     try {
-                        contents = fs_sync.readdir(workingDirectoryNodeModules + "/" + name, []);
-                        nodeModules.set(name, contents)
+                        contents = fs_sync.readdir(
+                            workingDirectoryNodeModules + "/" + name,
+                            []
+                        );
+                        nodeModules.set(name, contents);
                     } catch (e) {
-                        return false
+                        return false;
                     }
                 }
 
-                return contents.includes(path)
+                return contents.includes(path);
             }
 
             return Object.keys(sourceFiles).includes(fileName);

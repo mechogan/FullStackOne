@@ -58,7 +58,7 @@ func ReadFileSerialized(path string, asString bool) []byte {
 func WriteFile(path string, data []byte, origin string) error {
 	err := (error)(nil)
 
-	exists, _ := Exists(path);
+	exists, _ := Exists(path)
 
 	if WASM {
 		err = vWriteFile(path, data)
@@ -66,17 +66,17 @@ func WriteFile(path string, data []byte, origin string) error {
 		err = os.WriteFile(path, data, 0644)
 	}
 
-	if(!exists) {
+	if !exists {
 		watchEvent(FileEvent{
-			Type: CREATED,
-			Paths: []string{path},
+			Type:   CREATED,
+			Paths:  []string{path},
 			Origin: origin,
 			IsFile: true,
 		})
 	} else {
 		watchEvent(FileEvent{
-			Type: MODIFIED,
-			Paths: []string{path},
+			Type:   MODIFIED,
+			Paths:  []string{path},
 			Origin: origin,
 			IsFile: true,
 		})
@@ -103,8 +103,8 @@ func Unlink(path string, origin string) error {
 	}
 
 	watchEvent(FileEvent{
-		Type: DELETED,
-		Paths: []string{path},
+		Type:   DELETED,
+		Paths:  []string{path},
 		Origin: origin,
 		IsFile: true,
 	})
@@ -122,7 +122,7 @@ func UnlinkSerialized(path string, origin string) []byte {
 
 func containsStartsWith(arr []string, e string) bool {
 	for _, i := range arr {
-		if(strings.HasPrefix(e, i)) {
+		if strings.HasPrefix(e, i) {
 			return true
 		}
 	}
@@ -157,16 +157,16 @@ func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 
 				relativeName := strings.Join(itemPathComponents[len(pathComponents):], "/")
 
-				if(containsStartsWith(skip, relativeName)) {
+				if containsStartsWith(skip, relativeName) {
 					return nil
 				}
 
-				info, _ := d.Info();
+				info, _ := d.Info()
 
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: d.IsDir(),
-					Mode: info.Mode(),
+					Mode:  info.Mode(),
 				})
 
 				return nil
@@ -188,7 +188,7 @@ func ReadDir(path string, recursive bool, skip []string) ([]FileInfo2, error) {
 				items = append(items, FileInfo2{
 					Name:  item.Name(),
 					IsDir: item.IsDir(),
-					Mode: info.Mode(),
+					Mode:  info.Mode(),
 				})
 			}
 		}
@@ -227,7 +227,7 @@ func ReadDirSerialized(path string, recursive bool, withFileTypes bool, skip []s
 func Mkdir(path string, origin string) bool {
 	err := (error)(nil)
 
-	exists, _ := Exists(path);
+	exists, _ := Exists(path)
 
 	if WASM {
 		err = vMkdir(path)
@@ -235,10 +235,10 @@ func Mkdir(path string, origin string) bool {
 		err = os.MkdirAll(path, 0755)
 	}
 
-	if(!exists) {
+	if !exists {
 		watchEvent(FileEvent{
-			Type: CREATED,
-			Paths: []string{path},
+			Type:   CREATED,
+			Paths:  []string{path},
 			Origin: origin,
 			IsFile: false,
 		})
@@ -261,8 +261,8 @@ func Rmdir(path string, origin string) bool {
 	}
 
 	watchEvent(FileEvent{
-		Type: DELETED,
-		Paths: []string{path},
+		Type:   DELETED,
+		Paths:  []string{path},
 		Origin: origin,
 		IsFile: false,
 	})
@@ -378,8 +378,8 @@ func Rename(oldPath string, newPath string, origin string) bool {
 	}
 
 	watchEvent(FileEvent{
-		Type: RENAME,
-		Paths: []string{oldPath, newPath},
+		Type:   RENAME,
+		Paths:  []string{oldPath, newPath},
 		Origin: origin,
 		IsFile: isFile,
 	})

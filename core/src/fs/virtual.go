@@ -132,7 +132,7 @@ func vStat(path string) *FileInfo2 {
 	pathComponents := strings.Split(path, "/")
 
 	mode := os.ModeDir
-	if(!d) {
+	if !d {
 		mode = 0666
 	}
 
@@ -219,14 +219,14 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 		if pathIsChildOfPath(dir, path) {
 			dirComponents := splitPath(dir)
 			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
-			if(containsStartsWith(skip, relativeName)) {
-				continue;
+			if containsStartsWith(skip, relativeName) {
+				continue
 			}
 			if recursive || len(dirComponents)-len(pathComponents) == 1 {
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: true,
-					Mode: os.ModeDir,
+					Mode:  os.ModeDir,
 				})
 			}
 		}
@@ -236,14 +236,14 @@ func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
 		if pathIsChildOfPath(file, path) {
 			fileComponents := splitPath(file)
 			relativeName := filepath.Join(fileComponents[len(pathComponents):]...)
-			if(containsStartsWith(skip, relativeName)) {
-				continue;
+			if containsStartsWith(skip, relativeName) {
+				continue
 			}
 			if recursive || len(fileComponents)-len(pathComponents) == 1 {
 				items = append(items, FileInfo2{
 					Name:  relativeName,
 					IsDir: false,
-					Mode: 0666,
+					Mode:  0666,
 				})
 			}
 		}

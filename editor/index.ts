@@ -33,5 +33,4 @@ if (!checkProjectsConfigExists) {
     Demo();
 }
 
-
-core_message.addListener("file-event", str => console.log(JSON.parse(str)))
+core_message.addListener("file-event", (str) => console.log(JSON.parse(str)));

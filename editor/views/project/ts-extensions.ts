@@ -19,8 +19,6 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
 
     const tsErrors = await getAllTsError();
 
-
-
     return tsErrors
         .filter((tsError) => !!tsError)
         .map((tsError) => {
@@ -33,15 +31,17 @@ export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
         });
 };
 
-function messageChainToArr(messageChain: ts.Diagnostic["messageText"]): string[] {
+function messageChainToArr(
+    messageChain: ts.Diagnostic["messageText"]
+): string[] {
     if (!messageChain) {
-        return []
+        return [];
     } else if (typeof messageChain === "string") {
-        return [messageChain]
+        return [messageChain];
     }
 
-    const nextMessages = messageChain.next?.map(messageChainToArr)?.flat()
-    return [messageChain.messageText, ...(nextMessages || [])]
+    const nextMessages = messageChain.next?.map(messageChainToArr)?.flat();
+    return [messageChain.messageText, ...(nextMessages || [])];
 }
 
 export const tsAutocomplete =

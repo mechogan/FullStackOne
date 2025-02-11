@@ -103,7 +103,7 @@ func Build(
 			Setup: func(build esbuild.PluginBuild) {
 				build.OnResolve(esbuild.OnResolveOptions{Filter: `.*`},
 					func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-						if(strings.HasPrefix(args.Path, "/")) {
+						if strings.HasPrefix(args.Path, "/") {
 							return esbuild.OnResolveResult{
 								Path: args.Path,
 							}, nil

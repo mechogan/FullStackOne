@@ -60,7 +60,7 @@ $file-tree-panel-width: 235px;
             flex-direction: column;
             justify-content: space-between;
 
-            >div:last-child {
+            > div:last-child {
                 padding-left: spacing.$small;
                 padding-bottom: spacing.$small;
                 transition: 0.2s all;
@@ -87,13 +87,13 @@ $file-tree-panel-width: 235px;
 
         &.closed-panel {
             .left-panel {
-                >div:last-child {
+                > div:last-child {
                     width: 0;
                     padding-left: 0;
                 }
             }
 
-            +.terminal-container {
+            + .terminal-container {
                 border-top-left-radius: 0;
             }
 
@@ -114,14 +114,14 @@ $file-tree-panel-width: 235px;
         flex-direction: column;
         overflow: hidden;
 
-        >div:first-child {
+        > div:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding-left: spacing.$x-small;
             padding-right: spacing.$x-small;
 
-            >div {
+            > div {
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
@@ -129,7 +129,6 @@ $file-tree-panel-width: 235px;
             }
 
             .import-file {
-
                 form,
                 input {
                     height: 0;
@@ -156,7 +155,7 @@ $file-tree-panel-width: 235px;
             height: 25px;
             width: 25px;
 
-            >.icon {
+            > .icon {
                 height: 20px;
                 width: 20px;
             }
@@ -180,7 +179,7 @@ $file-tree-panel-width: 235px;
         display: flex;
         flex-direction: column;
 
-        >div {
+        > div {
             overflow: auto;
 
             img {
@@ -252,12 +251,12 @@ $file-tree-panel-width: 235px;
         color: colors.$blue;
         position: relative;
 
-        >div:first-child {
+        > div:first-child {
             text-align: right;
             display: flex;
             flex-direction: column;
 
-            >div:last-child {
+            > div:last-child {
                 font-size: typography.$small;
             }
         }

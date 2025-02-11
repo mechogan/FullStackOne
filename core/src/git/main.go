@@ -49,9 +49,9 @@ func getRepo(directory string, wg *sync.WaitGroup) (*git.Repository, error) {
 	repo := (*git.Repository)(nil)
 	err := (error)(nil)
 
-	dotDir := path.Join(directory, ".git");
+	dotDir := path.Join(directory, ".git")
 	gitFs := (billy.Filesystem)(nil)
-	if(fs.WASM) {
+	if fs.WASM {
 		gitStorage := newStorage(dotDir, wg)
 		gitFs = NewBillyFS(gitStorage, []string{})
 	} else {
@@ -129,9 +129,9 @@ func Clone(into string, url string, username *string, password *string) {
 
 	wg := sync.WaitGroup{}
 
-	dotDir := path.Join(into, ".git");
+	dotDir := path.Join(into, ".git")
 	gitFs := (billy.Filesystem)(nil)
-	if(fs.WASM) {
+	if fs.WASM {
 		gitStorage := newStorage(dotDir, &wg)
 		gitFs = NewBillyFS(gitStorage, []string{})
 	} else {
@@ -146,7 +146,6 @@ func Clone(into string, url string, username *string, password *string) {
 		URL:      url,
 		Progress: &progress,
 	})
-	
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -187,7 +186,7 @@ func Head(directory string) []byte {
 	jsonData, _ := json.Marshal(headObj)
 	jsonStr := string(jsonData)
 
-	wg.Wait();
+	wg.Wait()
 
 	return serialize.SerializeString(jsonStr)
 }
@@ -374,7 +373,7 @@ func Push(directory string, username *string, password *string) {
 }
 
 func Restore(directory string, files []string) []byte {
-	wg := sync.WaitGroup{};
+	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
 
@@ -404,7 +403,7 @@ func Restore(directory string, files []string) []byte {
 }
 
 func Fetch(directory string, username *string, password *string) []byte {
-	wg := sync.WaitGroup{};
+	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
 

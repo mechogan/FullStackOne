@@ -11,21 +11,20 @@ const directoryIconOpen = Icon("Caret");
 directoryIconOpen.classList.add("open");
 const directoryIconClose = Icon("Caret");
 
-const hide = [
-    "/.build",
-    "/.git"
-]
+const hide = ["/.build", "/.git"];
 
 export function FileTree(project: Project) {
     const container = createElement("div");
-    container.classList.add("file-tree-container")
+    container.classList.add("file-tree-container");
 
     container.append(TopActions(project));
 
     const fileTree = createFileTree({
         readDirectory: async (path: string) => {
-            const content = await fs.readdir(project.id + "/" + path, { withFileTypes: true })
-            return content.filter(i => !hide.includes(path + "/" + i.name));
+            const content = await fs.readdir(project.id + "/" + path, {
+                withFileTypes: true
+            });
+            return content.filter((i) => !hide.includes(path + "/" + i.name));
         },
         indentWidth: 15,
         directoryIcons: {
@@ -38,17 +37,16 @@ export function FileTree(project: Project) {
 
             const devIconClass = pathToDevIconClass(path);
             if (devIconClass) {
-                div.classList.add(devIconClass)
+                div.classList.add(devIconClass);
             }
 
             return div;
         }
-    })
-    container.append(fileTree.container)
+    });
+    container.append(fileTree.container);
 
     return container;
 }
-
 
 function TopActions(project: Project) {
     const container = createElement("div");
@@ -69,15 +67,13 @@ function TopActions(project: Project) {
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () => {
-    };
+    newFileButton.onclick = () => {};
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () => {
-    };
+    newDirectoryButton.onclick = () => {};
 
     const uploadButton = Button({
         style: "icon-small",
@@ -87,9 +83,7 @@ function TopActions(project: Project) {
     const form = document.createElement("form");
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.onchange = async () => {
-
-    };
+    fileInput.onchange = async () => {};
     form.append(fileInput);
     uploadButton.append(form);
     uploadButton.onclick = () => fileInput.click();
@@ -107,36 +101,36 @@ function pathToDevIconClass(path: string) {
         case "ts":
         case "cts":
         case "mts":
-            return "typescript"
+            return "typescript";
         case "js":
         case "cjs":
         case "mjs":
-            return "javascript"
+            return "javascript";
         case "tsx":
         case "jsx":
             return "react";
         case "html":
-            return "html"
+            return "html";
         case "sass":
         case "scss":
-            return "sass"
+            return "sass";
         case "css":
-            return "css"
+            return "css";
         case "json":
             return "json";
         case "md":
             return "markdown";
         case "liquid":
-            return "liquid"
+            return "liquid";
         case "png":
         case "jpg":
         case "jpeg":
-            return "image"
+            return "image";
         case "svg":
-            return "svg"
+            return "svg";
         case "npmignore":
             return "npm";
         default:
-            return "default"
+            return "default";
     }
 }

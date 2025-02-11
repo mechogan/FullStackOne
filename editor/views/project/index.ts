@@ -137,20 +137,20 @@ function FileTreeAndEditor(project: ProjectType) {
 
     const toggleButtonVisibility = (terminalOpen: boolean) => {
         if (terminalOpen) {
-            buttonContainer.classList.add("hide")
+            buttonContainer.classList.add("hide");
         } else {
-            buttonContainer.classList.remove("hide")
+            buttonContainer.classList.remove("hide");
         }
-    }
-    Store.editor.terminalOpen.subscribe(toggleButtonVisibility)
+    };
+    Store.editor.terminalOpen.subscribe(toggleButtonVisibility);
 
     const terminalButton = Button({
         style: "text",
-        iconLeft: "Terminal",
+        iconLeft: "Terminal"
     });
     terminalButton.onclick = () => {
         Store.editor.setTerminalOpen(true);
-    }
+    };
     buttonContainer.append(terminalButton);
 
     leftPanel.append(fileTree, buttonContainer);
@@ -160,7 +160,7 @@ function FileTreeAndEditor(project: ProjectType) {
     container.ondestroy = () => {
         fileTree.destroy();
         editor.destroy();
-        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility)
+        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility);
     };
 
     return container;

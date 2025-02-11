@@ -1,40 +1,51 @@
-import { Command } from "@fullstacked/terminal"
-import packages, { PackageInfo } from "../lib/packages"
-import c from "console-log-colors"
-import prettyMilliseconds from "pretty-ms"
-import prettyBytes from "pretty-bytes"
-import fs from "../../lib/fs"
-import { Project } from "../types"
+import { Command } from "@fullstacked/terminal";
+import packages, { PackageInfo } from "../lib/packages";
+import c from "console-log-colors";
+import prettyMilliseconds from "pretty-ms";
+import prettyBytes from "pretty-bytes";
+import fs from "../../lib/fs";
+import { Project } from "../types";
 
 export const npm: Command[] = [
     {
         name: "npm",
-        exec: () => { },
-        subcommands: [{
-            name: "install",
-            alias: ["i"],
-            exec: async (args, it, ctx: Project) => {
-                const dev = args.includes("--save-dev") || args.includes("-D")
-                args = args.filter(a => a !== "--save-dev" && a !== "-D")
-                it.print("getting packages info...");
-                const result = await packages.install(ctx, args, (p) => {
-                    it.clear()
-                    it.print(installProgressToText(p))
-                }, args.includes("--quick"), dev)
-                it.clear();
-                it.println(`installed ${c.bold.green(result.packagesInstalledCount)} package${result.packagesInstalledCount > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`)
+        exec: () => {},
+        subcommands: [
+            {
+                name: "install",
+                alias: ["i"],
+                exec: async (args, it, ctx: Project) => {
+                    const dev =
+                        args.includes("--save-dev") || args.includes("-D");
+                    args = args.filter((a) => a !== "--save-dev" && a !== "-D");
+                    it.print("getting packages info...");
+                    const result = await packages.install(
+                        ctx,
+                        args,
+                        (p) => {
+                            it.clear();
+                            it.print(installProgressToText(p));
+                        },
+                        args.includes("--quick"),
+                        dev
+                    );
+                    it.clear();
+                    it.println(
+                        `installed ${c.bold.green(result.packagesInstalledCount)} package${result.packagesInstalledCount > 1 ? "s" : ""} in ${prettyMilliseconds(result.duration)}`
+                    );
+                }
             }
-        }]
+        ]
     }
-]
+];
 
 function installProgressToText(p: [string, PackageInfo["progress"]][]): string {
-    const lines: string[] = []
+    const lines: string[] = [];
 
     let longestNameVersionLength = 0;
     p.forEach(([name]) => {
         if (name.length > longestNameVersionLength) {
-            longestNameVersionLength = name.length
+            longestNameVersionLength = name.length;
         }
     });
 
@@ -48,7 +59,7 @@ function installProgressToText(p: [string, PackageInfo["progress"]][]): string {
 }
 
 function progressBar(
-    p: { loaded: number, total: number, stage: string },
+    p: { loaded: number; total: number; stage: string },
     blocksCount = 10
 ) {
     const blocks = Math.floor((p.loaded / p.total) * blocksCount);
