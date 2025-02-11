@@ -157,9 +157,11 @@ func Clone(into string, url string, username *string, password *string) {
 		URL:      url,
 		Progress: &progress,
 	})
+	
 
 	if err != nil {
 		progress.Error(err.Error())
+		fs.Rmdir(into, fileEventOrigin)
 		return
 	}
 
