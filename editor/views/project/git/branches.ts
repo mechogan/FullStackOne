@@ -11,7 +11,6 @@ import { createRefresheable } from "../../../components/refresheable";
 import git from "../../../lib/git";
 import { Project } from "../../../types";
 import { refreshAllCodeEditorView } from "../code-editor";
-import { refreshFullFileTree } from "../file-tree";
 
 let refreshBranches: ReturnType<typeof createRefresheable>["refresh"];
 
@@ -119,7 +118,6 @@ async function BranchesList(project: Project) {
                     refreshGitWidgetBranchAndCommit();
                     await refreshAllCodeEditorView();
                     refreshBranches();
-                    refreshFullFileTree();
                 };
 
                 item.prepend(checkoutButton);

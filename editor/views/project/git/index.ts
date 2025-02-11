@@ -11,7 +11,6 @@ import git from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
 import { refreshCodeEditorView, saveAllViews } from "../code-editor";
-import { refreshFullFileTree } from "../file-tree";
 import { Branches } from "./branches";
 
 let branchView = false;
@@ -430,7 +429,6 @@ function ChangesList(changes: Changes, project: Project) {
 
     addSection("Added", changes.Added, async (file: string) => {
         await git.restore(project.id, [file]);
-        refreshFullFileTree();
         Store.editor.codeEditor.closeFile(project.id + "/" + file);
     });
     addSection("Modified", changes.Modified, async (file: string) => {
@@ -439,7 +437,6 @@ function ChangesList(changes: Changes, project: Project) {
     });
     addSection("Deleted", changes.Deleted, async (file: string) => {
         await git.restore(project.id, [file]);
-        refreshFullFileTree();
     });
 
     return container;

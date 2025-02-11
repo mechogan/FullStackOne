@@ -1,34 +1,40 @@
 <!doctype html>
 <html>
-    <head>
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-        />
-        <meta name="color-scheme" content="dark" />
-        <style>
-            #splash {
-                position: fixed;
-                top: 0;
-                left: 0;
-                height: 100%;
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            #splash img {
-                height: 100px;
-                width: 100px;
-            }
-        </style>
-        <link rel="stylesheet" href="/index.css" />
-        <title>FullStacked</title>
-    </head>
-    <body>
-        <div id="splash">
-            <img src="assets/dev-icon.png" />
-        </div>
-        <script async defer type="module" src="/index.js"></script>
-    </body>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="color-scheme" content="dark" />
+    <style>
+        #splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #splash img {
+            height: 100px;
+            width: 100px;
+        }
+
+        @font-face {
+            font-family: 'Dev Icons';
+            src: url("/assets/seti.woff") format("woff");
+        }
+    </style>
+    <link rel="stylesheet" href="/index.css" />
+    <title>FullStacked</title>
+</head>
+
+<body>
+    <div id="splash">
+        <img src="assets/dev-icon.png" />
+    </div>
+    <script async defer type="module" src="/index.js"></script>
+</body>
+
 </html>

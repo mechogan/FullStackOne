@@ -28,6 +28,7 @@
         "@codemirror/lang-sass": "^6.0.2",
         "@codemirror/theme-one-dark": "^6.1.2",
         "@codemirror/view": "^6.34.1",
+        "@fullstacked/file-tree": "^0.0.1",
         "@fullstacked/stack-navigation": "^0.0.3",
         "@fullstacked/terminal": "^0.0.10",
         "@types/adm-zip": "^0.5.6",

@@ -1,6 +1,7 @@
 @use "../../style/values/spacing.scss";
 @use "../../style/values/typography.scss";
 @use "../../style/values/colors.scss";
+@use "./dev-icons.scss";
 
 $file-tree-panel-width: 235px;
 
@@ -58,8 +59,8 @@ $file-tree-panel-width: 235px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            
-            > div:last-child {
+
+            >div:last-child {
                 padding-left: spacing.$small;
                 padding-bottom: spacing.$small;
                 transition: 0.2s all;
@@ -86,13 +87,13 @@ $file-tree-panel-width: 235px;
 
         &.closed-panel {
             .left-panel {
-                > div:last-child {
+                >div:last-child {
                     width: 0;
                     padding-left: 0;
                 }
             }
 
-            + .terminal-container {
+            +.terminal-container {
                 border-top-left-radius: 0;
             }
 
@@ -107,20 +108,20 @@ $file-tree-panel-width: 235px;
         }
     }
 
-    .file-tree {
-        white-space: nowrap;
-        overflow: hidden;
+    .file-tree-container {
+        height: 100%;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
 
-        > div:first-child {
+        >div:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding-left: spacing.$x-small;
             padding-right: spacing.$x-small;
 
-            > div {
+            >div {
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
@@ -128,6 +129,7 @@ $file-tree-panel-width: 235px;
             }
 
             .import-file {
+
                 form,
                 input {
                     height: 0;
@@ -141,98 +143,35 @@ $file-tree-panel-width: 235px;
                 }
             }
         }
+    }
 
-        > div:last-child {
-            width: 100%;
-            overflow: auto;
-            padding-bottom: spacing.$small;
-            padding-top: spacing.$x-small;
-            padding-left: spacing.$x-small;
-            flex: 1;
+    .file-tree {
+        overflow: hidden;
 
-            > ul {
-                padding-left: 0;
-                padding-right: spacing.$x-small;
+        > .scrollable > .file-items > .file-item > .indent > div {
+            width: 90%;
+        }
+
+        .icon {
+            height: 25px;
+            width: 25px;
+
+            >.icon {
+                height: 20px;
+                width: 20px;
             }
         }
 
-        ul {
+        .dev-icon {
+            font-family: "Dev Icons";
+            font-size: 20px;
             display: flex;
-            flex-direction: column;
-            gap: spacing.$x-small;
-            padding-left: spacing.$small;
-            width: 100%;
-            min-width: max-content;
+            align-items: center;
+            justify-content: center;
         }
 
-        li {
-            display: flex;
-            flex-direction: column;
-            gap: spacing.$x-small;
-            cursor: pointer;
-            position: relative;
-
-            .icon {
-                height: 16px;
-                width: 16px;
-            }
-
-            form {
-                display: flex;
-                align-items: center;
-                width: 100%;
-            }
-
-            .name-and-options {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: spacing.$small;
-                position: relative;
-                min-height: 24px;
-
-                > button {
-                    color: colors.$light;
-                    display: none;
-                }
-            }
-
-            .name {
-                display: flex;
-                align-items: center;
-
-                > span:first-child {
-                    padding-left: spacing.$x-small;
-                }
-            }
-
-            &.opened {
-                > .name-and-options > .name {
-                    .icon {
-                        transform: rotate(90deg);
-                    }
-                }
-            }
-
-            &.active {
-                > .name-and-options {
-                    &::before {
-                        content: "";
-                        background-color: colors.$blue;
-                        position: absolute;
-                        top: -2px;
-                        left: 0;
-                        height: calc(100% + spacing.$x-small);
-                        width: 100%;
-                        border-radius: 2px;
-                        z-index: -1;
-                    }
-
-                    button {
-                        display: flex;
-                    }
-                }
-            }
+        .icon.open {
+            transform: rotate(90deg);
         }
     }
 
@@ -241,7 +180,7 @@ $file-tree-panel-width: 235px;
         display: flex;
         flex-direction: column;
 
-        > div {
+        >div {
             overflow: auto;
 
             img {
@@ -313,12 +252,12 @@ $file-tree-panel-width: 235px;
         color: colors.$blue;
         position: relative;
 
-        > div:first-child {
+        >div:first-child {
             text-align: right;
             display: flex;
             flex-direction: column;
 
-            > div:last-child {
+            >div:last-child {
                 font-size: typography.$small;
             }
         }
