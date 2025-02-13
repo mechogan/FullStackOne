@@ -11,7 +11,7 @@ import (
 type FileEventType int
 
 const (
-	UKNOWN   FileEventType = 0
+	UNKNOWN  FileEventType = 0
 	CREATED  FileEventType = 1
 	MODIFIED FileEventType = 2
 	RENAME   FileEventType = 3
@@ -19,10 +19,10 @@ const (
 )
 
 type FileEvent struct {
-	Type   FileEventType
-	Paths  []string
-	IsFile bool
-	Origin string
+	Type   FileEventType `json:"type"`
+	Paths  []string      `json:"paths"`
+	IsFile bool          `json:"isFile"`
+	Origin string        `json:"origin"`
 }
 
 var eventsBuf = []FileEvent{}

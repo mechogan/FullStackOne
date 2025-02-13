@@ -310,7 +310,7 @@ func Pull(directory string, username *string, password *string) {
 		Progress:      &progress,
 	})
 
-	if err != nil && err.Error() != "already up-to-date" {
+	if err != nil && err.Error() != "already up-to-date" && err.Error() != "reference not found" {
 		progress.Error(err.Error())
 		return
 	}
@@ -660,6 +660,9 @@ func Checkout(
 
 	wg.Wait()
 
+	worktree.Status()
+	wg.Wait()
+	
 	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,
 		Create: create,
