@@ -5,7 +5,7 @@ go 1.23.1
 require (
 	github.com/Masterminds/semver/v3 v3.3.1 // direct
 	github.com/djherbis/times v1.6.0 // direct
-	github.com/evanw/esbuild v0.24.2 // direct
+	github.com/evanw/esbuild v0.25.0 // direct
 	github.com/go-git/go-git/v5 v5.13.2 // direct
 )
 
@@ -26,12 +26,12 @@ require (
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

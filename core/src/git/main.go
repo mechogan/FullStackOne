@@ -660,6 +660,7 @@ func Checkout(
 
 	wg.Wait()
 
+	// preloads worktree into billy fs layer
 	worktree.Status()
 	wg.Wait()
 

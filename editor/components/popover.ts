@@ -8,40 +8,38 @@ type PopoverOpts = {
 };
 
 export function Popover(opts: PopoverOpts) {
-    const anchorStyle = getComputedStyle(opts.anchor);
-
-    opts.anchor.style.position = anchorStyle.position
-        ? anchorStyle.position === "static"
-            ? "relative"
-            : anchorStyle.position
-        : "relative";
+    const anchorBB = opts.anchor.getBoundingClientRect()
 
     const container = document.createElement("div");
     container.classList.add("popover");
 
+    let x = anchorBB.x;
+    let y = anchorBB.y;
+
     switch (opts.align.x) {
-        case "left":
-            container.classList.add("left");
-            break;
         case "center":
             container.classList.add("center-x");
+            x += anchorBB.width / 2;
             break;
         case "right":
             container.classList.add("right");
+            x += anchorBB.width;
             break;
     }
 
     switch (opts.align.y) {
-        case "top":
-            container.classList.add("top");
-            break;
         case "center":
             container.classList.add("center-y");
+            y += anchorBB.height / 2;
             break;
         case "bottom":
             container.classList.add("bottom");
+            y += anchorBB.height;
             break;
     }
+
+    container.style.left = x + "px";
+    container.style.top = y + "px";
 
     const overlay = document.createElement("div");
     overlay.classList.add("popover-overlay");
@@ -51,6 +49,7 @@ export function Popover(opts: PopoverOpts) {
     const remove = () => {
         overlay.remove();
         container.remove();
+        window.removeEventListener("resize", remove);
         unlockScroll(lockedElements);
     };
 
@@ -69,8 +68,10 @@ export function Popover(opts: PopoverOpts) {
         remove();
     };
 
+    window.addEventListener("resize", remove)
+
     let lockedElements = lockScroll(opts.anchor);
-    opts.anchor.append(overlay, container);
+    document.body.append(overlay, container);
 }
 
 const lockedScroll = (e: Event) => {

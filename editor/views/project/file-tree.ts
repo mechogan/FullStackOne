@@ -8,6 +8,7 @@ import { Store } from "../../store";
 import { Icon } from "../../components/primitives/icon";
 import { Popover } from "../../components/popover";
 import core_message from "../../../lib/core_message";
+import { InputText } from "../../components/primitives/inputs";
 
 enum FileEventType {
     UNKNOWN = 0,
@@ -34,7 +35,7 @@ export function FileTree(project: Project) {
     const container = createElement("div");
     container.classList.add("file-tree-container");
 
-    container.append(TopActions(project));
+    let naming = null;
 
     const fileTree = createFileTree({
         readDirectory: async (path: string) => {
@@ -61,6 +62,13 @@ export function FileTree(project: Project) {
 
             return div;
         },
+        name: (path) => {
+            if(path !== naming) return null;
+            return fileItemInput(project.id + "/" + path, () => {
+                naming = null;
+                fileTree.refreshItem(path);
+            })
+        },
         suffix: (path) => {
             const button = Button({
                 style: "icon-small",
@@ -74,6 +82,11 @@ export function FileTree(project: Project) {
                     text: "Rename",
                     iconLeft: "Edit"
                 });
+
+                renameButton.onclick = () => {
+                    naming = path;
+                    fileTree.refreshItem(path);
+                }
 
                 const deleteButton = Button({
                     text: "Delete",
@@ -117,7 +130,7 @@ export function FileTree(project: Project) {
             });
         }
     });
-    container.append(fileTree.container);
+    
 
     const pathAbsToRelative = (p: string) => {
         const pathComponents = p.split(project.id + "/");
@@ -147,8 +160,9 @@ export function FileTree(project: Project) {
                 case FileEventType.CREATED:
                     fileTree.addItem(event.paths.at(0));
                     break;
-                case FileEventType.MODIFIED:
                 case FileEventType.RENAME:
+                    fileTree.removeItem(event.paths.at(0));
+                    fileTree.addItem(event.paths.at(1));
                     break;
                 case FileEventType.DELETED:
                     fileTree.removeItem(event.paths.at(0));
@@ -161,11 +175,13 @@ export function FileTree(project: Project) {
     container.ondestroy = () => {
         core_message.removeListener("file_event", onFileEvents);
     };
+    
+    container.append(TopActions(project, fileTree), fileTree.container);
 
     return container;
 }
 
-function TopActions(project: Project) {
+function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree>) {
     const container = createElement("div");
 
     const left = document.createElement("div");
@@ -184,13 +200,13 @@ function TopActions(project: Project) {
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () => {};
+    newFileButton.onclick = () => { };
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () => {};
+    newDirectoryButton.onclick = () => { };
 
     const uploadButton = Button({
         style: "icon-small",
@@ -200,16 +216,89 @@ function TopActions(project: Project) {
     const form = document.createElement("form");
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.onchange = async () => {};
+    fileInput.onchange = async () => { 
+        const file = fileInput.files[0];
+        if (!file) {
+            form.reset();
+            return;
+        }
+
+        const activeItem = Array.from(fileTree.getActiveItems()).at(0);
+
+        let filePath = "";
+        if(activeItem) {
+            const exists = await fs.exists(project.id + "/" + activeItem);
+            if(!exists) {
+                throw Error("trying to upload under unknown file")
+            }
+            const components = exists.isFile 
+                ? activeItem.split("/").slice(0, -1)
+                : activeItem.split("/");
+            filePath += components.length > 0
+                ? components.join("/") + "/"
+                : ""
+        }
+        filePath += file.name
+        
+        const path = project.id + "/" + filePath;
+        const data = new Uint8Array(await file.arrayBuffer());
+
+        fs.writeFile(path, data, "file-tree")
+        form.reset();
+    };
     form.append(fileInput);
     uploadButton.append(form);
-    uploadButton.onclick = () => fileInput.click();
+    uploadButton.onclick = (e) => {
+        e.stopPropagation()
+        fileInput.click()
+    };
 
     right.append(newFileButton, newDirectoryButton, uploadButton);
 
     container.append(left, right);
 
     return container;
+}
+
+function fileItemInput(path: string, onSubmit: () => void){
+    const pathComponents = path.split("/");
+    const name = pathComponents.pop();
+    const parent = pathComponents.join("/");
+
+    const submit = async () => {
+        if(inputText.input.value !== name) {
+            await fs.rename(path, parent + "/" + inputText.input.value);
+        }
+        onSubmit()
+    }
+
+    const form = document.createElement("form");
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        submit();
+    }
+
+    const inputText = InputText()
+    inputText.input.value = name;
+    inputText.input.onclick = e => e.stopPropagation();
+    inputText.input.onblur = submit;
+
+    form.append(inputText.container);
+
+    const dotIndex = name.lastIndexOf(".");
+    setTimeout(() => {
+        inputText.input.focus();
+
+        if (inputText.input.value) {
+            inputText.input.setSelectionRange(
+                0,
+                dotIndex === -1 ? name.length : dotIndex
+            );
+        }
+    });
+
+    return form;
 }
 
 function pathToDevIconClass(path: string) {
