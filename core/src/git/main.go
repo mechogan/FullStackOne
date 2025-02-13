@@ -662,7 +662,7 @@ func Checkout(
 
 	worktree.Status()
 	wg.Wait()
-	
+
 	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,
 		Create: create,
