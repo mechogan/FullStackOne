@@ -35,7 +35,8 @@ export function FileTree(project: Project) {
     const container = createElement("div");
     container.classList.add("file-tree-container");
 
-    let naming = null;
+    let creating: "file" | "directory" = null;
+    let renaming = null;
 
     const fileTree = createFileTree({
         readDirectory: async (path: string) => {
@@ -44,8 +45,12 @@ export function FileTree(project: Project) {
             });
             return content.filter((i) => !hide.includes(path + "/" + i.name));
         },
-        isDirectory: async (path: string) =>
-            !(await fs.exists(project.id + "/" + path))?.isFile,
+        isDirectory: async (path: string) => {
+            if (creating && (!path || path.endsWith("/"))) {
+                return creating === "directory";
+            }
+            return !(await fs.exists(project.id + "/" + path))?.isFile
+        },
         indentWidth: 15,
         directoryIcons: {
             open: directoryIconOpen,
@@ -63,9 +68,17 @@ export function FileTree(project: Project) {
             return div;
         },
         name: (path) => {
-            if(path !== naming) return null;
-            return fileItemInput(project.id + "/" + path, () => {
-                naming = null;
+            if (creating && (!path || path.endsWith("/"))) {
+                return fileItemInput(project.id + "/" + path, creating, () => {
+                    creating = null;
+                    fileTree.removeItem(path)
+                 })
+            } else if (path !== renaming) {
+                return null
+            };
+
+            return fileItemInput(project.id + "/" + path, null, () => {
+                renaming = null;
                 fileTree.refreshItem(path);
             })
         },
@@ -84,7 +97,7 @@ export function FileTree(project: Project) {
                 });
 
                 renameButton.onclick = () => {
-                    naming = path;
+                    renaming = path;
                     fileTree.refreshItem(path);
                 }
 
@@ -130,7 +143,7 @@ export function FileTree(project: Project) {
             });
         }
     });
-    
+
 
     const pathAbsToRelative = (p: string) => {
         const pathComponents = p.split(project.id + "/");
@@ -175,13 +188,41 @@ export function FileTree(project: Project) {
     container.ondestroy = () => {
         core_message.removeListener("file_event", onFileEvents);
     };
-    
-    container.append(TopActions(project, fileTree), fileTree.container);
+
+    const createFile = (parent: string) => {
+        creating = "file";
+        fileTree.addItem(parent + "")
+    }
+    const createDirectory = (parent: string) => {
+        creating = "directory";
+        fileTree.addItem(parent + "")
+    }
+    const create = async (directory: boolean) => {
+        const activeItem = Array.from(fileTree.getActiveItems()).at(0);
+        let parent = "";
+        if(activeItem) {
+            const exists = await fs.exists(project.id + "/" + activeItem);
+            const pathComponents = exists.isFile
+                ? activeItem.split("/").slice(0, -1)
+                : activeItem.split("/");
+            parent = pathComponents.length > 0
+                ? pathComponents.join("/") + "/"
+                : ""
+        }
+
+        return directory ? createDirectory(parent) : createFile(parent);
+    }
+
+    container.append(TopActions(project, fileTree, create), fileTree.container);
 
     return container;
 }
 
-function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree>) {
+function TopActions(
+    project: Project,
+    fileTree: ReturnType<typeof createFileTree>,
+    create: (directory: boolean) => void
+) {
     const container = createElement("div");
 
     const left = document.createElement("div");
@@ -200,13 +241,13 @@ function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () => { };
+    newFileButton.onclick = () => create(false)
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () => { };
+    newDirectoryButton.onclick = () => create(true);
 
     const uploadButton = Button({
         style: "icon-small",
@@ -216,7 +257,7 @@ function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree
     const form = document.createElement("form");
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.onchange = async () => { 
+    fileInput.onchange = async () => {
         const file = fileInput.files[0];
         if (!file) {
             form.reset();
@@ -226,12 +267,12 @@ function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree
         const activeItem = Array.from(fileTree.getActiveItems()).at(0);
 
         let filePath = "";
-        if(activeItem) {
+        if (activeItem) {
             const exists = await fs.exists(project.id + "/" + activeItem);
-            if(!exists) {
+            if (!exists) {
                 throw Error("trying to upload under unknown file")
             }
-            const components = exists.isFile 
+            const components = exists.isFile
                 ? activeItem.split("/").slice(0, -1)
                 : activeItem.split("/");
             filePath += components.length > 0
@@ -239,7 +280,7 @@ function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree
                 : ""
         }
         filePath += file.name
-        
+
         const path = project.id + "/" + filePath;
         const data = new Uint8Array(await file.arrayBuffer());
 
@@ -260,14 +301,24 @@ function TopActions(project: Project, fileTree: ReturnType<typeof createFileTree
     return container;
 }
 
-function fileItemInput(path: string, onSubmit: () => void){
+function fileItemInput(
+    path: string, 
+    create: "file" | "directory",
+    onSubmit: () => void
+) {
     const pathComponents = path.split("/");
     const name = pathComponents.pop();
     const parent = pathComponents.join("/");
 
     const submit = async () => {
-        if(inputText.input.value !== name) {
-            await fs.rename(path, parent + "/" + inputText.input.value);
+        if (inputText.input.value !== name) {
+            if(create === "directory") {
+                await fs.mkdir(parent + "/" + inputText.input.value);
+            } else if (create === "file") {
+                await fs.writeFile(parent + "/" + inputText.input.value, "\n");
+            } else {
+                await fs.rename(path, parent + "/" + inputText.input.value);
+            }
         }
         onSubmit()
     }
