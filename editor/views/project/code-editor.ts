@@ -67,7 +67,10 @@ export function CodeEditor(project: Project) {
 }
 
 type View = ReturnType<typeof createRefresheable> & {
-    editorView?: EditorView & { save: (throttled?: boolean) => Promise<void> };
+    editorView?: EditorView & { 
+        save: (throttled?: boolean) => Promise<void>
+        reload: () => void
+     };
 };
 
 const views = new Map<string, View>();
@@ -81,20 +84,20 @@ export function saveAllViews() {
 }
 
 export function refreshCodeEditorView(filePath: string) {
-    const view = views.get(filePath);
-    if (!view) return;
-    return view.refresh();
+    // const view = views.get(filePath);
+    // if (!view) return;
+    // return view.refresh();
 }
 
 export function refreshAllCodeEditorView() {
-    const promises = [];
-    for (const filePath of views.keys()) {
-        const maybePromise = refreshCodeEditorView(filePath);
-        if (maybePromise) {
-            promises.push(maybePromise);
-        }
-    }
-    return Promise.all(promises);
+    // const promises = [];
+    // for (const filePath of views.keys()) {
+    //     const maybePromise = refreshCodeEditorView(filePath);
+    //     if (maybePromise) {
+    //         promises.push(maybePromise);
+    //     }
+    // }
+    // return Promise.all(promises);
 }
 
 function createViews(filesPaths: Set<string>) {

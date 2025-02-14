@@ -10,7 +10,7 @@ import { Popover } from "../../components/popover";
 import core_message from "../../../lib/core_message";
 import { InputText } from "../../components/primitives/inputs";
 
-enum FileEventType {
+export enum FileEventType {
     UNKNOWN = 0,
     CREATED = 1,
     MODIFIED = 2,
@@ -18,7 +18,7 @@ enum FileEventType {
     DELETED = 4
 }
 
-type FileEvent = {
+export type FileEvent = {
     isFile: boolean;
     origin: string;
     paths: string[];
