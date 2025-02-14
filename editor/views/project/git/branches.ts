@@ -116,7 +116,6 @@ async function BranchesList(project: Project) {
 
                     await git.checkout(project, branch.name, false);
                     refreshGitWidgetBranchAndCommit();
-                    await refreshAllCodeEditorView();
                     refreshBranches();
                 };
 

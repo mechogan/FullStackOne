@@ -1,4 +1,5 @@
 import core_message from "../../../lib/core_message";
+import fs from "../../../lib/fs";
 import { createElement } from "../../components/element";
 import { Button } from "../../components/primitives/button";
 import { createRefresheable } from "../../components/refresheable";
@@ -66,7 +67,9 @@ function Tab(path: string) {
         Store.editor.codeEditor.focusFile(path);
     };
 
+    let currentFocusedFile: string;
     const onFocusFileChange = (focusedFile: string) => {
+        currentFocusedFile = focusedFile;
         if (focusedFile === path) {
             li.classList.add("opened");
             li.scrollIntoView();
@@ -75,13 +78,21 @@ function Tab(path: string) {
         }
     };
 
-    const removeIfDeleted = (eStr: string) => {
+    const removeIfDeleted = async (eStr: string) => {
         const fileEvents: FileEvent[] = JSON.parse(eStr);
-        for(const e of fileEvents) {
-            if(e.type !== FileEventType.DELETED) continue;
-            if(e.paths.find(p => isChildOf(path, p))) {
+        for (const e of fileEvents) {
+            if (e.type === FileEventType.DELETED && e.paths.find(p => isChildOf(path, p))) {
+                const exists = await fs.exists(path);
+                if(!exists?.isFile)
+                    Store.editor.codeEditor.closeFile(path);
+            } else if (e.type === FileEventType.RENAME && isChildOf(path, e.paths[0])) {
+                const rootDir = path.split("/").shift()
+                const newPath = rootDir + e.paths[1].split(rootDir).pop()
+                Store.editor.codeEditor.openFile(newPath);
+                if (currentFocusedFile === path) {
+                    Store.editor.codeEditor.focusFile(newPath)
+                }
                 Store.editor.codeEditor.closeFile(path);
-                break;
             }
         }
     }
@@ -98,18 +109,18 @@ function Tab(path: string) {
 }
 
 function isChildOf(path: string, eventPath: string) {
-    if(!eventPath) return false
+    if (!eventPath) return false
     const rootDir = path.split("/").at(0);
     const [_, filePath] = eventPath.split(rootDir + "/");
-    if(!filePath) {
+    if (!filePath) {
         return false;
     }
 
     const pathComponents = path.split("/").slice(1);
     const eventPathComponents = filePath.split("/");
-    
-    for(let i = 0; i < eventPathComponents.length; i++){
-        if(eventPathComponents[i] !== pathComponents[i])
+
+    for (let i = 0; i < eventPathComponents.length; i++) {
+        if (eventPathComponents[i] !== pathComponents[i])
             return false;
     }
 

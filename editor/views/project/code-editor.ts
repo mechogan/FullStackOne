@@ -1,4 +1,4 @@
-import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
+import { EditorView, hoverTooltip, keymap, ViewPlugin } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { createElement } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";
@@ -20,7 +20,7 @@ import prettierPluginMD from "prettier/plugins/markdown";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginBabel from "prettier/plugins/babel";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
-import { EditorSelection } from "@codemirror/state";
+import { EditorSelection, Extension } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
 import {
     navigateToDefinition,
@@ -30,8 +30,10 @@ import {
 } from "./ts-extensions";
 import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
-import { BuildError } from "../../store/editor";
+import { BuildError, editor } from "../../store/editor";
 import fs from "../../../lib/fs";
+import core_message from "../../../lib/core_message";
+import { FileEvent, FileEventType } from "./file-tree";
 
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
@@ -57,7 +59,31 @@ export function CodeEditor(project: Project) {
     Store.editor.codeEditor.openedFiles.subscribe(createViews);
     Store.editor.codeEditor.buildErrors.subscribe(onBuildErrors);
 
+    const updateCodeEditor = (eStr: string) => {
+        const fileEvents = (JSON.parse(eStr) as FileEvent[]);
+        for (const e of fileEvents) {
+            if (e.type === FileEventType.MODIFIED) {
+                if(e.origin !== "code-editor") {
+                    const path = project.id + e.paths.at(0)?.split(project.id).pop();
+                    const view = views.get(path);
+                    view?.editorView?.reload();
+                }
+            } else if (e.type === FileEventType.CREATED) {
+                for (const v of views.values()) {
+                    v.editorView?.lint?.()
+                }
+            } else if(e.type === FileEventType.DELETED) {
+
+            } else if(e.type === FileEventType.RENAME) {
+
+            }
+        }
+    }
+
+    core_message.addListener("file-event", updateCodeEditor)
+
     container.ondestroy = () => {
+        core_message.removeListener("file-event", updateCodeEditor)
         Store.editor.codeEditor.openedFiles.unsubscribe(createViews);
         Store.editor.codeEditor.focusedFile.unsubscribe(refresheable.refresh);
         Store.editor.codeEditor.buildErrors.unsubscribe(onBuildErrors);
@@ -67,10 +93,11 @@ export function CodeEditor(project: Project) {
 }
 
 type View = ReturnType<typeof createRefresheable> & {
-    editorView?: EditorView & { 
+    editorView?: EditorView & {
         save: (throttled?: boolean) => Promise<void>
-        reload: () => void
-     };
+        reload: () => Promise<void>
+        lint?: () => void
+    }
 };
 
 const views = new Map<string, View>();
@@ -84,20 +111,24 @@ export function saveAllViews() {
 }
 
 export function refreshCodeEditorView(filePath: string) {
-    // const view = views.get(filePath);
-    // if (!view) return;
-    // return view.refresh();
+    const view = views.get(filePath);
+    if (!view) return;
+    else if (view.editorView) {
+        return view.editorView.reload()
+    } else {
+        return view.refresh();
+    }
 }
 
 export function refreshAllCodeEditorView() {
-    // const promises = [];
-    // for (const filePath of views.keys()) {
-    //     const maybePromise = refreshCodeEditorView(filePath);
-    //     if (maybePromise) {
-    //         promises.push(maybePromise);
-    //     }
-    // }
-    // return Promise.all(promises);
+    const promises = [];
+    for (const filePath of views.keys()) {
+        const maybePromise = refreshCodeEditorView(filePath);
+        if (maybePromise) {
+            promises.push(maybePromise);
+        }
+    }
+    return Promise.all(promises);
 }
 
 function createViews(filesPaths: Set<string>) {
@@ -244,11 +275,13 @@ function createViewEditor(filePath: string) {
             encoding: "utf8"
         });
 
+        const languageExtension = await languageExtensions(filePath);
+
         view.editorView = new EditorView({
             doc: content,
             extensions: [
                 ...defaultExtensions,
-                ...(await languageExtensions(filePath)),
+                ...(languageExtension.map(({ ext }) => ext)),
                 EditorView.updateListener.of(() => view.editorView.save())
             ],
             parent: container
@@ -276,6 +309,25 @@ function createViewEditor(filePath: string) {
                 return saveFile();
             }
         };
+        view.editorView.reload = async () => {
+            const exists = await fs.exists(filePath);
+            if (!exists?.isFile) return;
+            const content = await fs.readFile(filePath, { encoding: "utf8" });
+            setFullContent(view.editorView, content);
+        }
+
+        const linter = languageExtension.find(({ type }) => type === "linter");
+
+        if (linter) {
+            view.editorView.lint = () => {
+                const plugin = view.editorView.plugin(linter.ext[1]) as any;
+                if (plugin) {
+                    plugin.set = true;
+                    plugin.force();
+                }
+            }
+        }
+
 
         displayBuildErrors(filePath, view);
 
@@ -287,7 +339,10 @@ function createViewEditor(filePath: string) {
     return view;
 }
 
-async function languageExtensions(filePath: string) {
+async function languageExtensions(filePath: string): Promise<{
+    type?: string,
+    ext: Extension
+}[]> {
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
 
     switch (fileExtension) {
@@ -301,34 +356,39 @@ async function languageExtensions(filePath: string) {
         case UTF8_Ext.SVG:
         case UTF8_Ext.HTML:
             const langHTML = await import("@codemirror/lang-html");
-            return [langHTML.html()];
+            return [{ ext: langHTML.html() }];
         case UTF8_Ext.MARKDOWN:
             const langMD = await import("@codemirror/lang-markdown");
-            return [langMD.markdown()];
+            return [{ ext: langMD.markdown() }];
         case UTF8_Ext.JSON:
             const langJSON = await import("@codemirror/lang-json");
-            return [langJSON.json(), linter(langJSON.jsonParseLinter())];
+            return [{ ext: langJSON.json() }, { ext: linter(langJSON.jsonParseLinter()) }];
         case UTF8_Ext.CSS:
             const langCSS = await import("@codemirror/lang-css");
-            return [langCSS.css()];
+            return [{ ext: langCSS.css() }];
         case UTF8_Ext.SASS:
         case UTF8_Ext.SCSS:
             const langSASS = await import("@codemirror/lang-sass");
             return [
-                langSASS.sass({
-                    indented: fileExtension === UTF8_Ext.SASS
-                })
+                {
+                    ext: langSASS.sass({
+                        indented: fileExtension === UTF8_Ext.SASS
+                    })
+                }
             ];
         case UTF8_Ext.LIQUID:
             const langLiquid = await import("@codemirror/lang-liquid");
-            return [langLiquid.liquid(), langLiquid.closePercentBrace];
+            return [{ ext: langLiquid.liquid() }, { ext: langLiquid.closePercentBrace }];
     }
 
     return [];
 }
 
 async function loadJsTsExtensions(filePath: string) {
-    const extensions = [];
+    const extensions: {
+        type?: string,
+        ext: Extension
+    }[] = [];
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
 
     const langJs = await import("@codemirror/lang-javascript");
@@ -338,13 +398,13 @@ async function loadJsTsExtensions(filePath: string) {
         jsx: fileExtension.endsWith("x")
     });
 
-    extensions.push(jsDefaultExtension, lintGutter());
+    extensions.push({ ext: jsDefaultExtension }, { ext: lintGutter() });
 
     if (javascriptExtensions.includes(fileExtension)) {
         const jsAutocomplete = langJs.javascriptLanguage.data.of({
             autocomplete: langJs.scopeCompletionSource(globalThis)
         });
-        extensions.push(jsAutocomplete);
+        extensions.push({ ext: jsAutocomplete });
     }
     // load typescript
     else {
@@ -354,17 +414,21 @@ async function loadJsTsExtensions(filePath: string) {
     return extensions;
 }
 
+let lint;
+
 async function loadTypeScript(filePath: string) {
     await WorkerTS.start(workingDirectory);
 
     return [
-        EditorView.updateListener.of((ctx) =>
-            WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
-        ),
-        EditorView.domEventHandlers({ click: navigateToDefinition(filePath) }),
-        linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
-        autocompletion({ override: [tsAutocomplete(filePath)] }),
-        hoverTooltip(tsTypeDefinition(filePath))
+        {
+            ext: EditorView.updateListener.of((ctx) =>
+                WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
+            )
+        },
+        { ext: EditorView.domEventHandlers({ click: navigateToDefinition(filePath) }) },
+        { ext: linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>), type: "linter" },
+        { ext: autocompletion({ override: [tsAutocomplete(filePath)] }) },
+        { ext: hoverTooltip(tsTypeDefinition(filePath)) }
     ];
 }
 
@@ -405,28 +469,32 @@ async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
         }
     );
 
-    let selection = view.editorView.state.selection;
+    setFullContent(view.editorView, formatted);
+}
+
+function setFullContent(editorView: EditorView, content: string) {
+    let selection = editorView.state.selection;
 
     let range = selection.ranges?.at(0);
-    if (range?.from > formatted.length) {
+    if (range?.from > content.length) {
         selection = selection.replaceRange(
-            EditorSelection.range(formatted.length, range.to),
+            EditorSelection.range(content.length, range.to),
             0
         );
         range = selection.ranges?.at(0);
     }
-    if (range?.to > formatted.length) {
+    if (range?.to > content.length) {
         selection = selection.replaceRange(
-            EditorSelection.range(range.from, formatted.length),
+            EditorSelection.range(range.from, content.length),
             0
         );
     }
 
-    view.editorView.dispatch({
+    editorView.dispatch({
         changes: {
             from: 0,
-            to: view.editorView.state.doc.length,
-            insert: formatted
+            to: editorView.state.doc.length,
+            insert: content
         },
         selection
     });

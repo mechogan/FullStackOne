@@ -219,6 +219,11 @@ func Status(directory string) []byte {
 
 	wg.Wait()
 
+	// preload memory FS
+	worktree.Status();
+
+	wg.Wait();
+	
 	status, err := worktree.Status()
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))

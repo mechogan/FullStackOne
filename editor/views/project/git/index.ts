@@ -10,7 +10,7 @@ import { createRefresheable } from "../../../components/refresheable";
 import git from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
-import { refreshCodeEditorView, saveAllViews } from "../code-editor";
+import { saveAllViews } from "../code-editor";
 import { Branches } from "./branches";
 
 let branchView = false;
@@ -112,8 +112,10 @@ function CommitView(project: Project, closeButton: HTMLButtonElement) {
 
     refresh.repoInfo();
     refresh.author();
-    refresh.status();
-    refresh.commitAndPush();
+    saveAllViews().then(() => {
+        refresh.status();
+        refresh.commitAndPush();
+    })
 
     return container;
 }
@@ -135,7 +137,6 @@ export function projectChanges(project: Project) {
 }
 
 async function _projectChanges(project: Project) {
-    await saveAllViews();
     const changes = await git.status(project.id);
     const hasChanges =
         changes.Added.length !== 0 ||
@@ -429,11 +430,9 @@ function ChangesList(changes: Changes, project: Project) {
 
     addSection("Added", changes.Added, async (file: string) => {
         await git.restore(project.id, [file]);
-        Store.editor.codeEditor.closeFile(project.id + "/" + file);
     });
     addSection("Modified", changes.Modified, async (file: string) => {
         await git.restore(project.id, [file]);
-        refreshCodeEditorView(project.id + "/" + file);
     });
     addSection("Deleted", changes.Deleted, async (file: string) => {
         await git.restore(project.id, [file]);
