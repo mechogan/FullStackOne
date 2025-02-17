@@ -88,9 +88,9 @@ export let methods = {
         if (!td) td = new TextDecoder();
 
         for (const [path, data] of Object.entries(projectFiles)) {
-            if (!data) {continue
-            };
+            if (!data) continue
             const fileName = path.slice("projects/".length);
+            console.log(fileName)
             if (remove) {
                 fsCache.delete(fileName);
             } else {
@@ -190,6 +190,11 @@ export let methods = {
                     }
                     break;
                 case FileEventType.RENAME:
+                    const f = files.get(fileEvent.paths.at(0));
+                    if(f) {
+                        files.set(fileEvent.paths.at(1), f);
+                        files.delete(fileEvent.paths.at(0));
+                    }
                     break;
                 case FileEventType.DELETED:
                     const path = fileEvent.paths.at(0);

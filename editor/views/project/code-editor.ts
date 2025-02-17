@@ -30,7 +30,7 @@ import {
 } from "./ts-extensions";
 import { Project } from "../../types";
 import { autocompletion } from "@codemirror/autocomplete";
-import { BuildError, editor } from "../../store/editor";
+import { BuildError } from "../../store/editor";
 import fs from "../../../lib/fs";
 import core_message from "../../../lib/core_message";
 import { FileEvent, FileEventType } from "./file-event";
