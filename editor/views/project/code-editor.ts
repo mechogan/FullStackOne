@@ -326,7 +326,10 @@ function createViewEditor(filePath: string) {
         const linter = languageExtension.find(({ type }) => type === "linter");
 
         if (linter) {
-            view.editorView.lint = () => {
+            view.editorView.lint = async () => {
+                const exists = await fs.exists(filePath);
+                if(!exists?.isFile) return;
+
                 const plugin = view.editorView.plugin(linter.ext[1]) as any;
                 if (plugin) {
                     plugin.set = true;
