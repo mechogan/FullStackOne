@@ -10,8 +10,8 @@ export function unzip(destination: string, data: Uint8Array) {
 }
 
 // 31
-export function zip(project: Project): Promise<Uint8Array> {
-    const payload = new Uint8Array([31, ...serializeArgs([project.id])]);
+export function zip(project: Project, skip: string[] = []): Promise<Uint8Array> {
+    const payload = new Uint8Array([31, ...serializeArgs([project.id, ...skip])]);
 
     return bridge(payload, ([zipData]) => zipData);
 }

@@ -2,12 +2,10 @@ import child_process from "child_process";
 import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
     BACK_BUTTON_CLASS,
-    DELETE_ALL_PACKAGES_ID,
     IMPORT_PROJECT_FILE_INPUT_ID,
     IMPORT_ZIP_ID,
     NEW_FILE_ID,
     NEW_PROJECT_ID,
-    PACKAGES_BUTTON_ID,
     PROJECTS_TITLE,
     PROJECTS_VIEW_ID,
     RUN_PROJECT_ID,
@@ -46,24 +44,6 @@ if (projectsTitle !== PROJECTS_TITLE) {
     throwError(errorMsg);
 }
 
-// delete all packages to test download
-await waitForStackNavigation(page, `#${SETTINGS_BUTTON_ID}`);
-await waitForStackNavigation(page, `#${PACKAGES_BUTTON_ID}`);
-
-const deletePackagesButton = await page.waitForSelector(
-    `#${DELETE_ALL_PACKAGES_ID}`
-);
-await deletePackagesButton.click();
-
-while (await deletePackagesButton.isVisible()) {
-    await sleep(200);
-}
-
-await waitForStackNavigation(
-    page,
-    `#${SETTINGS_VIEW_ID} .${BACK_BUTTON_CLASS}`
-);
-
 // import demo project
 await waitForStackNavigation(page, `#${NEW_PROJECT_ID}`);
 await waitForStackNavigation(page, `#${IMPORT_ZIP_ID}`);
@@ -98,9 +78,9 @@ let tries = 3;
 while (tries) {
     tries--;
     const getFileTreeItemsTitle = () =>
-        Array.from(document.querySelectorAll(".name-and-options") ?? []).map(
-            (e) => e.textContent.trim()
-        );
+        Array.from(
+            document.querySelectorAll(".file-item > div:nth-child(2)") ?? []
+        ).map((e) => e.textContent.trim());
     const fileTreeItems = await page.evaluate(getFileTreeItemsTitle);
 
     if (!fileTreeItems.includes(testFileName)) {

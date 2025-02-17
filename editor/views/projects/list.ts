@@ -183,7 +183,12 @@ function ProjectTile(project: ProjectType) {
         });
 
         shareButton.onclick = async () => {
-            const zipData = await archive.zip(project);
+            const zipData = await archive.zip(project, [
+                ".build",
+                "data",
+                "node_modules",
+                ".git"
+            ]);
             const blob = new Blob([zipData]);
             const a = document.createElement("a");
             document.body.appendChild(a);

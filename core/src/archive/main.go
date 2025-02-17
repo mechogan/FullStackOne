@@ -63,16 +63,21 @@ func (w *inMemoryZipData) Write(chunk []byte) (n int, err error) {
 	return len(chunk), nil
 }
 
-func Zip(directory string) []byte {
+func Zip(directory string, skip []string) []byte {
 	acc := inMemoryZipData{}
 	w := zip.NewWriter(&acc)
 
 	files, _ := fs.ReadDir(directory, true, []string{})
 
 	for _, f := range files {
-		if strings.HasPrefix(f.Name, "data") ||
-			strings.HasPrefix(f.Name, ".build") ||
-			strings.HasPrefix(f.Name, ".git") {
+		mustSkip := false
+		for _, p := range skip {
+			if strings.HasPrefix(f.Name, p) {
+				mustSkip = true
+				break
+			}
+		}
+		if mustSkip {
 			continue
 		}
 

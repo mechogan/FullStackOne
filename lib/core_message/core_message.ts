@@ -23,14 +23,16 @@ export const removeListener = (
     }
 };
 
+const debug = false;
+
 globalThis.oncoremessage = (messageType: string, message: string) => {
     const listeners = coreMessageListeners.get(messageType);
-    if (!listeners?.size) {
+    if (!listeners?.size && debug) {
         console.log(
             `No core message listener for message of type [${messageType}] [${message}]`
         );
     } else {
-        listeners.forEach((cb) => cb(message));
+        listeners?.forEach((cb) => cb(message));
     }
 };
 

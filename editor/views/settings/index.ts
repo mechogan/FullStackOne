@@ -1,12 +1,7 @@
-import { Button } from "../../components/primitives/button";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import stackNavigation from "../../stack-navigation";
-import {
-    BG_COLOR,
-    PACKAGES_BUTTON_ID,
-    SETTINGS_VIEW_ID
-} from "../../constants";
+import { BG_COLOR, SETTINGS_VIEW_ID } from "../../constants";
 import { createRefresheable } from "../../components/refresheable";
 import { Project } from "../project";
 import { Version } from "./version";

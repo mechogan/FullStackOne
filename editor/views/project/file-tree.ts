@@ -29,7 +29,9 @@ export function FileTree(project: Project) {
             const content = await fs.readdir(project.id + "/" + path, {
                 withFileTypes: true
             });
-            return content.filter((i) => !hide.includes(path + "/" + i.name));
+            return content.filter(
+                (i) => !hide.find((h) => (path + "/" + i.name).startsWith(h))
+            );
         },
         isDirectory: async (path: string) => {
             if (creating && (!path || path.endsWith("/"))) {
@@ -139,7 +141,7 @@ export function FileTree(project: Project) {
     };
 
     const onFileEvents = (e: string) => {
-        const fileEvents = (JSON.parse(e) as FileEvent[])
+        let fileEvents = (JSON.parse(e) as FileEvent[])
             .map((e) => {
                 e.paths = e.paths.map(pathAbsToRelative);
                 return e;
@@ -149,7 +151,7 @@ export function FileTree(project: Project) {
                     !e.paths.some(
                         (p) =>
                             p === null ||
-                            hide.find((h) => p.startsWith("/" + h))
+                            hide.find((h) => ("/" + p).startsWith(h))
                     )
             );
 
@@ -171,7 +173,7 @@ export function FileTree(project: Project) {
 
     core_message.addListener("file-event", onFileEvents);
     container.ondestroy = () => {
-        core_message.removeListener("file_event", onFileEvents);
+        core_message.removeListener("file-event", onFileEvents);
     };
 
     const createFile = (parent: string) => {

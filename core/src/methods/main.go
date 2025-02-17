@@ -215,7 +215,14 @@ func editorSwitch(method int, args []any) []byte {
 		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
 	case method == ARCHIVE_ZIP:
 		directory := path.Join(setup.Directories.Root, args[0].(string))
-		return serialize.SerializeBuffer(archive.Zip(directory))
+		skip := []string{}
+		for i, arg := range args {
+			if i < 1 {
+				continue
+			}
+			skip = append(skip, arg.(string))
+		}
+		return serialize.SerializeBuffer(archive.Zip(directory, skip))
 	case method == OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil
