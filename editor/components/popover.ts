@@ -8,7 +8,7 @@ type PopoverOpts = {
 };
 
 export function Popover(opts: PopoverOpts) {
-    const anchorBB = opts.anchor.getBoundingClientRect()
+    const anchorBB = opts.anchor.getBoundingClientRect();
 
     const container = document.createElement("div");
     container.classList.add("popover");
@@ -68,7 +68,7 @@ export function Popover(opts: PopoverOpts) {
         remove();
     };
 
-    window.addEventListener("resize", remove)
+    window.addEventListener("resize", remove);
 
     let lockedElements = lockScroll(opts.anchor);
     document.body.append(overlay, container);

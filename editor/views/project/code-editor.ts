@@ -33,7 +33,7 @@ import { autocompletion } from "@codemirror/autocomplete";
 import { BuildError, editor } from "../../store/editor";
 import fs from "../../../lib/fs";
 import core_message from "../../../lib/core_message";
-import { FileEvent, FileEventType } from "./file-tree";
+import { FileEvent, FileEventType } from "./file-event";
 
 const tabWidth = 4;
 window.addEventListener("keydown", applyPrettierToCurrentFocusFile);
@@ -60,30 +60,37 @@ export function CodeEditor(project: Project) {
     Store.editor.codeEditor.buildErrors.subscribe(onBuildErrors);
 
     const updateCodeEditor = (eStr: string) => {
-        const fileEvents = (JSON.parse(eStr) as FileEvent[]);
+        const fileEvents = JSON.parse(eStr) as FileEvent[];
         for (const e of fileEvents) {
             if (e.type === FileEventType.MODIFIED) {
-                if(e.origin !== "code-editor") {
-                    const path = project.id + e.paths.at(0)?.split(project.id).pop();
+                if (e.origin !== "code-editor") {
+                    const path =
+                        project.id + e.paths.at(0)?.split(project.id).pop();
                     const view = views.get(path);
                     view?.editorView?.reload();
                 }
-            } else if (e.type === FileEventType.CREATED) {
-                for (const v of views.values()) {
-                    v.editorView?.lint?.()
-                }
-            } else if(e.type === FileEventType.DELETED) {
-
-            } else if(e.type === FileEventType.RENAME) {
-
             }
         }
-    }
 
-    core_message.addListener("file-event", updateCodeEditor)
+        if (
+            fileEvents.every(
+                (e) =>
+                    e.type === FileEventType.MODIFIED &&
+                    e.origin === "code-editor"
+            )
+        ) {
+            return;
+        }
+
+        for (const v of views.values()) {
+            v.editorView?.lint?.();
+        }
+    };
+
+    core_message.addListener("file-event", updateCodeEditor);
 
     container.ondestroy = () => {
-        core_message.removeListener("file-event", updateCodeEditor)
+        core_message.removeListener("file-event", updateCodeEditor);
         Store.editor.codeEditor.openedFiles.unsubscribe(createViews);
         Store.editor.codeEditor.focusedFile.unsubscribe(refresheable.refresh);
         Store.editor.codeEditor.buildErrors.unsubscribe(onBuildErrors);
@@ -94,10 +101,10 @@ export function CodeEditor(project: Project) {
 
 type View = ReturnType<typeof createRefresheable> & {
     editorView?: EditorView & {
-        save: (throttled?: boolean) => Promise<void>
-        reload: () => Promise<void>
-        lint?: () => void
-    }
+        save: (throttled?: boolean) => Promise<void>;
+        reload: () => Promise<void>;
+        lint?: () => void;
+    };
 };
 
 const views = new Map<string, View>();
@@ -114,7 +121,7 @@ export function refreshCodeEditorView(filePath: string) {
     const view = views.get(filePath);
     if (!view) return;
     else if (view.editorView) {
-        return view.editorView.reload()
+        return view.editorView.reload();
     } else {
         return view.refresh();
     }
@@ -281,7 +288,7 @@ function createViewEditor(filePath: string) {
             doc: content,
             extensions: [
                 ...defaultExtensions,
-                ...(languageExtension.map(({ ext }) => ext)),
+                ...languageExtension.map(({ ext }) => ext),
                 EditorView.updateListener.of(() => view.editorView.save())
             ],
             parent: container
@@ -314,7 +321,7 @@ function createViewEditor(filePath: string) {
             if (!exists?.isFile) return;
             const content = await fs.readFile(filePath, { encoding: "utf8" });
             setFullContent(view.editorView, content);
-        }
+        };
 
         const linter = languageExtension.find(({ type }) => type === "linter");
 
@@ -325,9 +332,8 @@ function createViewEditor(filePath: string) {
                     plugin.set = true;
                     plugin.force();
                 }
-            }
+            };
         }
-
 
         displayBuildErrors(filePath, view);
 
@@ -339,10 +345,12 @@ function createViewEditor(filePath: string) {
     return view;
 }
 
-async function languageExtensions(filePath: string): Promise<{
-    type?: string,
-    ext: Extension
-}[]> {
+async function languageExtensions(filePath: string): Promise<
+    {
+        type?: string;
+        ext: Extension;
+    }[]
+> {
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
 
     switch (fileExtension) {
@@ -362,7 +370,10 @@ async function languageExtensions(filePath: string): Promise<{
             return [{ ext: langMD.markdown() }];
         case UTF8_Ext.JSON:
             const langJSON = await import("@codemirror/lang-json");
-            return [{ ext: langJSON.json() }, { ext: linter(langJSON.jsonParseLinter()) }];
+            return [
+                { ext: langJSON.json() },
+                { ext: linter(langJSON.jsonParseLinter()) }
+            ];
         case UTF8_Ext.CSS:
             const langCSS = await import("@codemirror/lang-css");
             return [{ ext: langCSS.css() }];
@@ -378,7 +389,10 @@ async function languageExtensions(filePath: string): Promise<{
             ];
         case UTF8_Ext.LIQUID:
             const langLiquid = await import("@codemirror/lang-liquid");
-            return [{ ext: langLiquid.liquid() }, { ext: langLiquid.closePercentBrace }];
+            return [
+                { ext: langLiquid.liquid() },
+                { ext: langLiquid.closePercentBrace }
+            ];
     }
 
     return [];
@@ -386,8 +400,8 @@ async function languageExtensions(filePath: string): Promise<{
 
 async function loadJsTsExtensions(filePath: string) {
     const extensions: {
-        type?: string,
-        ext: Extension
+        type?: string;
+        ext: Extension;
     }[] = [];
     const fileExtension = filePath.split(".").pop().toLowerCase() as UTF8_Ext;
 
@@ -425,8 +439,15 @@ async function loadTypeScript(filePath: string) {
                 WorkerTS.call().updateFile(filePath, ctx.state.doc.toString())
             )
         },
-        { ext: EditorView.domEventHandlers({ click: navigateToDefinition(filePath) }) },
-        { ext: linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>), type: "linter" },
+        {
+            ext: EditorView.domEventHandlers({
+                click: navigateToDefinition(filePath)
+            })
+        },
+        {
+            ext: linter(tsErrorLinter(filePath) as () => Promise<Diagnostic[]>),
+            type: "linter"
+        },
         { ext: autocompletion({ override: [tsAutocomplete(filePath)] }) },
         { ext: hoverTooltip(tsTypeDefinition(filePath)) }
     ];

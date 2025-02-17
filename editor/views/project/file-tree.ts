@@ -9,21 +9,7 @@ import { Icon } from "../../components/primitives/icon";
 import { Popover } from "../../components/popover";
 import core_message from "../../../lib/core_message";
 import { InputText } from "../../components/primitives/inputs";
-
-export enum FileEventType {
-    UNKNOWN = 0,
-    CREATED = 1,
-    MODIFIED = 2,
-    RENAME = 3,
-    DELETED = 4
-}
-
-export type FileEvent = {
-    isFile: boolean;
-    origin: string;
-    paths: string[];
-    type: FileEventType;
-};
+import { FileEvent, FileEventType } from "./file-event";
 
 const directoryIconOpen = Icon("Caret");
 directoryIconOpen.classList.add("open");
@@ -49,7 +35,7 @@ export function FileTree(project: Project) {
             if (creating && (!path || path.endsWith("/"))) {
                 return creating === "directory";
             }
-            return !(await fs.exists(project.id + "/" + path))?.isFile
+            return !(await fs.exists(project.id + "/" + path))?.isFile;
         },
         indentWidth: 15,
         directoryIcons: {
@@ -71,16 +57,16 @@ export function FileTree(project: Project) {
             if (creating && (!path || path.endsWith("/"))) {
                 return fileItemInput(project.id + "/" + path, creating, () => {
                     creating = null;
-                    fileTree.removeItem(path)
-                 })
+                    fileTree.removeItem(path);
+                });
             } else if (path !== renaming) {
-                return null
-            };
+                return null;
+            }
 
             return fileItemInput(project.id + "/" + path, null, () => {
                 renaming = null;
                 fileTree.refreshItem(path);
-            })
+            });
         },
         suffix: (path) => {
             const button = Button({
@@ -99,7 +85,7 @@ export function FileTree(project: Project) {
                 renameButton.onclick = () => {
                     renaming = path;
                     fileTree.refreshItem(path);
-                }
+                };
 
                 const deleteButton = Button({
                     text: "Delete",
@@ -143,7 +129,6 @@ export function FileTree(project: Project) {
             });
         }
     });
-
 
     const pathAbsToRelative = (p: string) => {
         const pathComponents = p.split(project.id + "/");
@@ -191,27 +176,26 @@ export function FileTree(project: Project) {
 
     const createFile = (parent: string) => {
         creating = "file";
-        fileTree.addItem(parent + "")
-    }
+        fileTree.addItem(parent + "");
+    };
     const createDirectory = (parent: string) => {
         creating = "directory";
-        fileTree.addItem(parent + "")
-    }
+        fileTree.addItem(parent + "");
+    };
     const create = async (directory: boolean) => {
         const activeItem = Array.from(fileTree.getActiveItems()).at(0);
         let parent = "";
-        if(activeItem) {
+        if (activeItem) {
             const exists = await fs.exists(project.id + "/" + activeItem);
             const pathComponents = exists.isFile
                 ? activeItem.split("/").slice(0, -1)
                 : activeItem.split("/");
-            parent = pathComponents.length > 0
-                ? pathComponents.join("/") + "/"
-                : ""
+            parent =
+                pathComponents.length > 0 ? pathComponents.join("/") + "/" : "";
         }
 
         return directory ? createDirectory(parent) : createFile(parent);
-    }
+    };
 
     container.append(TopActions(project, fileTree, create), fileTree.container);
 
@@ -241,7 +225,7 @@ function TopActions(
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () => create(false)
+    newFileButton.onclick = () => create(false);
 
     const newDirectoryButton = Button({
         style: "icon-small",
@@ -270,28 +254,26 @@ function TopActions(
         if (activeItem) {
             const exists = await fs.exists(project.id + "/" + activeItem);
             if (!exists) {
-                throw Error("trying to upload under unknown file")
+                throw Error("trying to upload under unknown file");
             }
             const components = exists.isFile
                 ? activeItem.split("/").slice(0, -1)
                 : activeItem.split("/");
-            filePath += components.length > 0
-                ? components.join("/") + "/"
-                : ""
+            filePath += components.length > 0 ? components.join("/") + "/" : "";
         }
-        filePath += file.name
+        filePath += file.name;
 
         const path = project.id + "/" + filePath;
         const data = new Uint8Array(await file.arrayBuffer());
 
-        fs.writeFile(path, data, "file-tree")
+        fs.writeFile(path, data, "file-tree");
         form.reset();
     };
     form.append(fileInput);
     uploadButton.append(form);
     uploadButton.onclick = (e) => {
-        e.stopPropagation()
-        fileInput.click()
+        e.stopPropagation();
+        fileInput.click();
     };
 
     right.append(newFileButton, newDirectoryButton, uploadButton);
@@ -302,7 +284,7 @@ function TopActions(
 }
 
 function fileItemInput(
-    path: string, 
+    path: string,
     create: "file" | "directory",
     onSubmit: () => void
 ) {
@@ -312,7 +294,7 @@ function fileItemInput(
 
     const submit = async () => {
         if (inputText.input.value !== name) {
-            if(create === "directory") {
+            if (create === "directory") {
                 await fs.mkdir(parent + "/" + inputText.input.value);
             } else if (create === "file") {
                 await fs.writeFile(parent + "/" + inputText.input.value, "\n");
@@ -320,19 +302,19 @@ function fileItemInput(
                 await fs.rename(path, parent + "/" + inputText.input.value);
             }
         }
-        onSubmit()
-    }
+        onSubmit();
+    };
 
     const form = document.createElement("form");
 
     form.onsubmit = (e) => {
         e.preventDefault();
         submit();
-    }
+    };
 
-    const inputText = InputText()
+    const inputText = InputText();
     inputText.input.value = name;
-    inputText.input.onclick = e => e.stopPropagation();
+    inputText.input.onclick = (e) => e.stopPropagation();
     inputText.input.onblur = submit;
 
     form.append(inputText.container);

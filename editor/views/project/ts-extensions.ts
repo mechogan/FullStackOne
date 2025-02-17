@@ -47,7 +47,10 @@ function messageChainToArr(
 export const tsAutocomplete =
     (filePath: string) => async (ctx: CompletionContext) => {
         const text = ctx.state.doc.toString();
-        await WorkerTS.call().updateFile(filePath, text);
+        await WorkerTS.call().updateFile(
+            filePath,
+            ctx.view.state.doc.toString()
+        );
 
         let tsCompletions = await WorkerTS.call().getCompletionsAtPosition(
             filePath,

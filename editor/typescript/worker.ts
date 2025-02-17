@@ -15,6 +15,7 @@ import {
 } from "typescript";
 import { parseModuleName } from "./utils";
 import fs_sync from "../lib/fs_sync";
+import { FileEvent, FileEventType } from "../views/project/file-event";
 
 function removeSourceObjects(obj: any) {
     if (typeof obj === "object") {
@@ -72,49 +73,41 @@ export let methods = {
         files: { [path: string]: Uint8Array },
         tsLib: { [path: string]: Uint8Array }
     ) {
-        sourceFiles = {};
-
-        const td = new TextDecoder();
-        for (const [path, data] of Object.entries(files)) {
-            const fileName = path.slice("projects/".length);
-
-            if (path.includes("node_modules")) {
-                const [_, ...rest] = fileName.split("/node_modules/");
-
-                const { name, path } = parseModuleName(rest.join("/"));
-
-                let files = nodeModules.get(name);
-                if (!files) {
-                    files = [];
-                    nodeModules.set(name, files);
-                }
-                files.push(path);
-
-                if (data !== null) {
-                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        td.decode(data)
-                    );
-                }
-            } else if (data !== null) {
-                sourceFiles[fileName] = {
-                    contents: td.decode(data),
-                    version: 1
-                };
-            }
-        }
-
-        for (const [path, data] of Object.entries(tsLib)) {
-            if (data === null) continue;
-
-            scriptSnapshotCache[path.slice("editor/".length)] =
-                ScriptSnapshot.fromString(td.decode(data));
-        }
+        // sourceFiles = {};
+        // const td = new TextDecoder();
+        // for (const [path, data] of Object.entries(files)) {
+        //     const fileName = path.slice("projects/".length);
+        //     if (path.includes("node_modules")) {
+        //         const [_, ...rest] = fileName.split("/node_modules/");
+        //         const { name, path } = parseModuleName(rest.join("/"));
+        //         let files = nodeModules.get(name);
+        //         if (!files) {
+        //             files = new Set();
+        //             nodeModules.set(name, files);
+        //         }
+        //         files.add(path);
+        //         if (data !== null) {
+        //             scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
+        //                 td.decode(data)
+        //             );
+        //         }
+        //     } else if (data !== null) {
+        //         sourceFiles[fileName] = {
+        //             contents: td.decode(data),
+        //             version: 1
+        //         };
+        //     }
+        // }
+        // for (const [path, data] of Object.entries(tsLib)) {
+        //     if (data === null) continue;
+        //     scriptSnapshotCache[path.slice("editor/".length)] =
+        //         ScriptSnapshot.fromString(td.decode(data));
+        // }
     },
     start(currentDirectory: string) {
         if (services) return;
 
         workingDirectory = currentDirectory;
-        workingDirectoryNodeModules = currentDirectory + "/node_modules";
 
         const servicesHost = initLanguageServiceHost();
         services = createLanguageService(
@@ -125,203 +118,221 @@ export let methods = {
             ...methods,
             ...services
         };
-    },
-    invalidateWorkingDirectory() {
-        sourceFiles = null;
+
+        const filePaths = fs_sync.readdir(currentDirectory, [".build", ".git"]);
+        filePaths.forEach((filePath) => {
+            const path = workingDirectory + "/" + filePath;
+            if (!files.has(path)) {
+                files.set(path, {
+                    contents: null,
+                    version: 0,
+                    source: false
+                });
+            }
+        });
     },
     updateFile(fileName: string, contents: string) {
-        makeSureSourceFilesAreLoaded();
-
-        if (fileName.startsWith(workingDirectoryNodeModules)) {
-            scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(contents);
-            return;
+        let file = files?.get(fileName);
+        if (!file) {
+            file = {
+                contents,
+                version: 0,
+                source: false
+            };
+            files.set(fileName, file);
         }
 
-        sourceFiles[fileName] = {
-            contents,
-            version: sourceFiles?.[fileName]?.version
-                ? sourceFiles?.[fileName]?.version + 1
-                : 1
-        };
+        file.contents = contents;
+        file.version += 1;
+
+        // this will make the file a source file from now on
+        file.source = true;
+
+        if (file.deletionTimeout) {
+            clearTimeout(file.deletionTimeout);
+        }
+    },
+    fileEvents(e: FileEvent[]) {
+        if (!workingDirectory) return;
+
+        for (const fileEvent of e) {
+            if (
+                fileEvent.type === FileEventType.MODIFIED &&
+                fileEvent.origin === "code-editor"
+            ) {
+                continue;
+            }
+
+            fileEvent.paths = fileEvent.paths
+                .map((p) => {
+                    if (!p.includes(workingDirectory)) return null;
+
+                    const components = p.split(workingDirectory);
+                    return workingDirectory + components.slice(1).join("/");
+                })
+                .filter(Boolean);
+
+            switch (fileEvent.type) {
+                case FileEventType.CREATED:
+                    if (fileEvent.isFile) {
+                        const p = fileEvent.paths.at(0);
+                        const f = files.get(p);
+                        if (!f) {
+                            files.set(fileEvent.paths.at(0), {
+                                contents: null,
+                                version: 0,
+                                source: false
+                            });
+                        } else if (f.deletionTimeout) {
+                            clearTimeout(f.deletionTimeout);
+                        }
+                    }
+                    break;
+                case FileEventType.MODIFIED:
+                    const file = files.get(fileEvent.paths.at(0));
+                    if (file) {
+                        file.contents = null;
+                        file.version += 1;
+                    }
+                    break;
+                case FileEventType.RENAME:
+                    break;
+                case FileEventType.DELETED:
+                    const path = fileEvent.paths.at(0);
+                    if (fileEvent.isFile) {
+                        deleteFile(path, fileEvent.origin === "git" ? 1000 : 0);
+                    } else {
+                        // delete all sub file to directory
+                        for (const p of files.keys()) {
+                            if (p.startsWith(path)) {
+                                deleteFile(p);
+                            }
+                        }
+                    }
+            }
+        }
     },
 
     ...services
 };
 
-// the root dir of our project
-let workingDirectory: string;
-let workingDirectoryNodeModules: string;
+function deleteFile(path: string, timeout: number = null) {
+    const f = files.get(path);
+    if (f) {
+        if (timeout) {
+            f.deletionTimeout = setTimeout(() => {
+                files.delete(path);
+            }, timeout);
+        } else {
+            files.delete(path);
+        }
+    }
+}
 
-// all files in prooject dir
-// EXCEPT node_modules directory
-let sourceFiles: {
-    [filename: string]: {
+let workingDirectory: string = null;
+let files: Map<
+    string,
+    {
         contents: string;
         version: number;
-    };
-} = null;
-
-// all node_modules directories with there containing files
-let nodeModules: Map<string, string[]> = new Map();
-
-// cache scripts
-const scriptSnapshotCache: {
-    [path: string]: IScriptSnapshot;
-} = {};
-
-function makeSureSourceFilesAreLoaded() {
-    if (sourceFiles !== null) return;
-
-    if (!workingDirectory) {
-        throw new Error(
-            "Trying to load source files before having set working directory."
-        );
+        source: boolean;
+        deletionTimeout?: ReturnType<typeof setTimeout>;
     }
+> = new Map();
 
-    const files = fs_sync
-        .readdir(workingDirectory, ["node_modules", ".build", "data", ".git"])
-        .map((filename) => workingDirectory + "/" + filename);
-
-    sourceFiles = {};
-
-    files.forEach((file) => {
-        sourceFiles[file] = {
-            contents: null,
-            version: 0
-        };
-    });
-}
+const debug = false;
 
 function initLanguageServiceHost(): LanguageServiceHost {
     return {
         getCompilationSettings: () => options,
         getScriptFileNames: function (): string[] {
-            // console.log("getScriptFileNames");
+            if (debug) {
+                console.log("getScriptFileNames");
+            }
 
-            makeSureSourceFilesAreLoaded();
-
-            return Object.keys(sourceFiles);
+            return Array.from(files.entries())
+                .filter(([_, { source }]) => source)
+                .map(([name]) => name);
         },
         getScriptVersion: function (fileName: string) {
-            // console.log("getScriptVersion", fileName);
-
-            if (
-                fileName.includes("tsLib") ||
-                fileName.startsWith(workingDirectoryNodeModules)
-            ) {
-                return "1";
+            if (debug) {
+                console.log("getScriptVersion", fileName);
             }
 
-            makeSureSourceFilesAreLoaded();
-
-            return sourceFiles[fileName].version.toString();
+            return (files.get(fileName)?.version ?? 0).toString();
         },
         getScriptSnapshot: function (fileName: string) {
-            // console.log("getScriptSnapshot", fileName);
-
-            if (fileName.startsWith("tsLib")) {
-                if (!scriptSnapshotCache[fileName]) {
-                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.staticFile(fileName)
-                    );
-                }
-
-                return scriptSnapshotCache[fileName];
-            } else if (fileName.startsWith(workingDirectoryNodeModules)) {
-                if (!scriptSnapshotCache[fileName]) {
-                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(fileName)
-                    );
-                }
-
-                return scriptSnapshotCache[fileName];
+            if (debug) {
+                console.log("getScriptSnapshot", fileName);
             }
 
-            makeSureSourceFilesAreLoaded();
+            let file = files.get(fileName);
 
-            if (!sourceFiles[fileName]) {
+            // we only load on the fly the tsLib files
+            // since they are not in the project directory
+            if (!file && fileName.startsWith("tsLib")) {
+                file = {
+                    contents: fs_sync.staticFile(fileName),
+                    source: false,
+                    version: 1
+                };
+                files.set(fileName, file);
+            }
+
+            if (!file) {
                 return null;
             }
 
-            if (sourceFiles[fileName].contents === null) {
-                sourceFiles[fileName].contents = fs_sync.readFile(fileName);
+            if (file.contents === null) {
+                file.contents = fs_sync.readFile(fileName);
             }
 
-            return ScriptSnapshot.fromString(sourceFiles[fileName].contents);
+            return ScriptSnapshot.fromString(file.contents);
         },
         getCurrentDirectory: function () {
-            // console.log("getCurrentDirectory");
+            if (debug) {
+                console.log("getCurrentDirectory");
+            }
             return "";
         },
         getDefaultLibFileName: function (options: CompilerOptions) {
-            // console.log("getDefaultLibFileName");
+            if (debug) {
+                console.log("getDefaultLibFileName");
+            }
             return "tsLib/lib.d.ts";
         },
         readFile: function (fileName: string) {
-            // console.log("readFile", fileName);
-            if (fileName.startsWith("tsLib")) {
-                if (!scriptSnapshotCache[fileName]) {
-                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.staticFile(fileName)
-                    );
-                }
-
-                return scriptSnapshotCache[fileName].getText(
-                    0,
-                    scriptSnapshotCache[fileName].getLength()
-                );
-            } else if (fileName.startsWith(workingDirectoryNodeModules)) {
-                if (!scriptSnapshotCache[fileName]) {
-                    scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-                        fs_sync.readFile(fileName)
-                    );
-                }
-
-                return scriptSnapshotCache[fileName].getText(
-                    0,
-                    scriptSnapshotCache[fileName].getLength()
-                );
+            if (debug) {
+                console.log("readFile", fileName);
             }
 
-            makeSureSourceFilesAreLoaded();
+            let file = files.get(fileName);
 
-            if (!sourceFiles[fileName]) {
+            if (!file && fileName.startsWith("tsLib")) {
+                file = {
+                    contents: fs_sync.staticFile(fileName),
+                    source: false,
+                    version: 1
+                };
+                files.set(fileName, file);
+            }
+
+            if (!file) {
                 return null;
             }
 
-            if (sourceFiles[fileName].contents === null) {
-                sourceFiles[fileName].contents = fs_sync.readFile(fileName);
+            if (file.contents === null) {
+                file.contents = fs_sync.readFile(fileName);
             }
 
-            return sourceFiles[fileName].contents;
+            return file.contents;
         },
         fileExists: function (fileName: string) {
-            // console.log("fileExists", fileName)
-
-            makeSureSourceFilesAreLoaded();
-
-            if (fileName.startsWith(workingDirectoryNodeModules)) {
-                const { name, path } = parseModuleName(
-                    fileName.slice(workingDirectoryNodeModules.length + 1)
-                );
-
-                let contents = nodeModules.get(name);
-                if (!contents) {
-                    try {
-                        contents = fs_sync.readdir(
-                            workingDirectoryNodeModules + "/" + name,
-                            []
-                        );
-                        nodeModules.set(name, contents);
-                    } catch (e) {
-                        return false;
-                    }
-                }
-
-                return contents.includes(path);
+            if (debug) {
+                console.log("fileExists", fileName);
             }
 
-            return Object.keys(sourceFiles).includes(fileName);
+            return !!files.get(fileName);
         }
     };
 }

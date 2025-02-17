@@ -6,7 +6,7 @@ import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
 import { Project } from "../../types";
 import { CodeEditor } from "./code-editor";
-import { FileEvent, FileEventType } from "./file-tree";
+import { FileEvent, FileEventType } from "./file-event";
 
 export function Editor(project: Project) {
     const container = createElement("div");
@@ -81,27 +81,32 @@ function Tab(path: string) {
     const removeIfDeleted = async (eStr: string) => {
         const fileEvents: FileEvent[] = JSON.parse(eStr);
         for (const e of fileEvents) {
-            if (e.type === FileEventType.DELETED && e.paths.find(p => isChildOf(path, p))) {
+            if (
+                e.type === FileEventType.DELETED &&
+                e.paths.find((p) => isChildOf(path, p))
+            ) {
                 const exists = await fs.exists(path);
-                if(!exists?.isFile)
-                    Store.editor.codeEditor.closeFile(path);
-            } else if (e.type === FileEventType.RENAME && isChildOf(path, e.paths[0])) {
-                const rootDir = path.split("/").shift()
-                const newPath = rootDir + e.paths[1].split(rootDir).pop()
+                if (!exists?.isFile) Store.editor.codeEditor.closeFile(path);
+            } else if (
+                e.type === FileEventType.RENAME &&
+                isChildOf(path, e.paths[0])
+            ) {
+                const rootDir = path.split("/").shift();
+                const newPath = rootDir + e.paths[1].split(rootDir).pop();
                 Store.editor.codeEditor.openFile(newPath);
                 if (currentFocusedFile === path) {
-                    Store.editor.codeEditor.focusFile(newPath)
+                    Store.editor.codeEditor.focusFile(newPath);
                 }
                 Store.editor.codeEditor.closeFile(path);
             }
         }
-    }
+    };
 
-    core_message.addListener("file-event", removeIfDeleted)
+    core_message.addListener("file-event", removeIfDeleted);
 
     Store.editor.codeEditor.focusedFile.subscribe(onFocusFileChange);
     li.ondestroy = () => {
-        core_message.removeListener("file-event", removeIfDeleted)
+        core_message.removeListener("file-event", removeIfDeleted);
         Store.editor.codeEditor.focusedFile.unsubscribe(onFocusFileChange);
     };
 
@@ -109,7 +114,7 @@ function Tab(path: string) {
 }
 
 function isChildOf(path: string, eventPath: string) {
-    if (!eventPath) return false
+    if (!eventPath) return false;
     const rootDir = path.split("/").at(0);
     const [_, filePath] = eventPath.split(rootDir + "/");
     if (!filePath) {
@@ -120,8 +125,7 @@ function isChildOf(path: string, eventPath: string) {
     const eventPathComponents = filePath.split("/");
 
     for (let i = 0; i < eventPathComponents.length; i++) {
-        if (eventPathComponents[i] !== pathComponents[i])
-            return false;
+        if (eventPathComponents[i] !== pathComponents[i]) return false;
     }
 
     return true;
