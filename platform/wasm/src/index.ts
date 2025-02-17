@@ -306,16 +306,22 @@ async function initProjectWindow(projectId: string) {
             } else if (element instanceof HTMLStyleElement) {
                 let innerText = element.innerText;
                 const urlImports = innerText.match(/url\(.*?\)/g);
-                const promises = urlImports.map(async i => {
-                    const url = i.match(/\".*?\"/).at(0).slice(1, -1);
+                const promises = urlImports.map(async (i) => {
+                    const url = i
+                        .match(/\".*?\"/)
+                        .at(0)
+                        .slice(1, -1);
                     const [type, content] = await staticFileServing(
                         projectId,
                         url
                     );
                     const blob = new Blob([content], { type });
-                    element.innerText = innerText.replace(url, URL.createObjectURL(blob))
-                })
-                await Promise.all(promises)
+                    element.innerText = innerText.replace(
+                        url,
+                        URL.createObjectURL(blob)
+                    );
+                });
+                await Promise.all(promises);
             }
 
             webview.window.document.head.append(element);

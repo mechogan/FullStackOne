@@ -10,14 +10,14 @@ type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
 type AwaitAll<T> = {
     [K in keyof T]: T[K] extends (...args: any) => any
-    ? (
-        ...args: T[K] extends (...args: infer P) => any ? P : never[]
-    ) => OnlyOnePromise<
-        T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
-    >
-    : T[K] extends object
-    ? AwaitAll<T[K]>
-    : () => Promise<T[K]>;
+        ? (
+              ...args: T[K] extends (...args: infer P) => any ? P : never[]
+          ) => OnlyOnePromise<
+              T[K] extends (...args: any) => any ? ReturnType<T[K]> : any
+          >
+        : T[K] extends object
+          ? AwaitAll<T[K]>
+          : () => Promise<T[K]>;
 };
 
 function recurseInProxy<T>(target: Function, methodPath: string[] = []) {
@@ -93,8 +93,13 @@ function start(workingDirectory: string) {
             worker.onmessage = async (message) => {
                 if (message.data.ready) {
                     if (platform === Platform.WASM) {
-                        await WorkerTS.call().syncTsLib(globalThis.vfs("editor/tsLib"));
-                        await WorkerTS.call().syncProjectFiles(globalThis.vfs(`projects/${directory}`), false)
+                        await WorkerTS.call().syncTsLib(
+                            globalThis.vfs("editor/tsLib")
+                        );
+                        await WorkerTS.call().syncProjectFiles(
+                            globalThis.vfs(`projects/${directory}`),
+                            false
+                        );
                     }
                     await WorkerTS.call().start(workingDirectory);
                     resolve();
@@ -124,7 +129,7 @@ function dispose() {
     for (const promiseResolve of requests.values()) {
         try {
             promiseResolve(undefined);
-        } catch (e) { }
+        } catch (e) {}
     }
     requests.clear();
     reqsCount = 0;
@@ -142,35 +147,49 @@ if (platform === Platform.WASM) {
         const toRemove: { [fileName: string]: null } = {};
         const filesToResync = [];
         for (const fileEvent of e) {
-            if (fileEvent.origin === "code-editor" || !fileEvent.paths.at(0).includes(directory)) continue;
+            if (
+                fileEvent.origin === "code-editor" ||
+                !fileEvent.paths.at(0).includes(directory)
+            )
+                continue;
 
             switch (fileEvent.type) {
                 case FileEventType.CREATED:
                 case FileEventType.MODIFIED:
-                    filesToResync.push(directory + fileEvent.paths.at(0).split(directory).pop());
+                    filesToResync.push(
+                        directory + fileEvent.paths.at(0).split(directory).pop()
+                    );
                     break;
                 case FileEventType.RENAME:
-                    const path1 = directory + fileEvent.paths.at(0).split(directory).pop();
-                    const path2 = directory + fileEvent.paths.at(0).split(directory).pop();
+                    const path1 =
+                        directory +
+                        fileEvent.paths.at(0).split(directory).pop();
+                    const path2 =
+                        directory +
+                        fileEvent.paths.at(0).split(directory).pop();
                     toRemove[path1] = null;
                     filesToResync.push(path2);
                     break;
                 case FileEventType.DELETED:
-                    const path = directory + fileEvent.paths.at(0).split(directory).pop();
-                    toRemove[path] = null
+                    const path =
+                        directory +
+                        fileEvent.paths.at(0).split(directory).pop();
+                    toRemove[path] = null;
             }
         }
 
-        const toSync: { [fileName: string]: Uint8Array } = {}
-        Promise.all(filesToResync.map(async f => {
-            const files = await globalThis.vfs("projects/" + f);
-            Object.entries(files).forEach(([name, data]) => {
-                if (data === null) return;
-                toSync[name] = data as Uint8Array;
+        const toSync: { [fileName: string]: Uint8Array } = {};
+        Promise.all(
+            filesToResync.map(async (f) => {
+                const files = await globalThis.vfs("projects/" + f);
+                Object.entries(files).forEach(([name, data]) => {
+                    if (data === null) return;
+                    toSync[name] = data as Uint8Array;
+                });
             })
-        })).then(() => WorkerTS?.call().syncProjectFiles(toSync, false));
-        WorkerTS?.call().syncProjectFiles(toRemove, true)
-    })
+        ).then(() => WorkerTS?.call().syncProjectFiles(toSync, false));
+        WorkerTS?.call().syncProjectFiles(toRemove, true);
+    });
 }
 
 const te = new TextEncoder();
