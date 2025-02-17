@@ -10,8 +10,7 @@ import { createRefresheable } from "../../../components/refresheable";
 import git from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
-import { refreshCodeEditorView, saveAllViews } from "../code-editor";
-import { refreshFullFileTree } from "../file-tree";
+import { saveAllViews } from "../code-editor";
 import { Branches } from "./branches";
 
 let branchView = false;
@@ -29,17 +28,20 @@ export function Git(project: Project) {
 
     const { remove } = Dialog(container);
 
-    const closeButton = Button({
-        text: "Close",
-        style: "text"
-    });
-    closeButton.onclick = () => remove();
+    const createCloseButton = () => {
+        const closeButton = Button({
+            text: "Close",
+            style: "text"
+        });
+        closeButton.onclick = () => remove();
+        return closeButton;
+    };
 
     const renderCommitOrBranchView = () => {
         if (branchView) {
-            return Branches(project, closeButton);
+            return Branches(project, createCloseButton());
         } else {
-            return CommitView(project, closeButton);
+            return CommitView(project, createCloseButton);
         }
     };
 
@@ -61,7 +63,10 @@ let refresh: {
     commitAndPush: () => void;
 };
 
-function CommitView(project: Project, closeButton: HTMLButtonElement) {
+function CommitView(
+    project: Project,
+    createCloseButton: () => HTMLButtonElement
+) {
     const container = createElement("div");
 
     const repoInfosRefresheable = createRefresheable(RepoInfos);
@@ -79,7 +84,7 @@ function CommitView(project: Project, closeButton: HTMLButtonElement) {
         author: () => authorRefresheable.refresh(project),
         status: () => statusRefresheable.refresh(project),
         commitAndPush: () =>
-            commitAndPushRefresheable.refresh(project, closeButton)
+            commitAndPushRefresheable.refresh(project, createCloseButton())
     };
 
     const refreshOnProjectUpdate = (projects: Project[]) => {
@@ -113,8 +118,10 @@ function CommitView(project: Project, closeButton: HTMLButtonElement) {
 
     refresh.repoInfo();
     refresh.author();
-    refresh.status();
-    refresh.commitAndPush();
+    saveAllViews().then(() => {
+        refresh.status();
+        refresh.commitAndPush();
+    });
 
     return container;
 }
@@ -136,7 +143,6 @@ export function projectChanges(project: Project) {
 }
 
 async function _projectChanges(project: Project) {
-    await saveAllViews();
     const changes = await git.status(project.id);
     const hasChanges =
         changes.Added.length !== 0 ||
@@ -415,11 +421,9 @@ function ChangesList(changes: Changes, project: Project) {
     const container = document.createElement("div");
     container.classList.add("git-changes");
 
-    const addSection = (
-        subtitle: string,
-        files: string[],
-        revertFile: Parameters<typeof FilesList>[1]
-    ) => {
+    const revertFile = (file: string) => git.restore(project.id, [file]);
+
+    const addSection = (subtitle: string, files: string[]) => {
         if (files.length === 0) return;
 
         const subtitleEl = document.createElement("div");
@@ -428,19 +432,9 @@ function ChangesList(changes: Changes, project: Project) {
         container.append(subtitleEl, FilesList(files, revertFile));
     };
 
-    addSection("Added", changes.Added, async (file: string) => {
-        await git.restore(project.id, [file]);
-        refreshFullFileTree();
-        Store.editor.codeEditor.closeFile(project.id + "/" + file);
-    });
-    addSection("Modified", changes.Modified, async (file: string) => {
-        await git.restore(project.id, [file]);
-        refreshCodeEditorView(project.id + "/" + file);
-    });
-    addSection("Deleted", changes.Deleted, async (file: string) => {
-        await git.restore(project.id, [file]);
-        refreshFullFileTree();
-    });
+    addSection("Added", changes.Added);
+    addSection("Modified", changes.Modified);
+    addSection("Deleted", changes.Deleted);
 
     return container;
 }

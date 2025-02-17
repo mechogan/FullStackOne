@@ -32,6 +32,3 @@ const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {
     Demo();
 }
-
-
-core_message.addListener("file-event", str => console.log(JSON.parse(str)))

@@ -90,7 +90,7 @@ async function build(project: Project) {
     let isUserMode = false;
     const setUM = (um: boolean) => {
         isUserMode = um;
-        Store.preferences.isUserMode.unsubscribe(setUM)
+        Store.preferences.isUserMode.unsubscribe(setUM);
     };
     Store.preferences.isUserMode.subscribe(setUM);
 
@@ -101,7 +101,6 @@ async function build(project: Project) {
             { encoding: "utf8" }
         );
         if (lastBuildHash === head.Hash) {
-            console.log("ici")
             core_open(project.id);
             removeProjectBuild();
             return;

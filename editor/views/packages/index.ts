@@ -12,7 +12,9 @@ let displayedPackages: {
     view: ReturnType<typeof createPackageInfoView>;
 }[] = [];
 
-export function updatePackagesView(packagesInfos: [string, PackageInfoProgress][]) {
+export function updatePackagesView(
+    packagesInfos: [string, PackageInfoProgress][]
+) {
     if (!packagesView) {
         const view = createPackagesView();
         packagesView = {
@@ -22,27 +24,32 @@ export function updatePackagesView(packagesInfos: [string, PackageInfoProgress][
     }
 
     if (removePackagesViewDialogTimeout) {
-        clearTimeout(removePackagesViewDialogTimeout)
+        clearTimeout(removePackagesViewDialogTimeout);
     }
 
     if (packagesInfos.length === 0) {
-        removePackagesViewDialogTimeout = setTimeout(removePackagesViewDialog, 200)
+        removePackagesViewDialogTimeout = setTimeout(
+            removePackagesViewDialog,
+            200
+        );
     } else {
         for (const [name, info] of packagesInfos) {
-            let packageView = displayedPackages.find(p => p.name === name);
+            let packageView = displayedPackages.find((p) => p.name === name);
             if (!packageView) {
                 packageView = {
                     name,
                     view: createPackageInfoView(name)
-                }
+                };
                 packagesView.view.list.append(packageView.view.container);
                 displayedPackages.push(packageView);
             }
-            packageView.view.setProgress(info)
+            packageView.view.setProgress(info);
         }
-    
+
         for (let i = displayedPackages.length - 1; i >= 0; i--) {
-            const stillActive = packagesInfos.find(([name]) => name === displayedPackages[i].name);
+            const stillActive = packagesInfos.find(
+                ([name]) => name === displayedPackages[i].name
+            );
             if (!stillActive) {
                 displayedPackages[i].view.container.remove();
                 displayedPackages.splice(i, 1);

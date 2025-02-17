@@ -3,6 +3,7 @@ import { createSubscribable } from "../store";
 import { numberTo4Bytes } from "../../lib/bridge/serialization";
 import platform, { Platform } from "../../lib/platform";
 import { bridge } from "../../lib/bridge";
+import core_message from "../../lib/core_message";
 
 type OnlyOnePromise<T> = T extends PromiseLike<any> ? T : Promise<T>;
 
@@ -69,6 +70,11 @@ async function restart() {
     return WorkerTS.start(directory);
 }
 
+function passFileEvents(e: string) {
+    if (!worker) return;
+    WorkerTS.call().fileEvents(JSON.parse(e));
+}
+
 let readyPromise: Promise<void>;
 
 function start(workingDirectory: string) {
@@ -105,6 +111,8 @@ function start(workingDirectory: string) {
         });
     }
 
+    core_message.addListener("file-event", passFileEvents);
+
     return readyPromise;
 }
 
@@ -112,6 +120,7 @@ function dispose() {
     readyPromise = null;
     worker?.terminate();
     worker = null;
+    core_message.removeListener("file-event", passFileEvents);
 
     for (const promiseResolve of requests.values()) {
         try {

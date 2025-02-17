@@ -29,7 +29,7 @@ func Unzip(dest string, data []byte) bool {
 
 	for _, zipFile := range zipReader.File {
 		if zipFile.FileInfo().IsDir() {
-			fs.Mkdir(dest + "/" + zipFile.Name, fileEventOrigin)
+			fs.Mkdir(dest+"/"+zipFile.Name, fileEventOrigin)
 		} else {
 			data, err := readZipFile(zipFile)
 			if err != nil {

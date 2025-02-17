@@ -1,10 +1,10 @@
 // this is copied from go-billy memfs
 // source: https://github.com/go-git/go-billy/tree/main/memfs
 /*
-* This memory fs is used as a layer between go-git and fullstacked 
+* This memory fs is used as a layer between go-git and fullstacked
 * WASM agnostic simple fs. It allows to skip ignored/unwanted files from git
 * and track all fs events.
-*/
+ */
 
 package git
 
@@ -32,14 +32,14 @@ const separator = filepath.Separator
 
 type Memory struct {
 	ignore []string
-	
+
 	s *storage
 }
 
 // New returns a new Memory filesystem.
 func NewBillyFS(storage *storage, ignore []string) billy.Filesystem {
 	fs := &Memory{
-		s: storage,
+		s:      storage,
 		ignore: ignore,
 	}
 	_, err := fs.s.New("/", 0755|os.ModeDir, 0)

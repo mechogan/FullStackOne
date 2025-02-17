@@ -1,96 +1,212 @@
-import { createElement, ElementComponent } from "../../components/element";
+import { createFileTree } from "@fullstacked/file-tree";
+import { Project } from "../../types";
+import { createElement } from "../../components/element";
+import fs from "../../../lib/fs";
 import { Button, ButtonGroup } from "../../components/primitives/button";
-import { Icon } from "../../components/primitives/icon";
 import { NEW_FILE_ID } from "../../constants";
 import { Store } from "../../store";
-import { Project } from "../../types";
+import { Icon } from "../../components/primitives/icon";
 import { Popover } from "../../components/popover";
+import core_message from "../../../lib/core_message";
 import { InputText } from "../../components/primitives/inputs";
-import { createRefresheable } from "../../components/refresheable";
-import fs from "../../../lib/fs";
+import { FileEvent, FileEventType } from "./file-event";
 
-type FileTreeItemCommon = {
-    name: string;
-    parent: string;
-    element: ElementComponent<HTMLLIElement>;
-    elementName: HTMLSpanElement;
-};
+const directoryIconOpen = Icon("Caret");
+directoryIconOpen.classList.add("open");
+const directoryIconClose = Icon("Caret");
 
-type FileTreeItemFile = FileTreeItemCommon & {
-    type: "file";
-};
+const hide = ["/.build", "/.git"];
 
-type FileTreeItemDirectory = FileTreeItemCommon & {
-    type: "directory";
-    childrenList: null | ElementComponent<HTMLUListElement>;
-    children: null | string[];
-};
-
-type FileTreeItem = FileTreeItemFile | FileTreeItemDirectory;
-
-type FileTree = Map<string, FileTreeItem>;
-
-export let refreshFullFileTree: () => void;
-
-let tree: FileTree,
-    activeItemPath: string,
-    openedFileTreeItemDirectoryPath = new Set<string>();
 export function FileTree(project: Project) {
     const container = createElement("div");
-    container.classList.add("file-tree");
+    container.classList.add("file-tree-container");
 
-    const renderFileTree = async () => {
-        const maybeUpdateRoot = (tree?.get(project.id) as FileTreeItemDirectory)
-            ?.childrenList;
-        if (maybeUpdateRoot) {
-            refresheableFileTree.element = maybeUpdateRoot;
+    let creating: "file" | "directory" = null;
+    let renaming = null;
+
+    const fileTree = createFileTree({
+        readDirectory: async (path: string) => {
+            const content = await fs.readdir(project.id + "/" + path, {
+                withFileTypes: true
+            });
+            return content.filter((i) => !hide.includes(path + "/" + i.name));
+        },
+        isDirectory: async (path: string) => {
+            if (creating && (!path || path.endsWith("/"))) {
+                return creating === "directory";
+            }
+            return !(await fs.exists(project.id + "/" + path))?.isFile;
+        },
+        indentWidth: 15,
+        directoryIcons: {
+            open: directoryIconOpen,
+            close: directoryIconClose
+        },
+        prefix: (path) => {
+            const div = document.createElement("div");
+            div.classList.add("dev-icon");
+
+            const devIconClass = pathToDevIconClass(path);
+            if (devIconClass) {
+                div.classList.add(devIconClass);
+            }
+
+            return div;
+        },
+        name: (path) => {
+            if (creating && (!path || path.endsWith("/"))) {
+                return fileItemInput(project.id + "/" + path, creating, () => {
+                    creating = null;
+                    fileTree.removeItem(path);
+                });
+            } else if (path !== renaming) {
+                return null;
+            }
+
+            return fileItemInput(project.id + "/" + path, null, () => {
+                renaming = null;
+                fileTree.refreshItem(path);
+            });
+        },
+        suffix: (path) => {
+            const button = Button({
+                style: "icon-small",
+                iconLeft: "Options"
+            });
+
+            button.onclick = (e) => {
+                e.stopPropagation();
+
+                const renameButton = Button({
+                    text: "Rename",
+                    iconLeft: "Edit"
+                });
+
+                renameButton.onclick = () => {
+                    renaming = path;
+                    fileTree.refreshItem(path);
+                };
+
+                const deleteButton = Button({
+                    text: "Delete",
+                    iconLeft: "Trash",
+                    color: "red"
+                });
+
+                deleteButton.onclick = () => {
+                    const pathAbs = project.id + "/" + path;
+                    fs.exists(pathAbs).then((exists) => {
+                        if (!exists) return;
+
+                        if (exists.isFile) {
+                            fs.unlink(pathAbs);
+                        } else {
+                            fs.rmdir(pathAbs);
+                        }
+                    });
+                };
+
+                const buttonGroup = ButtonGroup([renameButton, deleteButton]);
+
+                Popover({
+                    anchor: button,
+                    content: buttonGroup,
+                    align: {
+                        x: "left",
+                        y: "top"
+                    }
+                });
+            };
+
+            return button;
+        },
+        onSelect: (path) => {
+            const pathAbs = project.id + "/" + path;
+            fs.exists(pathAbs).then((exists) => {
+                if (!exists?.isFile) return;
+                Store.editor.codeEditor.openFile(pathAbs);
+                Store.editor.codeEditor.focusFile(pathAbs);
+            });
+        }
+    });
+
+    const pathAbsToRelative = (p: string) => {
+        const pathComponents = p.split(project.id + "/");
+        if (pathComponents.length !== 2) {
+            return null;
+        }
+        return pathComponents.at(-1);
+    };
+
+    const onFileEvents = (e: string) => {
+        const fileEvents = (JSON.parse(e) as FileEvent[])
+            .map((e) => {
+                e.paths = e.paths.map(pathAbsToRelative);
+                return e;
+            })
+            .filter(
+                (e) =>
+                    !e.paths.some(
+                        (p) =>
+                            p === null ||
+                            hide.find((h) => p.startsWith("/" + h))
+                    )
+            );
+
+        for (const event of fileEvents) {
+            switch (event.type) {
+                case FileEventType.CREATED:
+                    fileTree.addItem(event.paths.at(0));
+                    break;
+                case FileEventType.RENAME:
+                    fileTree.removeItem(event.paths.at(0));
+                    fileTree.addItem(event.paths.at(1));
+                    break;
+                case FileEventType.DELETED:
+                    fileTree.removeItem(event.paths.at(0));
+                    break;
+            }
+        }
+    };
+
+    core_message.addListener("file-event", onFileEvents);
+    container.ondestroy = () => {
+        core_message.removeListener("file_event", onFileEvents);
+    };
+
+    const createFile = (parent: string) => {
+        creating = "file";
+        fileTree.addItem(parent + "");
+    };
+    const createDirectory = (parent: string) => {
+        creating = "directory";
+        fileTree.addItem(parent + "");
+    };
+    const create = async (directory: boolean) => {
+        const activeItem = Array.from(fileTree.getActiveItems()).at(0);
+        let parent = "";
+        if (activeItem) {
+            const exists = await fs.exists(project.id + "/" + activeItem);
+            const pathComponents = exists.isFile
+                ? activeItem.split("/").slice(0, -1)
+                : activeItem.split("/");
+            parent =
+                pathComponents.length > 0 ? pathComponents.join("/") + "/" : "";
         }
 
-        const root = createElement("ul");
-
-        tree = new Map([
-            [
-                project.id,
-                {
-                    type: "directory",
-                    name: project.id,
-                    parent: "",
-                    element: createElement("li"),
-                    elementName: null,
-                    childrenList: root,
-                    children: null
-                }
-            ]
-        ]);
-
-        const rootItems = await OpenDirectory(project.id, true);
-        root.append(...rootItems);
-
-        return root;
+        return directory ? createDirectory(parent) : createFile(parent);
     };
 
-    const scrollableTree = document.createElement("div");
-    const refresheableFileTree = createRefresheable(renderFileTree);
-    scrollableTree.append(refresheableFileTree.element);
-    refreshFullFileTree = () => refresheableFileTree.refresh();
-    refreshFullFileTree();
-
-    const topActions = TopActions(project);
-
-    container.append(topActions, scrollableTree);
-
-    container.ondestroy = () => {
-        topActions.destroy();
-
-        tree = null;
-        activeItemPath = null;
-        openedFileTreeItemDirectoryPath = new Set();
-    };
+    container.append(TopActions(project, fileTree, create), fileTree.container);
 
     return container;
 }
 
-function TopActions(project: Project) {
+function TopActions(
+    project: Project,
+    fileTree: ReturnType<typeof createFileTree>,
+    create: (directory: boolean) => void
+) {
     const container = createElement("div");
 
     const left = document.createElement("div");
@@ -109,17 +225,13 @@ function TopActions(project: Project) {
         iconLeft: "File Add"
     });
     newFileButton.id = NEW_FILE_ID;
-    newFileButton.onclick = () => {
-        newFileItemForm(project, false);
-    };
+    newFileButton.onclick = () => create(false);
 
     const newDirectoryButton = Button({
         style: "icon-small",
         iconLeft: "Directory Add"
     });
-    newDirectoryButton.onclick = () => {
-        newFileItemForm(project, true);
-    };
+    newDirectoryButton.onclick = () => create(true);
 
     const uploadButton = Button({
         style: "icon-small",
@@ -136,21 +248,33 @@ function TopActions(project: Project) {
             return;
         }
 
-        const activeItem = tree.get(activeItemPath);
-        const parentPath = activeItem
-            ? activeItem.type === "file"
-                ? activeItem.parent
-                : activeItemPath
-            : project.id;
-        const path = parentPath + "/" + file.name;
+        const activeItem = Array.from(fileTree.getActiveItems()).at(0);
+
+        let filePath = "";
+        if (activeItem) {
+            const exists = await fs.exists(project.id + "/" + activeItem);
+            if (!exists) {
+                throw Error("trying to upload under unknown file");
+            }
+            const components = exists.isFile
+                ? activeItem.split("/").slice(0, -1)
+                : activeItem.split("/");
+            filePath += components.length > 0 ? components.join("/") + "/" : "";
+        }
+        filePath += file.name;
+
+        const path = project.id + "/" + filePath;
         const data = new Uint8Array(await file.arrayBuffer());
 
-        fs.writeFile(path, data, "file-tree").then(() => OpenDirectory(parentPath));
+        fs.writeFile(path, data, "file-tree");
         form.reset();
     };
     form.append(fileInput);
     uploadButton.append(form);
-    uploadButton.onclick = () => fileInput.click();
+    uploadButton.onclick = (e) => {
+        e.stopPropagation();
+        fileInput.click();
+    };
 
     right.append(newFileButton, newDirectoryButton, uploadButton);
 
@@ -159,405 +283,93 @@ function TopActions(project: Project) {
     return container;
 }
 
-async function OpenDirectory(
-    fileTreeItemDirectoryPath: string,
-    returnChildren = false
+function fileItemInput(
+    path: string,
+    create: "file" | "directory",
+    onSubmit: () => void
 ) {
-    const fileTreeItem = tree.get(fileTreeItemDirectoryPath);
-
-    // undiscovered directory
-    if (!fileTreeItem) {
-        return;
-    } else if (fileTreeItem.type === "file") {
-        return;
-    }
-
-    openedFileTreeItemDirectoryPath.add(fileTreeItemDirectoryPath);
-
-    const fileTreeItemDirectory = fileTreeItem as FileTreeItemDirectory;
-
-    const children = await fs.readdir(fileTreeItemDirectoryPath, {
-        withFileTypes: true
-    });
-    fileTreeItemDirectory.children = children.map((child) => {
-        const childPath = `${fileTreeItemDirectoryPath}/${child.name}`;
-        const { element, elementName } = createFileTreeElement({
-            path: childPath,
-            ...child
-        });
-        if (child.isDirectory) {
-            element.onclick = (e) => {
-                e.stopPropagation();
-                ToggleDirectory(childPath);
-                setActiveItem(childPath);
-            };
-
-            tree.set(childPath, {
-                type: "directory",
-                name: child.name,
-                parent: fileTreeItemDirectoryPath,
-                childrenList: null,
-                children: null,
-                element,
-                elementName
-            });
-        } else {
-            element.onclick = (e) => {
-                e.stopPropagation();
-                setActiveItem(childPath);
-                Store.editor.codeEditor.openFile(childPath);
-                Store.editor.codeEditor.focusFile(childPath);
-            };
-
-            tree.set(childPath, {
-                type: "file",
-                name: child.name,
-                parent: fileTreeItemDirectoryPath,
-                element,
-                elementName
-            });
-        }
-
-        if (activeItemPath === childPath) {
-            setActiveItem(childPath);
-        }
-
-        return childPath;
-    });
-
-    const childrenElements = fileTreeItemDirectory.children
-        .map((childPath) => tree.get(childPath))
-        .filter(filterFilesAndDirectories)
-        .sort(sortFilesAndDirectories)
-        .map((child) => child.element);
-
-    fileTreeItemDirectory.element?.classList?.add("opened");
-
-    if (!returnChildren) {
-        const childrenList = createElement("ul");
-        childrenList.onclick = (e) => e.stopPropagation();
-        childrenList.append(...childrenElements);
-
-        if (fileTreeItemDirectory.childrenList === null) {
-            fileTreeItemDirectory.element.append(childrenList);
-        } else {
-            fileTreeItemDirectory.childrenList.replaceWith(childrenList);
-        }
-
-        fileTreeItemDirectory.childrenList = childrenList;
-    }
-
-    const openSubDirectoriesPromises = fileTreeItemDirectory.children
-        .filter((childPath) => {
-            const fileTreeItem = tree.get(childPath);
-            return (
-                fileTreeItem &&
-                fileTreeItem.type === "directory" &&
-                openedFileTreeItemDirectoryPath.has(childPath)
-            );
-        })
-        .map((childPath) => OpenDirectory(childPath));
-
-    await Promise.all(openSubDirectoriesPromises);
-
-    if (returnChildren) {
-        return childrenElements;
-    }
-}
-
-function filterFilesAndDirectories(fileTreeItem: FileTreeItem) {
-    return (
-        !fileTreeItem.name.startsWith(".build") &&
-        !fileTreeItem.name.startsWith(".git")
-    );
-}
-
-function sortFilesAndDirectories(a: FileTreeItem, b: FileTreeItem) {
-    if (a.type === "directory" && b.type === "file") {
-        return -1;
-    } else if (a.type === "file" && b.type === "directory") {
-        return 1;
-    }
-
-    return a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1;
-}
-
-function createFileTreeElement(opts: {
-    path: string;
-    name: string;
-    isDirectory: boolean;
-}) {
-    const element = createElement("li");
-
-    const elementName = document.createElement("div");
-    elementName.classList.add("name-and-options");
-    element.append(elementName);
-
-    const nameContainer = document.createElement("div");
-    nameContainer.classList.add("name");
-    nameContainer.innerHTML = `<span>${opts.name}</span>`;
-    elementName.append(nameContainer);
-
-    if (opts.isDirectory) {
-        const icon = Icon("Caret");
-        nameContainer.prepend(icon);
-    }
-
-    const optionsButton = Button({
-        style: "icon-small",
-        iconLeft: "Options"
-    });
-    optionsButton.onclick = (e) => {
-        e.stopPropagation();
-        fileTreeItemOptions(opts.path, optionsButton);
-    };
-    elementName.append(optionsButton);
-
-    return {
-        element,
-        elementName
-    };
-}
-
-function ToggleDirectory(fileTreeItemDirectoryPath: string) {
-    const fileTreeItem = tree.get(fileTreeItemDirectoryPath);
-
-    // undiscovered directory
-    if (!fileTreeItem) {
-        return;
-    } else if (fileTreeItem.type === "file") {
-        return;
-    }
-
-    const fileTreeItemDirectory = fileTreeItem as FileTreeItemDirectory;
-
-    if (fileTreeItemDirectory.childrenList) {
-        if (fileTreeItemDirectoryPath !== activeItemPath) return;
-        fileTreeItemDirectory.element.classList.remove("opened");
-        fileTreeItemDirectory.childrenList.remove();
-        fileTreeItemDirectory.childrenList = null;
-        openedFileTreeItemDirectoryPath.delete(fileTreeItemDirectoryPath);
-    } else {
-        OpenDirectory(fileTreeItemDirectoryPath);
-    }
-}
-
-function setActiveItem(fileTreeItemPath: string) {
-    if (activeItemPath) {
-        const lastActiveFileTreeItem = tree.get(activeItemPath);
-        lastActiveFileTreeItem?.element?.classList.remove("active");
-        activeItemPath = null;
-    }
-
-    const fileTreeItem = tree.get(fileTreeItemPath);
-
-    // undiscovered item
-    if (!fileTreeItem) {
-        return;
-    }
-
-    fileTreeItem.element.classList.add("active");
-    activeItemPath = fileTreeItemPath;
-}
-
-function fileTreeItemOptions(
-    fileTreeItemPath: string,
-    optionsButton: HTMLButtonElement
-) {
-    const fileTreeItem = tree.get(fileTreeItemPath);
-
-    const renameButton = Button({
-        text: "Rename",
-        iconLeft: "Edit"
-    });
-
-    renameButton.onclick = () => {
-        fileTreeItemForm(fileTreeItemPath);
-    };
-
-    const deleteButton = Button({
-        text: "Delete",
-        iconLeft: "Trash",
-        color: "red"
-    });
-
-    deleteButton.onclick = async () => {
-        if (fileTreeItem.type === "file") {
-            await fs.unlink(fileTreeItemPath, "file-tree");
-            Store.editor.codeEditor.closeFile(fileTreeItemPath);
-        } else {
-            await fs.rmdir(fileTreeItemPath, "file-tree");
-            Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
-        }
-        OpenDirectory(fileTreeItem.parent);
-    };
-
-    const parentFileTreeItem = tree.get(
-        fileTreeItem.parent
-    ) as FileTreeItemDirectory;
-    const isRootList = parentFileTreeItem.parent === "";
-    const parentChildrenList = Array.from(
-        parentFileTreeItem.childrenList.children
-    );
-    let shouldDisplayOptionsReversed = false;
-    if (isRootList && parentChildrenList.length > 4) {
-        const indexOf = parentChildrenList.indexOf(fileTreeItem.element);
-        shouldDisplayOptionsReversed = parentChildrenList.length - indexOf <= 2;
-    }
-
-    Popover({
-        anchor: optionsButton,
-        content: ButtonGroup(
-            shouldDisplayOptionsReversed
-                ? [deleteButton, renameButton]
-                : [renameButton, deleteButton]
-        ),
-        align: {
-            y: shouldDisplayOptionsReversed ? "bottom" : "top",
-            x: "right"
-        }
-    });
-}
-
-function fileTreeItemForm(fileTreeItemPath: string) {
-    const fileTreeItem = tree.get(fileTreeItemPath);
-
-    // undiscovered item
-    if (!fileTreeItem) {
-        return;
-    }
-
-    const form = document.createElement("form");
-    const inputName = InputText();
-    inputName.input.value = fileTreeItem.name;
-    inputName.input.onclick = (e) => e.stopPropagation();
-
-    if (fileTreeItem.type === "directory") {
-        form.append(Icon("Caret"));
-    }
-
-    form.append(inputName.container);
+    const pathComponents = path.split("/");
+    const name = pathComponents.pop();
+    const parent = pathComponents.join("/");
 
     const submit = async () => {
-        form.replaceWith(fileTreeItem.elementName);
-
-        const newPath = fileTreeItem.parent + "/" + inputName.input.value;
-
-        if (newPath === fileTreeItemPath) {
-            return;
-        }
-
-        if (fileTreeItem.type === "file") {
-            await fs.rename(fileTreeItemPath, newPath, "file-tree");
-            tree.delete(fileTreeItemPath);
-            Store.editor.codeEditor.closeFile(fileTreeItemPath);
-        } else if (fileTreeItem.type === "directory") {
-            await fs.rename(fileTreeItemPath, newPath, "file-tree");
-            Store.editor.codeEditor.closeFilesUnderDirectory(fileTreeItemPath);
-        }
-
-        OpenDirectory(fileTreeItem.parent);
-    };
-
-    inputName.input.onblur = submit;
-
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        submit();
-    };
-
-    fileTreeItem.elementName.replaceWith(form);
-
-    const dotIndex = inputName.input.value.lastIndexOf(".");
-    setTimeout(() => {
-        inputName.input.focus();
-
-        if (inputName.input.value) {
-            inputName.input.setSelectionRange(
-                0,
-                dotIndex === -1 ? inputName.input.value.length : dotIndex
-            );
-        }
-    }, 1);
-}
-
-async function newFileItemForm(project: Project, forDirectory: boolean) {
-    const itemElement = document.createElement("li");
-
-    const form = document.createElement("form");
-    const inputName = InputText();
-    inputName.input.onclick = (e) => e.stopPropagation();
-
-    if (forDirectory) {
-        form.append(Icon("Caret"));
-    }
-
-    form.append(inputName.container);
-
-    itemElement.append(form);
-
-    const submit = async () => {
-        const value = inputName.input.value;
-
-        if (!value) {
-            itemElement.remove();
-            return;
-        }
-
-        const parentPath =
-            (parent.parent ? parent.parent + "/" : "") + parent.name;
-        const path = parentPath + "/" + value;
-
-        if (forDirectory) {
-            await fs.mkdir(path, "file-tree");
-        } else {
-            await fs.writeFile(path, "\n", "file-tree");
-        }
-
-        itemElement.remove();
-
-        OpenDirectory(parentPath);
-    };
-
-    inputName.input.onblur = submit;
-
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        submit();
-    };
-
-    let parent: FileTreeItemDirectory;
-    if (activeItemPath) {
-        const activeFileTreeItem = tree.get(activeItemPath);
-
-        if (activeFileTreeItem) {
-            if (activeFileTreeItem.type === "directory") {
-                if (!activeFileTreeItem.childrenList) {
-                    await OpenDirectory(activeItemPath);
-                }
-
-                parent = activeFileTreeItem;
-            } else if (activeFileTreeItem.type === "file") {
-                const activeFileTreeItemParent = tree.get(
-                    activeFileTreeItem.parent
-                ) as FileTreeItemDirectory;
-
-                if (!activeFileTreeItemParent.childrenList) {
-                    await OpenDirectory(activeFileTreeItem.parent);
-                }
-
-                parent = activeFileTreeItemParent;
+        if (inputText.input.value !== name) {
+            if (create === "directory") {
+                await fs.mkdir(parent + "/" + inputText.input.value);
+            } else if (create === "file") {
+                await fs.writeFile(parent + "/" + inputText.input.value, "\n");
+            } else {
+                await fs.rename(path, parent + "/" + inputText.input.value);
             }
         }
-    }
+        onSubmit();
+    };
 
-    if (!parent) {
-        parent = tree.get(project.id) as FileTreeItemDirectory;
-    }
+    const form = document.createElement("form");
 
-    parent.childrenList.append(itemElement);
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        submit();
+    };
 
+    const inputText = InputText();
+    inputText.input.value = name;
+    inputText.input.onclick = (e) => e.stopPropagation();
+    inputText.input.onblur = submit;
+
+    form.append(inputText.container);
+
+    const dotIndex = name.lastIndexOf(".");
     setTimeout(() => {
-        inputName.input.focus();
-    }, 1);
+        inputText.input.focus();
+
+        if (inputText.input.value) {
+            inputText.input.setSelectionRange(
+                0,
+                dotIndex === -1 ? name.length : dotIndex
+            );
+        }
+    });
+
+    return form;
+}
+
+function pathToDevIconClass(path: string) {
+    const ext = path.split(".").pop();
+    switch (ext) {
+        case "ts":
+        case "cts":
+        case "mts":
+            return "typescript";
+        case "js":
+        case "cjs":
+        case "mjs":
+            return "javascript";
+        case "tsx":
+        case "jsx":
+            return "react";
+        case "html":
+            return "html";
+        case "sass":
+        case "scss":
+            return "sass";
+        case "css":
+            return "css";
+        case "json":
+            return "json";
+        case "md":
+            return "markdown";
+        case "liquid":
+            return "liquid";
+        case "png":
+        case "jpg":
+        case "jpeg":
+            return "image";
+        case "svg":
+            return "svg";
+        case "npmignore":
+            return "npm";
+        default:
+            return "default";
+    }
 }

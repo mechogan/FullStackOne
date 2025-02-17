@@ -106,7 +106,6 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
     }
     
     func downloadDidFinish(_ download: WKDownload) {
-        print("ICICICI2");
         self.openDownloadDirectory()
     }
 }
