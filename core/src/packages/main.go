@@ -352,8 +352,9 @@ func InstallQuick(installationId float64, directory string) {
 }
 
 type DirectPackageJSON struct {
-	Dependencies    map[string]string `json:"dependencies,omitempty"`
-	DevDependencies map[string]string `json:"devDependencies,omitempty"`
+	Dependencies    map[string]string `json:"dependencies"`
+	DevDependencies map[string]string `json:"devDependencies"`
+	raw             map[string]json.RawMessage
 }
 
 type PackageLock struct {
@@ -361,7 +362,19 @@ type PackageLock struct {
 }
 
 func (installation *Installation) updatePackageAndLock() {
-	direct := DirectPackageJSON{}
+	direct := DirectPackageJSON{
+		Dependencies: map[string]string{},
+		DevDependencies: map[string]string{},
+		raw: map[string]json.RawMessage{},
+	}
+
+	packageJsonFilePath := path.Join(installation.BaseDirectory, "package.json");
+
+	exists, isFile := fs.Exists(packageJsonFilePath);
+	if(exists && isFile) {
+		packageJsonData, _ := fs.ReadFile(packageJsonFilePath);
+		json.Unmarshal(packageJsonData, &direct.raw);
+	}
 
 	for _, p := range installation.Packages {
 		if !p.Direct {
@@ -395,11 +408,20 @@ func (installation *Installation) updatePackageAndLock() {
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(direct, "", "    ")
+	if(len(direct.Dependencies) > 0) {
+		dependencies, _ := json.MarshalIndent(direct.Dependencies, "", "    ")
+		direct.raw["dependencies"] = json.RawMessage(dependencies)
+	}
+	if(len(direct.DevDependencies) > 0) {
+		devDependencies, _ := json.MarshalIndent(direct.DevDependencies, "", "    ")
+		direct.raw["devDependencies"] = json.RawMessage(devDependencies)
+	}
+
+	jsonData, err := json.MarshalIndent(direct.raw, "", "    ")
 	if err != nil {
 		fmt.Println(err)
 	}
-	fs.WriteFile(path.Join(installation.BaseDirectory, "package.json"), jsonData, fileEventOrigin)
+	fs.WriteFile(packageJsonFilePath, jsonData, fileEventOrigin)
 
 	lock := &PackageLock{
 		Packages: []PackageLockJSON{},
