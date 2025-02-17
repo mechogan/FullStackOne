@@ -363,17 +363,17 @@ type PackageLock struct {
 
 func (installation *Installation) updatePackageAndLock() {
 	direct := DirectPackageJSON{
-		Dependencies: map[string]string{},
+		Dependencies:    map[string]string{},
 		DevDependencies: map[string]string{},
-		raw: map[string]json.RawMessage{},
+		raw:             map[string]json.RawMessage{},
 	}
 
-	packageJsonFilePath := path.Join(installation.BaseDirectory, "package.json");
+	packageJsonFilePath := path.Join(installation.BaseDirectory, "package.json")
 
-	exists, isFile := fs.Exists(packageJsonFilePath);
-	if(exists && isFile) {
-		packageJsonData, _ := fs.ReadFile(packageJsonFilePath);
-		json.Unmarshal(packageJsonData, &direct.raw);
+	exists, isFile := fs.Exists(packageJsonFilePath)
+	if exists && isFile {
+		packageJsonData, _ := fs.ReadFile(packageJsonFilePath)
+		json.Unmarshal(packageJsonData, &direct.raw)
 	}
 
 	for _, p := range installation.Packages {
@@ -408,11 +408,11 @@ func (installation *Installation) updatePackageAndLock() {
 		}
 	}
 
-	if(len(direct.Dependencies) > 0) {
+	if len(direct.Dependencies) > 0 {
 		dependencies, _ := json.MarshalIndent(direct.Dependencies, "", "    ")
 		direct.raw["dependencies"] = json.RawMessage(dependencies)
 	}
-	if(len(direct.DevDependencies) > 0) {
+	if len(direct.DevDependencies) > 0 {
 		devDependencies, _ := json.MarshalIndent(direct.DevDependencies, "", "    ")
 		direct.raw["devDependencies"] = json.RawMessage(devDependencies)
 	}

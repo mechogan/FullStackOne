@@ -47,7 +47,7 @@ export function Terminal(project: Project) {
 
     closeButton.onclick = () => {
         Store.editor.setTerminalOpen(false);
-    }
+    };
 
     return container;
 }
