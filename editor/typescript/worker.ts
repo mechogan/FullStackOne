@@ -1,5 +1,4 @@
 import {
-    IScriptSnapshot,
     createLanguageService,
     createDocumentRegistry,
     CompilerOptions,
@@ -13,8 +12,7 @@ import {
     isSourceFile,
     version
 } from "typescript";
-import { parseModuleName } from "./utils";
-import fs_sync from "../lib/fs_sync";
+import fs_sync, { cache as fsCache, initCache } from "../lib/fs_sync";
 import { FileEvent, FileEventType } from "../views/project/file-event";
 
 function removeSourceObjects(obj: any) {
@@ -64,45 +62,41 @@ const options: CompilerOptions = {
     jsx: JsxEmit.React
 };
 let services: LanguageService;
+let td: TextDecoder;
 
 export let methods = {
     version() {
         return version;
     },
-    preloadFS(
-        files: { [path: string]: Uint8Array },
-        tsLib: { [path: string]: Uint8Array }
+    // for WASM only
+    syncTsLib(tsLib: { [path: string]: Uint8Array }) {
+        initCache();
+        if (!td) td = new TextDecoder();
+        for (const [path, data] of Object.entries(tsLib)) {
+            if (data === null) continue;
+
+            const p = path.slice("editor/".length);
+            fsCache.set(p, td.decode(data));
+        }
+    },
+    // for WASM only
+    syncProjectFiles(
+        projectFiles: { [path: string]: Uint8Array },
+        remove: boolean
     ) {
-        // sourceFiles = {};
-        // const td = new TextDecoder();
-        // for (const [path, data] of Object.entries(files)) {
-        //     const fileName = path.slice("projects/".length);
-        //     if (path.includes("node_modules")) {
-        //         const [_, ...rest] = fileName.split("/node_modules/");
-        //         const { name, path } = parseModuleName(rest.join("/"));
-        //         let files = nodeModules.get(name);
-        //         if (!files) {
-        //             files = new Set();
-        //             nodeModules.set(name, files);
-        //         }
-        //         files.add(path);
-        //         if (data !== null) {
-        //             scriptSnapshotCache[fileName] = ScriptSnapshot.fromString(
-        //                 td.decode(data)
-        //             );
-        //         }
-        //     } else if (data !== null) {
-        //         sourceFiles[fileName] = {
-        //             contents: td.decode(data),
-        //             version: 1
-        //         };
-        //     }
-        // }
-        // for (const [path, data] of Object.entries(tsLib)) {
-        //     if (data === null) continue;
-        //     scriptSnapshotCache[path.slice("editor/".length)] =
-        //         ScriptSnapshot.fromString(td.decode(data));
-        // }
+        initCache();
+        if (!td) td = new TextDecoder();
+
+        for (const [path, data] of Object.entries(projectFiles)) {
+            if (!data) {continue
+            };
+            const fileName = path.slice("projects/".length);
+            if (remove) {
+                fsCache.delete(fileName);
+            } else {
+                fsCache.set(fileName, td.decode(data));
+            }
+        }
     },
     start(currentDirectory: string) {
         if (services) return;
@@ -287,7 +281,9 @@ function initLanguageServiceHost(): LanguageServiceHost {
                 file.contents = fs_sync.readFile(fileName);
             }
 
-            return ScriptSnapshot.fromString(file.contents);
+            return file.contents 
+                ? ScriptSnapshot.fromString(file.contents) 
+                : null;
         },
         getCurrentDirectory: function () {
             if (debug) {
