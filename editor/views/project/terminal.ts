@@ -3,6 +3,7 @@ import { createElement } from "../../components/element";
 import { Store } from "../../store";
 import { npm } from "../../commands/npm";
 import { Project } from "../../types";
+import { Button } from "../../components/primitives/button";
 
 const commands: Command[] = [
     ...npm,
@@ -36,6 +37,17 @@ export function Terminal(project: Project) {
         Store.editor.terminalOpen.unsubscribe(toggleTerminal);
         dispose();
     };
+
+    const closeButton = Button({
+        style: "icon-small",
+        iconLeft: "Arrow"
+    });
+
+    container.append(closeButton);
+
+    closeButton.onclick = () => {
+        Store.editor.setTerminalOpen(false);
+    }
 
     return container;
 }

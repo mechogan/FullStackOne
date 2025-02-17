@@ -2,6 +2,7 @@
 @use "../../style/values/typography.scss";
 @use "../../style/values/colors.scss";
 @use "./dev-icons.scss";
+@use "../../../node_modules/@fullstacked/terminal/terminal.scss";
 
 $file-tree-panel-width: 235px;
 
@@ -252,6 +253,14 @@ $file-tree-panel-width: 235px;
         padding: 0;
         background-color: black;
         border-top-left-radius: spacing.$small;
+        position: relative;
+
+        > button {
+            position: absolute;
+            top: spacing.$x-small;
+            right: spacing.$x-small;
+            transform: rotate(-90deg);
+        }
 
         &.open {
             padding: spacing.$x-small;

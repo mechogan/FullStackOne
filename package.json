@@ -30,7 +30,7 @@
         "@codemirror/view": "^6.34.1",
         "@fullstacked/file-tree": "^0.0.8",
         "@fullstacked/stack-navigation": "^0.0.3",
-        "@fullstacked/terminal": "^0.0.10",
+        "@fullstacked/terminal": "^0.0.14",
         "@types/adm-zip": "^0.5.6",
         "@types/node": "^22.10.1",
         "@types/semver": "^7.5.8",
