@@ -1,11 +1,6 @@
+import { Button, Icon, Message, InputText, ButtonGroup, Popover, Dialog } from "@fullstacked/ui";
 import { refreshGitWidgetBranchAndCommit } from "..";
-import { Dialog } from "../../../components/dialog";
 import { createElement } from "../../../components/element";
-import { Message } from "../../../components/message";
-import { Popover } from "../../../components/popover";
-import { Button, ButtonGroup } from "../../../components/primitives/button";
-import { Icon } from "../../../components/primitives/icon";
-import { InputText } from "../../../components/primitives/inputs";
 import { createRefresheable } from "../../../components/refresheable";
 import git from "../../../lib/git";
 import { Store } from "../../../store";

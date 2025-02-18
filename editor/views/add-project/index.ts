@@ -1,5 +1,4 @@
-import platform, { Platform } from "../../../lib/platform";
-import { Button } from "../../components/primitives/button";
+import { Button } from "@fullstacked/ui";
 import { TopBar } from "../../components/top-bar";
 import { BG_COLOR, IMPORT_ZIP_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";

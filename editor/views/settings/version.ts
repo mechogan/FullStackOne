@@ -1,11 +1,11 @@
 import { bridge } from "../../../lib/bridge";
 import { serializeArgs } from "../../../lib/bridge/serialization";
 import core_fetch from "../../../lib/fetch";
-import { Badge } from "../../components/primitives/badge";
 import esbuild from "../../lib/esbuild";
 import { WorkerTS } from "../../typescript";
 import semver from "semver";
 import * as sass from "sass";
+import { Badge } from "@fullstacked/ui";
 
 export function Version() {
     const container = document.createElement("div");

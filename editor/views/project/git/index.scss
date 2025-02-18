@@ -1,6 +1,6 @@
-@use "../../../style/values/typography.scss";
-@use "../../../style/values/spacing.scss";
-@use "../../../style/values/colors.scss";
+@use "../../../../node_modules/@fullstacked/ui/values/typography.scss";
+@use "../../../../node_modules/@fullstacked/ui/values/spacing.scss";
+@use "../../../../node_modules/@fullstacked/ui/values/colors.scss";
 
 .git-dialog {
     display: flex;
@@ -119,6 +119,8 @@
         flex-direction: column;
 
         form {
+            display: flex;
+            flex-direction: column;
             padding-top: spacing.$small;
             .message {
                 padding-top: spacing.$small;

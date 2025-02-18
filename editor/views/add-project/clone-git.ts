@@ -1,5 +1,3 @@
-import { Button } from "../../components/primitives/button";
-import { InputText } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import {
@@ -13,6 +11,7 @@ import stackNavigation from "../../stack-navigation";
 import { BG_COLOR } from "../../constants";
 import core_message from "../../../lib/core_message";
 import git from "../../lib/git";
+import { Button, InputText } from "@fullstacked/ui";
 
 export function CloneGit(repoUrl?: string) {
     const { container, scrollable } = ViewScrollable();

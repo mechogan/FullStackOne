@@ -77,11 +77,11 @@ fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
 });
 
 await processScss(
-    "editor/style/globals/scrollbars.scss",
+    "editor/style/scrollbars.scss",
     `${outDirEditor}/scrollbars.css`
 );
 
-fs.cpSync("editor/icons", `${outDirEditor}/icons`, {
+fs.cpSync("node_modules/@fullstacked/ui/icons", `${outDirEditor}/icons`, {
     recursive: true
 });
 

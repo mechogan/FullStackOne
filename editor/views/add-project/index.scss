@@ -1,5 +1,5 @@
-@use "../../style/values/spacing.scss";
-@use "../../style/values/colors.scss";
+@use "../../../node_modules/@fullstacked/ui/values/spacing.scss";
+@use "../../../node_modules/@fullstacked/ui/values/colors.scss";
 
 #add-project {
     padding-bottom: spacing.$small;

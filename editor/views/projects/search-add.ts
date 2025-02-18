@@ -1,5 +1,4 @@
-import { Button } from "../../components/primitives/button";
-import { InputText } from "../../components/primitives/inputs";
+import { Button, InputText } from "@fullstacked/ui";
 import { NEW_PROJECT_ID } from "../../constants";
 import { AddProject } from "../add-project";
 import { filterProjects } from "./list";

@@ -1,16 +1,10 @@
+import { Button, Icon, Loader, Badge, Popover, ButtonGroup, InputText } from "@fullstacked/ui";
 import { projectChanges, toggleCommitAndBranchView } from ".";
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { createElement } from "../../../components/element";
-import { Loader } from "../../../components/loader";
-import { Popover } from "../../../components/popover";
-import { Badge } from "../../../components/primitives/badge";
-import { Button, ButtonGroup } from "../../../components/primitives/button";
-import { Icon } from "../../../components/primitives/icon";
-import { InputText } from "../../../components/primitives/inputs";
 import { createRefresheable } from "../../../components/refresheable";
 import git from "../../../lib/git";
 import { Project } from "../../../types";
-import { refreshAllCodeEditorView } from "../code-editor";
 
 let refreshBranches: ReturnType<typeof createRefresheable>["refresh"];
 

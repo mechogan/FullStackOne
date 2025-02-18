@@ -1,15 +1,12 @@
 import Fuse, { IFuseOptions } from "fuse.js";
-import { Dialog } from "../../components/dialog";
 import { createElement } from "../../components/element";
-import { Popover } from "../../components/popover";
-import { Button, ButtonGroup } from "../../components/primitives/button";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
 import { Project as ProjectType } from "../../types";
 import { Project } from "../project";
 import { ProjectSettings } from "../project-settings";
 import archive from "../../lib/archive";
-import { Loader } from "../../components/loader";
+import { Loader, Button, ButtonGroup, Popover, Dialog } from "@fullstacked/ui";
 
 let userMode = false;
 export function List() {

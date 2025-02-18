@@ -1,4 +1,3 @@
-import { Button } from "../../components/primitives/button";
 import { ViewScrollable } from "../../components/view-scrollable";
 import {
     BG_COLOR,
@@ -12,6 +11,7 @@ import { SearchAdd } from "./search-add";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { PeersWidget } from "./peers-widget";
 import { Settings } from "../settings";
+import { Button } from "@fullstacked/ui";
 
 export function Projects() {
     const { container, scrollable } = ViewScrollable();

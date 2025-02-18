@@ -1,5 +1,3 @@
-import { Button } from "../components/primitives/button";
-import { InputText } from "../components/primitives/inputs";
 import { TopBar } from "../components/top-bar";
 import { ViewScrollable } from "../components/view-scrollable";
 import slugify from "slugify";
@@ -7,6 +5,7 @@ import stackNavigation from "../stack-navigation";
 import { BG_COLOR } from "../constants";
 import { Project } from "../types";
 import { Store } from "../store";
+import { Button, InputText } from "@fullstacked/ui";
 
 export function ProjectSettings(project: Project) {
     const { container, scrollable } = ViewScrollable();

@@ -1,6 +1,4 @@
 import prettyBytes from "pretty-bytes";
-import { Loader } from "../../components/loader";
-import { InputFile } from "../../components/primitives/inputs";
 import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import { BG_COLOR, IMPORT_PROJECT_FILE_INPUT_ID } from "../../constants";
@@ -11,6 +9,7 @@ import { CONFIG_TYPE } from "../../types";
 import archive from "../../lib/archive";
 import fs from "../../../lib/fs";
 import config from "../../lib/config";
+import { InputFile, Loader } from "@fullstacked/ui";
 
 export function ImportZip() {
     const { container, scrollable } = ViewScrollable();

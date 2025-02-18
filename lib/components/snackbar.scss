@@ -1,6 +1,6 @@
-@use "../../editor/style/values/spacing.scss";
-@use "../../editor/style/values/colors.scss";
-@use "../../editor/style/values/typography.scss";
+@use "../../node_modules/@fullstacked/ui/values/spacing.scss";
+@use "../../node_modules/@fullstacked/ui/values/colors.scss";
+@use "../../node_modules/@fullstacked/ui/values/typography.scss";
 
 .snack-bars-container {
     display: flex;

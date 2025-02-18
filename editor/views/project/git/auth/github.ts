@@ -1,10 +1,8 @@
-import { Dialog } from "../../../../components/dialog";
-import { Button } from "../../../../components/primitives/button";
-import { Icon } from "../../../../components/primitives/icon";
 import { createElement } from "../../../../components/element";
 import { CONFIG_TYPE } from "../../../../types";
 import config from "../../../../lib/config";
 import core_fetch from "../../../../../lib/fetch";
+import { Button, Dialog, Icon } from "@fullstacked/ui";
 
 export function GitHubDeviceFlow() {
     const container = createElement("div");

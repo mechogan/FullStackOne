@@ -2,14 +2,11 @@ import { createFileTree } from "@fullstacked/file-tree";
 import { Project } from "../../types";
 import { createElement } from "../../components/element";
 import fs from "../../../lib/fs";
-import { Button, ButtonGroup } from "../../components/primitives/button";
 import { NEW_FILE_ID } from "../../constants";
 import { Store } from "../../store";
-import { Icon } from "../../components/primitives/icon";
-import { Popover } from "../../components/popover";
 import core_message from "../../../lib/core_message";
-import { InputText } from "../../components/primitives/inputs";
 import { FileEvent, FileEventType } from "./file-event";
+import { Button, ButtonGroup, Icon, InputText, Popover } from "@fullstacked/ui";
 
 const directoryIconOpen = Icon("Caret");
 directoryIconOpen.classList.add("open");

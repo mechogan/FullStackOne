@@ -1,7 +1,7 @@
+import { Button } from "@fullstacked/ui";
 import core_message from "../../../lib/core_message";
 import fs from "../../../lib/fs";
 import { createElement } from "../../components/element";
-import { Button } from "../../components/primitives/button";
 import { createRefresheable } from "../../components/refresheable";
 import { Store } from "../../store";
 import { Project } from "../../types";

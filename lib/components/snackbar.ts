@@ -3,7 +3,7 @@ This file must follow the figma design
 https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=415-3655
 */
 
-import { Button } from "../../editor/components/primitives/button"
+import type { Button } from "@fullstacked/ui";
 
 type SnackBarOpt = {
     message: string,

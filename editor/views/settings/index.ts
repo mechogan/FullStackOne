@@ -2,14 +2,11 @@ import { TopBar } from "../../components/top-bar";
 import { ViewScrollable } from "../../components/view-scrollable";
 import stackNavigation from "../../stack-navigation";
 import { BG_COLOR, SETTINGS_VIEW_ID } from "../../constants";
-import { createRefresheable } from "../../components/refresheable";
-import { Project } from "../project";
 import { Version } from "./version";
 import { GitAuthentications } from "./git-authentications";
-import fs from "../../../lib/fs";
-import { InputSwitch } from "../../components/primitives/inputs";
 import { createElement } from "../../components/element";
 import { Store } from "../../store";
+import { InputSwitch } from "@fullstacked/ui";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();

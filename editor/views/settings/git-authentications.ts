@@ -1,7 +1,5 @@
+import { Button, ButtonGroup, Popover, InputText } from "@fullstacked/ui";
 import { createElement } from "../../components/element";
-import { Popover } from "../../components/popover";
-import { Button, ButtonGroup } from "../../components/primitives/button";
-import { InputText } from "../../components/primitives/inputs";
 import { createRefresheable } from "../../components/refresheable";
 import config from "../../lib/config";
 import { CONFIG_TYPE, GitAuths } from "../../types";

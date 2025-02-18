@@ -1,7 +1,7 @@
+import { Button } from "@fullstacked/ui";
 import { BACK_BUTTON_CLASS } from "../constants";
 import stackNavigation from "../stack-navigation";
 import { createElement } from "./element";
-import { Button } from "./primitives/button";
 
 type TopBarOpts = {
     noBack: boolean;

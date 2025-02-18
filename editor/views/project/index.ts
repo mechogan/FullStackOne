@@ -2,21 +2,18 @@ import type { Project as ProjectType } from "../../types";
 import { BG_COLOR, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
-import { Button } from "../../components/primitives/button";
-import { FileTree } from "./file-tree";
 import { Store } from "../../store";
 import { createElement, ElementComponent } from "../../components/element";
 import { Editor } from "./editor";
 import { WorkerTS } from "../../typescript";
-import { Loader } from "../../components/loader";
 import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
-import { Icon } from "../../components/primitives/icon";
 import { createRefresheable } from "../../components/refresheable";
-import fs from "../../../lib/fs";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
 import { Terminal } from "./terminal";
+import { Button, Icon, Loader } from "@fullstacked/ui";
+import { FileTree } from "./file-tree";
 
 let lastOpenedProjectId: string;
 export function Project(project: ProjectType, run = false) {
@@ -53,8 +50,6 @@ export function Project(project: ProjectType, run = false) {
 }
 
 function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
-    const actions: ElementComponent[] = [];
-
     const gitWidget = GitWidget(project);
 
     const tsButton = Button({
@@ -75,18 +70,13 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     tsButton.onclick = () => {
         WorkerTS.restart();
     };
-    tsButton.ondestroy = () => {
-        WorkerTS.working.unsubscribe(flashOnWorking);
-    };
 
     const runButton = RunButton(project);
-
-    actions.push(gitWidget, tsButton, runButton);
 
     const topBar = TopBarComponent({
         title: project.title,
         subtitle: project.id,
-        actions,
+        actions: [gitWidget, tsButton, runButton],
         onBack: () => {
             if (fileTreeAndEditor.classList.contains("closed-panel")) {
                 Store.editor.setSidePanelClosed(false);
@@ -98,7 +88,7 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
     });
 
     topBar.ondestroy = () => {
-        actions.forEach((e) => e.destroy());
+        WorkerTS.working.unsubscribe(flashOnWorking);
         gitWidget?.destroy();
         runButton?.destroy();
     };

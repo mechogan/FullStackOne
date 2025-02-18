@@ -4,24 +4,15 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 */
 
 // globals
-@use "style/globals/colors.scss";
-@use "style/globals/spacing.scss";
-@use "style/globals/typography.scss";
-@use "style/globals/input.scss";
-@use "style/globals/list.scss";
-@use "style/globals/winbox.scss";
+@use "style/colors.scss";
+@use "style/spacing.scss";
+@use "style/list.scss";
+@use "style/winbox.scss";
 
 // components
-@use "components/primitives/badge.scss";
-@use "components/primitives/button.scss";
-@use "components/primitives/icon.scss";
-@use "components/primitives/inputs.scss";
 @use "components/top-bar.scss";
 @use "components/view-scrollable.scss";
-@use "components/popover.scss";
-@use "components/loader.scss";
-@use "components/dialog.scss";
-@use "components/message.scss";
+@use "../node_modules/@fullstacked/ui/ui.scss";
 @use "../lib/components/snackbar.scss";
 
 // views
@@ -32,12 +23,6 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 @use "views/project/index.scss" as index4;
 @use "views/project/git/index.scss" as index5;
 @use "views/packages/index.scss" as index6;
-
-* {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    box-sizing: border-box;
-}
 
 html,
 body {

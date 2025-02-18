@@ -1,8 +1,8 @@
-@use "../../style/values/spacing.scss";
-@use "../../style/values/typography.scss";
-@use "../../style/values/colors.scss";
-@use "./dev-icons.scss";
+@use "../../../node_modules/@fullstacked/ui/values/spacing.scss";
+@use "../../../node_modules/@fullstacked/ui/values/typography.scss";
+@use "../../../node_modules/@fullstacked/ui/values/colors.scss";
 @use "../../../node_modules/@fullstacked/terminal/terminal.scss";
+@use "./dev-icons.scss";
 
 $file-tree-panel-width: 235px;
 

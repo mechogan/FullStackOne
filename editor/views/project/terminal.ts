@@ -3,7 +3,7 @@ import { createElement } from "../../components/element";
 import { Store } from "../../store";
 import { npm } from "../../commands/npm";
 import { Project } from "../../types";
-import { Button } from "../../components/primitives/button";
+import { Button } from "@fullstacked/ui";
 
 const commands: Command[] = [
     ...npm,

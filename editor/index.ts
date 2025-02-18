@@ -1,4 +1,4 @@
-import "./index.css";
+import "./init";
 import core_message from "../lib/core_message";
 import { deeplink } from "./deeplink";
 import { Demo } from "./demo";
@@ -6,6 +6,7 @@ import config from "./lib/config";
 import { CONFIG_TYPE } from "./types";
 import { updatePackagesView } from "./views/packages";
 import { Projects } from "./views/projects";
+import * as UI from "@fullstacked/ui";
 
 core_message.addListener("deeplink", deeplink);
 

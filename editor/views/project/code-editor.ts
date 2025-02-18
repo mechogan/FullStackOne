@@ -1,4 +1,4 @@
-import { EditorView, hoverTooltip, keymap, ViewPlugin } from "@codemirror/view";
+import { EditorView, hoverTooltip, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { createElement } from "../../components/element";
 import { createRefresheable } from "../../components/refresheable";

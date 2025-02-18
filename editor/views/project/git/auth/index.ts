@@ -1,10 +1,8 @@
-import { Dialog } from "../../../../components/dialog";
-import { InputText } from "../../../../components/primitives/inputs";
 import { GitHubDeviceFlow } from "./github";
-import { Button } from "../../../../components/primitives/button";
 import { createElement } from "../../../../components/element";
 import { CONFIG_TYPE } from "../../../../types";
 import config from "../../../../lib/config";
+import { Button, Dialog, InputText } from "@fullstacked/ui";
 
 export function GitAuth(hostname: string): Promise<boolean> {
     if (hostname === "github.com") {
