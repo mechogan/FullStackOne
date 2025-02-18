@@ -1,0 +1,26 @@
+@use "../../node_modules/@fullstacked/ui/values/colors.scss";
+@use "../../node_modules/@fullstacked/ui/values/spacing.scss";
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 5px;
+    background-color: colors.opacity(colors.$gray-dark, 0);
+}
+
+::-webkit-scrollbar:hover {
+    background-color: colors.opacity(colors.$gray-dark, 50);
+}
+
+::-webkit-scrollbar-thumb {
+    background: colors.opacity(colors.$gray, 50);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: colors.opacity(colors.$gray, 80);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-corner {
+    background-color: colors.opacity(colors.$gray-dark, 0);
+}

@@ -1,0 +1,7 @@
+@use "../../node_modules/@fullstacked/ui/values/colors.scss";
+
+html,
+body {
+    background-color: colors.$blue-dark;
+    color: colors.$light;
+}
