@@ -59,7 +59,7 @@ export async function buildSASS(project: Project): Promise<Partial<Message>> {
         });
     } catch (e) {
         const error = e as unknown as sass.Exception;
-        const file = error.span.url?.pathname || entryPointSASS;
+        const file = project.id + (error.span.url?.pathname || ("/" + entryPointSASS));
         const line = error.span.start.line + 1;
         const column = error.span.start.column;
         const length = error.span.text.length;
