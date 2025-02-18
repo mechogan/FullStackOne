@@ -6,11 +6,11 @@
         "moduleResolution": "Node"
     },
     "exclude": [
+        "demo",
         "out",
         "platform/android",
         "platform/apple",
         "platform/docker",
-        "platform/node/editor",
-        "editor-sample-demo"
+        "platform/node/editor"
     ]
 }

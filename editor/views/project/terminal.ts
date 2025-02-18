@@ -28,8 +28,10 @@ export function Terminal(project: Project) {
             container.classList.add("open");
             container.querySelector("textarea").focus();
             setTimeout(() => {
-                container.querySelector(".xterm-scroll-area")?.scrollIntoView(false)
-            }, 500)
+                container
+                    .querySelector(".xterm-scroll-area")
+                    ?.scrollIntoView(false);
+            }, 500);
         } else {
             container.classList.remove("open");
         }
