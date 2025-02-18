@@ -74,7 +74,7 @@ function EditorVersion() {
 
 async function getLatestVersionTag() {
     const response = await core_fetch(
-        "https://api.github.com/repos/fullstackedorg/editor/releases/latest",
+        "https://api.github.com/repos/fullstackedorg/fullstacked/releases/latest",
         {
             encoding: "utf8"
         }

@@ -91,7 +91,7 @@ function CommitView(
     };
 
     const refreshOnProjectUpdate = (projects: Project[]) => {
-        project = projects.find(({ id }) => project.id === id);
+        project = projects.find(({ id }) => project?.id === id);
         refresh.author();
         refresh.commitAndPush();
     };

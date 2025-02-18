@@ -42,7 +42,7 @@ async function demoFromZip() {
     );
 }
 
-const demoRepoUrl = "https://github.com/fullstackedorg/editor-sample-demo.git";
+const demoRepoUrl = "https://github.com/fullstackedorg/demo.git";
 
 async function demoFromGitHub() {
     let checkForDone: (message: string) => void;

@@ -85,7 +85,7 @@ fs.cpSync("node_modules/@fullstacked/ui/icons", `${outDirEditor}/icons`, {
     recursive: true
 });
 
-const sampleDemoDir = "editor-sample-demo";
+const sampleDemoDir = "demo";
 if (fs.existsSync(sampleDemoDir)) {
     const zip = new AdmZip();
     zip.addLocalFolder(sampleDemoDir, "", (file) => !file.startsWith(".git"));

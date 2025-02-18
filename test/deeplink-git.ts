@@ -51,7 +51,7 @@ await page.evaluate(async () => {
             return (
                 title &&
                 (title.toLocaleLowerCase() === "demo" ||
-                    title === "fullstackedorg/editor-sample-demo")
+                    title === "fullstackedorg/demo")
             );
         });
         return demoProjects?.at(0);
@@ -83,7 +83,7 @@ await sleep(2000);
 
 const DEMO_TITLE = "Demo";
 editorProcess2 = child_process.exec(
-    `node index.js https://github.com/fullstackedorg/editor-sample-demo.git`,
+    `node index.js https://github.com/fullstackedorg/demo.git`,
     {
         cwd: process.cwd() + "/platform/node",
         env: {
