@@ -1,4 +1,12 @@
-import { Button, Icon, Loader, Badge, Popover, ButtonGroup, InputText } from "@fullstacked/ui";
+import {
+    Button,
+    Icon,
+    Loader,
+    Badge,
+    Popover,
+    ButtonGroup,
+    InputText
+} from "@fullstacked/ui";
 import { projectChanges, toggleCommitAndBranchView } from ".";
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { createElement } from "../../../components/element";
