@@ -245,9 +245,9 @@ $file-tree-panel-width: 235px;
 
     .terminal-container {
         margin: 0 0 - spacing.$medium;
-        height: 0%;
-        max-height: 300px;
-        transition: 0.2s height;
+        height: 50%;
+        max-height: 0px;
+        transition: 0.2s max-height;
         overflow: hidden;
 
         padding: 0;
@@ -264,7 +264,7 @@ $file-tree-panel-width: 235px;
 
         &.open {
             padding: spacing.$x-small;
-            height: 50%;
+            max-height: 300px;
         }
     }
 
