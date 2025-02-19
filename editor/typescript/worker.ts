@@ -113,6 +113,11 @@ export let methods = {
             ...services
         };
 
+        // settings gets typescript version
+        if(currentDirectory === "") {
+            return;
+        }
+
         const filePaths = fs_sync.readdir(currentDirectory, [".build", ".git"]);
         filePaths.forEach((filePath) => {
             const path = workingDirectory + "/" + filePath;
