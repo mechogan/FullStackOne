@@ -106,12 +106,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="editor\lib\components\snackbar.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="editor\lib\components\snackbar.ts">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="win-arm64.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

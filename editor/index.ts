@@ -1,12 +1,12 @@
 import "./init";
 import core_message from "../lib/core_message";
-import { deeplink } from "./deeplink";
+import { deeplink, WindowsAskForAdmin } from "./deeplink";
 import { Demo } from "./demo";
 import config from "./lib/config";
 import { CONFIG_TYPE } from "./types";
 import { updatePackagesView } from "./views/packages";
 import { Projects } from "./views/projects";
-import * as UI from "@fullstacked/ui";
+import platform, { Platform } from "../lib/platform";
 
 core_message.addListener("deeplink", deeplink);
 
@@ -14,7 +14,7 @@ core_message.addListener("deeplink", deeplink);
 if (navigator.userAgent.includes("Windows")) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/scrollbars.css";
+    link.href = "/windows.css";
     document.head.append(link);
 }
 
@@ -31,5 +31,9 @@ core_message.addListener("package", (dataStr) => {
 
 const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {
+    if(platform === Platform.WINDOWS) {
+        WindowsAskForAdmin()
+    }
+
     Demo();
 }

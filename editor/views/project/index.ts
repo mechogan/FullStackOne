@@ -16,7 +16,7 @@ import { Button, Icon, Loader } from "@fullstacked/ui";
 import { FileTree } from "./file-tree";
 
 let lastOpenedProjectId: string;
-export function Project(project: ProjectType, run = false) {
+export function Project(project: ProjectType) {
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();

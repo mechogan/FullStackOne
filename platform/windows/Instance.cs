@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using Windows.UI.Popups;
 
 namespace FullStacked
 {
     internal class Instance
     {
-        private Boolean isEditor;
         public String id;
 
         private byte[] header;
 
-        public Instance(String id, Boolean isEditor = false) { 
-            this.isEditor = isEditor;
+        public Instance(String id, Boolean isEditor = false) {
             this.id = id;
 
             if (isEditor)

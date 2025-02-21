@@ -17,14 +17,12 @@ var fileEventOrigin = "archive"
 
 func SerializedArgsToFileEntries(args []any) []FileEntry {
 	entries := []FileEntry{}
-	i := 0
-	for i < len(args) {
+	for i := 0; i < len(args); i += 3 {
 		entries = append(entries, FileEntry{
 			Name:  args[i].(string),
 			IsDir: args[i+1].(bool),
 			Data:  args[i+2].([]byte),
 		})
-		i += 3
 	}
 	return entries
 }

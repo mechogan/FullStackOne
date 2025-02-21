@@ -77,8 +77,8 @@ fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
 });
 
 await processScss(
-    "editor/style/scrollbars.scss",
-    `${outDirEditor}/scrollbars.css`
+    "editor/style/windows.scss",
+    `${outDirEditor}/windows.css`
 );
 
 fs.cpSync("node_modules/@fullstacked/ui/icons", `${outDirEditor}/icons`, {

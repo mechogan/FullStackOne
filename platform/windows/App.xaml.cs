@@ -12,6 +12,9 @@ using Windows.UI;
 using Microsoft.Win32;
 using System.Security.Principal;
 using System.Reflection;
+using Windows.UI.Popups;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml.Controls;
 
 namespace FullStacked
 {
@@ -22,7 +25,6 @@ namespace FullStacked
 
         public App()
         {
-            Trace.WriteLine(RuntimeInformation.ProcessArchitecture);
             switch (RuntimeInformation.ProcessArchitecture)
             {
                 case Architecture.X64:
@@ -52,7 +54,7 @@ namespace FullStacked
             {
                 String directoryLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 RegistryKey key = Registry.ClassesRoot.CreateSubKey("fullstacked", true);
-                key.SetValue("", "url:myprotocol");
+                key.SetValue("", "url:protocol");
                 key.SetValue("URL Protocol", "");
 
                 RegistryKey shell = key.CreateSubKey(@"shell\open\command", true);

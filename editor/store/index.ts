@@ -54,6 +54,7 @@ export function createSubscribable<T>(
 ): {
     notify: () => void;
     subscription: {
+        check: () => T,
         subscribe: (onUpdate: (value: Awaited<T>) => void) => void;
         unsubscribe: (onUpdate: (value: Awaited<T>) => void) => void;
     };
@@ -96,6 +97,7 @@ export function createSubscribable<T>(
     return {
         notify,
         subscription: {
+            check: () => value,
             subscribe,
             unsubscribe
         }

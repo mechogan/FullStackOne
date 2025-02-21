@@ -327,10 +327,8 @@ func archiveSwitch(isEditor bool, method int, baseDir string, args []any) []byte
 		out := path.Join(baseDir, args[1].(string))
 		skip := []string{}
 		if len(args) > 2 {
-			i := 2
-			for i < len(args) {
+			for i := 2; i < len(args); i++ {
 				skip = append(skip, args[i].(string))
-				i++
 			}
 		}
 		return archive.ZipFileToFileSerialized(entry, out, skip)
@@ -338,10 +336,8 @@ func archiveSwitch(isEditor bool, method int, baseDir string, args []any) []byte
 		entry := path.Join(baseDir, args[0].(string))
 		skip := []string{}
 		if len(args) > 1 {
-			i := 1
-			for i < len(args) {
+			for i := 1; i < len(args); i++ {
 				skip = append(skip, args[i].(string))
-				i++
 			}
 		}
 		return archive.ZipFileToDataSerialized(entry, skip)

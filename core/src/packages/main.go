@@ -328,27 +328,44 @@ func InstallQuick(installationId float64, directory string) {
 		return installation.LocalPackages[i].Locations[0] < installation.LocalPackages[j].Locations[0]
 	})
 
+
 	wg := sync.WaitGroup{}
 	mutex := sync.Mutex{}
+	maxGoroutines := 20;
 
-	for _, pInfo := range installation.LocalPackages {
-		v, _ := semver.NewVersion(pInfo.Version)
-		p := NewPackageFromLock(pInfo.Name, v, "")
-
-		sort.Slice(pInfo.Locations, func(i, j int) bool {
-			return pInfo.Locations[i] < pInfo.Locations[j]
-		})
-
-		for _, l := range pInfo.Locations {
-			wg.Add(1)
-			go p.Install(&installation, l, &wg, &mutex)
-		}
-	}
+	guard := make(chan struct{}, maxGoroutines)
+    for _, pInfo := range installation.LocalPackages {
+        guard <- struct{}{} // would block if guard channel is already filled
+		wg.Add(1)
+        go func(p PackageLockJSON) {
+            installPackageFromLock(&installation, p, &wg, &mutex)
+            <-guard
+        }(pInfo)
+    }
 
 	wg.Wait()
 
 	installation.Duration = float64(time.Now().UnixMilli() - start)
 	installation.notify()
+}
+
+func installPackageFromLock(installation *Installation, pInfo PackageLockJSON, parentWg *sync.WaitGroup, mutex *sync.Mutex) {
+	v, _ := semver.NewVersion(pInfo.Version)
+	p := NewPackageFromLock(pInfo.Name, v, "")
+
+	sort.Slice(pInfo.Locations, func(i, j int) bool {
+		return pInfo.Locations[i] < pInfo.Locations[j]
+	})
+
+	wg := sync.WaitGroup{}
+
+	for _, l := range pInfo.Locations {
+		wg.Add(1)
+		go p.Install(installation, l, &wg, mutex)
+	}
+
+	wg.Wait()
+	parentWg.Done()
 }
 
 type DirectPackageJSON struct {

@@ -1,3 +1,5 @@
+import { Button, Dialog } from "@fullstacked/ui";
+import { createElement } from "./components/element";
 import config from "./lib/config";
 import { Store } from "./store";
 import { CONFIG_TYPE, Project as ProjectType } from "./types";
@@ -11,7 +13,7 @@ export async function deeplink(fullstackedUrl: string) {
     let url = fullstackedUrl.slice("fullstacked://".length);
 
     const [protocol, ...rest] = url.split("//");
-    const [hostAndPath, queryString] = rest.join("//").split("?");
+    const [hostAndPath] = rest.join("//").split("?");
     url = protocol + (protocol.endsWith(":") ? "" : ":") + "//" + hostAndPath;
 
     const runProjectIfFound = (projects: ProjectType[]) => {
@@ -19,8 +21,14 @@ export async function deeplink(fullstackedUrl: string) {
             (p) => p.gitRepository?.url === url
         );
         if (existingProject) {
-            Project(existingProject, true);
             Store.projects.list.unsubscribe(runProjectIfFound);
+
+            let isUserMode = Store.preferences.isUserMode.check();
+            if(!isUserMode) {
+                Project(existingProject);
+            }
+
+            Store.projects.build(existingProject);
             return true;
         }
 
@@ -33,4 +41,22 @@ export async function deeplink(fullstackedUrl: string) {
 
     Store.projects.list.subscribe(runProjectIfFound);
     CloneGit(url);
+}
+
+
+export function WindowsAskForAdmin() {
+    const container = createElement("div");
+    container.classList.add("win-admin-dialog");
+    container.innerHTML = `
+        <h1>Welcome to FullStacked!</h1>
+        <p>Please close the app and reopen it with <b>Run as administrator</b>.<p>
+        <p>It will register FullStacked's deeplink and enable the <b>Open in FullStacked</b> feature in your system.</p>
+        <p>You only have to do this operation <b>once</b>.</p>
+    `;
+    const closeButton = Button({
+        text: "Understood"
+    });
+    container.append(closeButton);
+    const { remove } = Dialog(container);
+    closeButton.onclick = () => remove();
 }
