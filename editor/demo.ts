@@ -2,13 +2,13 @@ import { bridge } from "../lib/bridge";
 import { serializeArgs } from "../lib/bridge/serialization";
 import core_fetch from "../lib/fetch";
 import core_message from "../lib/core_message";
-import archive from "./lib/archive";
 import git from "./lib/git";
 import {
     createAndMoveProject,
     randomStr,
     tmpDir
 } from "./views/add-project/import-zip";
+import archive from "../lib/archive";
 
 export async function Demo() {
     try {
@@ -27,9 +27,9 @@ async function demoFromZip() {
         ...serializeArgs(["Demo.zip"])
     ]);
 
-    const [_, demoZipData] = await bridge(payload);
+    const [_, demoZipData] = (await bridge(payload)) as [string, Uint8Array];
     const tmpDirectory = tmpDir + "/" + randomStr(6);
-    await archive.unzip(tmpDirectory, demoZipData);
+    await archive.unzip(demoZipData, tmpDirectory);
     createAndMoveProject(
         tmpDirectory,
         {

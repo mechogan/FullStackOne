@@ -6,10 +6,10 @@ import stackNavigation from "../../stack-navigation";
 import slugify from "slugify";
 import { Store } from "../../store";
 import { CONFIG_TYPE } from "../../types";
-import archive from "../../lib/archive";
 import fs from "../../../lib/fs";
 import config from "../../lib/config";
 import { InputFile, Loader } from "@fullstacked/ui";
+import archive from "../../../lib/archive";
 
 export function ImportZip() {
     const { container, scrollable } = ViewScrollable();
@@ -87,7 +87,7 @@ async function loadZipFile(file: File, scrollable: HTMLElement) {
     const zipData = new Uint8Array(await file.arrayBuffer());
     consoleTerminal.logger(`ZIP size: ${prettyBytes(zipData.byteLength)}`);
     consoleTerminal.logger(`Unpacking`);
-    await archive.unzip(tmpDirectory, zipData);
+    await archive.unzip(zipData, tmpDirectory);
 
     // remove .zip extension
     let defaultProjectTitle = file.name;

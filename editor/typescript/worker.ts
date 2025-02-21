@@ -114,7 +114,7 @@ export let methods = {
         };
 
         // settings gets typescript version
-        if(currentDirectory === "") {
+        if (currentDirectory === "") {
             return;
         }
 

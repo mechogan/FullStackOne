@@ -157,14 +157,14 @@ const editorZip = new Uint8Array(
 );
 let payload = new Uint8Array([
     1, // isEditor
-    ...numberTo4Bytes(0), // no project id,
-    30, // UNZIP
-    2, // STRING
-    ...numberTo4Bytes(editorDir.length),
-    ...editorDir,
+    ...numberTo4Bytes(0), // no project id
+    30, // UNZIP_BIN_TO_FILE
     4, // BUFFER
     ...numberTo4Bytes(editorZip.length),
     ...editorZip,
+    2, // STRING
+    ...numberTo4Bytes(editorDir.length),
+    ...editorDir,
     1, // BOOLEAN
     ...numberTo4Bytes(1),
     1

@@ -232,16 +232,22 @@ class MainActivity : ComponentActivity() {
         val zipData = this.assets.open("editor-$editorZipNumber.zip").readBytes()
 
         var payload = byteArrayOf(
-            30, // UNZIP
-            2   // STRING
+            30, // UNZIP_BIN_TO_FILE
         )
-        payload += numberToBytes(destination.size)
-        payload += destination
+
+        // ENTRY
         payload += byteArrayOf(
             4 // BUFFER
         )
         payload += numberToBytes(zipData.size)
         payload += zipData
+
+        // OUT
+        payload += byteArrayOf(
+            2 // STRING
+        )
+        payload += numberToBytes(destination.size)
+        payload += destination
 
         // use absolute path to unzip to
         payload += byteArrayOf(

@@ -95,3 +95,30 @@ declare module "platform" {
     const platform: Platform;
     export default platform;
 }
+
+declare module "archive" {
+    type FileEntries<T extends string | Uint8Array> = {
+        [filePath: string]: {
+            isDir: boolean,
+            contents: T
+        }
+    };
+
+    export function unzip(entry: string | Uint8Array): Promise<FileEntries<Uint8Array>>;
+    export function unzip(entry: string | Uint8Array, out: string): Promise<boolean>;
+
+    export function zip(entry: FileEntries<string | Uint8Array>): Promise<Uint8Array>;
+    export function zip(entry: string): Promise<Uint8Array>;
+    export function zip(entry: string, out: null | undefined, skip: string[]): Promise<Uint8Array>;
+    export function zip(entry: FileEntries<string | Uint8Array> | string, out: string, skip?: string[]): Promise<boolean>;
+
+    var archive: {
+        unzip(entry: string | Uint8Array): Promise<FileEntries<Uint8Array>>;
+        unzip(entry: string | Uint8Array, out: string): Promise<boolean>;
+        zip(entry: FileEntries<string | Uint8Array>): Promise<Uint8Array>;
+        zip(entry: string): Promise<Uint8Array>;
+        zip(entry: string, out: null | undefined, skip: string[]): Promise<Uint8Array>;
+        zip(entry: FileEntries<string | Uint8Array> | string, out: string, skip?: string[]): Promise<boolean>;
+    }
+    export default archive
+}

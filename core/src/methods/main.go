@@ -33,10 +33,17 @@ const (
 	FETCH     = 15
 	BROADCAST = 20
 
-	// EDITOR ONLY
+	ARCHIVE_UNZIP_BIN_TO_FILE  = 30
+	ARCHIVE_UNZIP_BIN_TO_BIN   = 31
+	ARCHIVE_UNZIP_FILE_TO_FILE = 32
+	ARCHIVE_UNZIP_FILE_TO_BIN  = 33
 
-	ARCHIVE_UNZIP = 30
-	ARCHIVE_ZIP   = 31
+	ARCHIVE_ZIP_BIN_TO_FILE  = 34
+	ARCHIVE_ZIP_BIN_TO_BIN   = 35
+	ARCHIVE_ZIP_FILE_TO_FILE = 36
+	ARCHIVE_ZIP_FILE_TO_BIN  = 37
+
+	// EDITOR ONLY
 
 	CONFIG_GET  = 50
 	CONFIG_SAVE = 51
@@ -73,6 +80,9 @@ func Call(payload []byte) []byte {
 	method, args := serialize.DeserializeArgs(payload[cursor:])
 
 	baseDir := setup.Directories.Root + "/" + projectId
+	if isEditor {
+		baseDir = setup.Directories.Root
+	}
 
 	switch {
 	case method == HELLO:
@@ -83,9 +93,6 @@ func Call(payload []byte) []byte {
 		}
 		return staticFiles.Serve(baseDir, args[0].(string))
 	case method >= 2 && method <= 10:
-		if isEditor {
-			baseDir = setup.Directories.Root
-		}
 		return fsSwitch(method, baseDir, args)
 	case method == FETCH:
 		headers := (map[string]string)(nil)
@@ -103,7 +110,9 @@ func Call(payload []byte) []byte {
 			int(args[5].(float64)),
 			args[6].(bool),
 		)
-	case method > 20:
+	case method >= 30 && method <= 37:
+		return archiveSwitch(isEditor, method, baseDir, args)
+	case method > 30:
 		if !isEditor {
 			return nil
 		}
@@ -203,26 +212,6 @@ func editorSwitch(method int, args []any) []byte {
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		installationId := args[1].(float64)
 		go packages.InstallQuick(installationId, projectDirectory)
-	case method == ARCHIVE_UNZIP:
-		destination := path.Join(setup.Directories.Root, args[0].(string))
-
-		// the unzip methood is useful for Android and WASM
-		// allow to unzip out of the root dir
-		if len(args) > 2 && args[2].(bool) {
-			destination = args[0].(string)
-		}
-
-		return serialize.SerializeBoolean(archive.Unzip(destination, args[1].([]byte)))
-	case method == ARCHIVE_ZIP:
-		directory := path.Join(setup.Directories.Root, args[0].(string))
-		skip := []string{}
-		for i, arg := range args {
-			if i < 1 {
-				continue
-			}
-			skip = append(skip, arg.(string))
-		}
-		return serialize.SerializeBuffer(archive.Zip(directory, skip))
 	case method == OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil
@@ -299,6 +288,63 @@ func gitSwitch(method int, args []any) []byte {
 		return git.Branches(directory, nil, nil)
 	case GIT_BRANCH_DELETE:
 		return git.BranchDelete(directory, args[1].(string))
+	}
+
+	return nil
+}
+
+func archiveSwitch(isEditor bool, method int, baseDir string, args []any) []byte {
+	switch method {
+	case ARCHIVE_UNZIP_BIN_TO_FILE:
+		entry := args[0].([]byte)
+		out := path.Join(baseDir, args[1].(string))
+
+		// Android and WASM uses this to unzip
+		if len(args) > 2 && isEditor && args[2].(bool) {
+			out = args[1].(string)
+		}
+
+		return archive.UnzipDataToFilesSerialized(entry, out)
+	case ARCHIVE_UNZIP_BIN_TO_BIN:
+		entry := args[0].([]byte)
+		return archive.UnzipDataToDataSerialized(entry)
+	case ARCHIVE_UNZIP_FILE_TO_FILE:
+		entry := path.Join(baseDir, args[0].(string))
+		out := path.Join(baseDir, args[1].(string))
+		return archive.UnzipFileToFilesSerialized(entry, out)
+	case ARCHIVE_UNZIP_FILE_TO_BIN:
+		entry := args[0].(string)
+		return archive.UnzipFileToDataSerialized(entry)
+	case ARCHIVE_ZIP_BIN_TO_FILE:
+		out := path.Join(baseDir, args[0].(string))
+		entries := archive.SerializedArgsToFileEntries(args[1:])
+		return archive.ZipDataToFileSerialized(entries, out)
+	case ARCHIVE_ZIP_BIN_TO_BIN:
+		entries := archive.SerializedArgsToFileEntries(args)
+		return archive.ZipDataToDataSerialized(entries)
+	case ARCHIVE_ZIP_FILE_TO_FILE:
+		entry := path.Join(baseDir, args[0].(string))
+		out := path.Join(baseDir, args[1].(string))
+		skip := []string{}
+		if len(args) > 2 {
+			i := 2
+			for i < len(args) {
+				skip = append(skip, args[i].(string))
+				i++
+			}
+		}
+		return archive.ZipFileToFileSerialized(entry, out, skip)
+	case ARCHIVE_ZIP_FILE_TO_BIN:
+		entry := path.Join(baseDir, args[0].(string))
+		skip := []string{}
+		if len(args) > 1 {
+			i := 1
+			for i < len(args) {
+				skip = append(skip, args[i].(string))
+				i++
+			}
+		}
+		return archive.ZipFileToDataSerialized(entry, skip)
 	}
 
 	return nil
