@@ -87,24 +87,20 @@ async function build(project: Project) {
         builds.notify();
     };
 
-    let isUserMode = false;
-    const setUM = (um: boolean) => {
-        isUserMode = um;
-        Store.preferences.isUserMode.unsubscribe(setUM);
-    };
-    Store.preferences.isUserMode.subscribe(setUM);
-
+    const isUserMode = Store.preferences.isUserMode.check();
     if (isUserMode && project.gitRepository?.url) {
         const head = await git.head(project.id);
-        const lastBuildHash = await fs.readFile(
-            `${project.id}/${buildHashFile}`,
-            { encoding: "utf8" }
-        );
-        if (lastBuildHash === head.Hash) {
-            core_open(project.id);
-            removeProjectBuild();
-            return;
-        }
+        try {
+            const lastBuildHash = await fs.readFile(
+                `${project.id}/${buildHashFile}`,
+                { encoding: "utf8" }
+            );
+            if (lastBuildHash === head.Hash) {
+                core_open(project.id);
+                removeProjectBuild();
+                return;
+            }
+        } catch (e) {}
     }
 
     try {
