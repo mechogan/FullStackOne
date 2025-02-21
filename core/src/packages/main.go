@@ -328,20 +328,19 @@ func InstallQuick(installationId float64, directory string) {
 		return installation.LocalPackages[i].Locations[0] < installation.LocalPackages[j].Locations[0]
 	})
 
-
 	wg := sync.WaitGroup{}
 	mutex := sync.Mutex{}
-	maxGoroutines := 20;
+	maxGoroutines := 20
 
 	guard := make(chan struct{}, maxGoroutines)
-    for _, pInfo := range installation.LocalPackages {
-        guard <- struct{}{} // would block if guard channel is already filled
+	for _, pInfo := range installation.LocalPackages {
+		guard <- struct{}{} // would block if guard channel is already filled
 		wg.Add(1)
-        go func(p PackageLockJSON) {
-            installPackageFromLock(&installation, p, &wg, &mutex)
-            <-guard
-        }(pInfo)
-    }
+		go func(p PackageLockJSON) {
+			installPackageFromLock(&installation, p, &wg, &mutex)
+			<-guard
+		}(pInfo)
+	}
 
 	wg.Wait()
 

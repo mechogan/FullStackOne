@@ -31,8 +31,8 @@ core_message.addListener("package", (dataStr) => {
 
 const checkProjectsConfigExists = await config.get(CONFIG_TYPE.PROJECTS, true);
 if (!checkProjectsConfigExists) {
-    if(platform === Platform.WINDOWS) {
-        WindowsAskForAdmin()
+    if (platform === Platform.WINDOWS) {
+        WindowsAskForAdmin();
     }
 
     Demo();

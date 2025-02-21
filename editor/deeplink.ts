@@ -24,7 +24,7 @@ export async function deeplink(fullstackedUrl: string) {
             Store.projects.list.unsubscribe(runProjectIfFound);
 
             let isUserMode = Store.preferences.isUserMode.check();
-            if(!isUserMode) {
+            if (!isUserMode) {
                 Project(existingProject);
             }
 
@@ -42,7 +42,6 @@ export async function deeplink(fullstackedUrl: string) {
     Store.projects.list.subscribe(runProjectIfFound);
     CloneGit(url);
 }
-
 
 export function WindowsAskForAdmin() {
     const container = createElement("div");
