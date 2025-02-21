@@ -5,7 +5,10 @@ const te = new TextEncoder();
 
 // 2
 export function readFile(path: string): Promise<Uint8Array>;
-export function readFile(path: string, options: { encoding: "utf8" }): Promise<string>;
+export function readFile(
+    path: string,
+    options: { encoding: "utf8" }
+): Promise<string>;
 export function readFile(path: string, options?: { encoding: "utf8" }) {
     const payload = new Uint8Array([
         2,
@@ -18,7 +21,11 @@ export function readFile(path: string, options?: { encoding: "utf8" }) {
 }
 
 // 3
-export function writeFile(path: string, data: string | Uint8Array, origin = ""): Promise<boolean> {
+export function writeFile(
+    path: string,
+    data: string | Uint8Array,
+    origin = ""
+): Promise<boolean> {
     if (typeof data === "string") {
         data = te.encode(data);
     }
@@ -103,8 +110,15 @@ export function exists(path: string): Promise<{ isFile: boolean }> {
 }
 
 // 9
-export function rename(oldPath: string, newPath: string, origin = ""): Promise<boolean> {
-    const payload = new Uint8Array([9, ...serializeArgs([oldPath, newPath, origin])]);
+export function rename(
+    oldPath: string,
+    newPath: string,
+    origin = ""
+): Promise<boolean> {
+    const payload = new Uint8Array([
+        9,
+        ...serializeArgs([oldPath, newPath, origin])
+    ]);
 
     return bridge(payload, ([success]) => success);
 }
@@ -114,7 +128,7 @@ type FileStats = {
     size: number;
     modTime: number;
     isDirectory: boolean;
-}
+};
 
 // 10
 export function stat(path: string): Promise<FileStats> {
@@ -123,7 +137,8 @@ export function stat(path: string): Promise<FileStats> {
     const transformer = (responseArgs: any[]) => {
         if (!responseArgs.length) return null;
 
-        const [name, size, atimeMs, mtimeMs, ctimeMs, isDirectory] = responseArgs;
+        const [name, size, atimeMs, mtimeMs, ctimeMs, isDirectory] =
+            responseArgs;
 
         return {
             name,

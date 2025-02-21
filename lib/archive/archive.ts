@@ -3,9 +3,9 @@ import { serializeArgs } from "../bridge/serialization";
 
 type FileEntries<T extends string | Uint8Array> = {
     [filePath: string]: {
-        isDir: boolean,
-        contents: T
-    }
+        isDir: boolean;
+        contents: T;
+    };
 };
 
 function unzipDataToFileEntries(data: any[]): FileEntries<Uint8Array> {
@@ -13,18 +13,20 @@ function unzipDataToFileEntries(data: any[]): FileEntries<Uint8Array> {
     for (let i = 0; i < data.length; i = i + 3) {
         entries[data[i]] = {
             isDir: data[i + 1],
-            contents: data[i + 2],
-        }
+            contents: data[i + 2]
+        };
     }
-    return entries
+    return entries;
 }
 
-export function unzip(entry: string | Uint8Array): Promise<FileEntries<Uint8Array>>;
-export function unzip(entry: string | Uint8Array, out: string): Promise<boolean>;
+export function unzip(
+    entry: string | Uint8Array
+): Promise<FileEntries<Uint8Array>>;
 export function unzip(
     entry: string | Uint8Array,
-    out?: string
-) {
+    out: string
+): Promise<boolean>;
+export function unzip(entry: string | Uint8Array, out?: string) {
     let method: number;
     let args: any[];
     let transformer: (args: any) => any;
@@ -43,7 +45,6 @@ export function unzip(
             args = [entry];
             transformer = (unzipData) => unzipDataToFileEntries(unzipData);
         }
-
     }
     // FILE_TO
     else {
@@ -61,24 +62,37 @@ export function unzip(
         }
     }
 
-    const payload = new Uint8Array([
-        method,
-        ...serializeArgs(args)
-    ])
-    return bridge(payload, transformer)
+    const payload = new Uint8Array([method, ...serializeArgs(args)]);
+    return bridge(payload, transformer);
 }
 
 const te = new TextEncoder();
 
-function fileEntriesToZipData(entries: FileEntries<string | Uint8Array>): any[] {
+function fileEntriesToZipData(
+    entries: FileEntries<string | Uint8Array>
+): any[] {
     return Object.entries(entries)
-        .map(([name, { isDir, contents }]) => [name, isDir, contents instanceof Uint8Array ? contents : te.encode(contents)])
+        .map(([name, { isDir, contents }]) => [
+            name,
+            isDir,
+            contents instanceof Uint8Array ? contents : te.encode(contents)
+        ])
         .flat();
 }
 
-export function zip(entry: FileEntries<string | Uint8Array>): Promise<Uint8Array>;
-export function zip(entry: string, out?: null | undefined, skip?: string[]): Promise<Uint8Array>;
-export function zip(entry: FileEntries<string | Uint8Array> | string, out: string, skip?: string[]): Promise<boolean>;
+export function zip(
+    entry: FileEntries<string | Uint8Array>
+): Promise<Uint8Array>;
+export function zip(
+    entry: string,
+    out?: null | undefined,
+    skip?: string[]
+): Promise<Uint8Array>;
+export function zip(
+    entry: FileEntries<string | Uint8Array> | string,
+    out: string,
+    skip?: string[]
+): Promise<boolean>;
 export function zip(
     entry: FileEntries<string | Uint8Array> | string,
     out?: string,
@@ -100,10 +114,9 @@ export function zip(
         // _BIN => 35
         else {
             method = 34;
-            args = fileEntriesToZipData(entry)
+            args = fileEntriesToZipData(entry);
             transformer = ([zipData]) => zipData;
         }
-
     }
     // FILE_TO
     else {
@@ -121,10 +134,7 @@ export function zip(
         }
     }
 
-    const payload = new Uint8Array([
-        method,
-        ...serializeArgs(args)
-    ]);
+    const payload = new Uint8Array([method, ...serializeArgs(args)]);
 
-    return bridge(payload, transformer)
+    return bridge(payload, transformer);
 }

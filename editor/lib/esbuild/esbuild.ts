@@ -9,7 +9,6 @@ import type { Message } from "esbuild";
 import core_message from "../../../lib/core_message";
 import { toByteArray } from "../../../lib/base64";
 
-
 // 55
 export function version(): Promise<string> {
     const payload = new Uint8Array([55]);
@@ -27,7 +26,7 @@ function buildResponse(buildResult: string) {
     const [id, errorsStr] = deserializeArgs(responseData);
     const activeBuild = activeBuilds.get(id);
 
-    if(!errorsStr) {
+    if (!errorsStr) {
         return;
     }
 
@@ -36,16 +35,16 @@ function buildResponse(buildResult: string) {
         ...error,
         location: error.location
             ? {
-                ...error.location,
-                file: error.location.file.includes(activeBuild.project.id)
-                    ? activeBuild.project.id +
-                    error.location.file.split(activeBuild.project.id).pop()
-                    : error.location.file
-            }
+                  ...error.location,
+                  file: error.location.file.includes(activeBuild.project.id)
+                      ? activeBuild.project.id +
+                        error.location.file.split(activeBuild.project.id).pop()
+                      : error.location.file
+              }
             : null
     }));
     activeBuild.resolve(messages);
-    
+
     activeBuilds.delete(id);
 }
 

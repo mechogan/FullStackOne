@@ -6,7 +6,10 @@ import { BridgeNode, initCallbackNode } from "./platform/node";
 import { BridgeWasm } from "./platform/wasm";
 import { BridgeWindows, initRespondWindows } from "./platform/windows";
 
-export type Bridge = (payload: Uint8Array, transformer?: (args: any) => any) => Promise<any>
+export type Bridge = (
+    payload: Uint8Array,
+    transformer?: (args: any) => any
+) => Promise<any>;
 
 export let bridge: Bridge;
 
@@ -33,5 +36,5 @@ switch (platform) {
         console.log("Bridge not yet implemented");
 }
 
-console.log("FullStacked")
-bridge(new Uint8Array([0]))
+console.log("FullStacked");
+bridge(new Uint8Array([0]));

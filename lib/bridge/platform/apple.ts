@@ -1,6 +1,11 @@
 import { Bridge } from "..";
 import { fromByteArray, toByteArray } from "../../base64";
-import { bytesToNumber, deserializeArgs, getLowestKeyIdAvailable, numberTo4Bytes } from "../serialization";
+import {
+    bytesToNumber,
+    deserializeArgs,
+    getLowestKeyIdAvailable,
+    numberTo4Bytes
+} from "../serialization";
 
 const requests = new Map<number, (data: Uint8Array) => void>();
 

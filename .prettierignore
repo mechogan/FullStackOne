@@ -1,9 +1,8 @@
-lib
 build
 dist
 node_modules
 out
-editor-sample-demo
+demo
 
 **/*.cache
 platform/**/editor

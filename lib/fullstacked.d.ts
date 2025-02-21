@@ -8,22 +8,34 @@ declare module "fs" {
         size: number;
         modTime: number;
         isDirectory: boolean;
-    }
+    };
 
     export function readFile(path: string): Promise<Uint8Array>;
-    export function readFile(path: string, options: {
-        encoding: "utf8";
-    }): Promise<string>;
-    export function writeFile(path: string, data: string | Uint8Array): Promise<boolean>;
+    export function readFile(
+        path: string,
+        options: {
+            encoding: "utf8";
+        }
+    ): Promise<string>;
+    export function writeFile(
+        path: string,
+        data: string | Uint8Array
+    ): Promise<boolean>;
     export function unlink(path: string): Promise<boolean>;
-    export function readdir(path: string, options?: {
-        recursive?: boolean;
-        withFileTypes?: false;
-    }): Promise<string[]>;
-    export function readdir(path: string, options?: {
-        recursive?: boolean;
-        withFileTypes: true;
-    }): Promise<FileInfo[]>;
+    export function readdir(
+        path: string,
+        options?: {
+            recursive?: boolean;
+            withFileTypes?: false;
+        }
+    ): Promise<string[]>;
+    export function readdir(
+        path: string,
+        options?: {
+            recursive?: boolean;
+            withFileTypes: true;
+        }
+    ): Promise<FileInfo[]>;
     export function mkdir(path: string): Promise<boolean>;
     export function rmdir(path: string): Promise<boolean>;
     export function exists(path: string): Promise<{
@@ -34,19 +46,28 @@ declare module "fs" {
 
     var fs: {
         readFile(path: string): Promise<Uint8Array>;
-        readFile(path: string, options: {
-            encoding: "utf8";
-        }): Promise<string>;
+        readFile(
+            path: string,
+            options: {
+                encoding: "utf8";
+            }
+        ): Promise<string>;
         writeFile(path: string, data: string | Uint8Array): Promise<boolean>;
         unlink(path: string): Promise<boolean>;
-        readdir(path: string, options?: {
-            recursive?: boolean;
-            withFileTypes?: false;
-        }): Promise<string[]>;
-        readdir(path: string, options?: {
-            recursive?: boolean;
-            withFileTypes: true;
-        }): Promise<FileInfo[]>;
+        readdir(
+            path: string,
+            options?: {
+                recursive?: boolean;
+                withFileTypes?: false;
+            }
+        ): Promise<string[]>;
+        readdir(
+            path: string,
+            options?: {
+                recursive?: boolean;
+                withFileTypes: true;
+            }
+        ): Promise<FileInfo[]>;
         mkdir(path: string): Promise<boolean>;
         rmdir(path: string): Promise<boolean>;
         exists(path: string): Promise<{
@@ -54,7 +75,7 @@ declare module "fs" {
         }>;
         rename(oldPath: string, newPath: string): Promise<boolean>;
         stat(path: string): Promise<FileStats>;
-    }
+    };
     export default fs;
 }
 
@@ -99,26 +120,49 @@ declare module "platform" {
 declare module "archive" {
     type FileEntries<T extends string | Uint8Array> = {
         [filePath: string]: {
-            isDir: boolean,
-            contents: T
-        }
+            isDir: boolean;
+            contents: T;
+        };
     };
 
-    export function unzip(entry: string | Uint8Array): Promise<FileEntries<Uint8Array>>;
-    export function unzip(entry: string | Uint8Array, out: string): Promise<boolean>;
+    export function unzip(
+        entry: string | Uint8Array
+    ): Promise<FileEntries<Uint8Array>>;
+    export function unzip(
+        entry: string | Uint8Array,
+        out: string
+    ): Promise<boolean>;
 
-    export function zip(entry: FileEntries<string | Uint8Array>): Promise<Uint8Array>;
+    export function zip(
+        entry: FileEntries<string | Uint8Array>
+    ): Promise<Uint8Array>;
     export function zip(entry: string): Promise<Uint8Array>;
-    export function zip(entry: string, out: null | undefined, skip: string[]): Promise<Uint8Array>;
-    export function zip(entry: FileEntries<string | Uint8Array> | string, out: string, skip?: string[]): Promise<boolean>;
+    export function zip(
+        entry: string,
+        out: null | undefined,
+        skip: string[]
+    ): Promise<Uint8Array>;
+    export function zip(
+        entry: FileEntries<string | Uint8Array> | string,
+        out: string,
+        skip?: string[]
+    ): Promise<boolean>;
 
     var archive: {
         unzip(entry: string | Uint8Array): Promise<FileEntries<Uint8Array>>;
         unzip(entry: string | Uint8Array, out: string): Promise<boolean>;
         zip(entry: FileEntries<string | Uint8Array>): Promise<Uint8Array>;
         zip(entry: string): Promise<Uint8Array>;
-        zip(entry: string, out: null | undefined, skip: string[]): Promise<Uint8Array>;
-        zip(entry: FileEntries<string | Uint8Array> | string, out: string, skip?: string[]): Promise<boolean>;
-    }
-    export default archive
+        zip(
+            entry: string,
+            out: null | undefined,
+            skip: string[]
+        ): Promise<Uint8Array>;
+        zip(
+            entry: FileEntries<string | Uint8Array> | string,
+            out: string,
+            skip?: string[]
+        ): Promise<boolean>;
+    };
+    export default archive;
 }

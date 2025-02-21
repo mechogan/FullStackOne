@@ -7,5 +7,5 @@ export enum Platform {
     WASM = "wasm"
 }
 
-const platform = (await (await fetch("/platform")).text());
+const platform = await (await fetch("/platform")).text();
 export default platform;

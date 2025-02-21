@@ -1,5 +1,8 @@
 import { fromByteArray } from "../../../lib/base64";
-import { deserializeArgs, serializeArgs } from "../../../lib/bridge/serialization";
+import {
+    deserializeArgs,
+    serializeArgs
+} from "../../../lib/bridge/serialization";
 
 function syncRequest(method: number, ...args: any[]) {
     const request = new XMLHttpRequest();
@@ -16,9 +19,9 @@ function syncRequest(method: number, ...args: any[]) {
 // only for WASM
 export let cache: Map<string, string> = null;
 export function initCache() {
-    if(cache) return;
-    cache = new Map()
-} 
+    if (cache) return;
+    cache = new Map();
+}
 
 const debug = false;
 
@@ -28,7 +31,7 @@ export function staticFile(path: string) {
     }
 
     if (cache) {
-        return cache.get(path)
+        return cache.get(path);
     }
 
     const request = new XMLHttpRequest();
@@ -44,7 +47,7 @@ export function readFile(path: string): string {
     }
 
     if (cache) {
-        return cache.get(path)
+        return cache.get(path);
     }
 
     return syncRequest(
@@ -63,8 +66,11 @@ export function readdir(path: string, skip: string[]): string[] {
     if (cache) {
         const items = [];
         for (const i of cache.keys()) {
-            if (i.startsWith(path) && !skip.find(s => i.startsWith(path + "/" + s))) {
-                items.push(i.slice(path.length + 1))
+            if (
+                i.startsWith(path) &&
+                !skip.find((s) => i.startsWith(path + "/" + s))
+            ) {
+                items.push(i.slice(path.length + 1));
             }
         }
         return items;

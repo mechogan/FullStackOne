@@ -6,17 +6,17 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups?node-id=415-3655
 import type { Button } from "@fullstacked/ui";
 
 type SnackBarOpt = {
-    message: string,
+    message: string;
     autoDismissTimeout?: number;
-    button?: ReturnType<typeof Button>
-}
+    button?: ReturnType<typeof Button>;
+};
 
 let snackBarsContainer: HTMLDivElement;
 
 export function SnackBar(opts: SnackBarOpt) {
     if (!snackBarsContainer) {
         snackBarsContainer = document.createElement("div");
-        snackBarsContainer.classList.add("snack-bars-container")
+        snackBarsContainer.classList.add("snack-bars-container");
         document.body.append(snackBarsContainer);
     }
 
@@ -34,9 +34,9 @@ export function SnackBar(opts: SnackBarOpt) {
     container.style.transform = "translateY(100%)";
     container.style.transition = "300ms transform";
     snackBarsContainer.append(container);
-    setTimeout(() => container.style.transform = "translateY(0%)");
-    
-    let timeout: ReturnType<typeof setTimeout>
+    setTimeout(() => (container.style.transform = "translateY(0%)"));
+
+    let timeout: ReturnType<typeof setTimeout>;
     const dismiss = () => {
         clearTimeout(timeout);
 
@@ -49,12 +49,12 @@ export function SnackBar(opts: SnackBarOpt) {
                 snackBarsContainer.remove();
                 snackBarsContainer = null;
             }
-        }, animDuration)
-    }
+        }, animDuration);
+    };
 
     if (opts.autoDismissTimeout) {
         setTimeout(dismiss, opts.autoDismissTimeout);
     }
 
-    return { dismiss }
+    return { dismiss };
 }

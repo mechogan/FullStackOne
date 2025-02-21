@@ -42,5 +42,5 @@ addListener("alert", (message) => {
     SnackBar({
         message,
         autoDismissTimeout: 4000
-    })
+    });
 });

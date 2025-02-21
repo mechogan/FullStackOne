@@ -15,12 +15,12 @@ const errorChecker = ([maybeError]) => {
     let errorObj: ErrorObj;
     try {
         const json = JSON.parse(maybeError);
-        if(json.Error) {
+        if (json.Error) {
             errorObj = {
                 Error: json.Data
-            }
+            };
         }
-    } catch (e) { }
+    } catch (e) {}
 
     if (!errorObj) return;
 
@@ -68,24 +68,24 @@ function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
                     });
                     return;
                 } else if (e.Error) {
-                    reject(e.Error)
+                    reject(e.Error);
                     return;
                 }
             }
-    
+
             const { Url, Data } = JSON.parse(message);
             if (Url !== repoUrl) return;
-    
+
             if (Data.endsWith("done")) {
-                console.log("DONE IN", Date.now() - start , "ms")
-                resolve()
+                console.log("DONE IN", Date.now() - start, "ms");
+                resolve();
                 core_message.removeListener(messageType, checkForAuthError);
             }
         };
-    
+
         core_message.addListener(messageType, checkForAuthError);
         ipcCallWithAuth(repoUrl, ipcCall);
-    })
+    });
 }
 
 async function checkForAuthRequiredOnResponse<T extends (...args: any) => any>(
@@ -124,7 +124,9 @@ export function clone(url: string, into: string) {
 }
 
 // 71
-export function head(projectId: string): Promise<{ Name: string; Hash: string }> {
+export function head(
+    projectId: string
+): Promise<{ Name: string; Hash: string }> {
     const payload = new Uint8Array([71, ...serializeArgs([projectId])]);
 
     const transformer = ([headStr]) => {
@@ -164,7 +166,7 @@ export function pull(project: Project) {
     return checkForAuthRequiredOnCallback(
         project.gitRepository.url,
         "git-pull",
-        pullWithAuth,
+        pullWithAuth
     );
 }
 

@@ -1,9 +1,13 @@
 import { toByteArray } from "../base64";
 import { bridge } from "../bridge";
-import { deserializeArgs, getLowestKeyIdAvailable, serializeArgs } from "../bridge/serialization";
+import {
+    deserializeArgs,
+    getLowestKeyIdAvailable,
+    serializeArgs
+} from "../bridge/serialization";
 import core_message from "../core_message";
 
-const te = new TextEncoder()
+const te = new TextEncoder();
 
 type Response = {
     statusCode: number;
@@ -32,7 +36,7 @@ function receivedResponse(base64Data: string) {
         statusMessage,
         headers: headersStr ? JSON.parse(headersStr) : {},
         body
-    }
+    };
 
     if (statusCode >= 400) {
         fetchRequest.reject(JSON.stringify(response));
