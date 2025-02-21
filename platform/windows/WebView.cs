@@ -58,7 +58,7 @@ namespace FullStacked
                 String pathname = uri.LocalPath;
 
                 if(this.instance.isEditor && pathname == "/restart-admin") {
-                    App.restartAsAdmin()
+                    App.restartAsAdmin();
                     return;
                 }
                 else if (pathname == "/platform")

@@ -41,18 +41,20 @@ namespace FullStacked
             this.registerDeepLinking();
         }
 
-        public static restartAsAdmin(){
+        public static void restartAsAdmin() {
+            String directoryLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var proc = new Process
             {
                 StartInfo =
                 {
-                    FileName = Assembly.GetExecutingAssembly().Location, 
+                    FileName = directoryLocation + "\\FullStacked.exe", 
                     UseShellExecute = true, 
                     Verb = "runas"
                 }
             };
 
             proc.Start();
+            Application.Current.Exit();
         }
 
         private void registerDeepLinking()
