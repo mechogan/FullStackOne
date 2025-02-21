@@ -28,7 +28,15 @@
 .win-admin-dialog {
     display: flex;
     flex-direction: column;
-    gap: spacing.$small;
+
+    h1 {
+        margin-bottom: spacing.$small;
+    }
+
+    p {
+        margin-bottom: spacing.$x-small;
+    }
+
     button {
         align-self: flex-end;
     }

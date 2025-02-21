@@ -113,7 +113,7 @@ export function zip(
         }
         // _BIN => 35
         else {
-            method = 34;
+            method = 35;
             args = fileEntriesToZipData(entry);
             transformer = ([zipData]) => zipData;
         }

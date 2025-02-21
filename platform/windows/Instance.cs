@@ -6,11 +6,13 @@ namespace FullStacked
     internal class Instance
     {
         public String id;
+        public Boolean isEditor;
 
         private byte[] header;
 
         public Instance(String id, Boolean isEditor = false) {
             this.id = id;
+            this.isEditor = isEditor;
 
             if (isEditor)
             {

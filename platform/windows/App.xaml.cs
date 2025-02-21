@@ -41,6 +41,20 @@ namespace FullStacked
             this.registerDeepLinking();
         }
 
+        public static restartAsAdmin(){
+            var proc = new Process
+            {
+                StartInfo =
+                {
+                    FileName = Assembly.GetExecutingAssembly().Location, 
+                    UseShellExecute = true, 
+                    Verb = "runas"
+                }
+            };
+
+            proc.Start();
+        }
+
         private void registerDeepLinking()
         {
             WindowsIdentity user = WindowsIdentity.GetCurrent();

@@ -57,7 +57,11 @@ namespace FullStacked
 
                 String pathname = uri.LocalPath;
 
-                if (pathname == "/platform")
+                if(this.instance.isEditor && pathname == "/restart-admin") {
+                    App.restartAsAdmin()
+                    return;
+                }
+                else if (pathname == "/platform")
                 {
                     byte[] platformData = Encoding.UTF8.GetBytes("windows");
                     IRandomAccessStream stream = new MemoryStream(platformData).AsRandomAccessStream();

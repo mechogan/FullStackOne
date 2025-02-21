@@ -47,15 +47,19 @@ export function WindowsAskForAdmin() {
     const container = createElement("div");
     container.classList.add("win-admin-dialog");
     container.innerHTML = `
-        <h1>Welcome to FullStacked!</h1>
-        <p>Please close the app and reopen it with <b>Run as administrator</b>.<p>
-        <p>It will register FullStacked's deeplink and enable the <b>Open in FullStacked</b> feature in your system.</p>
+        <h1>Welcome,</h1>
+        <p>Please close FullStacked and reopen it with <b>Run as administrator</b>.<p>
+        <p>It will register the FullStacked deeplink and enable the <b>Open in FullStacked</b> feature in your system.</p>
+        <p>You can open FullStacked normally afterwards.</p>
         <p>You only have to do this operation <b>once</b>.</p>
     `;
     const closeButton = Button({
-        text: "Understood"
+        text: "Close"
     });
     container.append(closeButton);
     const { remove } = Dialog(container);
-    closeButton.onclick = () => remove();
+    closeButton.onclick = () => {
+        remove();
+        fetch("/restart-admin")
+    };
 }
