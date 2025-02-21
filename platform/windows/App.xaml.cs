@@ -12,9 +12,6 @@ using Windows.UI;
 using Microsoft.Win32;
 using System.Security.Principal;
 using System.Reflection;
-using Windows.UI.Popups;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Controls;
 
 namespace FullStacked
 {
