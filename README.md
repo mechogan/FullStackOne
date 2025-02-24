@@ -1,41 +1,36 @@
 <img height=100 width=100 src="editor/assets/dev-icon.png" />
 
-# FullStacked Editor
+# FullStacked
 
-[Docs](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org) | [Figma](https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups)
+**Code, Run, Share. Anywhere.**
 
-Create local-first web-like projects on any platform.
+Create, run and share projects built with web technologies in a fully cross-platform, local-first environment.
 
-### Create
+[Documentation](https://docs.fullstacked.org) | [Demo](https://demo.fullstacked.org) | [Roadmap](https://fullstacked.notion.site/FullStacked-Editor-Roadmap-ebfcb685b77446c7a7898c05b219215e) | [Figma](https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups)
 
-Build, run and share projects all within the same environment.
+![FullStacked](https://img.fullstacked.org/fullstacked.png)
 
-### Local-First
+## Installation
 
-No server needed.
+### Latest stable release is available on all major app marketplaces
 
-### Web-Like
+* [Apple App Store](https://apps.apple.com/ca/app/fullstacked/id6477835950) (MacOS, iOS, iPadOS)
+* [Google Play](https://play.google.com/store/apps/details?id=org.fullstacked.editor) (Android, Chromebook)
+* [Microsoft Store](https://apps.microsoft.com/detail/9p987qm508vc?hl=en-us) (Windows 10/11)
 
-Use some of the most popular tools to rapidly build.
+You can always find those links and access to the beta apps on FullStacked [download page](https://fullstacked.org/download)
 
-- JavaScript
-- TypeScript
-- esbuild
-- git
-- Sass
-- HTML
-- CSS
-- npm
-    - React
-    - MUI
-    - ThreeJS
-    - Yjs
+### Build from source
 
-### On Any Platform
+#### Requirements
 
-Available on
+* Go `1.23.1`
+* NodeJS `>=20`
 
-- iOS/iPadOS
-- Android
-- MacOS
-- Windows
+1. Install npm dependencies `npm install`
+2. Build the core in `core/build` using make on UNIX or `./windows.bat` on Windows
+3. Run `npm start`
+
+## License
+
+[GPL-3.0](https://github.com/fullstackedorg/fullstacked/blob/main/LICENSE)
