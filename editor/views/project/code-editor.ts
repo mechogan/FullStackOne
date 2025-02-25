@@ -20,6 +20,7 @@ import prettierPluginMD from "prettier/plugins/markdown";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginBabel from "prettier/plugins/babel";
 import prettierPluginTypeScript from "prettier/plugins/typescript";
+import prettierPluginLiquid from "./prettier/plugin-liquid";
 import { EditorSelection, Extension } from "@codemirror/state";
 import { WorkerTS } from "../../typescript";
 import {
@@ -462,7 +463,8 @@ const prettierPlugins = [
     prettierPluginMD,
     prettierPluginEstree,
     prettierPluginBabel,
-    prettierPluginTypeScript
+    prettierPluginTypeScript,
+    prettierPluginLiquid
 ];
 
 async function applyPrettierToCurrentFocusFile(e: KeyboardEvent) {
@@ -579,7 +581,8 @@ const prettierSupport = [
     UTF8_Ext.MARKDOWN,
     UTF8_Ext.CSS,
     UTF8_Ext.SASS,
-    UTF8_Ext.SCSS
+    UTF8_Ext.SCSS,
+    UTF8_Ext.LIQUID
 ];
 
 export type FileError = {
