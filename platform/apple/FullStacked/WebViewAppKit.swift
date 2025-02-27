@@ -7,6 +7,8 @@
 import SwiftUI
 @preconcurrency import WebKit
 
+// MacOS
+
 class WebViewExtended: WKWebView, WKUIDelegate {
     override init(frame: CGRect, configuration: WKWebViewConfiguration){
         super.init(frame: frame, configuration: configuration)

@@ -7,6 +7,8 @@
 import SwiftUI
 import WebKit
 
+// iOS
+
 class WebViewExtended: WKWebView {
     override var safeAreaInsets: UIEdgeInsets {
         return UIEdgeInsets(top: super.safeAreaInsets.top, left: 0, bottom: 0, right: 0)

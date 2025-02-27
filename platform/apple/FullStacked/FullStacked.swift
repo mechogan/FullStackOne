@@ -13,19 +13,28 @@ struct FullStackedApp: App {
     }
     
     var body: some Scene {
+        #if os(macOS)
+        Window("FullStacked", id: "Editor"){
+            WebViewsStacked(webViews: self.webViews)
+                .onDisappear {
+                    exit(0)
+                }
+        }
+        #else
         WindowGroup("FullStacked"){
             if #available(iOS 16.0, *) {
                 WebViewsStacked(webViews: self.webViews)
-                    .onDisappear() {
+                    .onDisappear {
                         exit(0)
                     }
             } else {
                 WebViewsStackedLegacy(webViews: self.webViews)
-                    .onDisappear() {
+                    .onDisappear{
                         exit(0)
                     }
             }
         }
+        #endif
         
         if #available(iOS 16.1, *) {
             WindowGroup(id: "window-webview", for: String.self) { $projectId in

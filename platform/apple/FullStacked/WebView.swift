@@ -14,6 +14,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
     public let requestHandler: RequestHandler
     private var firstContact = false
     private var messageToBeSent = [(String, String)]()
+    public var mounted = false
     
     init(instance: Instance) {
         self.requestHandler = RequestHandler(instance: instance)

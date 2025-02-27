@@ -158,7 +158,7 @@ struct WebViewsStacked: View {
     
     @Environment(\.supportsMultipleWindows) public var supportsMultipleWindows
     @Environment(\.openWindow) private var openWindow
-    
+
     init(webViews: WebViews) {
         self.webViews = webViews
         self.webViews.ready = true
