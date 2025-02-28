@@ -30,11 +30,10 @@ class WebViewExtended: WKWebView, WKUIDelegate {
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
         let openPanel = NSOpenPanel()
         openPanel.canChooseFiles = true
+        openPanel.allowsMultipleSelection = parameters.allowsMultipleSelection
         openPanel.begin { (result) in
             if result == NSApplication.ModalResponse.OK {
-                if let url = openPanel.url {
-                    completionHandler([url])
-                }
+                completionHandler(openPanel.urls)
             } else if result == NSApplication.ModalResponse.cancel {
                 completionHandler(nil)
             }
