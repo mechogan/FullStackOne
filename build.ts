@@ -6,30 +6,6 @@ import AdmZip from "adm-zip";
 
 const production = process.argv.includes("--production");
 
-// TypeScript fix for JSC (Safari/WebKit) memory leak
-// Refer to this for more info: https://github.com/microsoft/TypeScript/issues/58137
-// Remove if ever fixed
-const codeToLookup = "program = createProgram(options);";
-const codeToAdd = "options.oldProgram = undefined;";
-const tsFilePath = "node_modules/typescript/lib/typescript.js";
-const tsFileContent = fs.readFileSync(tsFilePath, { encoding: "utf-8" });
-const re = new RegExp(
-    `${codeToLookup.replace(/(\(|\))/g, (c) => (c === "(" ? "\\(" : "\\)"))}(${codeToAdd})*`
-);
-const textBlockToUpdate = tsFileContent.match(re);
-if (textBlockToUpdate) {
-    if (!textBlockToUpdate[0].endsWith(codeToAdd)) {
-        fs.writeFileSync(
-            tsFilePath,
-            tsFileContent.replace(re, codeToLookup + codeToAdd)
-        );
-    }
-} else {
-    throw "Could not find typescript code block to patch.";
-}
-
-// END fix
-
 const outDir = "out";
 const outDirEditor = `${outDir}/editor`;
 const outTsLib = `${outDirEditor}/tsLib`;
