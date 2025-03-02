@@ -261,6 +261,24 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 	installation.loadLocalPackages()
 	directPackages := installation.loadDirectPackages()
 
+	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+
+	gitPackages := []string{};
+	for i := len(packagesName); i >= 0; i-- {
+		if(strings.HasPrefix(packagesName[i], "http://") || strings.HasPrefix(packagesName[i], "https://")) {
+			// add to list of git packages to test
+			gitPackages = append(gitPackages, packagesName[i])
+			
+			// remove from name to install
+			packagesName[i] = packagesName[len(packagesName)-1]
+			packagesName = packagesName[:len(packagesName)-1]
+		}
+	}
+
+	// for _, gitPackageUrl := range gitPackages {
+	// }
+
 	for _, pName := range packagesName {
 		p := NewPackage(pName)
 		p.Direct = true
@@ -278,9 +296,6 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 			directPackages = append(directPackages, &p)
 		}
 	}
-
-	wg := sync.WaitGroup{}
-	mutex := sync.Mutex{}
 
 	installation.Packages = directPackages
 	installation.getDependencies(directPackages, &wg, &mutex)

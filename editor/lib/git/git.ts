@@ -1,153 +1,83 @@
 import { bridge } from "../../../lib/bridge";
 import { serializeArgs } from "../../../lib/bridge/serialization";
 import core_message from "../../../lib/core_message";
-import { CONFIG_TYPE, Project } from "../../types";
+import { Project } from "../../types";
 import { GitAuth } from "../../views/project/git/auth";
-import config from "../config";
 
-type ErrorObj = {
-    Error: string;
-};
+core_message.addListener("git-authentication", (message) => {
+    const { id, host } = JSON.parse(message);
+    console.log(id, "received")
+    GitAuth(host).then((success) => gitAuthResponse(id, success));
+});
 
-const errorChecker = ([maybeError]) => {
-    if (!maybeError) return;
-
-    let errorObj: ErrorObj;
-    try {
-        const json = JSON.parse(maybeError);
-        if (json.Error) {
-            errorObj = {
-                Error: json.Data
-            };
-        }
-    } catch (e) {}
-
-    if (!errorObj) return;
-
-    throw errorObj;
-};
-
-const getHostnameFromRepoURL = (repoUrl: string) => {
-    const url = new URL(repoUrl);
-    return url.hostname;
-};
-
-async function ipcCallWithAuth<T extends (...args: any) => any>(
-    repoUrl: string,
-    ipcCall: (username: string, password: string) => ReturnType<T>
-) {
-    const hostname = getHostnameFromRepoURL(repoUrl);
-    const gitAuthConfigs = await config.get(CONFIG_TYPE.GIT);
-    const gitAuth = gitAuthConfigs?.[hostname];
-    return ipcCall(gitAuth?.username, gitAuth?.password);
-}
-
-function checkForAuthRequiredOnCallback<T extends (...args: any) => any>(
-    repoUrl: string,
-    messageType: string,
-    ipcCall: (username: string, password: string) => ReturnType<T>
-) {
-    return new Promise<void>((resolve, reject) => {
-        const start = Date.now();
-        const checkForAuthError = (message: string) => {
-            try {
-                errorChecker([message]);
-            } catch (e) {
-                if (e.Error?.startsWith("authentication required")) {
-                    const hostname = getHostnameFromRepoURL(repoUrl);
-                    GitAuth(hostname).then((retry) => {
-                        if (retry) {
-                            ipcCallWithAuth(repoUrl, ipcCall);
-                        } else {
-                            reject(e.Error);
-                            core_message.removeListener(
-                                messageType,
-                                checkForAuthError
-                            );
-                        }
-                    });
-                    return;
-                } else if (e.Error) {
-                    reject(e.Error);
-                    return;
-                }
-            }
-
-            const { Url, Data } = JSON.parse(message);
-            if (Url !== repoUrl) return;
-
-            if (Data.endsWith("done")) {
-                console.log("DONE IN", Date.now() - start, "ms");
-                resolve();
-                core_message.removeListener(messageType, checkForAuthError);
-            }
-        };
-
-        core_message.addListener(messageType, checkForAuthError);
-        ipcCallWithAuth(repoUrl, ipcCall);
-    });
-}
-
-async function checkForAuthRequiredOnResponse<T extends (...args: any) => any>(
-    repoUrl: string,
-    ipcCall: (username: string, password: string) => ReturnType<T>
-) {
-    let retry = false,
-        response: ReturnType<T>;
-    do {
-        response = await ipcCallWithAuth(repoUrl, ipcCall);
-        try {
-            errorChecker(response);
-        } catch (e) {
-            if (e.Error?.startsWith("authentication required")) {
-                retry = await GitAuth(getHostnameFromRepoURL(repoUrl));
-            } else {
-                throw e.Error;
-            }
-        }
-    } while (retry);
-
-    return response;
+// 81
+function gitAuthResponse(id: number, success: boolean) {
+    console.log(id, success);
+    const payload = new Uint8Array([
+        81,
+        ...serializeArgs([id, success])
+    ]);
+    bridge(payload);
 }
 
 // 70
 export function clone(url: string, into: string) {
-    const cloneWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            70,
-            ...serializeArgs([into, url, username, password])
-        ]);
-        return bridge(payload);
-    };
-
-    checkForAuthRequiredOnCallback(url, "git-clone", cloneWithAuth);
+    const payload = new Uint8Array([
+        70,
+        ...serializeArgs([into, url])
+    ]);
+    return bridge(payload);
 }
 
 // 71
 export function head(
     projectId: string
-): Promise<{ Name: string; Hash: string }> {
+): Promise<{ name: string; hash: string }> {
     const payload = new Uint8Array([71, ...serializeArgs([projectId])]);
 
-    const transformer = ([headStr]) => {
-        errorChecker(headStr);
-        return JSON.parse(headStr);
+    const transformer = ([name, hash]) => {
+        return { name, hash };
     };
 
     return bridge(payload, transformer);
 }
 
+export type Status = {
+    added: string[];
+    deleted: string[];
+    modified: string[];
+}
+
 // 72
-export function status(projectId: string): Promise<{
-    Added: string[];
-    Modified: string[];
-    Deleted: string[];
-}> {
+export function status(projectId: string): Promise<Status> {
     const payload = new Uint8Array([72, ...serializeArgs([projectId])]);
 
-    const transformer = ([statusStr]) => {
-        errorChecker(statusStr);
-        return JSON.parse(statusStr);
+    // added: 0, deleted: 1, modified: 2
+    const transformer = (s: (string | number)[]) => {
+        const status: Status = {
+            added: [],
+            deleted: [],
+            modified: [],
+        }
+
+        for (let i = 0; i < s.length; i = i + 2) {
+            const file = s[i] as string;
+            const type = s[i + 1] as number;
+
+            switch (type) {
+                case 0:
+                    status.added.push(file);
+                    break;
+                case 1:
+                    status.deleted.push(file);
+                    break;
+                case 2:
+                    status.modified.push(file);
+                    break;
+            }
+        }
+
+        return status;
     };
 
     return bridge(payload, transformer);
@@ -155,19 +85,11 @@ export function status(projectId: string): Promise<{
 
 // 73
 export function pull(project: Project) {
-    const pullWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            73,
-            ...serializeArgs([project.id, username, password])
-        ]);
-        return bridge(payload);
-    };
-
-    return checkForAuthRequiredOnCallback(
-        project.gitRepository.url,
-        "git-pull",
-        pullWithAuth
-    );
+    const payload = new Uint8Array([
+        73,
+        ...serializeArgs([project.id])
+    ]);
+    return bridge(payload);
 }
 
 // 74
@@ -177,7 +99,7 @@ export function restore(projectId: string, files: string[]): Promise<void> {
         ...serializeArgs([projectId, ...files])
     ]);
 
-    return bridge(payload, errorChecker);
+    return bridge(payload);
 }
 
 // 75
@@ -185,36 +107,22 @@ export function checkout(
     project: Project,
     branch: string,
     create: boolean = false
-): Promise<void> {
-    const checkoutWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            75,
-            ...serializeArgs([project.id, branch, create, username, password])
-        ]);
+) {
+    const payload = new Uint8Array([
+        75,
+        ...serializeArgs([project.id, branch, create])
+    ]);
 
-        return bridge(payload);
-    };
-
-    return checkForAuthRequiredOnResponse(
-        project.gitRepository.url,
-        checkoutWithAuth
-    );
+    return bridge(payload);
 }
 
 // 76
 export function fetch(project: Project): Promise<void> {
-    const fetchWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            76,
-            ...serializeArgs([project.id, username, password])
-        ]);
-        return bridge(payload);
-    };
-
-    return checkForAuthRequiredOnResponse(
-        project.gitRepository.url,
-        fetchWithAuth
-    );
+    const payload = new Uint8Array([
+        76,
+        ...serializeArgs([project.id])
+    ]);
+    return bridge(payload);
 }
 
 // 77
@@ -229,55 +137,47 @@ export function commit(project: Project, commitMessage: string): Promise<void> {
         ])
     ]);
 
-    return bridge(payload, errorChecker);
+    return bridge(payload);
+}
+
+type Branch = {
+    name: string;
+    remote: boolean;
+    local: boolean;
 }
 
 // 78
-export async function branches(project: Project) {
-    const branchesWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            78,
-            ...serializeArgs([project.id, username, password])
-        ]);
-        return bridge(payload);
-    };
+export async function branches(project: Project): Promise<Branch[]> {
+    const payload = new Uint8Array([
+        78,
+        ...serializeArgs([project.id])
+    ]);
 
-    const branchesArgs = await checkForAuthRequiredOnResponse(
-        project.gitRepository.url,
-        branchesWithAuth
-    );
-    const branches: {
-        name: string;
-        remote: boolean;
-        local: boolean;
-    }[] = [];
+    // [name, isLocal, isRemote, name, isLocal, isRemote, ...]
+    const transformer = (branchesArgs: (string | boolean)[]) => {
+        const branches: Branch[] = [];
 
-    for (let i = 0; i < branchesArgs.length; i = i + 3) {
-        branches.push({
-            name: branchesArgs[i],
-            remote: branchesArgs[i + 1],
-            local: branchesArgs[i + 2]
-        });
+        for (let i = 0; i < branchesArgs.length; i = i + 3) {
+            branches.push({
+                name: branchesArgs[i] as string,
+                remote: branchesArgs[i + 1] as boolean,
+                local: branchesArgs[i + 2] as boolean
+            });
+        }
+
+        return branches;
     }
 
-    return branches;
+    return bridge(payload, transformer);
 }
 
 // 79
 export function push(project: Project) {
-    const pushWithAuth = (username: string, password: string) => {
-        const payload = new Uint8Array([
-            79,
-            ...serializeArgs([project.id, username, password])
-        ]);
-        bridge(payload);
-    };
-
-    checkForAuthRequiredOnCallback(
-        project.gitRepository.url,
-        "git-push",
-        pushWithAuth
-    );
+    const payload = new Uint8Array([
+        79,
+        ...serializeArgs([project.id])
+    ]);
+    return bridge(payload);
 }
 
 // 80
@@ -287,5 +187,5 @@ export function branchDelete(project: Project, branch: string) {
         ...serializeArgs([project.id, branch])
     ]);
 
-    return bridge(payload, errorChecker);
+    return bridge(payload);
 }

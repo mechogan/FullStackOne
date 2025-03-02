@@ -2,6 +2,8 @@ package git
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/url"
 	"path"
 	"strings"
 	"sync"
@@ -18,9 +20,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
+	"fullstacked/editor/src/config"
 	"fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
+	"fullstacked/editor/src/utils"
 )
 
 var ignoredDirectories = []string{
@@ -113,15 +117,94 @@ func (gitProgress *GitProgress) Error(message string) {
 	setup.Callback("", gitProgress.Name, string(jsonData))
 }
 
-func Clone(into string, url string, username *string, password *string) {
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
-		}
+// ref: editor/types/index.ts
+type GitAuth struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type GitAuthConfig = map[string]GitAuth
+
+func checkForGitAuth(urlStr string) *http.BasicAuth {
+	gitUrl, err := url.Parse(urlStr)
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
 
+	gitConfig := GitAuthConfig{}
+	gitConfigData, _ := config.Get("git")
+	err = json.Unmarshal(gitConfigData, &gitConfig)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	gitAuth, ok := gitConfig[gitUrl.Host]
+
+	if !ok {
+		return nil
+	}
+
+	return &http.BasicAuth{
+		Username: gitAuth.Username,
+		Password: gitAuth.Password,
+	}
+}
+
+type GitAuthRequest struct {
+	Id        string          `json:"id"`
+	Host      string          `json:"host"`
+	Canceled  bool            `json:"-"`
+	WaitGroup *sync.WaitGroup `json:"-"`
+}
+
+var activeGitAuthRequests = map[string]GitAuthRequest{}
+
+// returns success
+func requestGitAuthentication(urlStr string) bool {
+	gitUrl, err := url.Parse(urlStr)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	wg := sync.WaitGroup{}
+
+	authRequest := GitAuthRequest{
+		Id:        utils.RandString(10),
+		Host:      gitUrl.Host,
+		WaitGroup: &wg,
+	}
+
+	activeGitAuthRequests[authRequest.Id] = authRequest
+
+	wg.Add(1)
+
+	jsonData, _ := json.Marshal(authRequest)
+	jsonStr := string(jsonData)
+	setup.Callback("", "git-authentication", jsonStr)
+
+	wg.Wait()
+	defer delete(activeGitAuthRequests, authRequest.Id)
+
+	return !authRequest.Canceled
+}
+
+func AuthResponse(id string, canceled bool) {
+	authRequest, ok := activeGitAuthRequests[id]
+
+	if !ok {
+		return
+	}
+
+	authRequest.Canceled = canceled
+	activeGitAuthRequests[authRequest.Id] = authRequest
+	authRequest.WaitGroup.Done()
+}
+
+func Clone(into string, url string) {
 	progress := GitProgress{
 		Name: "git-clone",
 		Url:  url,
@@ -142,10 +225,21 @@ func Clone(into string, url string, username *string, password *string) {
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
 
 	_, err := git.Clone(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs, &git.CloneOptions{
-		Auth:     auth,
+		Auth:     checkForGitAuth(url),
 		URL:      url,
 		Progress: &progress,
 	})
+
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
+		if requestGitAuthentication(url) {
+			fs.Rmdir(into, fileEventOrigin)
+			_, err = git.Clone(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs, &git.CloneOptions{
+				Auth:     checkForGitAuth(url),
+				URL:      url,
+				Progress: &progress,
+			})
+		}
+	}
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -156,11 +250,6 @@ func Clone(into string, url string, username *string, password *string) {
 	wg.Wait()
 
 	progress.Write([]byte("done"))
-}
-
-type HeadObj struct {
-	Name string
-	Hash string
 }
 
 func Head(directory string) []byte {
@@ -178,23 +267,13 @@ func Head(directory string) []byte {
 		return serialize.SerializeString(errorFmt(err))
 	}
 
-	headObj := HeadObj{
-		Name: head.Name().Short(),
-		Hash: head.Hash().String(),
-	}
-
-	jsonData, _ := json.Marshal(headObj)
-	jsonStr := string(jsonData)
-
 	wg.Wait()
 
-	return serialize.SerializeString(jsonStr)
-}
+	data := []byte{}
+	data = append(data, serialize.SerializeString(head.Name().Short())...)
+	data = append(data, serialize.SerializeString(head.Hash().String())...)
 
-type GitStatus struct {
-	Added    []string
-	Modified []string
-	Deleted  []string
+	return data
 }
 
 func Status(directory string) []byte {
@@ -229,28 +308,27 @@ func Status(directory string) []byte {
 		return serialize.SerializeString(errorFmt(err))
 	}
 
-	gitStatus := GitStatus{
-		Added:    []string{},
-		Modified: []string{},
-		Deleted:  []string{},
-	}
+	data := []byte{}
 
+	// added: 0, deleted: 1, modified: 2,
 	for file, fileStatus := range status {
+		data = append(data, serialize.SerializeString(file)...)
 		if fileStatus.Staging == git.Added || fileStatus.Staging == git.Copied {
-			gitStatus.Added = append(gitStatus.Added, file)
+			// added
+			data = append(data, serialize.SerializeNumber(0)...)
 		} else if fileStatus.Staging == git.Deleted {
-			gitStatus.Deleted = append(gitStatus.Deleted, file)
+			// deleted
+			data = append(data, serialize.SerializeNumber(1)...)
 		} else {
-			gitStatus.Modified = append(gitStatus.Modified, file)
+			// modified
+			data = append(data, serialize.SerializeNumber(2)...)
 		}
 	}
 
-	jsonData, _ := json.Marshal(gitStatus)
-	jsonStr := string(jsonData)
-	return serialize.SerializeString(jsonStr)
+	return data
 }
 
-func Pull(directory string, username *string, password *string) {
+func Pull(directory string) {
 	wg := sync.WaitGroup{}
 
 	progress := GitProgress{
@@ -284,14 +362,6 @@ func Pull(directory string, username *string, password *string) {
 
 	progress.Write([]byte("start"))
 
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
-		}
-	}
-
 	err = worktree.AddGlob(".")
 	if err != nil {
 		progress.Error(err.Error())
@@ -310,10 +380,20 @@ func Pull(directory string, username *string, password *string) {
 	wg.Wait()
 
 	err = worktree.Pull(&git.PullOptions{
-		Auth:          auth,
+		Auth:          checkForGitAuth(progress.Url),
 		ReferenceName: head.Name(),
 		Progress:      &progress,
 	})
+
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
+		if requestGitAuthentication(progress.Url) {
+			err = worktree.Pull(&git.PullOptions{
+				Auth:          checkForGitAuth(progress.Url),
+				ReferenceName: head.Name(),
+				Progress:      &progress,
+			});
+		}
+	}
 
 	if err != nil && err.Error() != "already up-to-date" && err.Error() != "reference not found" {
 		progress.Error(err.Error())
@@ -325,7 +405,7 @@ func Pull(directory string, username *string, password *string) {
 	progress.Write([]byte("done"))
 }
 
-func Push(directory string, username *string, password *string) {
+func Push(directory string) {
 	wg := sync.WaitGroup{}
 
 	progress := GitProgress{
@@ -352,20 +432,23 @@ func Push(directory string, username *string, password *string) {
 
 	progress.Write([]byte("start"))
 
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
-		}
-	}
-
 	err = repo.Push(&git.PushOptions{
-		Auth: auth,
+		Auth: checkForGitAuth(progress.Url),
 		Progress: &GitProgress{
 			Name: "git-push",
 		},
 	})
+
+	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+		if requestGitAuthentication(progress.Url) {
+			err = repo.Push(&git.PushOptions{
+				Auth: checkForGitAuth(progress.Url),
+				Progress: &GitProgress{
+					Name: "git-push",
+				},
+			})
+		}
+	}
 
 	if err != nil {
 		progress.Error(err.Error())
@@ -407,7 +490,7 @@ func Restore(directory string, files []string) []byte {
 	return nil
 }
 
-func Fetch(directory string, username *string, password *string) []byte {
+func Fetch(directory string) []byte {
 	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
@@ -416,17 +499,19 @@ func Fetch(directory string, username *string, password *string) []byte {
 		return serialize.SerializeString(errorFmt(err))
 	}
 
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
-		}
-	}
+	remote, _ := repo.Remote("origin")
 
 	err = repo.Fetch(&git.FetchOptions{
-		Auth: auth,
+		Auth: checkForGitAuth(remote.Config().URLs[0]),
 	})
+
+	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+		if requestGitAuthentication(remote.Config().URLs[0]) {
+			err = repo.Fetch(&git.FetchOptions{
+				Auth: checkForGitAuth(remote.Config().URLs[0]),
+			})
+		}
+	}
 
 	if err != nil && err.Error() != "already up-to-date" {
 		return serialize.SerializeString(errorFmt(err))
@@ -470,7 +555,7 @@ func Commit(directory string, commitMessage string, authorName string, authorEma
 	return nil
 }
 
-func getRemoteBranches(directory string, username *string, password *string) ([]plumbing.Reference, error) {
+func getRemoteBranches(directory string) ([]plumbing.Reference, error) {
 	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
@@ -485,17 +570,17 @@ func getRemoteBranches(directory string, username *string, password *string) ([]
 		return nil, err
 	}
 
-	auth := (*http.BasicAuth)(nil)
-	if username != nil && password != nil {
-		auth = &http.BasicAuth{
-			Username: *username,
-			Password: *password,
+	remoteRefs, err := remote.List(&git.ListOptions{
+		Auth: checkForGitAuth(remote.Config().URLs[0]),
+	})
+
+	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+		if requestGitAuthentication(remote.Config().URLs[0]) {
+			remoteRefs, err = remote.List(&git.ListOptions{
+				Auth: checkForGitAuth(remote.Config().URLs[0]),
+			})
 		}
 	}
-
-	remoteRefs, err := remote.List(&git.ListOptions{
-		Auth: auth,
-	})
 
 	if err != nil {
 		return nil, err
@@ -519,8 +604,8 @@ type Branch struct {
 	Remote bool
 }
 
-func Branches(directory string, username *string, password *string) []byte {
-	remoteBranches, err := getRemoteBranches(directory, username, password)
+func Branches(directory string) []byte {
+	remoteBranches, err := getRemoteBranches(directory)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -582,8 +667,6 @@ func Checkout(
 	directory string,
 	branch string,
 	create bool,
-	username *string,
-	password *string,
 ) []byte {
 	wg := sync.WaitGroup{}
 	branchRefName := (*plumbing.ReferenceName)(nil)
@@ -609,7 +692,7 @@ func Checkout(
 		return nil
 	})
 
-	remoteBranches, err := getRemoteBranches(directory, username, password)
+	remoteBranches, err := getRemoteBranches(directory)
 
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -626,24 +709,27 @@ func Checkout(
 	}
 
 	if refOnRemote {
-		auth := (*http.BasicAuth)(nil)
-		if username != nil && password != nil {
-			auth = &http.BasicAuth{
-				Username: *username,
-				Password: *password,
-			}
-		}
-
 		remote, err := repo.Remote("origin")
 
 		if err != nil {
 			return serialize.SerializeString(errorFmt(err))
 		}
 
+		refSpec := []gitConfig.RefSpec{gitConfig.RefSpec(branchRefName.String() + ":" + branchRefName.String())}
+
 		err = remote.Fetch(&git.FetchOptions{
-			Auth:     auth,
-			RefSpecs: []gitConfig.RefSpec{gitConfig.RefSpec(branchRefName.String() + ":" + branchRefName.String())},
+			Auth:     checkForGitAuth(remote.Config().URLs[0]),
+			RefSpecs: refSpec,
 		})
+
+		if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+			if requestGitAuthentication(remote.Config().URLs[0]) {
+				err = remote.Fetch(&git.FetchOptions{
+					Auth:     checkForGitAuth(remote.Config().URLs[0]),
+					RefSpecs: refSpec,
+				})
+			}
+		}
 
 		if err != nil && err.Error() != "already up-to-date" {
 			return serialize.SerializeString(errorFmt(err))

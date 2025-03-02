@@ -9,19 +9,29 @@ import (
 
 var fileEventOrigin = "config"
 
-func Get(configFile string) []byte {
+func Get(configFile string) ([]byte, error) {
 	filePath := path.Join(setup.Directories.Config, configFile+".json")
 
 	config, err := fs.ReadFile(filePath)
 
 	if err != nil {
-		return nil
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func GetSerialized(configFile string) []byte {
+	config, err := Get(configFile)
+
+	if(err != nil) {
+		return serialize.SerializeError(err)
 	}
 
 	return serialize.SerializeString(string(config))
 }
 
-func Save(configFile string, data string) []byte {
+func SaveSerialized(configFile string, data string) []byte {
 	filePath := path.Join(setup.Directories.Config, configFile+".json")
 
 	fs.Mkdir(path.Dir(filePath), fileEventOrigin)
