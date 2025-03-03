@@ -2,6 +2,7 @@ package git
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -663,6 +664,8 @@ func Branches(directory string) []byte {
 	return branchesSerialized
 }
 
+type RefType string
+
 const (
 	GIT_DEFAULT = "default"
 	GIT_BRANCH  = "branch"
@@ -670,7 +673,11 @@ const (
 	GIT_COMMIT  = "commit"
 )
 
-func IsOnRef(directory string, ref string, refType string) bool {
+func IsOnRef(directory string, ref string, refType RefType) bool {
+	if ref == "" {
+		return true
+	}
+
 	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
@@ -690,6 +697,7 @@ func IsOnRef(directory string, ref string, refType string) bool {
 	if refType == GIT_BRANCH {
 		return head.Name().Short() == ref
 	} else if refType == GIT_COMMIT {
+		fmt.Println(head.Hash().String(), ref, head.Hash().String() == ref)
 		return head.Hash().String() == ref
 	}
 
@@ -708,11 +716,59 @@ func IsOnRef(directory string, ref string, refType string) bool {
 	return isOnTag
 }
 
+func findRefType(directory string, ref string) RefType {
+	if ref == "" {
+		return GIT_DEFAULT
+	}
+
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return GIT_DEFAULT
+	}
+
+	wg.Wait()
+
+	remoteBranches, err := getRemoteBranches(directory)
+	if err == nil {
+		for _, b := range remoteBranches {
+			if b.Name().Short() == ref {
+				return GIT_BRANCH
+			}
+		}
+	}
+
+	tags, err := repo.Tags()
+	if err == nil {
+		isTag := false
+		tags.ForEach(func(r *plumbing.Reference) error {
+			if r.Name().Short() == ref {
+				isTag = true
+			}
+			return nil
+		})
+		if isTag {
+			return GIT_TAG
+		}
+	}
+
+	return GIT_COMMIT
+}
+
 func CheckoutRef(
 	directory string,
 	ref string,
-) string {
-	refType := GIT_DEFAULT
+	refType RefType,
+) RefType {
+	if refType == "" {
+		refType = findRefType(directory, ref)
+	}
+
+	if refType == GIT_DEFAULT {
+		return refType
+	}
 
 	wg := sync.WaitGroup{}
 
@@ -730,49 +786,40 @@ func CheckoutRef(
 		return refType
 	}
 
-	branch := plumbing.ReferenceName("")
-	hash := plumbing.Hash{}
-
-	remoteBranches, err := getRemoteBranches(directory)
-	if err == nil {
-		for _, b := range remoteBranches {
-			if b.Name().String() == ref {
-				branch = plumbing.ReferenceName(ref)
-				refType = GIT_BRANCH
-				break
-			}
-		}
-	}
-
-	if branch == "" {
-		tags, err := repo.Tags()
-		if err == nil {
-			tags.ForEach(func(r *plumbing.Reference) error {
-				if r.Name().Short() == ref {
-					hash = r.Hash()
-					refType = GIT_TAG
-				}
-				return nil
-			})
-		}
-	}
-
-	if hash.IsZero() {
-		hash = plumbing.NewHash(ref)
-		refType = GIT_COMMIT
-	}
-
 	worktree.AddGlob(".")
 	wg.Wait()
 
-	if branch != "" {
+	switch refType {
+	case GIT_BRANCH:
 		err = worktree.Checkout(&git.CheckoutOptions{
-			Branch: branch,
+			Branch: plumbing.NewBranchReferenceName(ref),
 		})
-	} else {
+	case GIT_COMMIT:
 		err = worktree.Checkout(&git.CheckoutOptions{
-			Hash: hash,
+			Hash: plumbing.NewHash(ref),
 		})
+	case GIT_TAG:
+		tags, tagsErr := repo.Tags()
+		if tagsErr == nil {
+			hash := plumbing.Hash{}
+
+			tags.ForEach(func(r *plumbing.Reference) error {
+				if r.Name().Short() == ref {
+					hash = r.Hash()
+				}
+				return nil
+			})
+
+			if hash.IsZero() {
+				err = errors.New("could not find tag in repository")
+			} else {
+				err = worktree.Checkout(&git.CheckoutOptions{
+					Hash: hash,
+				})
+			}
+		} else {
+			err = tagsErr
+		}
 	}
 
 	if err != nil {

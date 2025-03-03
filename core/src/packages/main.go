@@ -6,11 +6,9 @@ import (
 	fs "fullstacked/editor/src/fs"
 	"fullstacked/editor/src/git"
 	setup "fullstacked/editor/src/setup"
-	"fullstacked/editor/src/utils"
 	"net/http"
 	"net/url"
 	"path"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -29,6 +27,7 @@ type Installation struct {
 	Packages               []*Package        `json:"-"`
 	LocalPackages          []PackageLockJSON `json:"-"`
 	BaseDirectory          string            `json:"-"`
+	Quick                  bool              `json:"-"`
 }
 
 func (i *Installation) notify() {
@@ -134,57 +133,142 @@ func findAvailableVersion(name string, versionRequested string) *semver.Version 
 	return nil
 }
 
-func NewPackage(packageName string) Package {
+func (i *Installation) NewPackage(packageName string) Package {
 	name, versionStr := ParsePackageName(packageName)
-	p := NewPackageWithVersionStr(name, versionStr, []PackageLockJSON{})
+	p := i.NewPackageWithVersionStr(name, versionStr)
 	p.As = []string{}
 	return p
 }
 
-func NewPackageWithVersionStr(name string, versionStr string, localPackages []PackageLockJSON) Package {
+func (i *Installation) NewPackageWithVersionStr(name string, versionStr string) Package {
 	if versionStr == "" {
 		versionStr = "latest"
 	}
 
-	for _, p := range localPackages {
-		if p.Name == name && contains(p.As, versionStr) {
+	for _, p := range i.LocalPackages {
+		if p.Name == name && slices.Contains(p.As, versionStr) {
 			v, _ := semver.NewVersion(p.Version)
-			return NewPackageFromLock(name, v, []string{versionStr}, p.Git)
+			return i.NewPackageFromLock(name, v, []string{versionStr}, p.Git)
 		}
 	}
 
-	version := findAvailableVersion(name, versionStr)
-	return NewPackageFromLock(name, version, []string{versionStr}, "")
-}
-
-func NewPackageFromGit(
-	name string,
-	versionStr string,
-	url *url.URL,
-	refType string,
-) Package {
-	version, err := semver.NewVersion(versionStr)
-	if err != nil {
-		version = nil
+	if strings.Contains(versionStr, "/") {
+		return i.NewPackageFromGit(name, "", pseudoGitUrlToUrl(versionStr), "")
 	}
 
+	version := findAvailableVersion(name, versionStr)
+	return i.NewPackageFromLock(name, version, []string{versionStr}, "")
+}
+
+func pseudoGitUrlToUrl(pseudoUrl string) *url.URL {
+	urlComponents := strings.Split(pseudoUrl, ":")
+	repo := urlComponents[len(urlComponents)-1]
+
+	if strings.Contains(repo, "#") {
+		repoComponents := strings.Split(repo, "#")
+		repo = repoComponents[0]
+	}
+
+	host := strings.Join(urlComponents[:len(urlComponents)-1], ":")
+
+	scheme := "https"
+	if strings.HasPrefix(urlComponents[0], "http") {
+		scheme = urlComponents[0]
+		host = strings.Join(urlComponents[1:len(urlComponents)-1], ":")
+	}
+
+	URL, err := url.Parse(scheme + "://" + host + "/" + repo + ".git")
+
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	return URL
+}
+
+func urlToPseudoGitUrl(url *url.URL) string {
 	repo := strings.TrimSuffix(url.Path, ".git")
 	repo = strings.TrimPrefix(repo, "/")
 	ref := url.Fragment
 
-	gitVersion := url.Host + ":" + repo
-	if ref != "" {
-		gitVersion += "#" + ref
+	pseudoUrl := url.Host + ":" + repo
+	if url.Scheme != "https" {
+		pseudoUrl = url.Scheme + ":" + pseudoUrl
 	}
 
-	return NewPackageFromLock(name, version, []string{gitVersion}, refType)
+	if ref != "" {
+		pseudoUrl += "#" + ref
+	}
+
+	return pseudoUrl
 }
 
-func NewPackageFromLock(
+// gitUrl: [SCHEME:]hostname[:PORT]:repo/name[#HASH|TAG|BRANCH]
+func (i *Installation) NewPackageFromGit(
+	name string,
+	versionStr string,
+	url *url.URL,
+	refType git.RefType,
+) Package {
+	pseudoUrl := urlToPseudoGitUrl(url)
+
+	pseudoUrlNoFragment := pseudoUrl
+	ref := ""
+
+	if strings.Contains(pseudoUrl, "#") {
+		pseudoUrlComponents := strings.Split(pseudoUrl, "#")
+		ref = pseudoUrlComponents[len(pseudoUrlComponents)-1]
+		pseudoUrlNoFragment = strings.Join(pseudoUrlComponents[:len(pseudoUrlComponents)-1], "#")
+	}
+
+	for _, lp := range i.LocalPackages {
+		if strings.HasPrefix(lp.As[0], pseudoUrlNoFragment) {
+			lpRef := ""
+
+			if strings.Contains(lp.As[0], "#") {
+				lpRefComps := strings.Split(lp.As[0], "#")
+				lpRef = lpRefComps[len(lpRefComps)-1]
+			}
+
+			directory := i.BaseDirectory + "/" + lp.Locations[0] + "/" + lp.Name
+			lpRefType := lp.Git
+
+			if git.IsOnRef(directory, ref, lpRefType) {
+				v, _ := semver.NewVersion(lp.Version)
+				p := i.NewPackageFromLock(lp.Name, v, []string{pseudoUrl}, refType)
+				if ref != lpRef {
+					p.GitRefType = git.CheckoutRef(directory, ref, "")
+					p.updateNameAndVersionWithPackageJSON(directory)
+				} else {
+					p.GitRefType = lp.Git
+				}
+				return p
+			}
+		}
+	}
+
+	p := i.NewPackageFromLock(name, nil, []string{pseudoUrl}, refType)
+
+	if versionStr == "" {
+		p.cloneAndCheckoutGitPackageToTmp()
+	} else {
+		v, err := semver.NewVersion(versionStr)
+		p.Version = v
+
+		if err != nil {
+			fmt.Println("bad version string from git package")
+		}
+	}
+
+	return p
+}
+
+func (i *Installation) NewPackageFromLock(
 	name string,
 	version *semver.Version,
 	as []string,
-	gitRefType string,
+	gitRefType git.RefType,
 ) Package {
 	return Package{
 		Name:       name,
@@ -305,7 +389,7 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 			// add to list of git packages
 			gitPackages = append(gitPackages, pName)
 		} else {
-			newDirectPackages = append(newDirectPackages, NewPackage(pName))
+			newDirectPackages = append(newDirectPackages, installation.NewPackage(pName))
 		}
 	}
 
@@ -318,63 +402,11 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 			continue
 		}
 
-		tmpDirectory := path.Join(setup.Directories.Tmp, utils.RandString(6))
-		refName := gitUrl.Fragment
-
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			sanitizedUrl := gitUrl.Scheme + "://" + gitUrl.Host + gitUrl.Path
-			if !strings.HasSuffix(sanitizedUrl, ".git") {
-				sanitizedUrl += ".git"
-			}
-
-			git.Clone(tmpDirectory, sanitizedUrl)
-
-			refType := git.GIT_DEFAULT
-
-			if refName != "" {
-				refType = git.CheckoutRef(tmpDirectory, refName)
-			}
-
-			packageJsonPath := path.Join(tmpDirectory, "package.json")
-			exists, isFile := fs.Exists(packageJsonPath)
-			if !exists || !isFile {
-				return
-			}
-
-			packageJsonData, err := fs.ReadFile(packageJsonPath)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			packageJson := &PackageJSON{}
-			err = json.Unmarshal(packageJsonData, packageJson)
-			if err != nil {
-				fmt.Println(err)
-				return
-			} else if packageJson.Name == "" {
-				fmt.Println("package.json is missing name field")
-				return
-			} else if packageJson.Version == "" {
-				fmt.Println("package.json is missing version field")
-				return
-			}
-
-			newPath := path.Join(installation.BaseDirectory, "node_modules", packageJson.Name)
-			newPathDir := filepath.Dir(newPath)
-
-			fs.Mkdir(newPathDir, fileEventOrigin)
-			fs.Rmdir(newPath, fileEventOrigin)
-			fs.Rename(tmpDirectory, newPath, fileEventOrigin)
-			p := NewPackageFromGit(packageJson.Name, packageJson.Version, gitUrl, refType)
+			p := installation.NewPackageFromGit("", "", gitUrl, "")
 			newDirectPackages = append(newDirectPackages, p)
-			p.Locations = []string{
-				"node_modules",
-			}
-			installation.LocalPackages = append(installation.LocalPackages, p.toJSON())
 		}()
 	}
 
@@ -426,6 +458,7 @@ func InstallQuick(installationId float64, directory string) {
 		Id:                     installationId,
 		BaseDirectory:          directory,
 		PackagesInstalledCount: 0,
+		Quick:                  true,
 	}
 
 	lockFile := path.Join(installation.BaseDirectory, "lock.json")
@@ -466,7 +499,7 @@ func InstallQuick(installationId float64, directory string) {
 
 func installPackageFromLock(installation *Installation, pInfo PackageLockJSON, parentWg *sync.WaitGroup, mutex *sync.Mutex) {
 	v, _ := semver.NewVersion(pInfo.Version)
-	p := NewPackageFromLock(pInfo.Name, v, pInfo.As, pInfo.Git)
+	p := installation.NewPackageFromLock(pInfo.Name, v, pInfo.As, pInfo.Git)
 
 	slices.SortFunc(pInfo.Locations, func(a, b string) int {
 		if a < b {
@@ -622,7 +655,7 @@ func (installation *Installation) loadDirectPackages() []*Package {
 
 	if packageJson.Dependencies != nil {
 		for n, v := range packageJson.Dependencies {
-			p := NewPackageWithVersionStr(n, v, installation.LocalPackages)
+			p := installation.NewPackageWithVersionStr(n, v)
 			p.VersionOriginal = v
 			p.Direct = true
 			directPackages = append(directPackages, &p)
@@ -631,7 +664,7 @@ func (installation *Installation) loadDirectPackages() []*Package {
 
 	if packageJson.DevDependencies != nil {
 		for n, v := range packageJson.DevDependencies {
-			p := NewPackageWithVersionStr(n, v, installation.LocalPackages)
+			p := installation.NewPackageWithVersionStr(n, v)
 			p.VersionOriginal = v
 			p.Direct = true
 			p.Dev = true
@@ -684,20 +717,9 @@ func mergeSlices(arr1 []string, arr2 []string) []string {
 	return arr1
 }
 
-func contains(arr []string, e string) bool {
-	for _, i := range arr {
-		if i == e {
-			return true
-		}
-	}
-	return false
-}
-
 func appendIfContainsNot(arr []string, e string) []string {
-	for _, i := range arr {
-		if e == i {
-			return arr
-		}
+	if slices.Contains(arr, e) {
+		return arr
 	}
 
 	return append(arr, e)
