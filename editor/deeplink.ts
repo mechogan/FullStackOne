@@ -60,6 +60,6 @@ export function WindowsAskForAdmin() {
     const { remove } = Dialog(container);
     closeButton.onclick = () => {
         remove();
-        fetch("/restart-admin")
+        fetch("/restart-admin");
     };
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/git"
 	setup "fullstacked/editor/src/setup"
 	"io"
 	"net/http"
@@ -22,8 +23,9 @@ type Package struct {
 	Name            string          `json:"name"`
 	Version         *semver.Version `json:"version"`
 	VersionOriginal string          `json:"-"`
-	As              []string        `json:"as"`
-	Direct          bool            `json:"direct"`
+	GitRefType      string          `json:"-"`
+	As              []string        `json:"-"`
+	Direct          bool            `json:"-"`
 	Dev             bool            `json:"-"`
 
 	Locations []string `json:"-"`
@@ -31,7 +33,7 @@ type Package struct {
 	InstallationId float64 `json:"id"`
 
 	Dependants   []*Package `json:"-"`
-	Dependencies []*Package `json:"dependencies"`
+	Dependencies []*Package `json:"-"`
 
 	Progress struct {
 		Stage  string `json:"stage"`
@@ -41,6 +43,7 @@ type Package struct {
 }
 
 type PackageJSON struct {
+	Name            string            `json:"name"`
 	Version         string            `json:"version"`
 	Dependencies    map[string]string `json:"dependencies"`
 	DevDependencies map[string]string `json:"devDependencies"`
@@ -49,17 +52,22 @@ type PackageJSON struct {
 type PackageLockJSON struct {
 	Name      string   `json:"name"`
 	Version   string   `json:"version"`
+	Git       string   `json:"git,omitempty"`
 	As        []string `json:"as,omitempty"`
 	Locations []string `json:"location"`
 }
 
 func (p *Package) toJSON() PackageLockJSON {
-	return PackageLockJSON{
+	pJson := PackageLockJSON{
 		Name:      p.Name,
 		As:        p.As,
 		Locations: p.Locations,
 		Version:   p.Version.String(),
 	}
+	if p.GitRefType != "" {
+		pJson.Git = p.GitRefType
+	}
+	return pJson
 }
 
 // for downloading progress
@@ -120,7 +128,7 @@ func (p *Package) getDependenciesList(i *Installation) map[string]string {
 
 		for _, l := range pp.Locations {
 			pDir := path.Join(i.BaseDirectory, l, p.Name)
-			ppp := NewPackageFromLock(pp.Name, p.Version, "")
+			ppp := NewPackageFromLock(pp.Name, p.Version, pp.As, pp.Git)
 			if ppp.isInstalled(pDir) {
 				return ppp.getDependenciesFromLocal(pDir)
 			}
@@ -207,6 +215,10 @@ func (p *Package) isInstalled(directory string) bool {
 		return false
 	}
 
+	if p.GitRefType != "" {
+		return isPackageGitInstalled(directory, p.As[0], p.GitRefType)
+	}
+
 	installedVersion, err := semver.NewVersion(packageJson.Version)
 
 	if err != nil || installedVersion == nil {
@@ -215,6 +227,19 @@ func (p *Package) isInstalled(directory string) bool {
 	}
 
 	return installedVersion.Equal(p.Version)
+}
+
+// gitUrl: hostname[:PORT]:repo/name[#HASH|TAG|BRANCH]
+func isPackageGitInstalled(directory string, gitUrl string, gitRefType string) bool {
+	urlComponents := strings.Split(gitUrl, "#")
+
+	if len(urlComponents) == 1 && gitRefType == git.GIT_DEFAULT {
+		return true
+	}
+
+	ref := urlComponents[len(urlComponents)-1]
+
+	return git.IsOnRef(directory, ref, gitRefType)
 }
 
 func (p *Package) Install(

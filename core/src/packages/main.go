@@ -4,9 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/git"
 	setup "fullstacked/editor/src/setup"
+	"fullstacked/editor/src/utils"
 	"net/http"
+	"net/url"
 	"path"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -144,19 +149,48 @@ func NewPackageWithVersionStr(name string, versionStr string, localPackages []Pa
 	for _, p := range localPackages {
 		if p.Name == name && contains(p.As, versionStr) {
 			v, _ := semver.NewVersion(p.Version)
-			return NewPackageFromLock(name, v, versionStr)
+			return NewPackageFromLock(name, v, []string{versionStr}, p.Git)
 		}
 	}
 
 	version := findAvailableVersion(name, versionStr)
-	return NewPackageFromLock(name, version, versionStr)
+	return NewPackageFromLock(name, version, []string{versionStr}, "")
 }
 
-func NewPackageFromLock(name string, version *semver.Version, versionStr string) Package {
+func NewPackageFromGit(
+	name string,
+	versionStr string,
+	url *url.URL,
+	refType string,
+) Package {
+	version, err := semver.NewVersion(versionStr)
+	if err != nil {
+		version = nil
+	}
+
+	repo := strings.TrimSuffix(url.Path, ".git")
+	repo = strings.TrimPrefix(repo, "/")
+	ref := url.Fragment
+
+	gitVersion := url.Host + ":" + repo
+	if ref != "" {
+		gitVersion += "#" + ref
+	}
+
+	return NewPackageFromLock(name, version, []string{gitVersion}, refType)
+}
+
+func NewPackageFromLock(
+	name string,
+	version *semver.Version,
+	as []string,
+	gitRefType string,
+) Package {
 	return Package{
-		Name:    name,
-		Version: version,
-		As:      []string{versionStr},
+		Name:       name,
+		Version:    version,
+		As:         as,
+		GitRefType: gitRefType,
 	}
 }
 
@@ -264,26 +298,93 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 	wg := sync.WaitGroup{}
 	mutex := sync.Mutex{}
 
-	gitPackages := []string{};
-	for i := len(packagesName); i >= 0; i-- {
-		if(strings.HasPrefix(packagesName[i], "http://") || strings.HasPrefix(packagesName[i], "https://")) {
-			// add to list of git packages to test
-			gitPackages = append(gitPackages, packagesName[i])
-			
-			// remove from name to install
-			packagesName[i] = packagesName[len(packagesName)-1]
-			packagesName = packagesName[:len(packagesName)-1]
+	newDirectPackages := []Package{}
+	gitPackages := []string{}
+	for _, pName := range packagesName {
+		if strings.HasPrefix(pName, "http://") || strings.HasPrefix(pName, "https://") {
+			// add to list of git packages
+			gitPackages = append(gitPackages, pName)
+		} else {
+			newDirectPackages = append(newDirectPackages, NewPackage(pName))
 		}
 	}
 
-	// for _, gitPackageUrl := range gitPackages {
-	// }
+	// clone all git packages url
+	// valid repos must be append to newDirectPackages
+	for _, gitPackageUrl := range gitPackages {
+		gitUrl, err := url.Parse(gitPackageUrl)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
-	for _, pName := range packagesName {
-		p := NewPackage(pName)
+		tmpDirectory := path.Join(setup.Directories.Tmp, utils.RandString(6))
+		refName := gitUrl.Fragment
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			sanitizedUrl := gitUrl.Scheme + "://" + gitUrl.Host + gitUrl.Path
+			if !strings.HasSuffix(sanitizedUrl, ".git") {
+				sanitizedUrl += ".git"
+			}
+
+			git.Clone(tmpDirectory, sanitizedUrl)
+
+			refType := git.GIT_DEFAULT
+
+			if refName != "" {
+				refType = git.CheckoutRef(tmpDirectory, refName)
+			}
+
+			packageJsonPath := path.Join(tmpDirectory, "package.json")
+			exists, isFile := fs.Exists(packageJsonPath)
+			if !exists || !isFile {
+				return
+			}
+
+			packageJsonData, err := fs.ReadFile(packageJsonPath)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			packageJson := &PackageJSON{}
+			err = json.Unmarshal(packageJsonData, packageJson)
+			if err != nil {
+				fmt.Println(err)
+				return
+			} else if packageJson.Name == "" {
+				fmt.Println("package.json is missing name field")
+				return
+			} else if packageJson.Version == "" {
+				fmt.Println("package.json is missing version field")
+				return
+			}
+
+			newPath := path.Join(installation.BaseDirectory, "node_modules", packageJson.Name)
+			newPathDir := filepath.Dir(newPath)
+
+			fs.Mkdir(newPathDir, fileEventOrigin)
+			fs.Rmdir(newPath, fileEventOrigin)
+			fs.Rename(tmpDirectory, newPath, fileEventOrigin)
+			p := NewPackageFromGit(packageJson.Name, packageJson.Version, gitUrl, refType)
+			newDirectPackages = append(newDirectPackages, p)
+			p.Locations = []string{
+				"node_modules",
+			}
+			installation.LocalPackages = append(installation.LocalPackages, p.toJSON())
+		}()
+	}
+
+	wg.Wait()
+
+	for _, p := range newDirectPackages {
 		p.Direct = true
 		p.Dev = devDependencies
 
+		// replace existing direct package with same name
 		for i, pp := range directPackages {
 			if pp.Name == p.Name {
 				directPackages[i] = directPackages[len(directPackages)-1]
@@ -349,7 +450,7 @@ func InstallQuick(installationId float64, directory string) {
 
 	guard := make(chan struct{}, maxGoroutines)
 	for _, pInfo := range installation.LocalPackages {
-		guard <- struct{}{} // would block if guard channel is already filled
+		guard <- struct{}{}
 		wg.Add(1)
 		go func(p PackageLockJSON) {
 			installPackageFromLock(&installation, p, &wg, &mutex)
@@ -365,10 +466,13 @@ func InstallQuick(installationId float64, directory string) {
 
 func installPackageFromLock(installation *Installation, pInfo PackageLockJSON, parentWg *sync.WaitGroup, mutex *sync.Mutex) {
 	v, _ := semver.NewVersion(pInfo.Version)
-	p := NewPackageFromLock(pInfo.Name, v, "")
+	p := NewPackageFromLock(pInfo.Name, v, pInfo.As, pInfo.Git)
 
-	sort.Slice(pInfo.Locations, func(i, j int) bool {
-		return pInfo.Locations[i] < pInfo.Locations[j]
+	slices.SortFunc(pInfo.Locations, func(a, b string) int {
+		if a < b {
+			return -1
+		}
+		return 1
 	})
 
 	wg := sync.WaitGroup{}
@@ -430,11 +534,16 @@ func (installation *Installation) updatePackageAndLock() {
 			}
 
 			v := "^" + p.Version.String()
+			if p.GitRefType != "" {
+				v = p.As[0]
+			}
+
 			p.As = appendIfContainsNot(p.As, v)
 			if p.VersionOriginal != "" {
 				v = p.VersionOriginal
 				p.As = appendIfContainsNot(p.As, v)
 			}
+
 			direct.Dependencies[p.Name] = v
 		}
 	}

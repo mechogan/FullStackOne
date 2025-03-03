@@ -6,26 +6,20 @@ import { GitAuth } from "../../views/project/git/auth";
 
 core_message.addListener("git-authentication", (message) => {
     const { id, host } = JSON.parse(message);
-    console.log(id, "received")
+    console.log(id, "received");
     GitAuth(host).then((success) => gitAuthResponse(id, success));
 });
 
 // 81
 function gitAuthResponse(id: number, success: boolean) {
     console.log(id, success);
-    const payload = new Uint8Array([
-        81,
-        ...serializeArgs([id, success])
-    ]);
+    const payload = new Uint8Array([81, ...serializeArgs([id, success])]);
     bridge(payload);
 }
 
 // 70
 export function clone(url: string, into: string) {
-    const payload = new Uint8Array([
-        70,
-        ...serializeArgs([into, url])
-    ]);
+    const payload = new Uint8Array([70, ...serializeArgs([into, url])]);
     return bridge(payload);
 }
 
@@ -46,7 +40,7 @@ export type Status = {
     added: string[];
     deleted: string[];
     modified: string[];
-}
+};
 
 // 72
 export function status(projectId: string): Promise<Status> {
@@ -57,8 +51,8 @@ export function status(projectId: string): Promise<Status> {
         const status: Status = {
             added: [],
             deleted: [],
-            modified: [],
-        }
+            modified: []
+        };
 
         for (let i = 0; i < s.length; i = i + 2) {
             const file = s[i] as string;
@@ -85,10 +79,7 @@ export function status(projectId: string): Promise<Status> {
 
 // 73
 export function pull(project: Project) {
-    const payload = new Uint8Array([
-        73,
-        ...serializeArgs([project.id])
-    ]);
+    const payload = new Uint8Array([73, ...serializeArgs([project.id])]);
     return bridge(payload);
 }
 
@@ -118,10 +109,7 @@ export function checkout(
 
 // 76
 export function fetch(project: Project): Promise<void> {
-    const payload = new Uint8Array([
-        76,
-        ...serializeArgs([project.id])
-    ]);
+    const payload = new Uint8Array([76, ...serializeArgs([project.id])]);
     return bridge(payload);
 }
 
@@ -144,14 +132,11 @@ type Branch = {
     name: string;
     remote: boolean;
     local: boolean;
-}
+};
 
 // 78
 export async function branches(project: Project): Promise<Branch[]> {
-    const payload = new Uint8Array([
-        78,
-        ...serializeArgs([project.id])
-    ]);
+    const payload = new Uint8Array([78, ...serializeArgs([project.id])]);
 
     // [name, isLocal, isRemote, name, isLocal, isRemote, ...]
     const transformer = (branchesArgs: (string | boolean)[]) => {
@@ -166,17 +151,14 @@ export async function branches(project: Project): Promise<Branch[]> {
         }
 
         return branches;
-    }
+    };
 
     return bridge(payload, transformer);
 }
 
 // 79
 export function push(project: Project) {
-    const payload = new Uint8Array([
-        79,
-        ...serializeArgs([project.id])
-    ]);
+    const payload = new Uint8Array([79, ...serializeArgs([project.id])]);
     return bridge(payload);
 }
 

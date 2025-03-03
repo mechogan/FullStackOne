@@ -20,11 +20,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
-	"fullstacked/editor/src/config"
-	"fullstacked/editor/src/fs"
+	config "fullstacked/editor/src/config"
+	fs "fullstacked/editor/src/fs"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
-	"fullstacked/editor/src/utils"
+	utils "fullstacked/editor/src/utils"
 )
 
 var ignoredDirectories = []string{
@@ -133,7 +133,12 @@ func checkForGitAuth(urlStr string) *http.BasicAuth {
 	}
 
 	gitConfig := GitAuthConfig{}
-	gitConfigData, _ := config.Get("git")
+	gitConfigData, err := config.Get("git")
+
+	if err != nil {
+		return nil
+	}
+
 	err = json.Unmarshal(gitConfigData, &gitConfig)
 
 	if err != nil {
@@ -298,11 +303,6 @@ func Status(directory string) []byte {
 
 	wg.Wait()
 
-	// preload memory FS
-	worktree.Status()
-
-	wg.Wait()
-
 	status, err := worktree.Status()
 	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
@@ -391,7 +391,7 @@ func Pull(directory string) {
 				Auth:          checkForGitAuth(progress.Url),
 				ReferenceName: head.Name(),
 				Progress:      &progress,
-			});
+			})
 		}
 	}
 
@@ -439,7 +439,7 @@ func Push(directory string) {
 		},
 	})
 
-	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 		if requestGitAuthentication(progress.Url) {
 			err = repo.Push(&git.PushOptions{
 				Auth: checkForGitAuth(progress.Url),
@@ -505,7 +505,7 @@ func Fetch(directory string) []byte {
 		Auth: checkForGitAuth(remote.Config().URLs[0]),
 	})
 
-	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 		if requestGitAuthentication(remote.Config().URLs[0]) {
 			err = repo.Fetch(&git.FetchOptions{
 				Auth: checkForGitAuth(remote.Config().URLs[0]),
@@ -574,7 +574,7 @@ func getRemoteBranches(directory string) ([]plumbing.Reference, error) {
 		Auth: checkForGitAuth(remote.Config().URLs[0]),
 	})
 
-	if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 		if requestGitAuthentication(remote.Config().URLs[0]) {
 			remoteRefs, err = remote.List(&git.ListOptions{
 				Auth: checkForGitAuth(remote.Config().URLs[0]),
@@ -663,6 +663,127 @@ func Branches(directory string) []byte {
 	return branchesSerialized
 }
 
+const (
+	GIT_DEFAULT = "default"
+	GIT_BRANCH  = "branch"
+	GIT_TAG     = "tag"
+	GIT_COMMIT  = "commit"
+)
+
+func IsOnRef(directory string, ref string, refType string) bool {
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return false
+	}
+
+	wg.Wait()
+
+	head, err := repo.Head()
+
+	if err != nil {
+		return false
+	}
+
+	if refType == GIT_BRANCH {
+		return head.Name().Short() == ref
+	} else if refType == GIT_COMMIT {
+		return head.Hash().String() == ref
+	}
+
+	// GIT_TAG
+	isOnTag := false
+	tags, err := repo.Tags()
+	if err == nil {
+		tags.ForEach(func(r *plumbing.Reference) error {
+			if r.Name().Short() == ref && r.Hash().String() == head.Hash().String() {
+				isOnTag = true
+			}
+			return nil
+		})
+	}
+
+	return isOnTag
+}
+
+func CheckoutRef(
+	directory string,
+	ref string,
+) string {
+	refType := GIT_DEFAULT
+
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(directory, &wg)
+
+	if err != nil {
+		return refType
+	}
+
+	wg.Wait()
+
+	worktree, err := getWorktree(repo)
+
+	if err != nil {
+		return refType
+	}
+
+	branch := plumbing.ReferenceName("")
+	hash := plumbing.Hash{}
+
+	remoteBranches, err := getRemoteBranches(directory)
+	if err == nil {
+		for _, b := range remoteBranches {
+			if b.Name().String() == ref {
+				branch = plumbing.ReferenceName(ref)
+				refType = GIT_BRANCH
+				break
+			}
+		}
+	}
+
+	if branch == "" {
+		tags, err := repo.Tags()
+		if err == nil {
+			tags.ForEach(func(r *plumbing.Reference) error {
+				if r.Name().Short() == ref {
+					hash = r.Hash()
+					refType = GIT_TAG
+				}
+				return nil
+			})
+		}
+	}
+
+	if hash.IsZero() {
+		hash = plumbing.NewHash(ref)
+		refType = GIT_COMMIT
+	}
+
+	worktree.AddGlob(".")
+	wg.Wait()
+
+	if branch != "" {
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Branch: branch,
+		})
+	} else {
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Hash: hash,
+		})
+	}
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	wg.Wait()
+
+	return refType
+}
+
 func Checkout(
 	directory string,
 	branch string,
@@ -722,7 +843,7 @@ func Checkout(
 			RefSpecs: refSpec,
 		})
 
-		if(err != nil && strings.HasPrefix(err.Error(), "authentication required")) {
+		if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 			if requestGitAuthentication(remote.Config().URLs[0]) {
 				err = remote.Fetch(&git.FetchOptions{
 					Auth:     checkForGitAuth(remote.Config().URLs[0]),
@@ -751,9 +872,12 @@ func Checkout(
 
 	wg.Wait()
 
-	// preloads worktree into billy fs layer
-	worktree.Status()
-	wg.Wait()
+	// add all before checking out to prevent
+	// changing branch with unstaged changes
+	if !create {
+		worktree.AddGlob(".")
+		wg.Wait()
+	}
 
 	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: *branchRefName,

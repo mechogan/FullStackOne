@@ -24,8 +24,8 @@ func Get(configFile string) ([]byte, error) {
 func GetSerialized(configFile string) []byte {
 	config, err := Get(configFile)
 
-	if(err != nil) {
-		return serialize.SerializeError(err)
+	if err != nil {
+		return nil
 	}
 
 	return serialize.SerializeString(string(config))
