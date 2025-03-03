@@ -697,7 +697,6 @@ func IsOnRef(directory string, ref string, refType RefType) bool {
 	if refType == GIT_BRANCH {
 		return head.Name().Short() == ref
 	} else if refType == GIT_COMMIT {
-		fmt.Println(head.Hash().String(), ref, head.Hash().String() == ref)
 		return head.Hash().String() == ref
 	}
 
