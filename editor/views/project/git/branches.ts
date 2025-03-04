@@ -97,7 +97,7 @@ async function BranchesList(project: Project) {
             branchName.innerText = branch.name;
             item.append(branchName);
 
-            const isCurrent = branch.name === head.Name;
+            const isCurrent = branch.name === head.name;
 
             if (isCurrent) {
                 const icon = Icon("Arrow 2");

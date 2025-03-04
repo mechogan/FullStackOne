@@ -10,7 +10,7 @@ import {
 import { refreshGitWidgetBranchAndCommit } from "..";
 import { createElement } from "../../../components/element";
 import { createRefresheable } from "../../../components/refresheable";
-import git from "../../../lib/git";
+import git, { Status } from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
 import { saveAllViews } from "../code-editor";
@@ -130,11 +130,7 @@ function CommitView(
 }
 
 let changesPromise: Promise<{
-    changes: {
-        Added: string[];
-        Modified: string[];
-        Deleted: string[];
-    };
+    changes: Status;
     hasChanges: boolean;
 }>;
 
@@ -148,9 +144,9 @@ export function projectChanges(project: Project) {
 async function _projectChanges(project: Project) {
     const changes = await git.status(project.id);
     const hasChanges =
-        changes.Added.length !== 0 ||
-        changes.Modified.length !== 0 ||
-        changes.Deleted.length !== 0;
+        changes.added.length !== 0 ||
+        changes.modified.length !== 0 ||
+        changes.deleted.length !== 0;
 
     changesPromise = null;
     return { changes, hasChanges };
@@ -284,10 +280,10 @@ function RepoInfos(project: Project) {
 
     container.append(webLink);
 
-    git.head(project.id).then(({ Name, Hash }) => {
+    git.head(project.id).then(({ name, hash }) => {
         container.innerHTML += `
-                <div>${Name}</div>
-                <div>${Hash}</div>
+                <div>${name}</div>
+                <div>${hash}</div>
             `;
     });
 
@@ -435,9 +431,9 @@ function ChangesList(changes: Changes, project: Project) {
         container.append(subtitleEl, FilesList(files, revertFile));
     };
 
-    addSection("Added", changes.Added);
-    addSection("Modified", changes.Modified);
-    addSection("Deleted", changes.Deleted);
+    addSection("Added", changes.added);
+    addSection("Modified", changes.modified);
+    addSection("Deleted", changes.deleted);
 
     return container;
 }

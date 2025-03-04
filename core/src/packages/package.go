@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/git"
 	setup "fullstacked/editor/src/setup"
+	"fullstacked/editor/src/utils"
 	"io"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,8 +25,10 @@ type Package struct {
 	Name            string          `json:"name"`
 	Version         *semver.Version `json:"version"`
 	VersionOriginal string          `json:"-"`
-	As              []string        `json:"as"`
-	Direct          bool            `json:"direct"`
+	GitRefType      git.RefType     `json:"-"`
+	GitTmpDir       string          `json:"-"`
+	As              []string        `json:"-"`
+	Direct          bool            `json:"-"`
 	Dev             bool            `json:"-"`
 
 	Locations []string `json:"-"`
@@ -31,7 +36,7 @@ type Package struct {
 	InstallationId float64 `json:"id"`
 
 	Dependants   []*Package `json:"-"`
-	Dependencies []*Package `json:"dependencies"`
+	Dependencies []*Package `json:"-"`
 
 	Progress struct {
 		Stage  string `json:"stage"`
@@ -41,25 +46,31 @@ type Package struct {
 }
 
 type PackageJSON struct {
+	Name            string            `json:"name"`
 	Version         string            `json:"version"`
 	Dependencies    map[string]string `json:"dependencies"`
 	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 type PackageLockJSON struct {
-	Name      string   `json:"name"`
-	Version   string   `json:"version"`
-	As        []string `json:"as,omitempty"`
-	Locations []string `json:"location"`
+	Name      string      `json:"name"`
+	Version   string      `json:"version"`
+	Git       git.RefType `json:"git,omitempty"`
+	As        []string    `json:"as,omitempty"`
+	Locations []string    `json:"location"`
 }
 
 func (p *Package) toJSON() PackageLockJSON {
-	return PackageLockJSON{
+	pJson := PackageLockJSON{
 		Name:      p.Name,
 		As:        p.As,
 		Locations: p.Locations,
 		Version:   p.Version.String(),
 	}
+	if p.GitRefType != "" {
+		pJson.Git = p.GitRefType
+	}
+	return pJson
 }
 
 // for downloading progress
@@ -120,11 +131,25 @@ func (p *Package) getDependenciesList(i *Installation) map[string]string {
 
 		for _, l := range pp.Locations {
 			pDir := path.Join(i.BaseDirectory, l, p.Name)
-			ppp := NewPackageFromLock(pp.Name, p.Version, "")
+			ppp := i.NewPackageFromLock(pp.Name, p.Version, pp.As, pp.Git)
 			if ppp.isInstalled(pDir) {
 				return ppp.getDependenciesFromLocal(pDir)
 			}
 		}
+	}
+
+	// git package not in local packages
+	if p.GitRefType != "" {
+		// not been cloned
+		if p.GitTmpDir == "" {
+			// clone success
+			if p.cloneAndCheckoutGitPackageToTmp() {
+				return p.getDependenciesFromGitPackage()
+			} else {
+				return map[string]string{}
+			}
+		}
+		return p.getDependenciesFromGitPackage()
 	}
 
 	return p.getDependenciesFromRemote()
@@ -177,7 +202,7 @@ func NewDependency(
 	mutex *sync.Mutex,
 ) {
 	defer wg.Done()
-	p := NewPackageWithVersionStr(name, versionStr, installation.LocalPackages)
+	p := installation.NewPackageWithVersionStr(name, versionStr)
 	p.Dependants = []*Package{dependant}
 	mutex.Lock()
 	dependencies.packages = append(dependencies.packages, p)
@@ -207,6 +232,14 @@ func (p *Package) isInstalled(directory string) bool {
 		return false
 	}
 
+	if packageJson.Name != p.Name {
+		return false
+	}
+
+	if p.GitRefType != "" {
+		return p.GitTmpDir == "" && p.isPackageGitOnRef(directory)
+	}
+
 	installedVersion, err := semver.NewVersion(packageJson.Version)
 
 	if err != nil || installedVersion == nil {
@@ -215,6 +248,19 @@ func (p *Package) isInstalled(directory string) bool {
 	}
 
 	return installedVersion.Equal(p.Version)
+}
+
+// gitUrl: [SCHEME:]hostname[:PORT]:repo/name[#HASH|TAG|BRANCH]
+func (p *Package) isPackageGitOnRef(directory string) bool {
+	gitUrl := p.As[0]
+	if !strings.Contains(gitUrl, "#") && p.GitRefType == git.GIT_DEFAULT {
+		return true
+	}
+
+	urlComponents := strings.Split(gitUrl, "#")
+	ref := urlComponents[len(urlComponents)-1]
+
+	return git.IsOnRef(directory, ref, p.GitRefType)
 }
 
 func (p *Package) Install(
@@ -237,7 +283,15 @@ func (p *Package) Install(
 		mutex.Lock()
 		i.PackagesInstalledCount += 1
 		mutex.Unlock()
-		p.installFromRemote(pDir)
+
+		if p.GitRefType != "" {
+			p.installFromGit(pDir)
+		} else {
+			p.installFromRemote(pDir)
+		}
+	} else if !i.Quick && (p.GitRefType == git.GIT_BRANCH || p.GitRefType == git.GIT_DEFAULT) {
+		git.Pull(pDir)
+		p.updateNameAndVersionWithPackageJSON(pDir)
 	}
 
 	if len(p.Dependencies) > 0 {
@@ -348,4 +402,111 @@ func (p *Package) installFromRemote(directory string) {
 	p.Progress.Loaded = 1
 	p.Progress.Total = 1
 	p.notify()
+}
+
+func (p *Package) updateNameAndVersionWithPackageJSON(directory string) {
+	packageJsonPath := path.Join(directory, "package.json")
+	exists, isFile := fs.Exists(packageJsonPath)
+	if !exists || !isFile {
+		fmt.Println("no package.json in package")
+		return
+	}
+
+	packageJsonData, err := fs.ReadFile(packageJsonPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	packageJson := &PackageJSON{}
+	err = json.Unmarshal(packageJsonData, packageJson)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	p.Name = packageJson.Name
+	v, err := semver.NewVersion(packageJson.Version)
+	if err != nil {
+		fmt.Println("bad version in package")
+		v = nil
+	}
+	p.Version = v
+}
+
+func (p *Package) cloneAndCheckoutGitPackageToTmp() bool {
+	url := pseudoGitUrlToUrl(p.As[0])
+
+	ref := ""
+	if strings.Contains(p.As[0], "#") {
+		repoComponents := strings.Split(p.As[0], "#")
+		ref = repoComponents[len(repoComponents)-1]
+	}
+
+	p.GitTmpDir = path.Join(setup.Directories.Tmp, utils.RandString(6))
+
+	git.Clone(p.GitTmpDir, url.String())
+	p.GitRefType = git.CheckoutRef(p.GitTmpDir, ref, p.GitRefType)
+
+	p.updateNameAndVersionWithPackageJSON(p.GitTmpDir)
+
+	invalidatePackage := func() {
+		fs.Rmdir(p.GitTmpDir, fileEventOrigin)
+		p.GitTmpDir = ""
+	}
+
+	if p.Name == "" {
+		fmt.Println("missing name in git package")
+		invalidatePackage()
+		return false
+	} else if p.Version == nil {
+		fmt.Println("missing version in git package")
+		invalidatePackage()
+		return false
+	}
+
+	return true
+}
+
+func (p *Package) getDependenciesFromGitPackage() map[string]string {
+	if p.GitTmpDir == "" {
+		fmt.Println("trying to get git package deps before cloning to tmp")
+		return map[string]string{}
+	}
+
+	packageJsonPath := path.Join(p.GitTmpDir, "package.json")
+	exists, isFile := fs.Exists(packageJsonPath)
+	if !exists || !isFile {
+		fmt.Println("no package.json in git package")
+		return map[string]string{}
+	}
+
+	packageJsonData, err := fs.ReadFile(packageJsonPath)
+	if err != nil {
+		fmt.Println(err)
+		return map[string]string{}
+	}
+
+	packageJson := &PackageJSON{}
+	err = json.Unmarshal(packageJsonData, packageJson)
+
+	if err != nil {
+		fmt.Println(err)
+		return map[string]string{}
+	}
+
+	return packageJson.Dependencies
+}
+
+// gitUrl: [SCHEME:]hostname[:PORT]:repo/name[#HASH|TAG|BRANCH]
+func (p *Package) installFromGit(directory string) {
+	if p.GitTmpDir == "" {
+		p.cloneAndCheckoutGitPackageToTmp()
+	}
+
+	parentDir := filepath.Dir(directory)
+
+	fs.Mkdir(parentDir, fileEventOrigin)
+	fs.Rmdir(directory, fileEventOrigin)
+	fs.Rename(p.GitTmpDir, directory, fileEventOrigin)
 }

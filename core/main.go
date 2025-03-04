@@ -32,8 +32,11 @@ func directories(root *C.char,
 	fileEventOrigin := "setup"
 	fs.Mkdir(setup.Directories.Root, fileEventOrigin)
 	fs.Mkdir(setup.Directories.Config, fileEventOrigin)
-	fs.Mkdir(setup.Directories.Tmp, fileEventOrigin)
 	fs.Mkdir(setup.Directories.Editor, fileEventOrigin)
+
+	// clean tmp
+	fs.Rmdir(setup.Directories.Tmp, fileEventOrigin)
+	fs.Mkdir(setup.Directories.Tmp, fileEventOrigin)
 }
 
 var cCallback = (unsafe.Pointer)(nil)

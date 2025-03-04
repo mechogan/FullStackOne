@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,9 +17,9 @@ func RandString(n int) string {
 	return string(b)
 }
 
-func Contains(arr []string, e string) bool {
+func ContainsHasPrefix(arr []string, e string) bool {
 	for _, i := range arr {
-		if i == e {
+		if strings.HasPrefix(i, e) {
 			return true
 		}
 	}

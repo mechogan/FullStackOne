@@ -13,19 +13,7 @@ export function get<T extends CONFIG_TYPE>(
             return checkExists ? null : {};
         }
 
-        // MIGRATION 0.9.0 -> 0.10.0 | 08-10-2024
-        // no array at json root
-
-        let json = JSON.parse(string);
-        if (configType === CONFIG_TYPE.PROJECTS && Array.isArray(json)) {
-            json = {
-                projects: json
-            };
-        }
-
-        // END
-
-        return json;
+        return JSON.parse(string);
     };
 
     return bridge(payload, transformer);

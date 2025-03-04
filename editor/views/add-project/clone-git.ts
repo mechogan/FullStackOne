@@ -37,7 +37,11 @@ export function CloneGit(repoUrl?: string) {
 
     const submit = async () => {
         cloneButton.disabled = true;
-        cloneGitRepo(repoUrlInput.input.value, scrollable)
+        let url = repoUrlInput.input.value;
+        if (!url.endsWith(".git")) {
+            url += ".git";
+        }
+        cloneGitRepo(url, scrollable)
             .then(() => stackNavigation.back())
             .catch(() => {});
     };

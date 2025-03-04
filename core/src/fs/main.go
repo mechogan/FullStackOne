@@ -252,6 +252,12 @@ func MkdirSerialized(path string, origin string) []byte {
 }
 
 func Rmdir(path string, origin string) bool {
+	exists, _ := Exists(path)
+
+	if !exists {
+		return true
+	}
+
 	err := (error)(nil)
 
 	if WASM {

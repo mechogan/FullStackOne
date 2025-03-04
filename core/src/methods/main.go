@@ -10,7 +10,7 @@ import (
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
 	git "fullstacked/editor/src/git"
-	"fullstacked/editor/src/packages"
+	packages "fullstacked/editor/src/packages"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	staticFiles "fullstacked/editor/src/staticFiles"
@@ -65,6 +65,7 @@ const (
 	GIT_BRANCHES      = 78
 	GIT_PUSH          = 79
 	GIT_BRANCH_DELETE = 80
+	GIT_AUTH_RESPONSE = 81
 
 	OPEN = 100
 )
@@ -189,9 +190,9 @@ func editorSwitch(method int, args []any) []byte {
 
 	switch {
 	case method == CONFIG_GET:
-		return config.Get(args[0].(string))
+		return config.GetSerialized(args[0].(string))
 	case method == CONFIG_SAVE:
-		return config.Save(args[0].(string), args[1].(string))
+		return config.SaveSerialized(args[0].(string), args[1].(string))
 	case method == ESBUILD_VERSION:
 		return serialize.SerializeString(esbuild.Version())
 	case method == ESBUILD_BUILD:
@@ -215,7 +216,7 @@ func editorSwitch(method int, args []any) []byte {
 	case method == OPEN:
 		setup.Callback("", "open", args[0].(string))
 		return nil
-	case method >= 70 && method <= 80:
+	case method >= 70 && method <= 81:
 		return gitSwitch(method, args)
 	}
 
@@ -227,33 +228,15 @@ func gitSwitch(method int, args []any) []byte {
 
 	switch method {
 	case GIT_CLONE:
-		if len(args) > 2 && args[2] != nil && args[3] != nil {
-			username := args[2].(string)
-			password := args[3].(string)
-			go git.Clone(directory, args[1].(string), &username, &password)
-		} else {
-			go git.Clone(directory, args[1].(string), nil, nil)
-		}
+		go git.Clone(directory, args[1].(string))
 	case GIT_HEAD:
 		return git.Head(directory)
 	case GIT_STATUS:
 		return git.Status(directory)
 	case GIT_PULL:
-		if len(args) > 1 && args[1] != nil && args[2] != nil {
-			username := args[1].(string)
-			password := args[2].(string)
-			go git.Pull(directory, &username, &password)
-		} else {
-			go git.Pull(directory, nil, nil)
-		}
+		go git.Pull(directory)
 	case GIT_PUSH:
-		if len(args) > 1 && args[1] != nil && args[2] != nil {
-			username := args[1].(string)
-			password := args[2].(string)
-			go git.Push(directory, &username, &password)
-		} else {
-			go git.Push(directory, nil, nil)
-		}
+		go git.Push(directory)
 	case GIT_RESTORE:
 		files := []string{}
 		for _, file := range args[1:] {
@@ -261,33 +244,17 @@ func gitSwitch(method int, args []any) []byte {
 		}
 		return git.Restore(directory, files)
 	case GIT_CHECKOUT:
-		if len(args) > 3 && args[3] != nil && args[4] != nil {
-			username := args[3].(string)
-			password := args[4].(string)
-			return git.Checkout(directory, args[1].(string), args[2].(bool), &username, &password)
-		}
-
-		return git.Checkout(directory, args[1].(string), args[2].(bool), nil, nil)
+		return git.Checkout(directory, args[1].(string), args[2].(bool))
 	case GIT_FETCH:
-		if len(args) > 1 && args[1] != nil && args[2] != nil {
-			username := args[1].(string)
-			password := args[2].(string)
-			return git.Fetch(directory, &username, &password)
-		}
-
-		return git.Fetch(directory, nil, nil)
+		return git.Fetch(directory)
 	case GIT_COMMIT:
 		return git.Commit(directory, args[1].(string), args[2].(string), args[3].(string))
 	case GIT_BRANCHES:
-		if len(args) > 1 && args[1] != nil && args[2] != nil {
-			username := args[1].(string)
-			password := args[2].(string)
-			return git.Branches(directory, &username, &password)
-		}
-
-		return git.Branches(directory, nil, nil)
+		return git.Branches(directory)
 	case GIT_BRANCH_DELETE:
 		return git.BranchDelete(directory, args[1].(string))
+	case GIT_AUTH_RESPONSE:
+		git.AuthResponse(args[0].(string), args[1].(bool))
 	}
 
 	return nil

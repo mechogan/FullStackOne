@@ -95,7 +95,7 @@ async function build(project: Project) {
                 `${project.id}/${buildHashFile}`,
                 { encoding: "utf8" }
             );
-            if (lastBuildHash === head.Hash) {
+            if (lastBuildHash === head.hash) {
                 core_open(project.id);
                 removeProjectBuild();
                 return;
@@ -129,7 +129,7 @@ async function build(project: Project) {
         } else {
             if (project.gitRepository?.url) {
                 const head = await git.head(project.id);
-                fs.writeFile(`${project.id}/.build/.commit`, head.Hash);
+                fs.writeFile(`${project.id}/.build/.commit`, head.hash);
             }
 
             core_open(project.id);
