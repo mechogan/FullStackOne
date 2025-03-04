@@ -17,16 +17,6 @@ func RandString(n int) string {
 	return string(b)
 }
 
-func ContainsHasPrefix(arr []string, e string) bool {
-	for _, i := range arr {
-		if strings.HasPrefix(i, e) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // source: https://stackoverflow.com/a/77944299
 func NewDebouncer(dur time.Duration) func(fn func()) {
 	d := &debouncer{

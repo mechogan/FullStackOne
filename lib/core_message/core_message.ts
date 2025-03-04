@@ -23,7 +23,7 @@ export const removeListener = (
     }
 };
 
-const debug = true;
+const debug = false;
 
 globalThis.oncoremessage = (messageType: string, message: string) => {
     const listeners = coreMessageListeners.get(messageType);
