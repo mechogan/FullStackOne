@@ -161,12 +161,14 @@ struct WebViewsStacked: View {
 
     init(webViews: WebViews) {
         self.webViews = webViews
-        self.webViews.ready = true
     }
     
     var body: some View {
         ZStack {
             WebViewEditor(webView: self.webViews.getEditor())
+                .onAppear{
+                    self.webViews.ready = true
+                }
             ForEach(self.webViews.views.indices, id: \.self) { webViewIndex in
                 VStack(spacing: 0) {
                     HStack(alignment: .center) {
