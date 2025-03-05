@@ -41,17 +41,31 @@ class WebViewExtended: WKWebView, WKUIDelegate {
     }
 }
 
+// suppress "funk" noise
+// source: https://stackoverflow.com/a/69858444
+class KeyView: NSView {
+    override var acceptsFirstResponder: Bool { true }
+    override func keyDown(with event: NSEvent) {}
+}
+
 struct WebViewRepresentable: NSViewRepresentable {
     private let webview: WebView;
     init(webView: WebView) {
         self.webview = webView
     }
     
-    func makeNSView(context: Context) -> WebView  {
-        return self.webview
+    func makeNSView(context: Context) -> NSView  {
+        let view = KeyView()
+        DispatchQueue.main.async {
+            view.window?.makeFirstResponder(view)
+        }
+        self.webview.autoresizingMask = [.width, .height]
+        view.addSubview(self.webview);
+        return view
     }
     
-    func updateNSView(_ uiView: WebView, context: Context) {
-        
+    
+    func updateNSView(_ uiView: NSView, context: Context) {
+        print("ici")
     }
 }

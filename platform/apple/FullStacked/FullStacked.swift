@@ -49,5 +49,35 @@ struct FullStackedApp: App {
     }
 }
 
+struct KeyEventHandling: NSViewRepresentable {
+    
+    class KeyView: NSView {
+            func isManagedByThisView(_ event: NSEvent) -> Bool {
+                return true
+            }
+            
+            override var acceptsFirstResponder: Bool { true }
+            override func keyDown(with event: NSEvent) {
+                if isManagedByThisView(event) {
+                    print(">> key \(event.keyCode)")
+                } else {
+                    super.keyDown(with: event)
+                }
+            }
+    }
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = KeyView()
+        DispatchQueue.main.async { // wait till next event cycle
+            view.window?.makeFirstResponder(view)
+        }
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+    }
+    
+}
+
 
 
