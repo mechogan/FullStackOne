@@ -65,7 +65,5 @@ struct WebViewRepresentable: NSViewRepresentable {
     }
     
     
-    func updateNSView(_ uiView: NSView, context: Context) {
-        print("ici")
-    }
+    func updateNSView(_ uiView: NSView, context: Context) { }
 }
