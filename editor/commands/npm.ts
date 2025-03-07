@@ -3,7 +3,6 @@ import packages, { PackageInfo } from "../lib/packages";
 import c from "console-log-colors";
 import prettyMilliseconds from "pretty-ms";
 import prettyBytes from "pretty-bytes";
-import fs from "../../lib/fs";
 import { Project } from "../types";
 
 export const npm: Command[] = [

@@ -7,6 +7,9 @@ import { CONFIG_TYPE } from "./types";
 import { updatePackagesView } from "./views/packages";
 import { Projects } from "./views/projects";
 import platform, { Platform } from "../lib/platform";
+import { InitPrompt } from "./views/prompt";
+import { Store } from "./store";
+import { Project } from "./views/project";
 
 core_message.addListener("deeplink", deeplink);
 
@@ -20,6 +23,8 @@ if (navigator.userAgent.includes("Windows")) {
 
 document.querySelector("#splash")?.remove();
 Projects();
+InitPrompt();
+Store.projects.current.subscribe(Project);
 
 core_message.addListener("package", (dataStr) => {
     try {

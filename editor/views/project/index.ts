@@ -17,6 +17,8 @@ import { FileTree } from "./file-tree";
 
 let lastOpenedProjectId: string;
 export function Project(project: ProjectType) {
+    if(!project) return;
+    
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
         Store.editor.codeEditor.clearFiles();
@@ -80,10 +82,11 @@ function TopBar(project: ProjectType, fileTreeAndEditor: HTMLElement) {
         onBack: () => {
             if (fileTreeAndEditor.classList.contains("closed-panel")) {
                 Store.editor.setSidePanelClosed(false);
-                return false;
+            } else {
+                Store.projects.setCurrent(null);
             }
 
-            return true;
+            return false;
         }
     });
 

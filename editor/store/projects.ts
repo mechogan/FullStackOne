@@ -9,6 +9,7 @@ import esbuild from "../lib/esbuild";
 import git from "../lib/git";
 import packages from "../lib/packages";
 import { updatePackagesView } from "../views/packages";
+import stackNavigation from "../stack-navigation";
 
 const list = createSubscribable(listP, []);
 
@@ -18,11 +19,18 @@ const builds = createSubscribable(() => activeProjectBuilds);
 const activeProjectPulls = new Set<string>();
 const pulls = createSubscribable(() => activeProjectPulls);
 
+let currentOpenedProject: Project = null;
+const current = createSubscribable(() => currentOpenedProject);
+
+
 export const projects = {
     list: list.subscription,
     create: createSequential(create),
     update,
     deleteP,
+
+    setCurrent,
+    current: current.subscription,
 
     build,
     builds: builds.subscription,
@@ -30,6 +38,14 @@ export const projects = {
     pull,
     pulls: pulls.subscription
 };
+
+function setCurrent(project: Project){
+    if(currentOpenedProject) {
+        stackNavigation.back();
+    }
+    currentOpenedProject = project;
+    current.notify();
+}
 
 async function listP() {
     const { projects } = await config.get(CONFIG_TYPE.PROJECTS);

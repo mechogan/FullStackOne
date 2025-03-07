@@ -116,7 +116,7 @@ function ProjectTile(project: ProjectType) {
                 .pull(project)
                 .then(() => Store.projects.build(project));
         } else {
-            Project(project);
+            Store.projects.setCurrent(project);
         }
     };
 

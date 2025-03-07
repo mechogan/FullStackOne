@@ -1,0 +1,10 @@
+@use "../../../node_modules/@fullstacked/ui/values/spacing.scss";
+
+.prompt-container {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$small;
+    > button {
+        align-self: flex-end;
+    }
+}
