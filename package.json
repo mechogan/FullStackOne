@@ -31,7 +31,7 @@
         "@fullstacked/file-tree": "^0.0.8",
         "@fullstacked/stack-navigation": "^0.0.3",
         "@fullstacked/terminal": "^0.0.15",
-        "@fullstacked/ui": "github:fullstackedorg/ui#52dfef9af474f1ed2db409ef44d29af77bcc9732",
+        "@fullstacked/ui": "github:fullstackedorg/ui#f9ae83bd6e172b6a6c03471866653b2fab01ea27",
         "@types/adm-zip": "^0.5.6",
         "@types/node": "^22.10.1",
         "@types/semver": "^7.5.8",

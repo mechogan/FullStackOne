@@ -22,7 +22,6 @@ const pulls = createSubscribable(() => activeProjectPulls);
 let currentOpenedProject: Project = null;
 const current = createSubscribable(() => currentOpenedProject);
 
-
 export const projects = {
     list: list.subscription,
     create: createSequential(create),
@@ -39,8 +38,8 @@ export const projects = {
     pulls: pulls.subscription
 };
 
-function setCurrent(project: Project){
-    if(currentOpenedProject) {
+function setCurrent(project: Project) {
+    if (currentOpenedProject) {
         stackNavigation.back();
     }
     currentOpenedProject = project;
