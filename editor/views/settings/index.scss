@@ -25,6 +25,10 @@
         gap: spacing.$x-small;
         flex-direction: column;
 
+        h2 {
+            min-width: 180px;
+        }
+
         > div:first-child {
             display: flex;
             justify-content: space-between;

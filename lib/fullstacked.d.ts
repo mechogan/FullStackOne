@@ -84,6 +84,7 @@ type FetchOptions = {
     headers: Record<string, string>;
     body: string | Uint8Array;
     timeout: number;
+    stream: boolean;
 };
 
 type FetchResponse = {
@@ -101,6 +102,9 @@ declare module "fetch" {
         url: string,
         options?: Partial<FetchOptions> & { encoding: "utf8" }
     ): Promise<FetchResponse & { body: string }>;
+
+    export function core_fetch2(request: Request): Promise<Response>;
+    export function core_fetch2(url: string | URL, options?: RequestInit): Promise<Response>;
 }
 
 declare module "platform" {

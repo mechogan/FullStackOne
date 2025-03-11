@@ -30,8 +30,8 @@ const (
 	FS_RENAME    = 9
 	FS_STAT      = 10
 
-	FETCH     = 15
-	BROADCAST = 20
+	FETCH        = 15
+	FETCH2       = 16
 
 	ARCHIVE_UNZIP_BIN_TO_FILE  = 30
 	ARCHIVE_UNZIP_BIN_TO_BIN   = 31
@@ -103,13 +103,27 @@ func Call(payload []byte) []byte {
 
 		go fetch.FetchSerialized(
 			projectId,
-			int(args[0].(float64)),
+			args[0].(float64),
 			args[1].(string),
 			args[2].(string),
 			&headers,
 			args[4].([]byte),
 			int(args[5].(float64)),
 			args[6].(bool),
+		)
+	case method == FETCH2:
+		headers := (map[string]string)(nil)
+		if args[3].(string) != "" {
+			_ = json.Unmarshal([]byte(args[3].(string)), &headers)
+		}
+
+		go fetch.Fetch2(
+			projectId,
+			args[0].(float64),
+			args[1].(string),
+			args[2].(string),
+			&headers,
+			args[4].([]byte),
 		)
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)
