@@ -119,8 +119,6 @@ function receivedResponse2(base64Data: string) {
     const id = args.at(0);
     const request = activeFetch2Requests.get(id);
 
-    console.log(request.url);
-
     if (request.resolveStream) {
         const [done, chunk] = args.slice(1);
         request.resolveStream({ done, chunk });
@@ -271,7 +269,6 @@ export async function core_fetch2(
 
 // 16
 function fetch2(url: string, options?: RequestInit): Promise<Response> {
-    console.log(options)
     const id = getLowestKeyIdAvailable(activeFetch2Requests);
 
     const headers = options?.headers
@@ -292,13 +289,12 @@ function fetch2(url: string, options?: RequestInit): Promise<Response> {
         }
     }
 
-
     const payload = new Uint8Array([
         16,
 
         ...serializeArgs([
             id,
-            options.method,
+            options?.method || "GET",
             url,
             headers,
             body
