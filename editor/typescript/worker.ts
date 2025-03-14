@@ -208,7 +208,7 @@ export let methods = {
                     } else {
                         // delete all sub file to directory
                         for (const p of files.keys()) {
-                            if (p.startsWith(path)) {
+                            if (p?.startsWith?.(path)) {
                                 deleteFile(p);
                             }
                         }

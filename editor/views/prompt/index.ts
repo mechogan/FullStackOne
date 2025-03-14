@@ -64,7 +64,7 @@ function Prompt() {
 
             let predictions = (await Promise.all(predictionsSeek))
                 .flat()
-                .filter((p) => p.startsWith(lastWord))
+                .filter((p) => p?.startsWith?.(lastWord))
                 .map((p) => p.slice(lastWord.length));
 
             if (v === "") {

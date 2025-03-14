@@ -148,7 +148,7 @@ function receivedResponse2(base64Data: string) {
         [Symbol.asyncIterator]() {
             return {
                 next: read
-            }
+            } as any
         }
     }
 
@@ -187,10 +187,7 @@ function receivedResponse2(base64Data: string) {
                 ] as any
             },
 
-            [Symbol.asyncIterator]() {
-                console.log("Symbol.asyncIterator not implemented")
-                return null
-            },
+            ...responseIterator,
             async cancel() {
                 console.log("cancel not implemented")
             },
