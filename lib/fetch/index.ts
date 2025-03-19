@@ -61,7 +61,7 @@ export default function core_fetch(
 ): Promise<FetchResponse & { body: string }>;
 export default function core_fetch(
     url: string,
-    options?: Partial<FetchOptions> & { stream?: boolean, encoding?: "utf8" }
+    options?: Partial<FetchOptions> & { stream?: boolean; encoding?: "utf8" }
 ) {
     const method = options?.method || "GET";
 
@@ -105,11 +105,14 @@ export default function core_fetch(
     });
 }
 
-const activeFetch2Requests = new Map<number, {
-    url: string,
-    resolveResponse(response: Response): void,
-    resolveStream?(param: { done: boolean, chunk: Uint8Array }): void,
-}>()
+const activeFetch2Requests = new Map<
+    number,
+    {
+        url: string;
+        resolveResponse(response: Response): void;
+        resolveStream?(param: { done: boolean; chunk: Uint8Array }): void;
+    }
+>();
 
 let addedListener2 = false;
 function receivedResponse2(base64Data: string) {
@@ -135,32 +138,36 @@ function receivedResponse2(base64Data: string) {
     let finished = false;
     const read = async () => {
         if (finished) {
-            return { done: true }
+            return { done: true };
         }
 
-        const { done, chunk } = await new Promise<{ done: boolean, chunk: Uint8Array }>((resolve) => {
-            request.resolveStream = resolve
+        const { done, chunk } = await new Promise<{
+            done: boolean;
+            chunk: Uint8Array;
+        }>((resolve) => {
+            request.resolveStream = resolve;
         });
         finished = done;
 
-        return { done: false, value: chunk }
-    }
+        return { done: false, value: chunk };
+    };
 
     const responseIterator = {
         [Symbol.asyncIterator]() {
             return {
                 next: read
-            } as any
+            } as any;
         }
-    }
+    };
 
-    const getReader = () => ({
-        read,
-        releaseLock() { }
-    }) as any
+    const getReader = () =>
+        ({
+            read,
+            releaseLock() {}
+        }) as any;
 
     const readBody = async () => {
-        if(!ok) {
+        if (!ok) {
             return te.encode(statusText);
         }
         let body = new Uint8Array();
@@ -171,7 +178,7 @@ function receivedResponse2(base64Data: string) {
             body = buffer;
         }
         return body;
-    }
+    };
 
     const response: Response = {
         url: request.url,
@@ -186,30 +193,26 @@ function receivedResponse2(base64Data: string) {
         body: {
             getReader,
             tee() {
-                return [
-                    { getReader },
-                    { getReader }
-                ] as any
+                return [{ getReader }, { getReader }] as any;
             },
 
             ...responseIterator,
             async cancel() {
-                console.log("cancel not implemented")
+                console.log("cancel not implemented");
             },
             locked: false,
             pipeThrough(transform, options) {
-                console.log("pipeThrough not implemented")
-                return null
+                console.log("pipeThrough not implemented");
+                return null;
             },
             pipeTo(destination, options) {
-                console.log("pipeTo not implemented")
-                return null
+                console.log("pipeTo not implemented");
+                return null;
             },
             values(options) {
-                console.log("values")
-                return null
-            },
-
+                console.log("values");
+                return null;
+            }
         },
 
         bytes: readBody,
@@ -219,11 +222,11 @@ function receivedResponse2(base64Data: string) {
         },
         blob: async () => {
             const body = await readBody();
-            return new Blob([body])
+            return new Blob([body]);
         },
         text: async () => {
             const body = await readBody();
-            return new TextDecoder().decode(body)
+            return new TextDecoder().decode(body);
         },
         json: async () => {
             const body = await readBody();
@@ -233,13 +236,16 @@ function receivedResponse2(base64Data: string) {
         // not implemented
         clone: () => null,
         formData: async () => null
-    }
+    };
 
     request.resolveResponse(response);
 }
 
 export function core_fetch2(request: Request): Promise<Response>;
-export function core_fetch2(url: string | URL, options?: RequestInit): Promise<Response>;
+export function core_fetch2(
+    url: string | URL,
+    options?: RequestInit
+): Promise<Response>;
 export async function core_fetch2(
     urlOrRequest: string | URL | Request,
     options?: RequestInit
@@ -250,24 +256,21 @@ export async function core_fetch2(
     }
 
     if (urlOrRequest instanceof Request) {
-        const bodyReader = urlOrRequest.body?.getReader()
-        const body = bodyReader 
-            ? (await bodyReader.read()).value
-            : "";
+        const bodyReader = urlOrRequest.body?.getReader();
+        const body = bodyReader ? (await bodyReader.read()).value : "";
 
         options = {
             method: urlOrRequest.method,
             headers: urlOrRequest.headers,
             signal: urlOrRequest.signal,
             body
-        }
+        };
 
-        return fetch2(urlOrRequest.url, options)
+        return fetch2(urlOrRequest.url, options);
     }
 
-    const url = urlOrRequest instanceof URL
-        ? urlOrRequest.toString()
-        : urlOrRequest;
+    const url =
+        urlOrRequest instanceof URL ? urlOrRequest.toString() : urlOrRequest;
 
     return fetch2(url, options);
 }
@@ -289,28 +292,22 @@ function fetch2(url: string, options?: RequestInit): Promise<Response> {
 
     if (options?.signal) {
         options.signal.onabort = () => {
-            console.log("ABORT REQUEST")
-            // cancel 
-        }
+            console.log("ABORT REQUEST");
+            // cancel
+        };
     }
 
     const payload = new Uint8Array([
         16,
 
-        ...serializeArgs([
-            id,
-            options?.method || "GET",
-            url,
-            headers,
-            body
-        ])
+        ...serializeArgs([id, options?.method || "GET", url, headers, body])
     ]);
 
     return new Promise<Response>((resolve) => {
         activeFetch2Requests.set(id, {
             url,
             resolveResponse: resolve
-        })
+        });
         bridge(payload);
     });
 }
@@ -321,7 +318,7 @@ function objectToHeaders(o: Record<string, string>) {
         headers.set(n, v);
     });
     return headers;
-};
+}
 
 const headersToObject = (h: Headers) => {
     const obj = {};

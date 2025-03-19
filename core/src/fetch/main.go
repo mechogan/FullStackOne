@@ -154,8 +154,8 @@ func Fetch2(
 
 		for {
 			_, ok := activeRequests[id]
-			if(!ok) {
-				break;
+			if !ok {
+				break
 			}
 
 			buffer := make([]byte, chunkSize)

@@ -104,7 +104,10 @@ declare module "fetch" {
     ): Promise<FetchResponse & { body: string }>;
 
     export function core_fetch2(request: Request): Promise<Response>;
-    export function core_fetch2(url: string | URL, options?: RequestInit): Promise<Response>;
+    export function core_fetch2(
+        url: string | URL,
+        options?: RequestInit
+    ): Promise<Response>;
 }
 
 declare module "platform" {

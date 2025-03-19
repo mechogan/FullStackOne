@@ -30,8 +30,8 @@ const (
 	FS_RENAME    = 9
 	FS_STAT      = 10
 
-	FETCH        = 15
-	FETCH2       = 16
+	FETCH  = 15
+	FETCH2 = 16
 
 	ARCHIVE_UNZIP_BIN_TO_FILE  = 30
 	ARCHIVE_UNZIP_BIN_TO_BIN   = 31
