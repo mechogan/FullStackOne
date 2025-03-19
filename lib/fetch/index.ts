@@ -130,6 +130,8 @@ function receivedResponse2(base64Data: string) {
 
     const [status, statusText, headersStr] = args.slice(1);
 
+    const ok = status <= 299;
+
     let finished = false;
     const read = async () => {
         if (finished) {
@@ -158,6 +160,9 @@ function receivedResponse2(base64Data: string) {
     }) as any
 
     const readBody = async () => {
+        if(!ok) {
+            return te.encode(statusText);
+        }
         let body = new Uint8Array();
         for await (const chunk of responseIterator) {
             const buffer = new Uint8Array(body.byteLength + chunk.byteLength);
@@ -173,10 +178,10 @@ function receivedResponse2(base64Data: string) {
         redirected: false,
         type: "default",
         bodyUsed: false,
-        ok: status <= 299,
+        ok,
         status,
         statusText,
-        headers: objectToHeaders(JSON.parse(headersStr)),
+        headers: objectToHeaders(JSON.parse(headersStr || "{}")),
 
         body: {
             getReader,
@@ -245,13 +250,16 @@ export async function core_fetch2(
     }
 
     if (urlOrRequest instanceof Request) {
-        const body = (await urlOrRequest.body.getReader().read()).value;
+        const bodyReader = urlOrRequest.body?.getReader()
+        const body = bodyReader 
+            ? (await bodyReader.read()).value
+            : "";
 
         options = {
             method: urlOrRequest.method,
             headers: urlOrRequest.headers,
             signal: urlOrRequest.signal,
-            body: body
+            body
         }
 
         return fetch2(urlOrRequest.url, options)

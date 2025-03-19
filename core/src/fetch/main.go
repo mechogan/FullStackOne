@@ -130,7 +130,7 @@ func Fetch2(
 		// status code
 		response = append(response, serialize.SerializeNumber(float64(500))...)
 		// status message
-		response = append(response, serialize.SerializeString("Failed fecth")...)
+		response = append(response, serialize.SerializeString("Failed fetch")...)
 		// headers
 		response = append(response, serialize.SerializeString("{}")...)
 		setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(response))
