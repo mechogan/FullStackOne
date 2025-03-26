@@ -3,6 +3,13 @@
 @use "../../../node_modules/@fullstacked/ui/values/typography.scss";
 
 #settings {
+
+    ul,
+    ol {
+
+        list-style-type: none;
+    }
+
     .top-bar {
         padding-bottom: spacing.$small;
     }
@@ -12,7 +19,7 @@
 
         gap: spacing.$large;
 
-        > div {
+        >div {
             width: 100%;
             max-width: spacing.$max-width;
             margin: 0 auto;
@@ -29,14 +36,20 @@
             min-width: 180px;
         }
 
-        > div:first-child {
+        >div:first-child {
             display: flex;
             justify-content: space-between;
         }
 
-        > p {
+        >p {
             font-size: typography.$small;
         }
+    }
+
+    .agent-provider-config {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$x-small;
     }
 
     .packages {
@@ -51,13 +64,13 @@
         gap: spacing.$medium;
 
         .web-addresses {
-            > div:first-child {
+            >div:first-child {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
                 padding-bottom: spacing.$small;
 
-                + ul {
+                +ul {
                     padding-top: 0;
                 }
             }
@@ -78,10 +91,12 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                > div {
+
+                >div {
                     display: flex;
                     align-items: center;
                     gap: spacing.$small;
+
                     &:first-child {
                         .icon {
                             height: 18px;
@@ -89,8 +104,9 @@
                             color: colors.$yellow;
                         }
                     }
+
                     &:last-child {
-                        > button {
+                        >button {
                             color: colors.$light;
                         }
                     }
@@ -106,7 +122,7 @@
                 border: 1px solid colors.$gray;
                 border-radius: spacing.$x-small;
 
-                > div:last-child {
+                >div:last-child {
                     display: flex;
                     justify-content: space-between;
                 }
@@ -114,7 +130,7 @@
         }
 
         .network-interfaces {
-            > label {
+            >label {
                 display: block;
                 padding-bottom: spacing.$small;
             }
@@ -139,7 +155,7 @@
     }
 
     .git-authentications {
-        > div:first-child {
+        >div:first-child {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -152,7 +168,7 @@
             gap: spacing.$small;
 
             li {
-                > div {
+                >div {
                     background-color: colors.$gray-dark;
                     border: 1px solid colors.$gray;
                     padding: spacing.$small;
@@ -161,17 +177,17 @@
                     flex-direction: column;
                     gap: spacing.$small;
 
-                    > div:first-child {
+                    >div:first-child {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
 
-                        > button > .icon {
+                        >button>.icon {
                             color: colors.$light;
                         }
                     }
 
-                    > div:not(:first-child) {
+                    >div:not(:first-child) {
                         display: flex;
                         flex-direction: column;
                         gap: 3px;
@@ -188,12 +204,13 @@
             display: flex;
             flex-direction: column;
             gap: spacing.$small;
-            > div:last-child {
+
+            >div:last-child {
                 display: flex;
                 justify-content: space-between;
             }
 
-            + ul {
+            +ul {
                 padding-top: spacing.$small;
             }
         }
@@ -204,12 +221,12 @@
         flex-direction: column;
         gap: spacing.$medium;
 
-        > div {
+        >div {
             display: flex;
             flex-direction: column;
             gap: spacing.$x-small;
 
-            > div {
+            >div {
                 align-self: flex-end;
             }
         }
@@ -219,7 +236,7 @@
             flex-direction: column;
             align-items: flex-end;
 
-            > div:first-child {
+            >div:first-child {
                 display: flex;
                 align-items: flex-end;
                 gap: spacing.$x-small;

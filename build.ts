@@ -3,6 +3,7 @@ import * as sass from "sass";
 import esbuild from "esbuild";
 import child_process from "child_process";
 import AdmZip from "adm-zip";
+import path from "node:path";
 
 const production = process.argv.includes("--production");
 
@@ -16,7 +17,17 @@ if (fs.existsSync(outDir)) {
 
 async function processScss(entryPoint: string, out: string) {
     const { css } = await sass.compileAsync(entryPoint, {
-        style: production ? "compressed" : "expanded"
+        style: production ? "compressed" : "expanded",
+        importers: [
+            {
+                findFileUrl(urlStr, _) {
+                    if(urlStr.startsWith("../node_modules")) {
+                        return new URL(path.resolve(process.cwd(), urlStr.slice(1)), `file://`);
+                    }
+                    return null
+                },
+            }
+        ]
     });
     await fs.promises.writeFile(out, css);
 }
@@ -41,7 +52,8 @@ for (const [input, output] of toBuild) {
         outdir: outDirEditor,
         sourcemap: production ? false : "external",
         splitting: false,
-        minify: production
+        minify: production,
+        nodePaths: ["node_modules", "lib"],
     });
 }
 

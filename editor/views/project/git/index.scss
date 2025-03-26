@@ -6,13 +6,18 @@
     display: flex;
     flex-direction: column;
 
+    ul,
+    ol {
+        list-style-type: none;
+    }
+
     .git-top {
         display: flex;
         align-items: center;
         gap: spacing.$x-small;
         padding-bottom: spacing.$small;
 
-        > .icon {
+        >.icon {
             height: 38px;
             width: 38px;
         }
@@ -24,14 +29,14 @@
             flex-direction: column;
             overflow: hidden;
 
-            > * {
+            >* {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
 
             a,
-            > div:last-child {
+            >div:last-child {
                 font-size: typography.$small;
             }
         }
@@ -65,7 +70,7 @@
             flex-direction: column;
             gap: spacing.$small;
 
-            > div:last-child {
+            >div:last-child {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -81,7 +86,7 @@
         padding-top: spacing.$medium;
 
         .git-changes {
-            > div {
+            >div {
                 font-weight: bold;
             }
 
@@ -101,7 +106,7 @@
                     padding: 0 spacing.$x-small;
                     border-radius: spacing.$x-small;
 
-                    > button {
+                    >button {
                         color: colors.$light;
                     }
                 }
@@ -122,6 +127,7 @@
             display: flex;
             flex-direction: column;
             padding-top: spacing.$small;
+
             .message {
                 padding-top: spacing.$small;
             }
@@ -140,11 +146,12 @@
 }
 
 .git-branches {
-    > div:first-child {
+    >div:first-child {
         display: flex;
         justify-content: space-between;
         gap: spacing.$x-small;
         align-items: center;
+
         h3 {
             flex: 1;
         }
@@ -169,7 +176,7 @@
 
             padding: spacing.$small;
 
-            > div:first-child {
+            >div:first-child {
                 height: 24px;
                 width: 24px;
 
@@ -177,22 +184,22 @@
                 align-items: center;
                 justify-content: center;
 
-                > svg {
+                >svg {
                     height: 20px;
                     width: 20px;
                 }
             }
 
-            > div:nth-child(2) {
+            >div:nth-child(2) {
                 flex: 1;
             }
 
-            > div:nth-child(4) {
+            >div:nth-child(4) {
                 height: 24px;
                 width: 24px;
             }
 
-            > button:last-child {
+            >button:last-child {
                 color: colors.$light;
             }
         }
@@ -203,7 +210,8 @@
         flex-direction: column;
         gap: spacing.$small;
         padding-top: spacing.$small;
-        > div:last-child {
+
+        >div:last-child {
             display: flex;
             justify-content: space-between;
         }
@@ -211,6 +219,7 @@
 }
 
 .git-auth {
+
     h3,
     p {
         padding-bottom: spacing.$medium;
@@ -221,7 +230,7 @@
         flex-direction: column;
         gap: spacing.$small;
 
-        > div:last-child {
+        >div:last-child {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -234,7 +243,7 @@
         padding-bottom: spacing.$medium;
     }
 
-    > div {
+    >div {
         display: flex;
         flex-direction: column;
         gap: spacing.$medium;
@@ -244,7 +253,7 @@
             align-self: flex-start;
         }
 
-        > button {
+        >button {
             align-self: flex-end;
         }
 
@@ -259,9 +268,10 @@
             border-radius: spacing.$x-small;
             font-size: typography.$heading-2;
 
-            > .icon {
+            >.icon {
                 height: 38px;
                 width: 38px;
+
                 svg {
                     height: 30px;
                     width: 30px;

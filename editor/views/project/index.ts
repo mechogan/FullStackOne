@@ -14,15 +14,16 @@ import core_message from "../../../lib/core_message";
 import { Terminal } from "./terminal";
 import { Button, Icon, Loader } from "@fullstacked/ui";
 import { FileTree } from "./file-tree";
+import { codeEditor } from "../../code-editor";
+import { openPrompt } from "../prompt";
 
-let lastOpenedProjectId: string;
+let lastOpenedProjectId: string, workspaceElement: typeof codeEditor.workspaceElement;
 export function Project(project: ProjectType) {
     if (!project) return;
 
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
-        Store.editor.codeEditor.clearFiles();
-        Store.editor.codeEditor.clearAllBuildErrors();
+        workspaceElement = codeEditor.workspaceElement;
         WorkerTS.dispose();
     }
 
@@ -116,39 +117,27 @@ function FileTreeAndEditor(project: ProjectType) {
         Store.editor.sidePanelClosed.unsubscribe(toggleSidePanel);
 
     const fileTree = FileTree(project);
-    const editor = Editor(project);
 
     const leftPanel = document.createElement("div");
     leftPanel.classList.add("left-panel");
 
     const buttonContainer = document.createElement("div");
 
-    const toggleButtonVisibility = (terminalOpen: boolean) => {
-        if (terminalOpen) {
-            buttonContainer.classList.add("hide");
-        } else {
-            buttonContainer.classList.remove("hide");
-        }
-    };
-    Store.editor.terminalOpen.subscribe(toggleButtonVisibility);
-
-    const terminalButton = Button({
+    const promptButton = Button({
         style: "text",
         iconLeft: "Terminal"
     });
-    terminalButton.onclick = () => {
-        Store.editor.setTerminalOpen(true);
+    promptButton.onclick = () => {
+        openPrompt()
     };
-    buttonContainer.append(terminalButton);
+    buttonContainer.append(promptButton);
 
     leftPanel.append(fileTree, buttonContainer);
 
-    container.append(leftPanel, editor);
+    container.append(leftPanel, workspaceElement);
 
     container.ondestroy = () => {
         fileTree.destroy();
-        editor.destroy();
-        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility);
     };
 
     return container;
