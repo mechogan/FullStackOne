@@ -126,6 +126,15 @@ export function FileTree(project: Project) {
                 if (!exists?.isFile) return;
                 codeEditor.getWorkspace().file.open(pathAbs, fs.readFile(pathAbs));
             });
+        },
+        onRename: async (oldPath, newPath) => {
+            const oldPathAbs = project.id + "/" + oldPath;
+            const newPathAbs = project.id + "/" + newPath;
+            if(await fs.exists(newPathAbs)) return;
+
+            await fs.rename(oldPathAbs, newPathAbs);
+            fileTree.removeItem(oldPath);
+            fileTree.addItem(newPath);
         }
     });
 

@@ -53,6 +53,7 @@ const options: CompilerOptions = {
     module: ModuleKind.ES2022,
     target: ScriptTarget.ES2022,
     moduleResolution: ModuleResolutionKind.Node10,
+    allowJs: true,
     lib: [
         "lib.dom.d.ts",
         "lib.dom.iterable.d.ts",
