@@ -1,7 +1,6 @@
 import CodeEditor from '@fullstacked/code-editor';
 import config from './lib/config';
 import { CONFIG_TYPE } from './types';
-import { EditorView } from 'codemirror';
 import fs from 'fs';
 import { Store } from './store';
 import core_message from '../lib/core_message';
@@ -11,9 +10,7 @@ export const codeEditor = new CodeEditor({
     setiFontLocation: null,
     agentConfigurations: await config.get(CONFIG_TYPE.AGENT),
     codemirrorExtraExtensions: (filename) => {
-        return [
-
-        ];
+        return []
     },
     createNewFileName: async (suggestedName: string) => {
         const project = Store.projects.current.check();
@@ -87,8 +84,7 @@ core_message.addListener("file-event", (msgStr) => {
         } else if (event.type === FileEventType.RENAME) {
             const oldName = project.id + event.paths.at(0).split(project.id).pop();
             const newName = project.id + event.paths.at(1).split(project.id).pop();
-            codeEditor.getWorkspace().file.close(oldName);
-            codeEditor.getWorkspace().file.open(newName, fs.readFile(newName));
+            codeEditor.getWorkspace().file.rename(oldName, newName);
         }
     }
 })
