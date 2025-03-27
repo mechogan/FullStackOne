@@ -3,9 +3,6 @@ import { createSubscribable } from ".";
 let sidePanelClosed = false;
 const sidePanel = createSubscribable(() => sidePanelClosed);
 
-let terminalOpen = false;
-const terminal = createSubscribable(() => terminalOpen);
-
 const codeEditorOpenedFiles = new Set<string>();
 const openedFiles = createSubscribable(() => codeEditorOpenedFiles);
 
@@ -25,9 +22,6 @@ const buildErrors = createSubscribable(() => codeEditorBuildErrors);
 export const editor = {
     sidePanelClosed: sidePanel.subscription,
     setSidePanelClosed,
-
-    terminalOpen: terminal.subscription,
-    setTerminalOpen,
 
     codeEditor: {
         openedFiles: openedFiles.subscription,
@@ -49,11 +43,6 @@ export const editor = {
 function setSidePanelClosed(closed: boolean) {
     sidePanelClosed = closed;
     sidePanel.notify();
-}
-
-function setTerminalOpen(open: boolean) {
-    terminalOpen = open;
-    terminal.notify();
 }
 
 function openFile(path: string) {

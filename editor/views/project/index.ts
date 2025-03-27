@@ -3,15 +3,12 @@ import { BG_COLOR, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Store } from "../../store";
-import { createElement, ElementComponent } from "../../components/element";
-import { Editor } from "./editor";
+import { createElement } from "../../components/element";
 import { WorkerTS } from "../../typescript";
-import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
 import { createRefresheable } from "../../components/refresheable";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
-import { Terminal } from "./terminal";
 import { Button, Icon, Loader } from "@fullstacked/ui";
 import { FileTree } from "./file-tree";
 import { codeEditor } from "../../code-editor";
@@ -35,16 +32,14 @@ export function Project(project: ProjectType) {
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
     const topBar = TopBar(project, fileTreeAndEditor);
-    const terminal = Terminal(project);
 
-    container.append(topBar, fileTreeAndEditor, terminal);
+    container.append(topBar, fileTreeAndEditor);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
             topBar.destroy();
             fileTreeAndEditor.destroy();
-            terminal.destroy();
             container.destroy();
         }
     });
@@ -184,7 +179,6 @@ function RunButton(project: ProjectType) {
 
     button.onclick = async () => {
         showLoader();
-        await saveAllViews();
         Store.projects.build(project);
     };
 

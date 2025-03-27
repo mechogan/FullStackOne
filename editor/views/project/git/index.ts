@@ -13,7 +13,6 @@ import { createRefresheable } from "../../../components/refresheable";
 import git, { Status } from "../../../lib/git";
 import { Store } from "../../../store";
 import { Project } from "../../../types";
-import { saveAllViews } from "../code-editor";
 import { Branches } from "./branches";
 
 let branchView = false;
@@ -121,10 +120,8 @@ function CommitView(
 
     refresh.repoInfo();
     refresh.author();
-    saveAllViews().then(() => {
-        refresh.status();
-        refresh.commitAndPush();
-    });
+    refresh.status();
+    refresh.commitAndPush();
 
     return container;
 }
