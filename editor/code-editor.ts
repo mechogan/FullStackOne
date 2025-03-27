@@ -5,12 +5,49 @@ import fs from 'fs';
 import { Store } from './store';
 import core_message from '../lib/core_message';
 import { FileEvent, FileEventType } from './views/project/file-event';
+import { WorkerTS } from './typescript';
+import { EditorView } from 'codemirror';
+import { navigateToDefinition, tsAutocomplete, tsErrorLinter, tsTypeDefinition } from './typescript/extensions';
+import { linter } from "@codemirror/lint";
+import { hoverTooltip } from '@codemirror/view';
+import { autocompletion } from "@codemirror/autocomplete";
+
+const jsTsFilesExtensions = [
+    "js",
+    "mjs",
+    ".cjs",
+    "jsx",
+    "ts",
+    "tsx"
+]
+
+const defaultExtensions = [
+    EditorView.clickAddsSelectionRange.of((e) => e.altKey && !e.metaKey)
+]
+
+const tsExtensions = (filename: string) => [
+    EditorView.updateListener.of((ctx) =>
+        WorkerTS.call().updateFile(filename, ctx.state.doc.toString())
+    ),
+    EditorView.domEventHandlers({
+        click: navigateToDefinition(filename)
+    }),
+    linter(tsErrorLinter(filename)),
+    autocompletion({ override: [tsAutocomplete(filename)] }),
+    hoverTooltip(tsTypeDefinition(filename))
+]
 
 export const codeEditor = new CodeEditor({
     setiFontLocation: null,
     agentConfigurations: await config.get(CONFIG_TYPE.AGENT),
     codemirrorExtraExtensions: (filename) => {
-        return []
+        const project = Store.projects.current.check();
+        if (!project) return defaultExtensions;
+
+        const fileExtension = filename.split(".").pop();
+        if (!jsTsFilesExtensions.includes(fileExtension)) return [];
+        WorkerTS.start(project.id);
+        return defaultExtensions.concat(tsExtensions(filename));
     },
     createNewFileName: async (suggestedName: string) => {
         const project = Store.projects.current.check();

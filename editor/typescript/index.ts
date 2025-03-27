@@ -79,6 +79,8 @@ function start(workingDirectory: string) {
     directory = workingDirectory;
 
     if (!readyPromise) {
+        core_message.addListener("file-event", passFileEvents);
+
         readyPromise = new Promise<void>(async (resolve) => {
             let workerPath = "worker-ts.js";
 
@@ -114,8 +116,6 @@ function start(workingDirectory: string) {
             };
         });
     }
-
-    core_message.addListener("file-event", passFileEvents);
 
     return readyPromise;
 }
