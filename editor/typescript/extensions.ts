@@ -7,7 +7,8 @@ import { codeEditor } from "../code-editor";
 import fs from "../../lib/fs";
 
 
-export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
+export const tsErrorLinter = (workingDirectory: string, filePath: string) => async (view: EditorView) => {
+    await WorkerTS.start(workingDirectory);
     await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
 
     const getAllTsError = async () => {
@@ -206,6 +207,6 @@ export const navigateToDefinition =
                     await workspace.file.open(filename, fs.readFile(filename));
                 }
 
-                workspace.file.goTo(filename, pos);
+                workspace.file.goTo(filename, pos)
             });
     };
