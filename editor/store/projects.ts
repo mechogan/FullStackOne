@@ -132,6 +132,8 @@ async function build(project: Project) {
             };
         });
 
+        console.log(buildErrors);
+
         if (buildErrors.length) {
             if (isUserMode) {
                 SnackBar({

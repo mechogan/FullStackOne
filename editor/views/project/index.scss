@@ -1,7 +1,6 @@
 @use "../../../node_modules/@fullstacked/ui/values/spacing.scss";
 @use "../../../node_modules/@fullstacked/ui/values/typography.scss";
 @use "../../../node_modules/@fullstacked/ui/values/colors.scss";
-@use "../../../node_modules/@fullstacked/terminal/terminal.scss";
 @use "./dev-icons.scss";
 
 $file-tree-panel-width: 235px;
@@ -84,6 +83,12 @@ $file-tree-panel-width: 235px;
             transition: 0.2s width;
         }
 
+        .workspace {
+            flex: 1;
+            border-top-left-radius: spacing.$x-small;
+            overflow: hidden;
+        }
+
         &.closed-panel {
             .left-panel {
                 width: 0;
@@ -98,8 +103,7 @@ $file-tree-panel-width: 235px;
                 border-top-left-radius: 0;
             }
 
-            .editor {
-                width: 100%;
+            .workspace {
                 border-top-left-radius: 0;
             }
         }

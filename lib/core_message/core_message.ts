@@ -11,6 +11,13 @@ export const addListener = (
         coreMessageListeners.set(messageType, listeners);
     }
     listeners.add(cb);
+
+    const pending = pendingMessages.get(messageType);
+    if (pending?.length) {
+        for (const m of pending) {
+            cb(m);
+        }
+    }
 };
 export const removeListener = (
     messageType: string,
@@ -23,14 +30,18 @@ export const removeListener = (
     }
 };
 
-const debug = false;
+const pendingMessages = new Map<string, string[]>();
+setInterval(() => pendingMessages.clear(), 10 * 1000); // 10s
 
 globalThis.oncoremessage = (messageType: string, message: string) => {
     const listeners = coreMessageListeners.get(messageType);
-    if (!listeners?.size && debug) {
-        console.log(
-            `No core message listener for message of type [${messageType}] [${message}]`
-        );
+    if (!listeners?.size) {
+        let pending = pendingMessages.get(messageType);
+        if (!pending) {
+            pending = [];
+            pendingMessages.set(messageType, pending);
+        }
+        pending.push(message);
     } else {
         listeners?.forEach((cb) => cb(message));
     }

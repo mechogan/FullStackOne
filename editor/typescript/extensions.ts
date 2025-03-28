@@ -1,35 +1,40 @@
 import { EditorView } from "@codemirror/view";
-import { WorkerTS } from "../../typescript";
+import { WorkerTS } from ".";
 import { CompletionContext } from "@codemirror/autocomplete";
-import { Store } from "../../store";
 import type ts from "typescript";
+import { Diagnostic } from "@codemirror/lint";
+import { codeEditor } from "../code-editor";
+import fs from "../../lib/fs";
 
-export const tsErrorLinter = (filePath: string) => async (view: EditorView) => {
-    await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
+export const tsErrorLinter =
+    (workingDirectory: string, filePath: string) =>
+    async (view: EditorView) => {
+        await WorkerTS.start(workingDirectory);
+        await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
 
-    const getAllTsError = async () => {
-        const tsErrors = await Promise.all([
-            WorkerTS.call().getSemanticDiagnostics(filePath),
-            WorkerTS.call().getSyntacticDiagnostics(filePath),
-            WorkerTS.call().getSuggestionDiagnostics(filePath)
-        ]);
+        const getAllTsError = async () => {
+            const tsErrors = await Promise.all([
+                WorkerTS.call().getSemanticDiagnostics(filePath),
+                WorkerTS.call().getSyntacticDiagnostics(filePath),
+                WorkerTS.call().getSuggestionDiagnostics(filePath)
+            ]);
 
-        return tsErrors.flat();
+            return tsErrors.flat();
+        };
+
+        const tsErrors = await getAllTsError();
+
+        return tsErrors
+            .filter((tsError) => !!tsError)
+            .map((tsError) => {
+                return {
+                    from: tsError.start,
+                    to: tsError.start + tsError.length,
+                    severity: tsError.code === 7016 ? "warning" : "error",
+                    message: messageChainToArr(tsError.messageText).join("\n\n")
+                } as Diagnostic;
+            });
     };
-
-    const tsErrors = await getAllTsError();
-
-    return tsErrors
-        .filter((tsError) => !!tsError)
-        .map((tsError) => {
-            return {
-                from: tsError.start,
-                to: tsError.start + tsError.length,
-                severity: tsError.code === 7016 ? "warning" : "error",
-                message: messageChainToArr(tsError.messageText).join("\n\n")
-            };
-        });
-};
 
 function messageChainToArr(
     messageChain: ts.Diagnostic["messageText"]
@@ -188,10 +193,21 @@ export const navigateToDefinition =
 
         WorkerTS.call()
             .getDefinitionAtPosition(filePath, pos)
-            .then((defs) => {
+            .then(async (defs) => {
                 if (!defs?.length) return;
 
-                Store.editor.codeEditor.openFile(defs.at(0).fileName);
-                Store.editor.codeEditor.focusFile(defs.at(0).fileName);
+                const def = defs.at(0);
+                if (!def) return;
+
+                const filename = def.fileName;
+                const pos = def.textSpan.start;
+
+                const workspace = codeEditor.getWorkspace();
+
+                if (!workspace.file.isOpen(filename)) {
+                    await workspace.file.open(filename, fs.readFile(filename));
+                }
+
+                workspace.file.goTo(filename, pos);
             });
     };

@@ -7,6 +7,7 @@ import { Store } from "../../store";
 import core_message from "../../../lib/core_message";
 import { FileEvent, FileEventType } from "./file-event";
 import { Button, ButtonGroup, Icon, InputText, Popover } from "@fullstacked/ui";
+import { codeEditor } from "../../code-editor";
 
 const directoryIconOpen = Icon("Caret");
 directoryIconOpen.classList.add("open");
@@ -123,9 +124,19 @@ export function FileTree(project: Project) {
             const pathAbs = project.id + "/" + path;
             fs.exists(pathAbs).then((exists) => {
                 if (!exists?.isFile) return;
-                Store.editor.codeEditor.openFile(pathAbs);
-                Store.editor.codeEditor.focusFile(pathAbs);
+                codeEditor
+                    .getWorkspace()
+                    .file.open(pathAbs, fs.readFile(pathAbs));
             });
+        },
+        onRename: async (oldPath, newPath) => {
+            const oldPathAbs = project.id + "/" + oldPath;
+            const newPathAbs = project.id + "/" + newPath;
+            if (await fs.exists(newPathAbs)) return;
+
+            await fs.rename(oldPathAbs, newPathAbs);
+            fileTree.removeItem(oldPath);
+            fileTree.addItem(newPath);
         }
     });
 

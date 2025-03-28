@@ -1,11 +1,18 @@
 import { Button, Dialog, InputPredictive } from "@fullstacked/ui";
 import { createElement } from "../../components/element";
 import { commands } from "../../commands";
+import { codeEditor } from "../../code-editor";
+import { Chat } from "@fullstacked/code-editor";
 
 let promptDialog = null;
 function closeDialog() {
     promptDialog?.remove();
     promptDialog = null;
+}
+
+export function openPrompt() {
+    if (promptDialog) return;
+    promptDialog = Dialog(Prompt());
 }
 
 export function InitPrompt() {
@@ -17,8 +24,7 @@ export function InitPrompt() {
             e.shiftKey &&
             (e.ctrlKey || e.metaKey)
         ) {
-            if (promptDialog) return;
-            promptDialog = Dialog(Prompt());
+            openPrompt();
         }
     });
 }
@@ -93,6 +99,8 @@ function Prompt() {
         const args = [];
         const command = words.reduce(
             (c, w, i) => {
+                if (!c) return undefined;
+
                 const subcommand = c.subcommand?.find(
                     ({ name, alias }) =>
                         name === w || alias.find((a) => a === w)
@@ -108,11 +116,13 @@ function Prompt() {
             commands.find(({ name }) => name === firstWord)
         );
 
-        console.log(command, args);
-
-        if (command.exec?.(args)) {
-            closeDialog();
+        if (!command?.exec?.(args)) {
+            const chatView = new Chat();
+            codeEditor.getWorkspace().item.add(chatView);
+            chatView.prompt(value);
         }
+
+        closeDialog();
     });
 
     setTimeout(() => inputPredictive.input.focus());

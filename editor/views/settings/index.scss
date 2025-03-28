@@ -3,6 +3,11 @@
 @use "../../../node_modules/@fullstacked/ui/values/typography.scss";
 
 #settings {
+    ul,
+    ol {
+        list-style-type: none;
+    }
+
     .top-bar {
         padding-bottom: spacing.$small;
     }
@@ -37,6 +42,12 @@
         > p {
             font-size: typography.$small;
         }
+    }
+
+    .agent-provider-config {
+        display: flex;
+        flex-direction: column;
+        gap: spacing.$x-small;
     }
 
     .packages {
@@ -78,10 +89,12 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+
                 > div {
                     display: flex;
                     align-items: center;
                     gap: spacing.$small;
+
                     &:first-child {
                         .icon {
                             height: 18px;
@@ -89,6 +102,7 @@
                             color: colors.$yellow;
                         }
                     }
+
                     &:last-child {
                         > button {
                             color: colors.$light;
@@ -188,6 +202,7 @@
             display: flex;
             flex-direction: column;
             gap: spacing.$small;
+
             > div:last-child {
                 display: flex;
                 justify-content: space-between;

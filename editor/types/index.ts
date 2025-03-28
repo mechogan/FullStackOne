@@ -1,7 +1,8 @@
 export enum CONFIG_TYPE {
     GENERAL = "general",
     PROJECTS = "projects",
-    GIT = "git"
+    GIT = "git",
+    AGENT = "agent"
     // CONNECTIVITY = "connectivity"
 }
 
@@ -13,6 +14,8 @@ export type CONFIG_DATA_TYPE = {
         projects: Project[];
     };
     [CONFIG_TYPE.GIT]: GitAuths;
+
+    [CONFIG_TYPE.AGENT]: any;
     // [CONFIG_TYPE.CONNECTIVITY]: Connectivity;
 };
 

@@ -7,6 +7,7 @@ import { GitAuthentications } from "./git-authentications";
 import { createElement } from "../../components/element";
 import { Store } from "../../store";
 import { InputSwitch } from "@fullstacked/ui";
+import { codeEditor } from "../../code-editor";
 
 export function Settings() {
     const { container, scrollable } = ViewScrollable();
@@ -21,7 +22,12 @@ export function Settings() {
 
     const userMode = UserMode();
 
-    scrollable.append(userMode, GitAuthentications(), Version());
+    scrollable.append(
+        userMode,
+        AgentProvider(),
+        GitAuthentications(),
+        Version()
+    );
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
@@ -55,6 +61,16 @@ Projects start faster, builds only when needed.`;
     inputSwitch.input.onchange = () => {
         Store.preferences.setUserMode(inputSwitch.input.checked);
     };
+
+    return container;
+}
+
+function AgentProvider() {
+    const container = document.createElement("div");
+    container.classList.add("agent-provider-config");
+    container.innerHTML = `<h2>Configure Agent Providers</h2>`;
+
+    container.append(codeEditor.agentConfigurator);
 
     return container;
 }

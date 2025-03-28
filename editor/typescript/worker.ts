@@ -53,6 +53,7 @@ const options: CompilerOptions = {
     module: ModuleKind.ES2022,
     target: ScriptTarget.ES2022,
     moduleResolution: ModuleResolutionKind.Node10,
+    allowJs: true,
     lib: [
         "lib.dom.d.ts",
         "lib.dom.iterable.d.ts",
@@ -90,7 +91,6 @@ export let methods = {
         for (const [path, data] of Object.entries(projectFiles)) {
             if (!data) continue;
             const fileName = path.slice("projects/".length);
-            console.log(fileName);
             if (remove) {
                 fsCache.delete(fileName);
             } else {
@@ -131,6 +131,10 @@ export let methods = {
         });
     },
     updateFile(fileName: string, contents: string) {
+        if (!fileName.includes(workingDirectory)) {
+            return;
+        }
+
         let file = files?.get(fileName);
         if (!file) {
             file = {

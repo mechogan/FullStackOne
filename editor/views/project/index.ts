@@ -3,26 +3,25 @@ import { BG_COLOR, PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../../constants";
 import stackNavigation from "../../stack-navigation";
 import { TopBar as TopBarComponent } from "../../components/top-bar";
 import { Store } from "../../store";
-import { createElement, ElementComponent } from "../../components/element";
-import { Editor } from "./editor";
+import { createElement } from "../../components/element";
 import { WorkerTS } from "../../typescript";
-import { saveAllViews } from "./code-editor";
 import { Git } from "./git";
 import { createRefresheable } from "../../components/refresheable";
 import git from "../../lib/git";
 import core_message from "../../../lib/core_message";
-import { Terminal } from "./terminal";
 import { Button, Icon, Loader } from "@fullstacked/ui";
 import { FileTree } from "./file-tree";
+import { codeEditor } from "../../code-editor";
+import { openPrompt } from "../prompt";
 
-let lastOpenedProjectId: string;
+let lastOpenedProjectId: string,
+    workspaceElement: typeof codeEditor.workspaceElement;
 export function Project(project: ProjectType) {
     if (!project) return;
 
     // gives a chance if back button by mistake
     if (lastOpenedProjectId !== project.id) {
-        Store.editor.codeEditor.clearFiles();
-        Store.editor.codeEditor.clearAllBuildErrors();
+        workspaceElement = codeEditor.workspaceElement;
         WorkerTS.dispose();
     }
 
@@ -34,16 +33,14 @@ export function Project(project: ProjectType) {
 
     const fileTreeAndEditor = FileTreeAndEditor(project);
     const topBar = TopBar(project, fileTreeAndEditor);
-    const terminal = Terminal(project);
 
-    container.append(topBar, fileTreeAndEditor, terminal);
+    container.append(topBar, fileTreeAndEditor);
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,
         onDestroy: () => {
             topBar.destroy();
             fileTreeAndEditor.destroy();
-            terminal.destroy();
             container.destroy();
         }
     });
@@ -116,39 +113,27 @@ function FileTreeAndEditor(project: ProjectType) {
         Store.editor.sidePanelClosed.unsubscribe(toggleSidePanel);
 
     const fileTree = FileTree(project);
-    const editor = Editor(project);
 
     const leftPanel = document.createElement("div");
     leftPanel.classList.add("left-panel");
 
     const buttonContainer = document.createElement("div");
 
-    const toggleButtonVisibility = (terminalOpen: boolean) => {
-        if (terminalOpen) {
-            buttonContainer.classList.add("hide");
-        } else {
-            buttonContainer.classList.remove("hide");
-        }
-    };
-    Store.editor.terminalOpen.subscribe(toggleButtonVisibility);
-
-    const terminalButton = Button({
+    const promptButton = Button({
         style: "text",
         iconLeft: "Terminal"
     });
-    terminalButton.onclick = () => {
-        Store.editor.setTerminalOpen(true);
+    promptButton.onclick = () => {
+        openPrompt();
     };
-    buttonContainer.append(terminalButton);
+    buttonContainer.append(promptButton);
 
     leftPanel.append(fileTree, buttonContainer);
 
-    container.append(leftPanel, editor);
+    container.append(leftPanel, workspaceElement);
 
     container.ondestroy = () => {
         fileTree.destroy();
-        editor.destroy();
-        Store.editor.terminalOpen.unsubscribe(toggleButtonVisibility);
     };
 
     return container;
@@ -195,7 +180,6 @@ function RunButton(project: ProjectType) {
 
     button.onclick = async () => {
         showLoader();
-        await saveAllViews();
         Store.projects.build(project);
     };
 

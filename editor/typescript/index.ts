@@ -44,6 +44,7 @@ export const WorkerTS = {
     start,
     restart,
     dispose,
+    passFileEvents,
     call: () =>
         recurseInProxy(postMessage) as unknown as AwaitAll<typeof methods>
 };
@@ -68,9 +69,9 @@ async function restart() {
     return WorkerTS.start(directory);
 }
 
-function passFileEvents(e: string) {
+function passFileEvents(fileEvents: FileEvent[]) {
     if (!worker) return;
-    WorkerTS.call().fileEvents(JSON.parse(e));
+    return WorkerTS.call().fileEvents(fileEvents);
 }
 
 let readyPromise: Promise<void>;
@@ -115,8 +116,6 @@ function start(workingDirectory: string) {
         });
     }
 
-    core_message.addListener("file-event", passFileEvents);
-
     return readyPromise;
 }
 
@@ -124,7 +123,6 @@ function dispose() {
     readyPromise = null;
     worker?.terminate();
     worker = null;
-    core_message.removeListener("file-event", passFileEvents);
 
     for (const promiseResolve of requests.values()) {
         try {

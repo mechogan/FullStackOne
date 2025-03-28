@@ -12,7 +12,6 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 // components
 @use "components/top-bar.scss";
 @use "components/view-scrollable.scss";
-@use "../node_modules/@fullstacked/ui/ui.scss";
 @use "../lib/components/snackbar.scss";
 
 // views
@@ -24,6 +23,11 @@ https://www.figma.com/design/xb3JBRCvEWpbwGda03T5QQ/Mockups
 @use "views/project/git/index.scss" as index5;
 @use "views/packages/index.scss" as index6;
 @use "views/prompt/index.scss" as index7;
+
+// deps
+@use "../node_modules/@fullstacked/ui/ui.scss";
+@use "../node_modules/@fullstacked/code-editor/editor.scss";
+@use "../node_modules/@fullstacked/file-tree/file-tree.scss";
 
 html,
 body {
