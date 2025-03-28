@@ -12,7 +12,7 @@ import {
     tsErrorLinter,
     tsTypeDefinition
 } from "./typescript/extensions";
-import { Diagnostic, linter } from "@codemirror/lint";
+import { Diagnostic, linter, lintGutter } from "@codemirror/lint";
 import { hoverTooltip } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
 import fs from "../lib/fs";
@@ -59,10 +59,11 @@ export const codeEditor = new CodeEditor({
         if (jsTsFilesExtensions.includes(fileExtension)) {
             return [
                 linter(tsErrorLinter(project.id, filename)),
-                linter(buildErrorsLinter(filename))
+                linter(buildErrorsLinter(filename)),
+                lintGutter()
             ];
         } else if (sassFilesExtensions.includes(fileExtension)) {
-            return [linter(buildErrorsLinter(filename))];
+            return [linter(buildErrorsLinter(filename)), lintGutter()];
         }
 
         return [];
@@ -109,8 +110,10 @@ codeEditor.addEventListener(
     }
 );
 
-codeEditor.addEventListener("file-update", ({ fileUpdate }) => {
-    fs.writeFile(fileUpdate.name, fileUpdate.contents, "code-editor");
+codeEditor.addEventListener("file-update", async ({ fileUpdate }) => {
+    if (await fs.exists(fileUpdate.name)) {
+        fs.writeFile(fileUpdate.name, fileUpdate.contents, "code-editor");
+    }
 });
 
 codeEditor.addEventListener("file-rename", async ({ fileRename }) => {
@@ -132,6 +135,8 @@ window.addEventListener("keydown", (e) => {
     )?.format?.();
 });
 
+const closeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
 core_message.addListener("file-event", (msgStr) => {
     const project = Store.projects.current.check();
     if (!project) return;
@@ -139,20 +144,52 @@ core_message.addListener("file-event", (msgStr) => {
     let shouldLint = false;
 
     const fileEvents = JSON.parse(msgStr) as FileEvent[];
+
+    const workspace = codeEditor.getWorkspace();
     for (const event of fileEvents) {
         if (event.origin === "code-editor") continue;
 
         shouldLint = true;
 
         if (event.type === FileEventType.DELETED) {
-            const name = event.paths.at(0).split(project.id).pop();
-            codeEditor.getWorkspace().file.close(project.id + name);
+            const name = project.id + event.paths.at(0).split(project.id).pop();
+            if (!workspace.file.isOpen(name)) continue;
+            closeTimeouts.set(
+                name,
+                setTimeout(() => {
+                    workspace.file.close(name);
+                }, 100)
+            );
+        } else if (event.type === FileEventType.CREATED) {
+            const name = project.id + event.paths.at(0).split(project.id).pop();
+            const timeout = closeTimeouts.get(name);
+            if (timeout) clearTimeout(timeout);
         } else if (event.type === FileEventType.RENAME) {
             const oldName =
                 project.id + event.paths.at(0).split(project.id).pop();
             const newName =
                 project.id + event.paths.at(1).split(project.id).pop();
-            codeEditor.getWorkspace().file.rename(oldName, newName);
+            workspace.file.rename(oldName, newName);
+
+            if (!event.isFile) {
+                fs.readdir(newName, { recursive: true }).then((children) => {
+                    children.forEach((child) => {
+                        workspace.file.rename(
+                            oldName + "/" + child,
+                            newName + "/" + child
+                        );
+                    });
+                });
+            }
+        } else if (event.type === FileEventType.MODIFIED) {
+            const name = project.id + event.paths.at(0).split(project.id).pop();
+
+            const timeout = closeTimeouts.get(name);
+            if (timeout) clearTimeout(timeout);
+
+            if (workspace.file.isOpen(name)) {
+                workspace.file.update(name, fs.readFile(name));
+            }
         }
     }
 
