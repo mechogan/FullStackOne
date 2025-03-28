@@ -99,7 +99,9 @@ export const codeEditor = new CodeEditor({
             count++;
         }
 
-        return dir + "/" + name + "." + fileExtension;
+        const newFileName = dir + "/" + name + "." + fileExtension;
+        await fs.writeFile(newFileName, "\n");
+        return newFileName
     }
 });
 
