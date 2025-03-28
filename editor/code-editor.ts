@@ -1,34 +1,29 @@
-import CodeEditor from '@fullstacked/code-editor';
-import config from './lib/config';
-import { CONFIG_TYPE } from './types';
-import { Store } from './store';
-import core_message from '../lib/core_message';
-import { FileEvent, FileEventType } from './views/project/file-event';
-import { WorkerTS } from './typescript';
-import { EditorView } from 'codemirror';
-import { navigateToDefinition, tsAutocomplete, tsErrorLinter, tsTypeDefinition } from './typescript/extensions';
+import CodeEditor from "@fullstacked/code-editor";
+import config from "./lib/config";
+import { CONFIG_TYPE } from "./types";
+import { Store } from "./store";
+import core_message from "../lib/core_message";
+import { FileEvent, FileEventType } from "./views/project/file-event";
+import { WorkerTS } from "./typescript";
+import { EditorView } from "codemirror";
+import {
+    navigateToDefinition,
+    tsAutocomplete,
+    tsErrorLinter,
+    tsTypeDefinition
+} from "./typescript/extensions";
 import { Diagnostic, linter } from "@codemirror/lint";
-import { hoverTooltip } from '@codemirror/view';
+import { hoverTooltip } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
-import fs from '../lib/fs';
+import fs from "../lib/fs";
 
-const jsTsFilesExtensions = [
-    "js",
-    "mjs",
-    ".cjs",
-    "jsx",
-    "ts",
-    "tsx"
-]
+const jsTsFilesExtensions = ["js", "mjs", ".cjs", "jsx", "ts", "tsx"];
 
-const sassFilesExtensions = [
-    "scss",
-    "sass"
-]
+const sassFilesExtensions = ["scss", "sass"];
 
 const defaultExtensions = [
     EditorView.clickAddsSelectionRange.of((e) => e.altKey && !e.metaKey)
-]
+];
 
 const tsExtensions = (filename: string) => [
     EditorView.updateListener.of((ctx) =>
@@ -39,7 +34,7 @@ const tsExtensions = (filename: string) => [
     }),
     autocompletion({ override: [tsAutocomplete(filename)] }),
     hoverTooltip(tsTypeDefinition(filename))
-]
+];
 
 export const codeEditor = new CodeEditor({
     setiFontLocation: null,
@@ -49,7 +44,8 @@ export const codeEditor = new CodeEditor({
         if (!project) return defaultExtensions;
 
         const fileExtension = filename.split(".").pop();
-        if (!jsTsFilesExtensions.includes(fileExtension)) return defaultExtensions;
+        if (!jsTsFilesExtensions.includes(fileExtension))
+            return defaultExtensions;
 
         WorkerTS.start(project.id);
         return defaultExtensions.concat(tsExtensions(filename));
@@ -64,14 +60,12 @@ export const codeEditor = new CodeEditor({
             return [
                 linter(tsErrorLinter(project.id, filename)),
                 linter(buildErrorsLinter(filename))
-            ]
+            ];
         } else if (sassFilesExtensions.includes(fileExtension)) {
-            return [
-                linter(buildErrorsLinter(filename))
-            ]
+            return [linter(buildErrorsLinter(filename))];
         }
 
-        return []
+        return [];
     },
     async createNewFileName(suggestedName: string) {
         const project = Store.projects.current.check();
@@ -89,7 +83,7 @@ export const codeEditor = new CodeEditor({
 
         const dir = pathComponents.join("/");
 
-        if (!await fs.exists(dir)) {
+        if (!(await fs.exists(dir))) {
             await fs.mkdir(dir);
         }
 
@@ -105,12 +99,15 @@ export const codeEditor = new CodeEditor({
         }
 
         return dir + "/" + name + "." + fileExtension;
-    },
+    }
 });
 
-codeEditor.addEventListener("agent-configuration-update", ({ agentConfigurations }) => {
-    config.save(CONFIG_TYPE.AGENT, agentConfigurations)
-});
+codeEditor.addEventListener(
+    "agent-configuration-update",
+    ({ agentConfigurations }) => {
+        config.save(CONFIG_TYPE.AGENT, agentConfigurations);
+    }
+);
 
 codeEditor.addEventListener("file-update", ({ fileUpdate }) => {
     fs.writeFile(fileUpdate.name, fileUpdate.contents, "code-editor");
@@ -130,7 +127,9 @@ window.addEventListener("keydown", (e) => {
 
     e.preventDefault();
     e.stopPropagation();
-    (codeEditor.getWorkspace()?.item?.current?.workspaceItem as any)?.format?.();
+    (
+        codeEditor.getWorkspace()?.item?.current?.workspaceItem as any
+    )?.format?.();
 });
 
 core_message.addListener("file-event", (msgStr) => {
@@ -149,8 +148,10 @@ core_message.addListener("file-event", (msgStr) => {
             const name = event.paths.at(0).split(project.id).pop();
             codeEditor.getWorkspace().file.close(project.id + name);
         } else if (event.type === FileEventType.RENAME) {
-            const oldName = project.id + event.paths.at(0).split(project.id).pop();
-            const newName = project.id + event.paths.at(1).split(project.id).pop();
+            const oldName =
+                project.id + event.paths.at(0).split(project.id).pop();
+            const newName =
+                project.id + event.paths.at(1).split(project.id).pop();
             codeEditor.getWorkspace().file.rename(oldName, newName);
         }
     }
@@ -163,7 +164,9 @@ core_message.addListener("file-event", (msgStr) => {
 
 function buildErrorsLinter(filename: string) {
     return async (view: EditorView) => {
-        const buildErrors = Store.editor.codeEditor.buildErrors.check().filter(err => err.file === filename);
+        const buildErrors = Store.editor.codeEditor.buildErrors
+            .check()
+            .filter((err) => err.file === filename);
         return buildErrors.map((err) => {
             const from = view.state.doc.line(err.line).from + err.col;
             return {
@@ -171,17 +174,21 @@ function buildErrorsLinter(filename: string) {
                 to: from + err.length,
                 severity: "error",
                 message: err.message
-            } as Diagnostic
+            } as Diagnostic;
         });
-    }
+    };
 }
 
-setTimeout(() => Store.editor.codeEditor.buildErrors.subscribe((err) => {
-    const workspace = codeEditor?.getWorkspace?.();
-    if (!workspace) return;
+setTimeout(() =>
+    Store.editor.codeEditor.buildErrors.subscribe((err) => {
+        const workspace = codeEditor?.getWorkspace?.();
+        if (!workspace) return;
 
-    const toOpen = err.filter(e => !workspace.file.isOpen(e.file));
-    Promise
-        .all(toOpen.map(({ file }) => workspace.file.open(file, fs.readFile(file))))
-        .then(workspace.lint)
-}))
+        const toOpen = err.filter((e) => !workspace.file.isOpen(e.file));
+        Promise.all(
+            toOpen.map(({ file }) =>
+                workspace.file.open(file, fs.readFile(file))
+            )
+        ).then(workspace.lint);
+    })
+);

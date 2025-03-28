@@ -13,9 +13,9 @@ export const addListener = (
     listeners.add(cb);
 
     const pending = pendingMessages.get(messageType);
-    if(pending?.length){
-        for(const m of pending){
-            cb(m)
+    if (pending?.length) {
+        for (const m of pending) {
+            cb(m);
         }
     }
 };
@@ -37,7 +37,7 @@ globalThis.oncoremessage = (messageType: string, message: string) => {
     const listeners = coreMessageListeners.get(messageType);
     if (!listeners?.size) {
         let pending = pendingMessages.get(messageType);
-        if(!pending) {
+        if (!pending) {
             pending = [];
             pendingMessages.set(messageType, pending);
         }

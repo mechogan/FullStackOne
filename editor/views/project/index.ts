@@ -14,7 +14,8 @@ import { FileTree } from "./file-tree";
 import { codeEditor } from "../../code-editor";
 import { openPrompt } from "../prompt";
 
-let lastOpenedProjectId: string, workspaceElement: typeof codeEditor.workspaceElement;
+let lastOpenedProjectId: string,
+    workspaceElement: typeof codeEditor.workspaceElement;
 export function Project(project: ProjectType) {
     if (!project) return;
 
@@ -123,7 +124,7 @@ function FileTreeAndEditor(project: ProjectType) {
         iconLeft: "Terminal"
     });
     promptButton.onclick = () => {
-        openPrompt()
+        openPrompt();
     };
     buttonContainer.append(promptButton);
 

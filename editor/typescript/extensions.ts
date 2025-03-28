@@ -6,34 +6,35 @@ import { Diagnostic } from "@codemirror/lint";
 import { codeEditor } from "../code-editor";
 import fs from "../../lib/fs";
 
+export const tsErrorLinter =
+    (workingDirectory: string, filePath: string) =>
+    async (view: EditorView) => {
+        await WorkerTS.start(workingDirectory);
+        await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
 
-export const tsErrorLinter = (workingDirectory: string, filePath: string) => async (view: EditorView) => {
-    await WorkerTS.start(workingDirectory);
-    await WorkerTS.call().updateFile(filePath, view.state.doc.toString());
+        const getAllTsError = async () => {
+            const tsErrors = await Promise.all([
+                WorkerTS.call().getSemanticDiagnostics(filePath),
+                WorkerTS.call().getSyntacticDiagnostics(filePath),
+                WorkerTS.call().getSuggestionDiagnostics(filePath)
+            ]);
 
-    const getAllTsError = async () => {
-        const tsErrors = await Promise.all([
-            WorkerTS.call().getSemanticDiagnostics(filePath),
-            WorkerTS.call().getSyntacticDiagnostics(filePath),
-            WorkerTS.call().getSuggestionDiagnostics(filePath)
-        ]);
+            return tsErrors.flat();
+        };
 
-        return tsErrors.flat();
+        const tsErrors = await getAllTsError();
+
+        return tsErrors
+            .filter((tsError) => !!tsError)
+            .map((tsError) => {
+                return {
+                    from: tsError.start,
+                    to: tsError.start + tsError.length,
+                    severity: tsError.code === 7016 ? "warning" : "error",
+                    message: messageChainToArr(tsError.messageText).join("\n\n")
+                } as Diagnostic;
+            });
     };
-
-    const tsErrors = await getAllTsError();
-
-    return tsErrors
-        .filter((tsError) => !!tsError)
-        .map((tsError) => {
-            return {
-                from: tsError.start,
-                to: tsError.start + tsError.length,
-                severity: tsError.code === 7016 ? "warning" : "error",
-                message: messageChainToArr(tsError.messageText).join("\n\n")
-            } as Diagnostic;
-        });
-};
 
 function messageChainToArr(
     messageChain: ts.Diagnostic["messageText"]
@@ -207,6 +208,6 @@ export const navigateToDefinition =
                     await workspace.file.open(filename, fs.readFile(filename));
                 }
 
-                workspace.file.goTo(filename, pos)
+                workspace.file.goTo(filename, pos);
             });
     };

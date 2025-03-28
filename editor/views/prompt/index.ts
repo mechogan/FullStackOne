@@ -99,7 +99,7 @@ function Prompt() {
         const args = [];
         const command = words.reduce(
             (c, w, i) => {
-                if(!c) return undefined;
+                if (!c) return undefined;
 
                 const subcommand = c.subcommand?.find(
                     ({ name, alias }) =>

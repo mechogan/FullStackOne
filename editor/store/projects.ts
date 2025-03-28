@@ -132,7 +132,7 @@ async function build(project: Project) {
             };
         });
 
-        console.log(buildErrors)
+        console.log(buildErrors);
 
         if (buildErrors.length) {
             if (isUserMode) {

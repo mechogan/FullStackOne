@@ -23,10 +23,11 @@ export function Settings() {
     const userMode = UserMode();
 
     scrollable.append(
-        userMode, 
+        userMode,
         AgentProvider(),
-        GitAuthentications(), 
-        Version());
+        GitAuthentications(),
+        Version()
+    );
 
     stackNavigation.navigate(container, {
         bgColor: BG_COLOR,

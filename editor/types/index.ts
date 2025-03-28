@@ -2,7 +2,7 @@ export enum CONFIG_TYPE {
     GENERAL = "general",
     PROJECTS = "projects",
     GIT = "git",
-    AGENT = "agent",
+    AGENT = "agent"
     // CONNECTIVITY = "connectivity"
 }
 

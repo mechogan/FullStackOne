@@ -131,7 +131,9 @@ export let methods = {
         });
     },
     updateFile(fileName: string, contents: string) {
-        if (!fileName.includes(workingDirectory)) { return }
+        if (!fileName.includes(workingDirectory)) {
+            return;
+        }
 
         let file = files?.get(fileName);
         if (!file) {

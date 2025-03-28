@@ -21,11 +21,14 @@ async function processScss(entryPoint: string, out: string) {
         importers: [
             {
                 findFileUrl(urlStr, _) {
-                    if(urlStr.startsWith("../node_modules")) {
-                        return new URL(path.resolve(process.cwd(), urlStr.slice(1)), `file://`);
+                    if (urlStr.startsWith("../node_modules")) {
+                        return new URL(
+                            path.resolve(process.cwd(), urlStr.slice(1)),
+                            `file://`
+                        );
                     }
-                    return null
-                },
+                    return null;
+                }
             }
         ]
     });
@@ -53,7 +56,7 @@ for (const [input, output] of toBuild) {
         sourcemap: production ? false : "external",
         splitting: false,
         minify: production,
-        nodePaths: ["node_modules", "lib"],
+        nodePaths: ["node_modules", "lib"]
     });
 }
 
