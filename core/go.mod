@@ -5,13 +5,13 @@ go 1.23.1
 require (
 	github.com/Masterminds/semver/v3 v3.3.1 // direct
 	github.com/djherbis/times v1.6.0 // direct
-	github.com/evanw/esbuild v0.25.1 // direct
+	github.com/evanw/esbuild v0.25.2 // direct
 	github.com/go-git/go-git/v5 v5.14.0 // direct
 )
 
 require (
 	github.com/go-git/go-billy/v5 v5.6.2
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
@@ -35,6 +35,6 @@ require (
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

@@ -43,6 +43,12 @@ export function FileTree(project: Project) {
             close: directoryIconClose
         },
         prefix: (path) => {
+            if (path.endsWith(".chat")) {
+                const chatIcon = Icon("Glitter");
+                chatIcon.classList.add("chat-icon");
+                return chatIcon;
+            }
+
             const div = document.createElement("div");
             div.classList.add("dev-icon");
 

@@ -72,6 +72,10 @@ export const codeEditor = new CodeEditor({
         const project = Store.projects.current.check();
         if (!project) return suggestedName;
 
+        if (suggestedName.endsWith(".chat")) {
+            suggestedName = "chat/" + suggestedName;
+        }
+
         if (!suggestedName.startsWith(project.id)) {
             suggestedName = project.id + "/" + suggestedName;
         }

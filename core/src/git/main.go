@@ -32,6 +32,7 @@ var ignoredDirectories = []string{
 	"/.build",
 	"/data",
 	"/node_modules",
+	"/chat",
 }
 
 type GitMessageJSON struct {
