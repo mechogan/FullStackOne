@@ -1,9 +1,7 @@
 package org.fullstacked.editor
 
-import java.util.Arrays
-
 class Instance(val projectId: String, val isEditor: Boolean = false) {
-    private lateinit var headerRequest: ByteArray
+    private var headerRequest: ByteArray
 
     private external fun call(buffer: ByteArray): ByteArray
 
