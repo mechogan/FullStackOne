@@ -24,6 +24,8 @@ export function InitPrompt() {
             e.shiftKey &&
             (e.ctrlKey || e.metaKey)
         ) {
+            e.preventDefault();
+            e.stopPropagation();
             openPrompt();
         }
     });
