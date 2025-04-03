@@ -1,3 +1,5 @@
+import { Chat } from "@fullstacked/code-editor";
+import { codeEditor } from "../code-editor";
 import { deeplink } from "../deeplink";
 import packages from "../lib/packages";
 import stackNavigation from "../stack-navigation";
@@ -120,6 +122,14 @@ export const commands: Command[] = [
         }
     },
     {
-        name: "run"
+        name: "chat",
+        exec(args) {
+            const project = Store.projects.current.check()
+            if(project) {
+                codeEditor.getWorkspace().item.add(new Chat());
+            }
+
+            return true;
+        }
     }
 ];
