@@ -37,18 +37,22 @@ const gradleFileUpdated = gradleFileContent
     .replace(/versionCode = .*?\n/g, `versionCode = ${version.build}\n`);
 fs.writeFileSync(gradleFile, gradleFileUpdated);
 
+const androidKeys = dotenv.parse(
+    fs.readFileSync(path.resolve(currentDirectory, "ANDROID_KEYS.env"))
+);
+
 // gradle build
 
 child_process.execSync("./gradlew bundleRelease", {
     cwd: studioDirectory,
-    stdio: "inherit"
+    stdio: "inherit",
+    env: {
+        JAVA_HOME: androidKeys.JAVA_HOME
+    }
 });
 
 // pkg sign
 
-const androidKeys = dotenv.parse(
-    fs.readFileSync(path.resolve(currentDirectory, "ANDROID_KEYS.env"))
-);
 const bundle = path.resolve(
     studioDirectory,
     "app",
