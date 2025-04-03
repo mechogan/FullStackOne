@@ -35,7 +35,7 @@ export const editor = {
         clearFiles,
 
         buildErrors: buildErrors.subscription,
-        addBuildError,
+        addBuildErrors,
         clearAllBuildErrors
     }
 };
@@ -84,8 +84,8 @@ function clearFiles() {
     focusedFile.notify();
 }
 
-function addBuildError(error: BuildError) {
-    codeEditorBuildErrors.push(error);
+function addBuildErrors(errors: BuildError[]) {
+    codeEditorBuildErrors.push(...errors);
     buildErrors.notify();
 }
 

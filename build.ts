@@ -23,7 +23,11 @@ async function processScss(entryPoint: string, out: string) {
                 findFileUrl(urlStr, _) {
                     if (urlStr.startsWith("../node_modules")) {
                         return new URL(
-                            path.resolve(process.cwd(), urlStr.slice(1)).replace(/\\/g, "/").split(":").pop(),
+                            path
+                                .resolve(process.cwd(), urlStr.slice(1))
+                                .replace(/\\/g, "/")
+                                .split(":")
+                                .pop(),
                             `file://`
                         );
                     }

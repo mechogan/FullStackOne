@@ -28,7 +28,7 @@
         "@codemirror/lang-sass": "^6.0.2",
         "@codemirror/theme-one-dark": "^6.1.2",
         "@codemirror/view": "^6.34.1",
-        "@fullstacked/code-editor": "github:fullstackedorg/code-editor#be295be505c4969c28f7299c15b4f22abdbe8133",
+        "@fullstacked/code-editor": "github:fullstackedorg/code-editor#9369aac4c9549470a26c3a57b360cee46e4c4532",
         "@fullstacked/file-tree": "github:fullstackedorg/file-tree#8fc6d5e587507c631a68525659745eeda414bcf3",
         "@fullstacked/stack-navigation": "^0.0.3",
         "@fullstacked/ui": "github:fullstackedorg/ui#b1959309577f3b09ab0ed1ed8248b878c10c2879",

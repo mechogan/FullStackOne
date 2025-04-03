@@ -105,7 +105,7 @@ export const codeEditor = new CodeEditor({
 
         const newFileName = dir + "/" + name + "." + fileExtension;
         await fs.writeFile(newFileName, "\n");
-        return newFileName
+        return newFileName;
     }
 });
 
@@ -223,15 +223,27 @@ function buildErrorsLinter(filename: string) {
 }
 
 setTimeout(() =>
-    Store.editor.codeEditor.buildErrors.subscribe((err) => {
+    Store.editor.codeEditor.buildErrors.subscribe(async (errors) => {
         const workspace = codeEditor?.getWorkspace?.();
         if (!workspace) return;
 
-        const toOpen = err.filter((e) => !workspace.file.isOpen(e.file));
-        Promise.all(
-            toOpen.map(({ file }) =>
-                workspace.file.open(file, fs.readFile(file))
-            )
-        ).then(workspace.lint);
+        const filesWithErrors = new Set(errors.map(({ file }) => file));
+
+        const toOpen = [];
+        for (const f of filesWithErrors) {
+            if (workspace.file.isOpen(f)) {
+                workspace.file.open(f);
+            } else {
+                toOpen.push(workspace.file.open(f, fs.readFile(f)));
+            }
+        }
+        await Promise.all(toOpen);
+        workspace.lint();
+        errors.forEach((e) =>
+            workspace.file.goTo(e.file, {
+                line: e.line,
+                col: e.col
+            })
+        );
     })
 );

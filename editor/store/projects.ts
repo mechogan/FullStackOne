@@ -140,7 +140,7 @@ async function build(project: Project) {
                 });
             }
 
-            buildErrors.forEach(Store.editor.codeEditor.addBuildError);
+            Store.editor.codeEditor.addBuildErrors(buildErrors);
         } else {
             if (project.gitRepository?.url) {
                 const head = await git.head(project.id);
