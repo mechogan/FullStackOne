@@ -89,6 +89,13 @@ win-x86_64:
 
 ###### Linux #######
 
+linux-x86_64:
+	CGO_ENABLED=1 \
+	GOOS=linux \
+	GOARCH=amd64 \
+	go build -buildmode=c-shared -o $(OUT)/linux-x86_64 -v ..
+
+
 ###### WebAssembly #######
 
 wasm:
