@@ -1,0 +1,1 @@
+g++ main.cpp -o out/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags`
