@@ -40,6 +40,38 @@ char *numberToByte(int number)
     return bytes;
 }
 
+int bytesToNumber(char *bytes, int size)
+{
+    unsigned value = 0;
+    for(int i = 0; i < size; i++) {
+        value = value << 8;
+        value = value | bytes[i];
+    }
+    return (int)value;
+}
+
+int deserializeNumber(char* bytes, int size)
+{
+    bool negative = bytes[0] == 1;
+
+    unsigned n = 0;
+    int i = 1;
+    while (i <= bytes.Length)
+    {
+        n += ((unsigned)bytes[i]) << ((i - 1) * 8);
+        i += 1;
+    }
+
+    int value = (int)n;
+
+    if (negative)
+    {
+        return 0 - value;
+    }
+
+    return value;
+}
+
 int combineBuffers(char *buf1, int lgt1, char *buf2, int lgt2, char *result)
 {
     int combinedLength = lgt1 + lgt2;
@@ -55,6 +87,72 @@ int combineBuffers(char *buf1, int lgt1, char *buf2, int lgt2, char *result)
     delete buf1;
     delete buf2;
     return combinedLength;
+}
+
+class DataValue
+{
+public:
+    bool boolean;
+    std::string str;
+    int number;
+    char *buffer;
+    int bufferSize;
+}
+
+enum DataType {
+    UNDEFINED = 0,
+    BOOLEAN = 1,
+    STRING = 2,
+    NUMBER = 3,
+    BUFFER = 4
+}
+
+std::vector<DataValue> deserializeArgs(char *data, int size)
+{
+    std::vector<DataValue> args;
+
+    int cursor = 0;
+    while (cursor < size)
+    {
+        DataType type = (DataType)bytes[cursor];
+
+        char *lengthData, arg;
+
+        cursor++;
+        memcpy(lengthData, data + cursor, 4);
+        int length = bytesToNumber(lengthData, 4);
+        delete lengthData;
+
+        cursor += 4;
+        memcpy(length, data + cursor, length);
+        cursor += length;
+
+        DataValue v = new DataValue();
+        switch (type)
+        {
+        case DataType.UNDEFINED:
+            break;
+        case DataType.BOOLEAN:
+            v.boolean = arg[0] == 1 ? true : false;
+            break;
+        case DataType.NUMBER:
+            v.number = deserializeNumber(arg, length);
+            break;
+        case DataType.STRING:
+            v.str = std::string(arg);
+            break;
+        case DataType.BUFFER:
+            memcpy(v.buffer, arg, length);
+            v.bufferSize = length;
+            break;
+        default:
+            break;
+        }
+        args.push_back(v);
+        delete arg;
+    }
+
+    return args;
 }
 
 int BYTE_READ_CHUNK = 1024;
@@ -76,7 +174,7 @@ public:
 
         std::cout << pathname << std::endl;
 
-        char* responseData;
+        char *responseData;
         int responseSize;
         std::string responseType = "text/plain";
         if (pathname == "/platform")
@@ -85,35 +183,43 @@ public:
             responseData = platformStr.data();
             responseSize = strlen(responseData);
         }
-        else {
+        else
+        {
             char *payloadBodyHeader = new char[2];
             payloadBodyHeader[0] = 1; // Static File Serving
-            payloadBodyHeader[1] = 2;  // STRING
-            
+            payloadBodyHeader[1] = 2; // STRING
 
             char *pathnameData = pathname.data();
             int pathnameSize = strlen(pathnameData);
             char *pathnameSizeBuffer = numberToByte();
-            char *payloadBody;
 
+            char *payloadBody;
             int payloadBodySize = combineBuffers(
                 pathnameSizeBuffer,
                 4,
                 pathnameData,
-                strlen()
-            )
+                pathnameSize,
+                payloadBody);
 
+            char *tmpHeader;
+            memcpy(tmpHeader, instance->header, instance->headerSize);
 
             char *payload;
-            combineBuffers(
+            int payloadSize = combineBuffers(
+                tmpHeader,
+                instance->headerSize,
+                payloadBody,
+                payloadBodySize,
+                payload);
 
-            );
+            char *responseData;
+            int responseSize = call(payload, payloadSize, &responseData);
 
-            byte[] payload = App.combineBuffers([header, pathnameLength, pathnameData]);
+            std::vector<DataValue> values = deserializeArgs(responseData, responseSize);
 
-            byte[] response = this.instance.callLib(payload);
-
-
+            responseType = values.at(0).str;
+            responseData = values.at(1).buffer;
+            responseSize = values.at(1).bufferSize;
 
             // GInputStream *body = webkit_uri_scheme_request_get_http_body(request);
             // char *bodyData;
@@ -140,15 +246,11 @@ public:
             //         break;
             //     }
             // }
-
-            
         }
-
 
         GInputStream *inputStream = g_memory_input_stream_new();
         g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), responseData, responseSize, nullptr);
         webkit_uri_scheme_request_finish(request, inputStream, responseSize, responseType.data());
-
     }
 
     Instance(std::string pId, bool pIsEditor)
