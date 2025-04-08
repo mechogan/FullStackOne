@@ -56,7 +56,7 @@ int deserializeNumber(char* bytes, int size)
 
     unsigned n = 0;
     int i = 1;
-    while (i <= bytes.Length)
+    while (i <= size)
     {
         n += ((unsigned)bytes[i]) << ((i - 1) * 8);
         i += 1;
@@ -97,7 +97,7 @@ public:
     int number;
     char *buffer;
     int bufferSize;
-}
+};
 
 enum DataType {
     UNDEFINED = 0,
@@ -105,18 +105,19 @@ enum DataType {
     STRING = 2,
     NUMBER = 3,
     BUFFER = 4
-}
+};
 
-std::vector<DataValue> deserializeArgs(char *data, int size)
+std::vector<DataValue*> deserializeArgs(char *data, int size)
 {
-    std::vector<DataValue> args;
+    std::vector<DataValue*> args;
 
     int cursor = 0;
     while (cursor < size)
     {
-        DataType type = (DataType)bytes[cursor];
+        DataType type = (DataType)data[cursor];
 
-        char *lengthData, arg;
+        char *lengthData;
+        char *arg;
 
         cursor++;
         memcpy(lengthData, data + cursor, 4);
@@ -124,26 +125,26 @@ std::vector<DataValue> deserializeArgs(char *data, int size)
         delete lengthData;
 
         cursor += 4;
-        memcpy(length, data + cursor, length);
+        memcpy(arg, data + cursor, length);
         cursor += length;
 
-        DataValue v = new DataValue();
+        DataValue *v = new DataValue();
         switch (type)
         {
-        case DataType.UNDEFINED:
+        case UNDEFINED:
             break;
-        case DataType.BOOLEAN:
-            v.boolean = arg[0] == 1 ? true : false;
+        case BOOLEAN:
+            v->boolean = arg[0] == 1 ? true : false;
             break;
-        case DataType.NUMBER:
-            v.number = deserializeNumber(arg, length);
+        case NUMBER:
+            v->number = deserializeNumber(arg, length);
             break;
-        case DataType.STRING:
-            v.str = std::string(arg);
+        case STRING:
+            v->str = std::string(arg);
             break;
-        case DataType.BUFFER:
-            memcpy(v.buffer, arg, length);
-            v.bufferSize = length;
+        case BUFFER:
+            memcpy(v->buffer, arg, length);
+            v->bufferSize = length;
             break;
         default:
             break;
@@ -191,7 +192,7 @@ public:
 
             char *pathnameData = pathname.data();
             int pathnameSize = strlen(pathnameData);
-            char *pathnameSizeBuffer = numberToByte();
+            char *pathnameSizeBuffer = numberToByte(pathnameSize);
 
             char *payloadBody;
             int payloadBodySize = combineBuffers(
@@ -212,14 +213,14 @@ public:
                 payloadBodySize,
                 payload);
 
-            char *responseData;
+            void *responseData;
             int responseSize = call(payload, payloadSize, &responseData);
 
-            std::vector<DataValue> values = deserializeArgs(responseData, responseSize);
+            std::vector<DataValue*> values = deserializeArgs((char *)responseData, responseSize);
 
-            responseType = values.at(0).str;
-            responseData = values.at(1).buffer;
-            responseSize = values.at(1).bufferSize;
+            responseType = values.at(0)->str;
+            responseData = values.at(1)->buffer;
+            responseSize = values.at(1)->bufferSize;
 
             // GInputStream *body = webkit_uri_scheme_request_get_http_body(request);
             // char *bodyData;
