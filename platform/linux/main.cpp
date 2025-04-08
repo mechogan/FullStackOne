@@ -122,8 +122,6 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
 {
     std::vector<DataValue> args;
 
-    std::cout << "Args Size: " << data.size() << std::endl;
-
     int cursor = 0;
 
     while (cursor < data.size())
@@ -133,8 +131,6 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
         cursor++;
         std::vector<unsigned char> lengthData(data.begin() + cursor, data.begin() + cursor + 4);
         int length = bytesToNumber(reinterpret_cast<unsigned char *>(lengthData.data()), 4);
-
-        std::cout << "Type: " << type << " Length: " << length << std::endl;
 
         cursor += 4;
         std::vector<unsigned char> arg(data.begin() + cursor, data.begin() + cursor + length);
@@ -153,7 +149,6 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
             break;
         case STRING:
             v.str = std::string(reinterpret_cast<char *>(arg.data()), length);
-            std::cout << v.str << std::endl;
             break;
         case BUFFER:
             v.buffer = arg;
@@ -163,11 +158,6 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
         }
         args.push_back(v);
     }
-
-    // delete arg;
-    // delete lengthData;
-
-    std::cout << "Arg deserialize: " << args.size() << std::endl;
 
     return args;
 }
@@ -247,41 +237,12 @@ public:
             void *libResponseData = new char[0];
             int libResponseSize = call(payload, payloadSize, &libResponseData);
 
-            std::cout << "Lib res size: " << libResponseSize << std::endl;
-
             std::vector<unsigned char> data((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
-            std::cout << "Data size: " << data.size() << std::endl;
-
             std::vector<DataValue> values = deserializeArgs(data);
 
             responseType = values.at(0).str;
             responseData = values.at(1).buffer;
 
-            // GInputStream *body = webkit_uri_scheme_request_get_http_body(request);
-            // char *bodyData;
-            // int bodyDataSize = 0;
-            // while(true) {
-            //     char *chunk;
-            //     gsize gBytesRead;
-            //     g_input_stream_read_all(body, chunk, BYTE_READ_CHUNK, &gBytesRead, nullptr, nullptr);
-
-            //     int bytesRead = int(gBytesRead);
-
-            //     char *intermediateBuffer;
-            //     memccpy(intermediateBuffer, bodyData, '\0', bodyDataSize);
-
-            //     bodyDataSize = combineBuffers(
-            //         intermediateBuffer,
-            //         bodyDataSize,
-            //         chunk,
-            //         bytesRead,
-            //         bodyData
-            //     );
-
-            //     if(int(bytesRead) < BYTE_READ_CHUNK){
-            //         break;
-            //     }
-            // }
             free(libResponseData);
         }
 
@@ -300,20 +261,12 @@ public:
 
         std::string b64(jsc_value_to_string(value));
 
-        std::cout << b64 << std::endl;
-
         unsigned long size = b64.size();
         guchar *data = g_base64_decode(b64.data(), &size);
-
-        printBuffer(
-            reinterpret_cast<char *>(data),
-            size
-        );
 
         char *reqId = new char[4];
         memcpy(reqId, data, 4);
         size -= 4;
-
 
         char *tmpHeader = new char[instance->headerSize];
         memcpy(tmpHeader, instance->header, instance->headerSize);
@@ -325,8 +278,6 @@ public:
             reinterpret_cast<char *>(data) + 4,
             size,
             payload);
-
-        printBuffer(payload, payloadSize);
 
         void *libResponseData = new char[0];
         int libResponseSize = call(payload, payloadSize, &libResponseData);
