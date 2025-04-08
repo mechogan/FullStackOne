@@ -42,17 +42,18 @@ char *numberToByte(int number)
     return bytes;
 }
 
-int bytesToNumber(char *bytes, int size)
+unsigned bytesToNumber(unsigned char *bytes, int size)
 {
     unsigned value = 0;
-    for(int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         value = value << 8;
-        value = value | bytes[i];
+        value = value | (unsigned)bytes[i];
     }
     return value;
 }
 
-int deserializeNumber(char* bytes, int size)
+int deserializeNumber(char *bytes, int size)
 {
     bool negative = bytes[0] == 1;
 
@@ -74,9 +75,10 @@ int deserializeNumber(char* bytes, int size)
     return value;
 }
 
-
-void printBuffer(char *buffer, int size) {
-    for(int i = 0; i < size; i++) {
+void printBuffer(char *buffer, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
         std::cout << (int)buffer[i] << " ";
     }
     std::cout << std::endl;
@@ -85,7 +87,7 @@ void printBuffer(char *buffer, int size) {
 int combineBuffers(char *buf1, int lgt1, char *buf2, int lgt2, char *result)
 {
     int combinedLength = lgt1 + lgt2;
-    char* combined = new char[combinedLength];
+    char *combined = new char[combinedLength];
     for (int i = 0; i < lgt1; i++)
     {
         combined[i] = buf1[i];
@@ -104,11 +106,11 @@ public:
     bool boolean;
     std::string str;
     int number;
-    char *buffer;
-    int bufferSize;
+    std::vector<unsigned char> buffer;
 };
 
-enum DataType {
+enum DataType
+{
     UNDEFINED = 0,
     BOOLEAN = 1,
     STRING = 2,
@@ -116,44 +118,45 @@ enum DataType {
     BUFFER = 4
 };
 
-std::vector<DataValue*> deserializeArgs(char *data, int size)
+std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
 {
-    std::vector<DataValue*> args;
+    std::vector<DataValue> args;
+
+    std::cout << "Args Size: " << data.size() << std::endl;
 
     int cursor = 0;
-    while (cursor < size)
-    {
-        DataType type = (DataType)data[cursor];
 
-        char *lengthData = new char[0];
-        char *arg = new char[0];
+    while (cursor < data.size())
+    {
+        DataType type = (DataType)data.at(cursor);
 
         cursor++;
-        memcpy(lengthData, data + cursor, 4);
-        int length = bytesToNumber(lengthData, 4);
+        std::vector<unsigned char> lengthData(data.begin() + cursor, data.begin() + cursor + 4);
+        int length = bytesToNumber(reinterpret_cast<unsigned char *>(lengthData.data()), 4);
+
+        std::cout << "Type: " << type << " Length: " << length << std::endl;
 
         cursor += 4;
-        memcpy(arg, data + cursor, length);
+        std::vector<unsigned char> arg(data.begin() + cursor, data.begin() + cursor + length);
         cursor += length;
 
-        DataValue *v = new DataValue();
+        DataValue v = *(new DataValue());
         switch (type)
         {
         case UNDEFINED:
             break;
         case BOOLEAN:
-            v->boolean = arg[0] == 1 ? true : false;
+            v.boolean = arg.at(0) == 1 ? true : false;
             break;
         case NUMBER:
-            v->number = deserializeNumber(arg, length);
+            v.number = deserializeNumber(reinterpret_cast<char *>(arg.data()), length);
             break;
         case STRING:
-            v->str = std::string(arg, length);
+            v.str = std::string(reinterpret_cast<char *>(arg.data()), length);
+            std::cout << v.str << std::endl;
             break;
         case BUFFER:
-            v->buffer = new char[0];
-            memcpy(v->buffer, arg, length);
-            v->bufferSize = length;
+            v.buffer = arg;
             break;
         default:
             break;
@@ -161,10 +164,22 @@ std::vector<DataValue*> deserializeArgs(char *data, int size)
         args.push_back(v);
     }
 
+    // delete arg;
+    // delete lengthData;
+
+    std::cout << "Arg deserialize: " << args.size() << std::endl;
+
     return args;
 }
 
 int BYTE_READ_CHUNK = 1024;
+
+std::string notFound = "Not Found";
+
+void freePointer(void *ptr)
+{
+    free(ptr);
+}
 
 class Instance : public Gtk::Window
 {
@@ -173,6 +188,7 @@ private:
     bool isEditor;
     char *header = new char[0];
     int headerSize;
+    WebKitWebView * webview;
 
 public:
     static void webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData)
@@ -183,14 +199,13 @@ public:
 
         std::cout << "PATH: " << pathname << std::endl;
 
-        char *responseData;
-        int responseSize;
+        std::vector<unsigned char> responseData = std::vector<unsigned char>((unsigned char *)notFound.data(), (unsigned char *)notFound.data() + notFound.size());
+        ;
         std::string responseType = "text/plain";
         if (pathname == "/platform")
         {
             std::string platformStr = "linux";
-            responseData = platformStr.data();
-            responseSize = strlen(responseData);
+            responseData = std::vector<unsigned char>((unsigned char *)platformStr.data(), (unsigned char *)platformStr.data() + platformStr.size());
         }
         else
         {
@@ -202,7 +217,7 @@ public:
             int pathnameSize = pathname.size();
             char *pathnameSizeBuffer = numberToByte(pathnameSize);
 
-            char *payloadBodyBody = new char[0];
+            char *payloadBodyBody = new char[4 + pathnameSize];
             int payloadBodyBodySize = combineBuffers(
                 pathnameSizeBuffer,
                 4,
@@ -210,20 +225,18 @@ public:
                 pathnameSize,
                 payloadBodyBody);
 
-
-            char *payloadBody = new char[0];
+            char *payloadBody = new char[2 + payloadBodyBodySize];
             int payloadBodySize = combineBuffers(
                 payloadBodyHeader,
                 2,
                 payloadBodyBody,
                 payloadBodyBodySize,
-                payloadBody
-            );
+                payloadBody);
 
-            char *tmpHeader = new char[0];
+            char *tmpHeader = new char[instance->headerSize];
             memcpy(tmpHeader, instance->header, instance->headerSize);
 
-            char *payload = new char[0];
+            char *payload = new char[instance->headerSize + payloadBodySize];
             int payloadSize = combineBuffers(
                 tmpHeader,
                 instance->headerSize,
@@ -234,11 +247,15 @@ public:
             void *libResponseData = new char[0];
             int libResponseSize = call(payload, payloadSize, &libResponseData);
 
-            std::vector<DataValue*> values = deserializeArgs((char *)libResponseData, libResponseSize);
+            std::cout << "Lib res size: " << libResponseSize << std::endl;
 
-            responseType = values.at(0)->str;
-            responseData = values.at(1)->buffer;
-            responseSize = values.at(1)->bufferSize;
+            std::vector<unsigned char> data((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
+            std::cout << "Data size: " << data.size() << std::endl;
+
+            std::vector<DataValue> values = deserializeArgs(data);
+
+            responseType = values.at(0).str;
+            responseData = values.at(1).buffer;
 
             // GInputStream *body = webkit_uri_scheme_request_get_http_body(request);
             // char *bodyData;
@@ -265,11 +282,81 @@ public:
             //         break;
             //     }
             // }
+            free(libResponseData);
         }
 
+        char *data = new char[responseData.size()];
+        memcpy(data, responseData.data(), responseData.size());
+
         GInputStream *inputStream = g_memory_input_stream_new();
-        g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), responseData, responseSize, nullptr);
-        webkit_uri_scheme_request_finish(request, inputStream, responseSize, responseType.c_str());
+        g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), data, responseData.size(), [](void *ptr)
+                                       { free(ptr); });
+        webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
+    }
+
+    static void onScriptMessage(WebKitUserContentManager *manager, JSCValue *value, gpointer userData)
+    {
+        Instance *instance = static_cast<Instance *>(userData);
+
+        std::string b64(jsc_value_to_string(value));
+
+        std::cout << b64 << std::endl;
+
+        unsigned long size = b64.size();
+        guchar *data = g_base64_decode(b64.data(), &size);
+
+        printBuffer(
+            reinterpret_cast<char *>(data),
+            size
+        );
+
+        char *reqId = new char[4];
+        memcpy(reqId, data, 4);
+        size -= 4;
+
+
+        char *tmpHeader = new char[instance->headerSize];
+        memcpy(tmpHeader, instance->header, instance->headerSize);
+
+        char *payload = new char[instance->headerSize + size];
+        int payloadSize = combineBuffers(
+            tmpHeader,
+            instance->headerSize,
+            reinterpret_cast<char *>(data) + 4,
+            size,
+            payload);
+
+        printBuffer(payload, payloadSize);
+
+        void *libResponseData = new char[0];
+        int libResponseSize = call(payload, payloadSize, &libResponseData);
+
+        char *responseWithId = new char[libResponseSize + 4];
+        int responseWithIdSize = combineBuffers(
+            reqId,
+            4,
+            (char *)libResponseData,
+            libResponseSize,
+            responseWithId
+        );
+
+        std::string b64res = g_base64_encode(
+            reinterpret_cast<unsigned char *>(responseWithId),
+            responseWithIdSize
+        );
+
+        std::string script = "window.respond(`" + b64res + "`);";
+
+        webkit_web_view_evaluate_javascript(
+            instance->webview,
+            script.data(),
+            script.size(),
+            nullptr,
+            "core",
+            nullptr,
+            nullptr,
+            nullptr
+        );
     }
 
     Instance(std::string pId, bool pIsEditor)
@@ -313,7 +400,7 @@ public:
 
         set_default_size(800, 600);
 
-        WebKitWebView *webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
+        webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
         Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview));
 
         webkit_web_context_register_uri_scheme(
@@ -324,7 +411,21 @@ public:
             nullptr);
 
         set_child(*three);
+        WebKitSettings *settings = webkit_web_view_get_settings(webview);
+        webkit_settings_set_enable_developer_extras(settings, true);
+        // WebKitWebInspector *inspector = webkit_web_view_get_inspector(webview);
+        // webkit_web_inspector_attach(inspector);
+        // webkit_web_inspector_show(inspector);
         webkit_web_view_load_uri(webview, "fs://localhost");
+
+        WebKitUserContentManager *ucm =
+            webkit_web_view_get_user_content_manager(webview);
+        webkit_user_content_manager_register_script_message_handler(
+            ucm,
+            "bridge",
+            NULL);
+        g_signal_connect(ucm, "script-message-received::bridge",
+                         G_CALLBACK(Instance::onScriptMessage), this);
     }
 };
 
