@@ -2,6 +2,7 @@
 #include "./utils.h"
 #include <iostream>
 #include "./bin/linux-x86_64.h"
+#include "./app.h"
 
 std::string notFound = "Not Found";
 
@@ -131,13 +132,14 @@ Instance::Instance(std::string pId, bool pIsEditor)
         char *idStrData = id.data();
         int idStrLength = id.size();
 
-        char *intermediateBuffer;
+        char *intermediateBuffer = new char[1 + 4];
         headerSize = combineBuffers(
             isEditorHeader,
             1,
             numberToByte(idStrLength),
             4,
             intermediateBuffer);
+        header = new char[headerSize + idStrLength];
         headerSize = combineBuffers(
             intermediateBuffer,
             headerSize,
@@ -151,9 +153,11 @@ Instance::Instance(std::string pId, bool pIsEditor)
     webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
     Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview));
 
+    std::string scheme = gen_random(6);
+
     webkit_web_context_register_uri_scheme(
         webkit_web_view_get_context(webview),
-        "fs",
+        scheme.c_str(),
         Instance::webKitURISchemeRequestCallback,
         this,
         nullptr);
@@ -161,7 +165,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
     set_child(*three);
     WebKitSettings *settings = webkit_web_view_get_settings(webview);
     webkit_settings_set_enable_developer_extras(settings, true);
-    webkit_web_view_load_uri(webview, "fs://localhost");
+    webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
 
     WebKitUserContentManager *ucm =
         webkit_web_view_get_user_content_manager(webview);
@@ -196,6 +200,12 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
 
 void Instance::onMessage(char *type, char *message)
 {
+    if(isEditor && std::string(type) == "open") {
+        App::instance->open(std::string(message), false);
+        return;
+    }
+
+
     std::string script = "window.oncoremessage(`" + std::string(type) + "`, `" + std::string(message) + "`);";
 
     webkit_web_view_evaluate_javascript(

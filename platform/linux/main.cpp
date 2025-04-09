@@ -35,6 +35,6 @@ int main(int argc, char *argv[])
 {
     setDirectories();
     callback((void *)libCallback);
-    new App();
-    return App::instance->run();
+    auto app = new App();
+    return app->run();
 }

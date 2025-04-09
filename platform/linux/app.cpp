@@ -1,4 +1,5 @@
 #include "./app.h"
+#include <iostream>
 
 App::App()
 {
@@ -21,12 +22,15 @@ void App::open(std::string projectId, bool isEditor)
     if (exists != windows.end())
     {
         exists->second->show();
+        exists->second->present();
         webkit_web_view_reload(exists->second->webview);
     }
     else
     {
+        std::cout << projectId << std::endl;
         auto win = new Instance(projectId, isEditor);
         windows[projectId] = win;
+        win->show();
         app->add_window(*win);
     }
 }
