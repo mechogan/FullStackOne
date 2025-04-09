@@ -11,16 +11,19 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
     Instance *instance = static_cast<Instance *>(userData);
 
     std::string pathname = webkit_uri_scheme_request_get_path(request);
-
     std::cout << "PATH: " << pathname << std::endl;
 
     std::vector<unsigned char> responseData = std::vector<unsigned char>((unsigned char *)notFound.data(), (unsigned char *)notFound.data() + notFound.size());
-    ;
     std::string responseType = "text/plain";
+
     if (pathname == "/platform")
     {
         std::string platformStr = "linux";
         responseData = std::vector<unsigned char>((unsigned char *)platformStr.data(), (unsigned char *)platformStr.data() + platformStr.size());
+    }
+    else if(instance->isEditor && pathname == "/call-sync")
+    {
+
     }
     else
     {
@@ -53,8 +56,6 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
 
         responseType = values.at(0).str;
         responseData = values.at(1).buffer;
-
-        free(payload);
     }
 
     char *data = new char[responseData.size()];
@@ -115,6 +116,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
 
     if (isEditor)
     {
+        header = new char[5];
         char *isEditorHeader = new char[1];
         isEditorHeader[0] = 1;
         headerSize = combineBuffers(
@@ -123,6 +125,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
             numberToByte(0),
             4,
             header);
+        free(isEditorHeader);
     }
     else
     {
@@ -148,6 +151,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
             header);
 
         free(isEditorHeader);
+        free(idStrData);
         free(intermediateBuffer);
     }
 
@@ -194,11 +198,15 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
         payload);
 
     void *libResponseData = new char[0];
+
     int libResponseSize = call(payload, payloadSize, &libResponseData);
 
-    free(payload);
+    std::vector<unsigned char> response((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
 
-    return std::vector<unsigned char>((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
+    free(tmpHeader);
+    free(libResponseData);
+
+    return response;
 }
 
 void Instance::onMessage(char *type, char *message)

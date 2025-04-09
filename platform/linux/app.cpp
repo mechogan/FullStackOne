@@ -32,6 +32,12 @@ void App::open(std::string projectId, bool isEditor)
         windows[projectId] = win;
         win->show();
         app->add_window(*win);
+
+        auto onClose = [](){
+            App::instance->windows.erase("");
+        }
+
+        // g_signal_connect(G_OBJECT(win), "destroy", onClose, &projectId);
     }
 }
 
