@@ -68,6 +68,7 @@ int combineBuffers(char *buf1, int lgt1, char *buf2, int lgt2, char *result)
         combined[i + lgt1] = buf2[i];
     }
     memcpy(result, combined, combinedLength);
+    free(combined);
     return combinedLength;
 }
 

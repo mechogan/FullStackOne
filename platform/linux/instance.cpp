@@ -146,6 +146,9 @@ Instance::Instance(std::string pId, bool pIsEditor)
             idStrData,
             idStrLength,
             header);
+
+        free(isEditorHeader);
+        free(intermediateBuffer);
     }
 
     set_default_size(800, 600);
@@ -200,11 +203,11 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
 
 void Instance::onMessage(char *type, char *message)
 {
-    if(isEditor && std::string(type) == "open") {
+    if (isEditor && std::string(type) == "open")
+    {
         App::instance->open(std::string(message), false);
         return;
     }
-
 
     std::string script = "window.oncoremessage(`" + std::string(type) + "`, `" + std::string(message) + "`);";
 
