@@ -64,25 +64,11 @@ void registerDeeplink()
 
 }
 
-
-class Theme : public Gtk::IconTheme
-{};
-
-
 int main(int argc, char *argv[])
 {
     registerDeeplink();
     setDirectories();
     callback((void *)libCallback);
-
-
-    std::string assetsPath = getEditorDir() + "/assets";
-    auto theme = new Theme();
-    auto paths = theme->get_icon_names();
-    for(int i = 0; i < paths.size(); i++){
-        std::cout << paths[i] << std::endl;
-    }
-
     auto app = new App();
     app->deeplink = std::string(argc > 1 ? argv[1] : "");
     return app->run();

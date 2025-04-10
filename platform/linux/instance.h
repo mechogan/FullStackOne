@@ -25,6 +25,8 @@ public:
         WebKitPolicyDecisionType decision_type,
         gpointer user_data);
 
+    bool on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);
+
     Instance(std::string pId, bool pIsEditor);
 
     std::vector<unsigned char> callLib(char *data, int size);

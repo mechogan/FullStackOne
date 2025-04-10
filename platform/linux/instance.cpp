@@ -3,6 +3,7 @@
 #include <iostream>
 #include "./bin/linux-x86_64.h"
 #include "./app.h"
+#include "gtkmm.h"
 
 std::string notFound = "Not Found";
 
@@ -244,6 +245,24 @@ Instance::Instance(std::string pId, bool pIsEditor)
                      G_CALLBACK(App::onClose), this);
     g_signal_connect(webviewGtk, "decide-policy",
                      G_CALLBACK(Instance::navigationDecidePolicy), this);
+
+    auto controller = Gtk::EventControllerKey::create();
+    controller->signal_key_pressed().connect(
+        sigc::mem_fun(*this, &Instance::on_window_key_pressed), false);
+    add_controller(controller);
+}
+
+bool Instance::on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state)
+{
+    // F11
+    if(keycode == 95) {
+        if(is_fullscreen()) {
+            unfullscreen();
+        } else {
+            fullscreen();
+        }
+    }
+    return true;
 }
 
 std::vector<unsigned char> Instance::callLib(char *data, int size)

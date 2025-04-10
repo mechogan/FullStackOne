@@ -16,11 +16,11 @@ void App::onMessage(char *projectId, char *type, char *message)
     }
 }
 
-void App::onClose(GtkWidget* widget, gpointer user_data){
+void App::onClose(GtkWidget *widget, gpointer user_data)
+{
     auto i = static_cast<Instance *>(user_data);
     App::instance->windows.erase(i->id);
 };
-
 
 void App::open(std::string projectId, bool isEditor)
 {
@@ -29,6 +29,7 @@ void App::open(std::string projectId, bool isEditor)
     {
         exists->second->show();
         exists->second->present();
+        exists->second->fullscreen();
         webkit_web_view_reload(exists->second->webview);
     }
     else
@@ -36,7 +37,7 @@ void App::open(std::string projectId, bool isEditor)
         auto win = new Instance(projectId, isEditor);
         windows[projectId] = win;
         win->show();
-        app->add_window(*win);
+        app->add_window(*win);        
     }
 }
 
