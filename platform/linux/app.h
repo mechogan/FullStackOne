@@ -12,6 +12,7 @@ private:
 public:
     inline static App *instance;
     std::map<std::string, Instance *> windows;
+    std::string deeplink;
 
     App();
 

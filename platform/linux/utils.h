@@ -38,4 +38,19 @@ std::string gen_random(const int len);
 
 std::string uri_decode(std::string str);
 
+struct URL
+{
+public:
+    URL(const std::string &url_s)
+    {
+        this->parse(url_s);
+    }
+    std::string protocol, host, path, query;
+
+    std::string str();
+
+private:
+    void parse(const std::string &url_s);
+};
+
 #endif

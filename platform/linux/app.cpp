@@ -33,7 +33,6 @@ void App::open(std::string projectId, bool isEditor)
     }
     else
     {
-        std::cout << projectId << std::endl;
         auto win = new Instance(projectId, isEditor);
         windows[projectId] = win;
         win->show();

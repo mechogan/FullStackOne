@@ -78,6 +78,14 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
 {
     Instance *instance = static_cast<Instance *>(userData);
 
+    if (instance->isEditor && !instance->firstTouch && !App::instance->deeplink.empty())
+    {
+        std::cout << App::instance->deeplink << std::endl;
+        instance->firstTouch = true;
+        instance->onMessage(std::string("deeplink").data(), App::instance->deeplink.data());
+        App::instance->deeplink = "";
+    }
+
     std::string b64(jsc_value_to_string(value));
 
     unsigned long size = b64.size();
@@ -114,6 +122,49 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         nullptr,
         nullptr,
         nullptr);
+}
+
+gboolean Instance::navigationDecidePolicy(WebKitWebView *view,
+                                          WebKitPolicyDecision *decision,
+                                          WebKitPolicyDecisionType decision_type,
+                                          gpointer user_data)
+{
+    WebKitNavigationPolicyDecision *navigation;
+    WebKitNavigationAction *action;
+    WebKitNavigationType type;
+    WebKitURIRequest *request;
+
+    switch (decision_type)
+    {
+    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+    case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+        navigation = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
+        action = webkit_navigation_policy_decision_get_navigation_action(navigation);
+        type = webkit_navigation_action_get_navigation_type(action);
+
+        switch (type)
+        {
+        case WEBKIT_NAVIGATION_TYPE_LINK_CLICKED:
+            request = webkit_navigation_action_get_request(action);
+            std::string uri = webkit_uri_request_get_uri(request);
+
+            URL url(uri);
+
+            if (url.host != "localhost")
+            {
+                system(("xdg-open " + url.str()).c_str());
+                webkit_policy_decision_ignore(decision);
+                return false;
+            }
+
+            break;
+        }
+        break;
+    default:
+        return false;
+    }
+
+    return true;
 }
 
 Instance::Instance(std::string pId, bool pIsEditor)
@@ -191,6 +242,8 @@ Instance::Instance(std::string pId, bool pIsEditor)
                      G_CALLBACK(Instance::onScriptMessage), this);
     g_signal_connect(webviewGtk, "destroy",
                      G_CALLBACK(App::onClose), this);
+    g_signal_connect(webviewGtk, "decide-policy",
+                     G_CALLBACK(Instance::navigationDecidePolicy), this);
 }
 
 std::vector<unsigned char> Instance::callLib(char *data, int size)

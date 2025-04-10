@@ -2,6 +2,11 @@
 #include "./utils.h"
 #include <iostream>
 #include <string.h>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <functional>
+#include <iostream>
 
 char *numberToByte(int number)
 {
@@ -153,4 +158,40 @@ std::string uri_decode(std::string str)
         }
     }
     return (ret);
+}
+
+// source: https://gist.github.com/RedCarrottt/c7a056695e6951415a0368a87ad1e493
+void URL::parse(const std::string &url_s)
+{
+    const std::string prot_end("://");
+    std::string::const_iterator prot_i = std::search(url_s.begin(), url_s.end(),
+                                                     prot_end.begin(), prot_end.end());
+    protocol.reserve(distance(url_s.begin(), prot_i));
+    std::transform(url_s.begin(), prot_i,
+                   std::back_inserter(protocol),
+                   std::function(tolower)); // protocol is icase
+    if (prot_i == url_s.end())
+        return;
+    std::advance(prot_i, prot_end.length());
+    std::string::const_iterator path_i = std::find(prot_i, url_s.end(), '/');
+    host.reserve(distance(prot_i, path_i));
+    std::transform(prot_i, path_i,
+              std::back_inserter(host),
+              std::function(tolower)); // host is icase
+    std::string::const_iterator query_i = find(path_i, url_s.end(), '?');
+    path.assign(path_i, query_i);
+    if (query_i != url_s.end())
+        ++query_i;
+    query.assign(query_i, url_s.end());
+}
+
+
+std::string URL::str(){
+    std::string str = protocol + "://" + host + path;
+
+    if(!query.empty()) {
+        str += "?" + query;
+    }
+
+    return str;
 }

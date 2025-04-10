@@ -10,6 +10,7 @@ private:
     bool isEditor;
     char *header;
     int headerSize;
+    bool firstTouch;
 
 public:
     std::string id;
@@ -18,6 +19,11 @@ public:
     static void webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData);
 
     static void onScriptMessage(WebKitUserContentManager *manager, JSCValue *value, gpointer userData);
+
+    static gboolean navigationDecidePolicy(WebKitWebView *view,
+        WebKitPolicyDecision *decision,
+        WebKitPolicyDecisionType decision_type,
+        gpointer user_data);
 
     Instance(std::string pId, bool pIsEditor);
 
