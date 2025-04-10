@@ -4,6 +4,7 @@
 #include <fstream>
 #include "./app.h"
 #include "./bin/linux-x86_64.h"
+#include <filesystem>
 
 std::string getexedir()
 {
@@ -35,6 +36,8 @@ void libCallback(char *projectId, char *type, char *msg)
 void registerDeeplink()
 {
     std::string dir = std::string(getenv("HOME")) + "/.local/share/applications";
+    std::filesystem::create_directories(dir);
+
     std::ofstream customScheme(dir + "/fullstacked.desktop");
 
     std::string contents =
