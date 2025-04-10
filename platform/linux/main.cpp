@@ -6,13 +6,12 @@
 #include "./bin/linux-x86_64.h"
 #include <filesystem>
 
-std::string getexedir()
+std::string getexepath()
 {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     std::string path = std::string(result, (count > 0) ? count : 0);
-    std::size_t pos = path.find_last_of("/");
-    return path.substr(0, pos);
+    return path;
 }
 
 void setDirectories()
@@ -20,7 +19,14 @@ void setDirectories()
     std::string home = getenv("HOME");
     std::string root = home + "/FullStacked";
     std::string config = home + "/.config/fullstacked";
-    std::string editor = getexedir() + "/editor";
+
+    std::string path = getexepath();
+    int pos = path.find_last_of("/");
+    std::string dir = path.substr(0, pos);
+    pos = dir.find_last_of("/");
+    dir = path.substr(0, pos);
+
+    std::string editor = dir + "/share/fullstacked/editor";
 
     directories(
         root.data(),
@@ -43,7 +49,7 @@ void registerDeeplink()
     std::string contents =
         "[Desktop Entry]\n"
         "Name=FullStacked\n"
-        "Exec=" + getexedir() + "/fullstacked %u\n"
+        "Exec=" + getexepath() +" %u\n"
         "Terminal=false\n"
         "Type=Application\n"
         "MimeType=x-scheme-handler/fullstacked";
