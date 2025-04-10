@@ -23,6 +23,14 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
     }
     else if (instance->isEditor && pathname == "/call-sync")
     {
+        std::string uri = webkit_uri_scheme_request_get_uri(request);
+        int pos = uri.find_last_of("=");
+        std::string b64Encoded = uri.substr(pos + 1, uri.npos);
+        std::string b64 = uri_decode(uri_decode(b64Encoded));
+        unsigned long size;
+        guchar *payload = g_base64_decode(b64.data(), &size);
+        responseType = "application/octet-stream";
+        responseData = instance->callLib((char *)payload, size);
     }
     else
     {
@@ -107,7 +115,6 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         nullptr,
         nullptr);
 }
-
 
 Instance::Instance(std::string pId, bool pIsEditor)
 {

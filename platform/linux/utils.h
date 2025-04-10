@@ -36,4 +36,6 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data);
 
 std::string gen_random(const int len);
 
+std::string uri_decode(std::string str);
+
 #endif

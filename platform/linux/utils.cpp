@@ -116,16 +116,40 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
     return args;
 }
 
-std::string gen_random(const int len) {
+std::string gen_random(const int len)
+{
     static const char alphanum[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
     std::string tmp_s;
     tmp_s.reserve(len);
 
-    for (int i = 0; i < len; ++i) {
+    for (int i = 0; i < len; ++i)
+    {
         tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
     }
-    
+
     return tmp_s;
+}
+
+std::string uri_decode(std::string str)
+{
+    std::string ret;
+    char ch;
+    int i, ii;
+    for (i = 0; i < str.length(); i++)
+    {
+        if (str[i] == '%')
+        {
+            sscanf(str.substr(i + 1, 2).c_str(), "%x", &ii);
+            ch = static_cast<char>(ii);
+            ret += ch;
+            i = i + 2;
+        }
+        else
+        {
+            ret += str[i];
+        }
+    }
+    return (ret);
 }
