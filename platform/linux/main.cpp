@@ -5,8 +5,9 @@
 #include "./app.h"
 #include "./bin/linux-x86_64.h"
 #include <filesystem>
+#include <gtkmm/icontheme.h>
 
-std::string getexepath()
+std::string getExePath()
 {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
@@ -14,19 +15,21 @@ std::string getexepath()
     return path;
 }
 
+std::string getEditorDir(){
+    std::string path = getExePath();
+    int pos = path.find_last_of("/");
+    std::string dir = path.substr(0, pos);
+    pos = dir.find_last_of("/");
+    dir = path.substr(0, pos);
+    return dir + "/share/fullstacked/editor";
+}
+
 void setDirectories()
 {
     std::string home = getenv("HOME");
     std::string root = home + "/FullStacked";
     std::string config = home + "/.config/fullstacked";
-
-    std::string path = getexepath();
-    int pos = path.find_last_of("/");
-    std::string dir = path.substr(0, pos);
-    pos = dir.find_last_of("/");
-    dir = path.substr(0, pos);
-
-    std::string editor = dir + "/share/fullstacked/editor";
+    std::string editor = getEditorDir() ;
 
     directories(
         root.data(),
@@ -49,10 +52,11 @@ void registerDeeplink()
     std::string contents =
         "[Desktop Entry]\n"
         "Name=FullStacked\n"
-        "Exec=" + getexepath() +" %u\n"
+        "Exec=" + getExePath() +" %u\n"
         "Terminal=false\n"
         "Type=Application\n"
-        "MimeType=x-scheme-handler/fullstacked";
+        "MimeType=x-scheme-handler/fullstacked\n"
+        "Icon=" + getEditorDir() + "/assets/dev-icon.png";
 
     customScheme << contents.c_str();
     customScheme.close();
@@ -60,11 +64,25 @@ void registerDeeplink()
 
 }
 
+
+class Theme : public Gtk::IconTheme
+{};
+
+
 int main(int argc, char *argv[])
 {
     registerDeeplink();
     setDirectories();
     callback((void *)libCallback);
+
+
+    std::string assetsPath = getEditorDir() + "/assets";
+    auto theme = new Theme();
+    auto paths = theme->get_icon_names();
+    for(int i = 0; i < paths.size(); i++){
+        std::cout << paths[i] << std::endl;
+    }
+
     auto app = new App();
     app->deeplink = std::string(argc > 1 ? argv[1] : "");
     return app->run();
