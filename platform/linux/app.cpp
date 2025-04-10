@@ -16,6 +16,12 @@ void App::onMessage(char *projectId, char *type, char *message)
     }
 }
 
+void App::onClose(GtkWidget* widget, gpointer user_data){
+    auto i = static_cast<Instance *>(user_data);
+    App::instance->windows.erase(i->id);
+};
+
+
 void App::open(std::string projectId, bool isEditor)
 {
     auto exists = windows.find(projectId);
@@ -32,12 +38,6 @@ void App::open(std::string projectId, bool isEditor)
         windows[projectId] = win;
         win->show();
         app->add_window(*win);
-
-        auto onClose = [](){
-            App::instance->windows.erase("");
-        }
-
-        // g_signal_connect(G_OBJECT(win), "destroy", onClose, &projectId);
     }
 }
 

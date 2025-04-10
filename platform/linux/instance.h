@@ -7,12 +7,12 @@
 class Instance : public Gtk::Window
 {
 private:
-    std::string id;
     bool isEditor;
     char *header;
     int headerSize;
 
 public:
+    std::string id;
     WebKitWebView *webview;
 
     static void webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData);

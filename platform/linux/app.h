@@ -19,6 +19,8 @@ public:
 
     void open(std::string projectId, bool isEditor);
 
+    static void onClose(GtkWidget* widget, gpointer user_data);
+
     int run();
 };
 

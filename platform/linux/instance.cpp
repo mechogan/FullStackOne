@@ -21,9 +21,8 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
         std::string platformStr = "linux";
         responseData = std::vector<unsigned char>((unsigned char *)platformStr.data(), (unsigned char *)platformStr.data() + platformStr.size());
     }
-    else if(instance->isEditor && pathname == "/call-sync")
+    else if (instance->isEditor && pathname == "/call-sync")
     {
-
     }
     else
     {
@@ -109,6 +108,7 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         nullptr);
 }
 
+
 Instance::Instance(std::string pId, bool pIsEditor)
 {
     id = pId;
@@ -151,13 +151,13 @@ Instance::Instance(std::string pId, bool pIsEditor)
             header);
 
         free(isEditorHeader);
-        free(idStrData);
         free(intermediateBuffer);
     }
 
     set_default_size(800, 600);
 
-    webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    auto webviewGtk = webkit_web_view_new();
+    webview = WEBKIT_WEB_VIEW(webviewGtk);
     Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview));
 
     std::string scheme = gen_random(6);
@@ -182,6 +182,8 @@ Instance::Instance(std::string pId, bool pIsEditor)
         NULL);
     g_signal_connect(ucm, "script-message-received::bridge",
                      G_CALLBACK(Instance::onScriptMessage), this);
+    g_signal_connect(webviewGtk, "destroy",
+                     G_CALLBACK(App::onClose), this);
 }
 
 std::vector<unsigned char> Instance::callLib(char *data, int size)
