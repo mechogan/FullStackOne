@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include "./app.h"
-#include "./bin/linux-x86_64.h"
+#include "./bin/linux.h"
 #include <filesystem>
 #include <gtkmm/icontheme.h>
 
@@ -42,13 +42,16 @@ void libCallback(char *projectId, char *type, char *msg)
     App::instance->onMessage(projectId, type, msg);
 }
 
-void registerDeeplink()
+void registerDesktopApp()
 {
-    std::string dir = std::string(getenv("HOME")) + "/.local/share/applications";
-    std::filesystem::create_directories(dir);
+    std::string localIconsDir = std::string(getenv("HOME")) + "/.local/share/icons";
+    std::filesystem::create_directories(localIconsDir);
+    std::string appIconFile = getEditorDir() + "/assets/dev-icon.png";
+    std::filesystem::copy_file(appIconFile, localIconsDir + "/fullstacked.png");
 
-    std::ofstream customScheme(dir + "/fullstacked.desktop");
-
+    std::string localAppsDir = std::string(getenv("HOME")) + "/.local/share/applications";
+    std::filesystem::create_directories(localAppsDir);
+    std::ofstream localAppFile(localAppsDir + "/fullstacked.desktop");
     std::string contents =
         "[Desktop Entry]\n"
         "Name=FullStacked\n"
@@ -56,17 +59,18 @@ void registerDeeplink()
         "Terminal=false\n"
         "Type=Application\n"
         "MimeType=x-scheme-handler/fullstacked\n"
-        "Icon=" + getEditorDir() + "/assets/dev-icon.png";
+        "Icon=fullstacked\n"
+        "Categories=Development;Utility;";
+    localAppFile << contents.c_str();
+    localAppFile.close();
 
-    customScheme << contents.c_str();
-    customScheme.close();
-    system(("update-desktop-database " + dir).c_str());
+    system(("update-desktop-database " + localAppsDir).c_str());
 
 }
 
 int main(int argc, char *argv[])
 {
-    registerDeeplink();
+    registerDesktopApp();
     setDirectories();
     callback((void *)libCallback);
     auto app = new App();

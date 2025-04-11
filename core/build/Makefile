@@ -101,6 +101,12 @@ linux-x86_64-static:
 	GOARCH=amd64 \
 	go build -buildmode=c-archive -o $(OUT)/linux-x86_64 -v ..
 
+linux-arm64-static:
+	CGO_ENABLED=1 \
+	GOOS=linux \
+	GOARCH=arm64 \
+	go build -buildmode=c-archive -o $(OUT)/linux-arm64 -v ..
+
 
 ###### WebAssembly #######
 
