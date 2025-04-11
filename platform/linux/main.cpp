@@ -75,6 +75,23 @@ int main(int argc, char *argv[])
     setDirectories();
     callback((void *)libCallback);
     auto app = new App();
-    app->deeplink = std::string(argc > 1 ? argv[1] : "");
-    return app->run();
+
+    std::string httpPrefix = "http";
+    std::string kioskFlag = "--kiosk";
+    std::string startupId = "";
+    for(int i = 1; i < argc; i++) {
+        std::string arg(argv[i]);
+
+        if(arg.compare(0, httpPrefix.size(), httpPrefix) == 0) {
+            app->deeplink = arg;
+        } else if(arg == kioskFlag) {
+            app->kiosk = true;
+            if(argc > i + 1) {
+                startupId = std::string(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+    
+    return app->run(startupId);
 }

@@ -13,6 +13,7 @@ public:
     inline static App *instance;
     std::map<std::string, Instance *> windows;
     std::string deeplink;
+    bool kiosk = false;
 
     App();
 
@@ -22,7 +23,7 @@ public:
 
     static void onClose(GtkWidget* widget, gpointer user_data);
 
-    int run();
+    int run(std::string startupId);
 };
 
 #endif

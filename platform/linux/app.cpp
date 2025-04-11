@@ -36,14 +36,19 @@ void App::open(std::string projectId, bool isEditor)
     {
         auto win = new Instance(projectId, isEditor);
         windows[projectId] = win;
+        if(kiosk) {
+            win->signal_realize().connect([&]{ 
+                win->fullscreen();
+             });
+        }
         win->show();
-        app->add_window(*win);        
+        app->add_window(*win);
+        
     }
 }
 
-int App::run()
+int App::run(std::string startupId)
 {
-    app->signal_startup().connect([&]
-                                  { open("", true); });
+    app->signal_startup().connect([&]{ open(startupId, startupId == ""); });
     return app->run();
 }
