@@ -15,7 +15,8 @@ std::string getExePath()
     return path;
 }
 
-std::string getEditorDir(){
+std::string getEditorDir()
+{
     std::string path = getExePath();
     int pos = path.find_last_of("/");
     std::string dir = path.substr(0, pos);
@@ -29,7 +30,7 @@ void setDirectories()
     std::string home = getenv("HOME");
     std::string root = home + "/FullStacked";
     std::string config = home + "/.config/fullstacked";
-    std::string editor = getEditorDir() ;
+    std::string editor = getEditorDir();
 
     directories(
         root.data(),
@@ -47,7 +48,7 @@ void registerDesktopApp()
     std::string localIconsDir = std::string(getenv("HOME")) + "/.local/share/icons";
     std::filesystem::create_directories(localIconsDir);
     std::string appIconFile = getEditorDir() + "/assets/dev-icon.png";
-    std::filesystem::copy_file(appIconFile, localIconsDir + "/fullstacked.png");
+    std::filesystem::copy_file(appIconFile, localIconsDir + "/fullstacked.png", std::filesystem::copy_options::overwrite_existing);
 
     std::string localAppsDir = std::string(getenv("HOME")) + "/.local/share/applications";
     std::filesystem::create_directories(localAppsDir);
@@ -55,17 +56,17 @@ void registerDesktopApp()
     std::string contents =
         "[Desktop Entry]\n"
         "Name=FullStacked\n"
-        "Exec=" + getExePath() +" %u\n"
-        "Terminal=false\n"
-        "Type=Application\n"
-        "MimeType=x-scheme-handler/fullstacked\n"
-        "Icon=fullstacked\n"
-        "Categories=Development;Utility;";
+        "Exec=" +
+        getExePath() + " %u\n"
+                       "Terminal=false\n"
+                       "Type=Application\n"
+                       "MimeType=x-scheme-handler/fullstacked\n"
+                       "Icon=fullstacked\n"
+                       "Categories=Development;Utility;";
     localAppFile << contents.c_str();
     localAppFile.close();
 
     system(("update-desktop-database " + localAppsDir).c_str());
-
 }
 
 int main(int argc, char *argv[])
