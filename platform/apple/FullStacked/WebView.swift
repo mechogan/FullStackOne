@@ -20,6 +20,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
         self.requestHandler = RequestHandler(instance: instance)
         
         let wkWebViewConfig = WKWebViewConfiguration()
+        wkWebViewConfig.preferences.setValue(true, forKey: "developerExtrasEnabled")
         let userContentController = WKUserContentController()
         wkWebViewConfig.userContentController = userContentController
         wkWebViewConfig.setURLSchemeHandler(self.requestHandler, forURLScheme: "fs")
