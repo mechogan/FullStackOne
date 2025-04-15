@@ -28,8 +28,8 @@ You can always find those links and access to the beta apps on FullStacked [down
 - NodeJS `>=20`
 
 1. Install npm dependencies `npm install`
-2. Build the core in `core/build` using make on UNIX or `./windows.bat` on Windows
-3. Run `npm start`
+2. Build the core. Move to the `core/build` directory and use `make` on UNIX-like (MacOS/Linux) or `./windows.bat` on Windows.
+3. Run `npm start` at the root of the repository.
 
 ## License
 
