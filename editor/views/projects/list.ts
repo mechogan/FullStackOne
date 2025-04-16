@@ -8,19 +8,14 @@ import { ProjectSettings } from "../project-settings";
 import { Loader, Button, ButtonGroup, Popover, Dialog } from "@fullstacked/ui";
 import archive from "../../../lib/archive";
 
-let userMode = false;
 export function List() {
     const container = createElement("div");
-
-    const isUserMode = (um: boolean) => (userMode = um);
-    Store.preferences.isUserMode.subscribe(isUserMode);
 
     const grid = createRefresheable(Grid);
     Store.projects.list.subscribe(grid.refresh);
     container.ondestroy = () => {
         grid.element.destroy();
         Store.projects.list.unsubscribe(grid.refresh);
-        Store.preferences.isUserMode.unsubscribe(isUserMode);
     };
     container.append(grid.element);
 
@@ -111,7 +106,7 @@ function ProjectTile(project: ProjectType) {
     };
 
     container.onclick = () => {
-        if (userMode) {
+        if (Store.preferences.isUserMode.check()) {
             Store.projects
                 .pull(project)
                 .then(() => Store.projects.build(project));

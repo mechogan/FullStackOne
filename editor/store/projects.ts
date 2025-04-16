@@ -110,6 +110,7 @@ async function build(project: Project) {
                 `${project.id}/${buildHashFile}`,
                 { encoding: "utf8" }
             );
+            console.log(head.hash, lastBuildHash);
             if (lastBuildHash === head.hash) {
                 core_open(project.id);
                 removeProjectBuild();

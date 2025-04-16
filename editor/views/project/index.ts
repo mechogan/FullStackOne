@@ -235,14 +235,14 @@ function GitWidget(project: ProjectType) {
         statusArrow.style.display = "flex";
         statusArrow.classList.remove("red");
 
-        let json: { Url: string; Data: string };
+        let json: { url: string; data: string };
         try {
             json = JSON.parse(gitProgress);
         } catch (e) {
             return;
         }
 
-        if (json.Data.endsWith("done")) {
+        if (json.data.endsWith("done")) {
             statusArrow.style.display = "none";
             branchAndCommit.refresh();
         }
@@ -252,14 +252,14 @@ function GitWidget(project: ProjectType) {
         statusArrow.style.display = "flex";
         statusArrow.classList.add("red");
 
-        let json: { Url: string; Data: string };
+        let json: { url: string; data: string };
         try {
             json = JSON.parse(gitProgress);
         } catch (e) {
             return;
         }
 
-        if (json.Data.endsWith("done")) {
+        if (json.data.endsWith("done")) {
             statusArrow.style.display = "none";
             branchAndCommit.refresh();
         }

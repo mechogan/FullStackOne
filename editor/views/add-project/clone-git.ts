@@ -75,19 +75,19 @@ async function cloneGitRepo(url: string, scrollable: HTMLElement) {
 
     const donePromise = new Promise<void>((resolve) => {
         checkForDone = (gitProgress: string) => {
-            let json: { Url: string; Data: string };
+            let json: { url: string; data: string };
             try {
                 json = JSON.parse(gitProgress);
             } catch (e) {
                 return;
             }
 
-            if (json.Url !== url) return;
+            if (json.url !== url) return;
 
-            if (json.Data.trim().endsWith("done")) {
+            if (json.data.trim().endsWith("done")) {
                 resolve();
             }
-            logProgress(json.Data);
+            logProgress(json.data);
         };
     });
 

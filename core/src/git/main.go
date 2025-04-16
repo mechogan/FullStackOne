@@ -36,9 +36,9 @@ var ignoredDirectories = []string{
 }
 
 type GitMessageJSON struct {
-	Url   string
-	Data  string
-	Error bool
+	Url   string `json:"url"`
+	Data  string `json:"data"`
+	Error bool   `json:"Error"`
 }
 
 func errorFmt(e error) string {

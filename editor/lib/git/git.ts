@@ -10,6 +10,15 @@ core_message.addListener("git-authentication", (message) => {
     GitAuth(host).then((success) => gitAuthResponse(id, success));
 });
 
+const pullPromises = new Map<string, Function[]>();
+core_message.addListener("git-pull", (message) => {
+    const { url, data } = JSON.parse(message);
+    if(!data.endsWith("done")) return;
+    const promises = pullPromises.get(url);
+    promises?.forEach(resolve => resolve());
+    pullPromises.delete(url);
+})
+
 // 81
 function gitAuthResponse(id: number, success: boolean) {
     console.log(id, success);
@@ -79,8 +88,20 @@ export function status(projectId: string): Promise<Status> {
 
 // 73
 export function pull(project: Project) {
+    if(!project?.gitRepository?.url) return;
+
     const payload = new Uint8Array([73, ...serializeArgs([project.id])]);
-    return bridge(payload);
+    
+    let p = pullPromises.get(project.gitRepository.url);
+    if(!p) {
+        p = [];
+        pullPromises.set(project.gitRepository.url, p)
+    }
+
+    return new Promise(resolve => {
+        p.push(resolve);
+        bridge(payload);
+    });
 }
 
 // 74
