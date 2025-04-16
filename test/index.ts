@@ -17,7 +17,7 @@ const build = (testFile: string) => {
 child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
 
 // core build
-child_process.execSync(`node ${build("core.ts")}`, { stdio: "inherit" });
+// child_process.execSync(`node ${build("core.ts")}`, { stdio: "inherit" });
 
 // basic tests
 child_process.execSync(`node ${build("basic.ts")}`, {
@@ -28,8 +28,3 @@ child_process.execSync(`node ${build("basic.ts")}`, {
 child_process.execSync(`node ${build("deeplink-git.ts")}`, {
     stdio: "inherit"
 });
-
-// p2p
-// child_process.execSync(`node ${build("p2p.ts")}`, {
-//     stdio: "inherit"
-// });

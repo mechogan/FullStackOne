@@ -124,8 +124,8 @@ export const commands: Command[] = [
     {
         name: "chat",
         exec(args) {
-            const project = Store.projects.current.check()
-            if(project) {
+            const project = Store.projects.current.check();
+            if (project) {
                 codeEditor.getWorkspace().item.add(new Chat());
             }
 

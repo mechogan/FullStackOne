@@ -13,11 +13,11 @@ core_message.addListener("git-authentication", (message) => {
 const pullPromises = new Map<string, Function[]>();
 core_message.addListener("git-pull", (message) => {
     const { url, data } = JSON.parse(message);
-    if(!data.endsWith("done")) return;
+    if (!data.endsWith("done")) return;
     const promises = pullPromises.get(url);
-    promises?.forEach(resolve => resolve());
+    promises?.forEach((resolve) => resolve());
     pullPromises.delete(url);
-})
+});
 
 // 81
 function gitAuthResponse(id: number, success: boolean) {
@@ -88,17 +88,17 @@ export function status(projectId: string): Promise<Status> {
 
 // 73
 export function pull(project: Project) {
-    if(!project?.gitRepository?.url) return;
+    if (!project?.gitRepository?.url) return;
 
     const payload = new Uint8Array([73, ...serializeArgs([project.id])]);
-    
+
     let p = pullPromises.get(project.gitRepository.url);
-    if(!p) {
+    if (!p) {
         p = [];
-        pullPromises.set(project.gitRepository.url, p)
+        pullPromises.set(project.gitRepository.url, p);
     }
 
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
         p.push(resolve);
         bridge(payload);
     });

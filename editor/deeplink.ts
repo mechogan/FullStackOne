@@ -16,7 +16,7 @@ export async function deeplink(fullstackedUrl: string) {
     const [hostAndPath] = rest.join("//").split("?");
     url = protocol + (protocol.endsWith(":") ? "" : ":") + "//" + hostAndPath;
 
-    if(!url.endsWith(".git")) {
+    if (!url.endsWith(".git")) {
         url += ".git";
     }
 
