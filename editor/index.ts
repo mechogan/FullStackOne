@@ -10,6 +10,7 @@ import platform, { Platform } from "../lib/platform";
 import { InitPrompt } from "./views/prompt";
 import { Store } from "./store";
 import { Project } from "./views/project";
+import { connect } from "../lib/connect";
 
 core_message.addListener("deeplink", deeplink);
 
@@ -42,3 +43,5 @@ if (!checkProjectsConfigExists) {
 
     Demo();
 }
+
+connect();

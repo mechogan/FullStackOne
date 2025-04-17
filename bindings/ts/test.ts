@@ -15,13 +15,13 @@ channel.on((data) => {
 });
 
 // client
-const channelClient = connect("test", 8888);
-channelClient
-    .on(data => {
-        console.log(data);
-        if(data === "ping") {
-            console.log("Client pong");
-            setTimeout(() => channelClient.send("ping"), 1000);
-        }
-    })
-    .send("ping");
+// const channelClient = connect("test", 8888);
+// channelClient
+//     .on(data => {
+//         console.log(data);
+//         if(data === "ping") {
+//             console.log("Client pong");
+//             setTimeout(() => channelClient.send("ping"), 1000);
+//         }
+//     })
+//     .send("ping");
