@@ -11,6 +11,7 @@ import (
 )
 
 type Channel struct {
+	Id string
 	Name string
 	Port int
 	Host string
@@ -43,7 +44,7 @@ func (c *Channel) start() {
 			fmt.Println(err.Error())
 			return
 		}
-		setup.Callback("", "socket-data", base64.RawStdEncoding.EncodeToString(buf[0:size]))
+		setup.Callback("", "channel-" + c.Id, base64.RawStdEncoding.EncodeToString(buf[0:size]))
 	}
 }
 

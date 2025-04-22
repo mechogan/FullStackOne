@@ -10,8 +10,8 @@ import platform, { Platform } from "../lib/platform";
 import { InitPrompt } from "./views/prompt";
 import { Store } from "./store";
 import { Project } from "./views/project";
-import { connect, send } from "../lib/connect";
-import { deserializeArgs } from "../lib/bridge/serialization";
+import { connect } from "../lib/connect";
+import { deserializeArgs, serializeArgs } from "../lib/bridge/serialization";
 import { toByteArray } from "../lib/base64";
 
 core_message.addListener("deeplink", deeplink);
@@ -46,11 +46,13 @@ if (!checkProjectsConfigExists) {
     Demo();
 }
 
-let channelId: string;
-core_message.addListener("socket-data", data => {
-    console.log(deserializeArgs(toByteArray(data)))
-    setTimeout(() => send(channelId), 1000)
-    
-})
-channelId = await connect();
-send(channelId);
+const channel = await connect("test", 8888, "localhost", true);
+channel.on((data) => {
+    const msg = deserializeArgs(data).at(0);
+    console.log(msg)
+    if(msg === "ping") {
+        console.log("pong")
+    }
+    setTimeout(() => channel.send(serializeArgs(["ping"])), 1000);
+});
+channel.send(serializeArgs(["ping"]));

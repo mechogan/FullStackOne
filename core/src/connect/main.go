@@ -8,13 +8,14 @@ var channels = map[string]Channel{}
 
 func Connect(
 	name string,
-	port int,
+	port float64,
 	host string,
 ) string {
 	channelId := utils.RandString(6)
 	channel := Channel{
+        Id: channelId,
 		Name: name,
-		Port: port,
+		Port: int(port),
 		Host: host,
 	}
 	channel.connect()

@@ -130,10 +130,10 @@ func Call(payload []byte) []byte {
 			args[4].([]byte),
 		)
 	case method == CONNECT:
-		channelId := connect.Connect("test", 8888, "localhost")
+		channelId := connect.Connect(args[0].(string), args[1].(float64), args[2].(string))
 		return serialize.SerializeString(channelId);
 	case method == CONNECT_SEND:
-		connect.Send(args[0].(string), serialize.SerializeString("ping"));
+		connect.Send(args[0].(string), args[1].([]byte));
 		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)
