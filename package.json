@@ -20,7 +20,7 @@
         "trailingComma": "none"
     },
     "dependencies": {
-        "@fullstacked/code-editor": "github:fullstackedorg/code-editor#8eb36237edbd23fa3b9f69d5398685cfb97c9b66",
+        "@fullstacked/code-editor": "github:fullstackedorg/code-editor#82c9a696daf96e6fac2ad847d1ba4aa876e62c61",
         "@fullstacked/file-tree": "github:fullstackedorg/file-tree#8fc6d5e587507c631a68525659745eeda414bcf3",
         "@fullstacked/stack-navigation": "github:fullstackedorg/stack-navigation#fd824bc6625401bf49b9030861a3c4150e6e8b82",
         "@fullstacked/ui": "github:fullstackedorg/ui#729a7ade46afdd6d58b9d44794705dbd59c1ed30",
