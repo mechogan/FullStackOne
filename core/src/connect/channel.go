@@ -37,6 +37,10 @@ func (c *Channel) connect() {
 }
 
 func (c *Channel) start() {
+	if(c.conn == nil) {
+		return;
+	}
+	
 	for {
 		buf := make([]byte, 1024)
 		size, err := bufio.NewReader(c.conn).Read(buf)
@@ -49,5 +53,8 @@ func (c *Channel) start() {
 }
 
 func (c *Channel) send(data []byte) {
+	if(c.conn == nil) {
+		return
+	}
 	c.conn.Write(data)
 }
