@@ -129,7 +129,7 @@ func Call(payload []byte) []byte {
 			args[4].([]byte),
 		)
 	case method == CONNECT:
-		connect.Connect("test", 8888, "localhost")
+		go connect.Connect("test", 8888, "localhost")
 		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)

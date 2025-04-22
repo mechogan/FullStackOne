@@ -14,6 +14,10 @@ channel.on((data) => {
     }
 });
 
+setInterval(() => {
+    channel.send("ping");
+}, 2000)
+
 // client
 // const channelClient = connect("test", 8888);
 // channelClient

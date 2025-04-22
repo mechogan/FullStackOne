@@ -11,6 +11,8 @@ import { InitPrompt } from "./views/prompt";
 import { Store } from "./store";
 import { Project } from "./views/project";
 import { connect } from "../lib/connect";
+import { deserializeArgs } from "../lib/bridge/serialization";
+import { toByteArray } from "../lib/base64";
 
 core_message.addListener("deeplink", deeplink);
 
@@ -43,5 +45,7 @@ if (!checkProjectsConfigExists) {
 
     Demo();
 }
+
+core_message.addListener("socket-data", data => console.log(deserializeArgs(toByteArray(data))))
 
 connect();
