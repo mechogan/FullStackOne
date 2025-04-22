@@ -9,14 +9,10 @@ const channel = server.createChannel("test");
 channel.on((data) => {
     console.log(data);
     if(data === "ping") {
-        console.log("Server pong");
+        console.log("pong");
         setTimeout(() => channel.send("ping"), 1000);
     }
 });
-
-setInterval(() => {
-    channel.send("ping");
-}, 2000)
 
 // client
 // const channelClient = connect("test", 8888);

@@ -35,6 +35,7 @@ const (
 	FETCH2 = 16
 
 	CONNECT = 20
+	CONNECT_SEND = 21
 
 	ARCHIVE_UNZIP_BIN_TO_FILE  = 30
 	ARCHIVE_UNZIP_BIN_TO_BIN   = 31
@@ -129,7 +130,10 @@ func Call(payload []byte) []byte {
 			args[4].([]byte),
 		)
 	case method == CONNECT:
-		go connect.Connect("test", 8888, "localhost")
+		channelId := connect.Connect("test", 8888, "localhost")
+		return serialize.SerializeString(channelId);
+	case method == CONNECT_SEND:
+		connect.Send(args[0].(string), serialize.SerializeString("ping"));
 		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)

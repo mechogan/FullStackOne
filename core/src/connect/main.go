@@ -1,37 +1,35 @@
 package connect
 
 import (
-	"bufio"
-	"encoding/base64"
-	"fmt"
-	"fullstacked/editor/src/serialize"
-	"fullstacked/editor/src/setup"
-	"net"
-	"strconv"
+	"fullstacked/editor/src/utils"
 )
 
-func Connect(name string, port int, host string){
-	fmt.Println("Connecting to " + host + ":" + strconv.Itoa(port));
+var channels = map[string]Channel{}
 
-	conn, err := net.Dial("tcp", host + ":" + strconv.Itoa(port))
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
+func Connect(
+	name string,
+	port int,
+	host string,
+) string {
+	channelId := utils.RandString(6)
+	channel := Channel{
+		Name: name,
+		Port: port,
+		Host: host,
+	}
+	channel.connect()
+	channels[channelId] = channel
+    go channel.start()
+    return channelId
+}
 
-    _, err = conn.Write(serialize.SerializeString(name))
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-
-    for {
-        buf := make([]byte, 1024)
-        size, err := bufio.NewReader(conn).Read(buf)
-        if err != nil {
-            fmt.Println(err.Error())
-            return
-        }
-        setup.Callback("", "socket-data", base64.RawStdEncoding.EncodeToString(buf[0:size]))
-    }
+func Send(
+	channelId string,
+	data []byte,
+) {
+	channel, ok := channels[channelId]
+	if !ok {
+		return
+	}
+	channel.send(data)
 }
