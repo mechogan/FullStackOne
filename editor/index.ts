@@ -46,13 +46,13 @@ if (!checkProjectsConfigExists) {
     Demo();
 }
 
-const channel = await connect("test", 8888, "localhost", true);
-channel.on((data) => {
-    const msg = deserializeArgs(data).at(0);
-    console.log(msg)
-    if(msg === "ping") {
-        console.log("pong")
-    }
-    setTimeout(() => channel.send(serializeArgs(["ping"])), 1000);
-});
-channel.send(serializeArgs(["ping"]));
+// const channel = await connect("test", 8888, "localhost", true);
+// channel.on((data) => {
+//     const msg = deserializeArgs(data).at(0);
+//     console.log(msg)
+//     if(msg === "ping") {
+//         console.log("pong")
+//     }
+//     setTimeout(() => channel.send(serializeArgs(["ping"])), 1000);
+// });
+// channel.send(serializeArgs(["ping"]));
