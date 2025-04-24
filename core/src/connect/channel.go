@@ -11,10 +11,13 @@ import (
 )
 
 type Channel struct {
+	ProjectId string
 	Id string
 	Name string
 	Port int
 	Host string
+	Raw bool
+	buffer []byte
 	conn net.Conn
 }
 
@@ -48,8 +51,18 @@ func (c *Channel) start() {
 			fmt.Println(err.Error())
 			return
 		}
-		setup.Callback("", "channel-" + c.Id, base64.RawStdEncoding.EncodeToString(buf[0:size]))
+
+		if(c.Raw) {
+			setup.Callback(c.ProjectId, "channel-" + c.Id, base64.RawStdEncoding.EncodeToString(buf[0:size]))
+		} else {
+			c.buffer = append(c.buffer, buf...)
+			c.receive()
+		}
 	}
+}
+
+func (c *Channel) receive(){
+	
 }
 
 func (c *Channel) send(data []byte) {

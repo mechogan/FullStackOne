@@ -130,7 +130,7 @@ func Call(payload []byte) []byte {
 			args[4].([]byte),
 		)
 	case method == CONNECT:
-		channelId := connect.Connect(args[0].(string), args[1].(float64), args[2].(string))
+		channelId := connect.Connect(projectId, args[0].(string), args[1].(float64), args[2].(string))
 		return serialize.SerializeString(channelId);
 	case method == CONNECT_SEND:
 		connect.Send(args[0].(string), args[1].([]byte));

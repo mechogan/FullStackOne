@@ -46,7 +46,7 @@ if (!checkProjectsConfigExists) {
     Demo();
 }
 
-const channel = await connect("test", 8888, "localhost", true);
+const channel = await connect("test", 8888, "192.168.18.8", true);
 channel.on((data) => {
     const msg = deserializeArgs(data).at(0);
     console.log(msg)

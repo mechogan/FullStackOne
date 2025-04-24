@@ -1,14 +1,11 @@
 import { createServer } from ".";
-import { deserializeArgs, serializeArgs } from "../../lib/bridge/serialization";
-import { connect } from "./client";
 
-const server = createServer(8888);
+const server = createServer(8888, "0.0.0.0");
 console.log("Listening on 8888");
 
 const channel = server.createChannel("test");
 channel.on((data) => {
-    console.log(data);
-    if(data === "ping") {
+    if(data.at(0) === "ping") {
         console.log("pong");
         setTimeout(() => channel.send("ping"), 1000);
     }

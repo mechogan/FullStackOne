@@ -1,4 +1,3 @@
-import { addListener, listeners } from "process";
 import { bridge } from "../bridge";
 import { serializeArgs } from "../bridge/serialization";
 import core_message from "../core_message";
@@ -75,6 +74,11 @@ export function connect(name: string, port: number, host = "localhost", stream =
                 raw: false,
                 listeners
             }
+
+            core_message.addListener("channel-" + channelId, (dataStr) => {
+                const data = toByteArray(dataStr);
+                listeners.forEach(cb => cb(data));
+            });
 
             channels.set(channelId, channel);
 

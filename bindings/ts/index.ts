@@ -1,5 +1,5 @@
 import net from "net";
-import { bytesToNumber, DataType, deserializeArgs, serializeArgs } from "../../lib/bridge/serialization";
+import { bytesToNumber, DataType, deserializeArgs, numberTo4Bytes, serializeArgs } from "../../lib/bridge/serialization";
 
 export type Data = string | number | boolean | Uint8Array;
 
@@ -10,7 +10,8 @@ type DataSocket = {
 }
 
 type DataChannel = {
-    send: DataListener,
+    raw: boolean,
+    receive: DataListener,
     dataSockets: Set<DataSocket>
 }
 
@@ -22,25 +23,55 @@ type DataServer = {
     connecting: Set<DataSocket>
 }
 
-export type DataListener = (data: Data) => void;
+type DataListenerData = (data: Data[]) => void
+type DataListenerRaw = (data: Uint8Array) => void
 
-function send(this: { listeners: Set<DataListener> }, data: Data) {
+export type DataListener = (data: Uint8Array | Data[]) => void
+
+function receive(this: { listeners: Set<DataListener> }, data: Uint8Array | Data[]) {
     this.listeners.forEach(cb => cb(data));
 }
 
-function createChannel(this: { dataServer: DataServer }, name: string) {
+function send<Raw extends boolean>(data: Raw extends true ? Uint8Array : (Data | Data[])): void
+function send<Raw extends boolean>(this: { raw: boolean, dataSockets: DataSocket[] }, data: Raw extends true ? Uint8Array : (Data | Data[])) {
+    if (this.raw) {
+        this.dataSockets.forEach(({ socket }) => socket.write(data as Uint8Array));
+    } else {
+        const args = Array.isArray(data) ? data : [data];
+        const body = serializeArgs(args);
+        const payload = new Uint8Array([
+            ...numberTo4Bytes(body.length),
+            ...body,
+        ]);
+        this.dataSockets.forEach(({ socket }) => socket.write(payload));
+    }
+}
+
+type ChannelRaw = {
+    send: typeof send<true>;
+    on(callback: DataListenerRaw): void;
+    off(callback: DataListenerRaw): void;
+}
+
+type Channel = {
+    send: typeof send<false>;
+    on(callback: DataListenerData): void;
+    off(callback: DataListenerData): void;
+}
+
+function createChannel(name: string, raw: true): ChannelRaw;
+function createChannel(name: string, raw?: false): Channel;
+function createChannel(this: { dataServer: DataServer }, name: string, raw = false) {
     const listeners = new Set<DataListener>();
     const dataSockets = new Set<DataSocket>();
     this.dataServer.channels.set(name, {
+        raw,
         dataSockets,
-        send: send.bind({ listeners }),
+        receive: receive.bind({ listeners }),
     });
 
     return {
-        send(data: Data | Data[]) {
-            const serialized = serializeArgs(Array.isArray(data) ? data : [data]);
-            dataSockets.forEach(({ socket }) => socket.write(serialized));
-        },
+        send: send.bind({ raw, dataSockets }) as typeof send,
         on(callback: DataListener) {
             listeners.add(callback)
         },
@@ -80,13 +111,20 @@ function tryUpgrade(server: DataServer, dataSocket: DataSocket) {
     return true;
 }
 
-function trySend(dataSocket: DataSocket) {
-    if (dataSocket.buffer.byteLength < 5) return false;
-    const dataLength = bytesToNumber(dataSocket.buffer.slice(1, 5));
-    if (dataLength > dataSocket.buffer.byteLength - 5) return false;
-    const data = deserializeArgs(dataSocket.buffer.slice(0, 5 + dataLength));
-    dataSocket.channel.send(data.at(0));
-    dataSocket.buffer = dataSocket.buffer.slice(5 + dataLength);
+function tryReceive(dataSocket: DataSocket) {
+    if(dataSocket.channel.raw) {
+        dataSocket.channel.receive(dataSocket.buffer);
+        dataSocket.buffer = new Uint8Array();
+        return false;
+    } 
+
+    if (dataSocket.buffer.byteLength < 4) return false;
+    const bodyLength = bytesToNumber(dataSocket.buffer.slice(0, 4));
+    if (bodyLength > dataSocket.buffer.byteLength - 4) return false;
+
+    const body = dataSocket.buffer.slice(4, 4 + bodyLength);
+    dataSocket.channel.receive(deserializeArgs(body));
+    dataSocket.buffer = dataSocket.buffer.slice(4 + bodyLength);
     return true;
 }
 
@@ -102,7 +140,7 @@ function onData(this: { server: DataServer, socket: DataSocket }, chunk: Buffer<
         if (this.server.connecting.has(this.socket)) {
             keepProcessing = tryUpgrade(this.server, this.socket);
         } else {
-            keepProcessing = trySend(this.socket);
+            keepProcessing = tryReceive(this.socket);
         }
     } while (keepProcessing && this.socket.buffer.byteLength > 0)
 }
@@ -119,14 +157,14 @@ function connectSocket(this: DataServer, socket: net.Socket) {
     socket.on("close", () => this.connecting.delete(dataSocket));
 }
 
-export function createServer(port: number) {
+export function createServer(port: number, hostname?: string) {
     const dataServer: DataServer = {
         server: net.createServer(),
         channels: new Map(),
         connecting: new Set()
     }
     dataServer.server.on("connection", connectSocket.bind(dataServer));
-    dataServer.server.listen(port);
+    dataServer.server.listen(port, hostname);
     return {
         dataServer,
         createChannel,
