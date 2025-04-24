@@ -12,6 +12,8 @@ using Windows.UI;
 using Microsoft.Win32;
 using System.Security.Principal;
 using System.Reflection;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 
 namespace FullStacked
 {
@@ -138,6 +140,11 @@ namespace FullStacked
             newWindow.Closed += delegate (object sender, WindowEventArgs args)
             {
                 this.webviews.Remove(projectId);
+            };
+            newWindow.Content.KeyDown += delegate (object sender, KeyRoutedEventArgs e) {
+                if (e.Key == VirtualKey.F11) {
+                    newWindow.AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+                }
             };
         }
 
