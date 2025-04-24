@@ -1,5 +1,5 @@
 import { bridge } from "../bridge";
-import { serializeArgs } from "../bridge/serialization";
+import { deserializeArgs, numberTo4Bytes, serializeArgs } from "../bridge/serialization";
 import core_message from "../core_message";
 import { toByteArray } from "../base64";
 
@@ -34,20 +34,21 @@ type ChannelRaw = {
 const channels = new Map<string, Channel | ChannelRaw>();
 
 // 20
-export function connect(name: string, port: number, host: string, stream: false): Promise<DataChannel>
-export function connect(name: string, port: number, host: string, stream: true): Promise<DataChannelRaw>
-export function connect(name: string, port: number, host = "localhost", stream = false) {
+export function connect(name: string, port: number, host?: string, raw?: false): Promise<DataChannel>
+export function connect(name: string, port: number, host: string, raw: true): Promise<DataChannelRaw>
+export function connect(name: string, port: number, host = "localhost", raw = false) {
     const payload = new Uint8Array([
         20,
         ...serializeArgs([
             name,
             port,
-            host
+            host,
+            raw
         ])
     ]);
 
     const transformer = ([channelId]) => {
-        if (stream) {
+        if (raw) {
             const listeners = new Set<DataChannelRawCallback>();
 
             const channel: ChannelRaw = {
@@ -77,13 +78,19 @@ export function connect(name: string, port: number, host = "localhost", stream =
 
             core_message.addListener("channel-" + channelId, (dataStr) => {
                 const data = toByteArray(dataStr);
-                listeners.forEach(cb => cb(data));
+                listeners.forEach(cb => cb(deserializeArgs(data)));
             });
 
             channels.set(channelId, channel);
 
             return {
-                send: (...data) => send(channelId, data),
+                send: (...data) => {
+                    const body = serializeArgs(data);
+                    send(channelId, new Uint8Array([
+                        ...numberTo4Bytes(body.byteLength),
+                        ...body
+                    ]));
+                },
                 on: (cb) => listeners.add(cb),
                 off: (cb) => listeners.add(cb)
             } as DataChannel
@@ -94,17 +101,10 @@ export function connect(name: string, port: number, host = "localhost", stream =
 }
 
 // 21
-function send(channelId: string, data: Data[] | Uint8Array) {
-    const userData = data instanceof Uint8Array
-        ? data
-        : new Uint8Array([
-            data.length,
-            ...serializeArgs(data)
-        ]);
-
+function send(channelId: string, data: Uint8Array) {
     const payload = new Uint8Array([
         21,
-        ...serializeArgs([channelId, userData])
+        ...serializeArgs([channelId, data])
     ]);
 
     return bridge(payload);

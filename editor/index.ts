@@ -46,13 +46,11 @@ if (!checkProjectsConfigExists) {
     Demo();
 }
 
-const channel = await connect("test", 8888, "192.168.18.8", true);
+const channel = await connect("test", 8888);
 channel.on((data) => {
-    const msg = deserializeArgs(data).at(0);
-    console.log(msg)
-    if(msg === "ping") {
+    if(data.at(0) === "ping") {
         console.log("pong")
     }
-    setTimeout(() => channel.send(serializeArgs(["ping"])), 1000);
+    setTimeout(() => channel.send("ping"), 1000);
 });
-channel.send(serializeArgs(["ping"]));
+channel.send("ping");
