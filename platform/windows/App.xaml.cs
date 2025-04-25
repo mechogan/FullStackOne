@@ -80,6 +80,9 @@ namespace FullStacked
             }
         }
 
+        bool kiosk = false;
+        string startId = "";
+            
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
             string deeplink = "";
@@ -90,6 +93,13 @@ namespace FullStacked
                 {
                     deeplink = launchArgs[i];
                 }
+                else if (launchArgs[i] == "--kiosk")
+                {
+                    this.kiosk = true;
+                    if (launchArgs.Length > i + 1) { 
+                        this.startId = launchArgs[i + 1];
+                    }
+                }
             }
 
             setDirectories();
@@ -97,9 +107,9 @@ namespace FullStacked
             cb = new Lib.CallbackDelegate(onCallback);
             App.lib.setCallback(cb);
 
-            WebView editor = new WebView(new Instance("", true));
+            WebView editor = new WebView(new Instance(this.startId, this.startId == ""));
             this.bringToFront(editor);
-            if (deeplink != "")
+            if (deeplink != "" && this.startId == "")
             {
                 editor.onMessage("deeplink", deeplink);
             }
@@ -141,11 +151,9 @@ namespace FullStacked
             {
                 this.webviews.Remove(projectId);
             };
-            newWindow.Content.KeyDown += delegate (object sender, KeyRoutedEventArgs e) {
-                if (e.Key == VirtualKey.F11) {
-                    newWindow.AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
-                }
-            };
+            if (this.kiosk) {
+                newWindow.AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+            }
         }
 
         public void onCallback(string projectId, string messageType, string message)
