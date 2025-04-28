@@ -10,6 +10,9 @@ import platform, { Platform } from "../lib/platform";
 import { InitPrompt } from "./views/prompt";
 import { Store } from "./store";
 import { Project } from "./views/project";
+import { connect } from "../lib/connect";
+import { deserializeArgs, serializeArgs } from "../lib/bridge/serialization";
+import { toByteArray } from "../lib/base64";
 
 core_message.addListener("deeplink", deeplink);
 
@@ -42,3 +45,12 @@ if (!checkProjectsConfigExists) {
 
     Demo();
 }
+
+const channel = await connect("test", 8888);
+channel.on((data) => {
+    if(data.at(0) === "ping") {
+        console.log("pong")
+    }
+    setTimeout(() => channel.send("ping"), 1000);
+});
+channel.send("ping");

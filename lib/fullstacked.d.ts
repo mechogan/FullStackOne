@@ -173,3 +173,26 @@ declare module "archive" {
     };
     export default archive;
 }
+
+declare module "connect" {
+    export type Data = string | number | boolean | Uint8Array;
+
+    type DataChannelCallback = (data: Data[]) => void;
+
+    type DataChannel = {
+        send(...args: Data[]): void,
+        on(callback: DataChannelCallback): void,
+        off(callback: DataChannelCallback): void,
+    }
+
+    type DataChannelRawCallback = (data: Uint8Array) => void;
+
+    type DataChannelRaw = {
+        send(buffer: Uint8Array): void
+        on(callback: DataChannelRawCallback): void,
+        off(callback: DataChannelRawCallback): void,
+    }
+
+    export function connect(name: string, port: number, host: string, stream: true): Promise<DataChannelRaw>;
+    export function connect(name: string, port: number, host?: string, stream?: boolean): Promise<DataChannel>;
+}

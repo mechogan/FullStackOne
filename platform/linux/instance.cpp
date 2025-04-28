@@ -83,7 +83,8 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
     {
         std::cout << App::instance->deeplink << std::endl;
         instance->firstTouch = true;
-        instance->onMessage(std::string("deeplink").data(), App::instance->deeplink.data());
+        std::string launchURL("fullstacked://" + App::instance->deeplink);
+        instance->onMessage(std::string("deeplink").data(), launchURL.data());
         App::instance->deeplink = "";
     }
 

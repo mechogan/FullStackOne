@@ -6,6 +6,7 @@ import (
 
 	archive "fullstacked/editor/src/archive"
 	config "fullstacked/editor/src/config"
+	"fullstacked/editor/src/connect"
 	esbuild "fullstacked/editor/src/esbuild"
 	fetch "fullstacked/editor/src/fetch"
 	fs "fullstacked/editor/src/fs"
@@ -32,6 +33,9 @@ const (
 
 	FETCH  = 15
 	FETCH2 = 16
+
+	CONNECT = 20
+	CONNECT_SEND = 21
 
 	ARCHIVE_UNZIP_BIN_TO_FILE  = 30
 	ARCHIVE_UNZIP_BIN_TO_BIN   = 31
@@ -125,9 +129,15 @@ func Call(payload []byte) []byte {
 			&headers,
 			args[4].([]byte),
 		)
+	case method == CONNECT:
+		channelId := connect.Connect(projectId, args[0].(string), args[1].(float64), args[2].(string), args[3].(bool))
+		return serialize.SerializeString(channelId);
+	case method == CONNECT_SEND:
+		connect.Send(args[0].(string), args[1].([]byte));
+		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)
-	case method > 30:
+	case method >= 50:
 		if !isEditor {
 			return nil
 		}

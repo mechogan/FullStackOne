@@ -16,9 +16,9 @@ revLookup["_".charCodeAt(0)] = 63;
 function getLens(b64) {
     var len = b64.length;
 
-    if (len % 4 > 0) {
-        throw new Error("Invalid string. Length must be a multiple of 4");
-    }
+    // if (len % 4 > 0) {
+    //     throw new Error("Invalid string. Length must be a multiple of 4");
+    // }
 
     // Trim off extra bytes after placeholder bytes are found
     // See: https://github.com/beatgammit/base64-js/issues/42

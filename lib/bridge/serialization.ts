@@ -1,7 +1,7 @@
 const te = new TextEncoder();
 const td = new TextDecoder();
 
-enum DataType {
+export enum DataType {
     UNDEFINED = 0,
     BOOLEAN = 1,
     STRING = 2,
