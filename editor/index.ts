@@ -45,12 +45,3 @@ if (!checkProjectsConfigExists) {
 
     Demo();
 }
-
-const channel = await connect("test", 8888);
-channel.on((data) => {
-    if(data.at(0) === "ping") {
-        console.log("pong")
-    }
-    setTimeout(() => channel.send("ping"), 1000);
-});
-channel.send("ping");
