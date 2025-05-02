@@ -41,7 +41,9 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
 
         char *pathnameData = pathname.empty() ? new char[0] : pathname.data();
         int pathnameSize = pathname.size();
-        char *pathnameSizeBuffer = numberToByte(pathnameSize);
+
+        char *pathnameSizeBuffer = new char[4];
+        numberToCharPtr(pathnameSize, pathnameSizeBuffer);
 
         char *payloadBody = new char[4 + pathnameSize];
         int payloadBodySize = combineBuffers(
@@ -64,6 +66,15 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
 
         responseType = values.at(0).str;
         responseData = values.at(1).buffer;
+
+        delete[] payloadHeader;
+        if (pathname.empty())
+        {
+            delete[] pathnameData;
+        }
+        delete[] pathnameSizeBuffer;
+        delete[] payloadBody;
+        delete[] payload;
     }
 
     char *data = new char[responseData.size()];
@@ -71,7 +82,7 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
 
     GInputStream *inputStream = g_memory_input_stream_new();
     g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), data, responseData.size(), [](void *ptr)
-                                   { free(ptr); });
+                                   { delete[] (char *)ptr; });
     webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
 }
 
@@ -124,6 +135,9 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         nullptr,
         nullptr,
         nullptr);
+
+    delete[] reqId;
+    delete[] responseWithId;
 }
 
 gboolean Instance::navigationDecidePolicy(WebKitWebView *view,
@@ -179,13 +193,16 @@ Instance::Instance(std::string pId, bool pIsEditor)
         header = new char[5];
         char *isEditorHeader = new char[1];
         isEditorHeader[0] = 1;
+        char *idSize = new char[4];
+        numberToCharPtr(0, idSize);
         headerSize = combineBuffers(
             isEditorHeader,
             1,
-            numberToByte(0),
+            idSize,
             4,
             header);
-        free(isEditorHeader);
+        delete[] isEditorHeader;
+        delete[] idSize;
     }
     else
     {
@@ -196,10 +213,12 @@ Instance::Instance(std::string pId, bool pIsEditor)
         int idStrLength = id.size();
 
         char *intermediateBuffer = new char[1 + 4];
+        char *idSize = new char[4];
+        numberToCharPtr(idStrLength, idSize);
         headerSize = combineBuffers(
             isEditorHeader,
             1,
-            numberToByte(idStrLength),
+            idSize,
             4,
             intermediateBuffer);
         header = new char[headerSize + idStrLength];
@@ -210,8 +229,9 @@ Instance::Instance(std::string pId, bool pIsEditor)
             idStrLength,
             header);
 
-        free(isEditorHeader);
-        free(intermediateBuffer);
+        delete[] isEditorHeader;
+        delete[] intermediateBuffer;
+        delete[] idSize;
     }
 
     set_default_size(800, 600);
@@ -256,10 +276,14 @@ Instance::Instance(std::string pId, bool pIsEditor)
 bool Instance::on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state)
 {
     // F11
-    if(keycode == 95) {
-        if(is_fullscreen()) {
+    if (keycode == 95)
+    {
+        if (is_fullscreen())
+        {
             unfullscreen();
-        } else {
+        }
+        else
+        {
             fullscreen();
         }
     }
@@ -285,7 +309,8 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
 
     std::vector<unsigned char> response((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
 
-    free(tmpHeader);
+    delete[] tmpHeader;
+    delete[] payload;
     free(libResponseData);
 
     return response;

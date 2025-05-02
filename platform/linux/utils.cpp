@@ -8,14 +8,12 @@
 #include <functional>
 #include <iostream>
 
-char *numberToByte(int number)
+void numberToCharPtr(int number, char* ptr)
 {
-    char *bytes = new char[4];
-    bytes[0] = ((number & 0xff000000) >> 24);
-    bytes[1] = ((number & 0x00ff0000) >> 16);
-    bytes[2] = ((number & 0x0000ff00) >> 8);
-    bytes[3] = ((number & 0x000000ff) >> 0);
-    return bytes;
+    ptr[0] = ((number & 0xff000000) >> 24);
+    ptr[1] = ((number & 0x00ff0000) >> 16);
+    ptr[2] = ((number & 0x0000ff00) >> 8);
+    ptr[3] = ((number & 0x000000ff) >> 0);
 }
 
 unsigned bytesToNumber(unsigned char *bytes, int size)
@@ -73,7 +71,7 @@ int combineBuffers(char *buf1, int lgt1, char *buf2, int lgt2, char *result)
         combined[i + lgt1] = buf2[i];
     }
     memcpy(result, combined, combinedLength);
-    free(combined);
+    delete[] combined;
     return combinedLength;
 }
 
