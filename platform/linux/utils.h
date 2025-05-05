@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-char *numberToByte(int number);
+void numberToCharPtr(int number, char *ptr);
 
 unsigned bytesToNumber(unsigned char *bytes, int size);
 
