@@ -46,9 +46,9 @@ func callback(cb unsafe.Pointer) {
 	cCallback = cb
 
 	setup.Callback = func(projectId string, messageType string, message string) {
-		projectIdPtr := C.CString(projectId);
-		messageTypePtr := C.CString(messageType);
-		messagePtr := C.CString(message);
+		projectIdPtr := C.CString(projectId)
+		messageTypePtr := C.CString(messageType)
+		messagePtr := C.CString(message)
 
 		C.CallMyFunction(
 			cCallback,
@@ -57,9 +57,9 @@ func callback(cb unsafe.Pointer) {
 			messagePtr,
 		)
 
-		C.free(unsafe.Pointer(projectIdPtr));
-		C.free(unsafe.Pointer(messageTypePtr));
-		C.free(unsafe.Pointer(messagePtr));
+		C.free(unsafe.Pointer(projectIdPtr))
+		C.free(unsafe.Pointer(messageTypePtr))
+		C.free(unsafe.Pointer(messagePtr))
 	}
 }
 
