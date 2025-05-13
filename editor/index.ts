@@ -10,9 +10,6 @@ import platform, { Platform } from "../lib/platform";
 import { InitPrompt } from "./views/prompt";
 import { Store } from "./store";
 import { Project } from "./views/project";
-import { connect } from "../lib/connect";
-import { deserializeArgs, serializeArgs } from "../lib/bridge/serialization";
-import { toByteArray } from "../lib/base64";
 
 core_message.addListener("deeplink", deeplink);
 

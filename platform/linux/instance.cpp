@@ -9,7 +9,7 @@ std::string notFound = "Not Found";
 
 void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData)
 {
-    Instance *instance = static_cast<Instance *>(userData);
+    Instance *instance = (Instance *)userData;
 
     std::string pathname = webkit_uri_scheme_request_get_path(request);
     std::cout << "PATH: " << pathname << std::endl;
@@ -81,9 +81,9 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
     char *data = new char[responseData.size()];
     memcpy(data, responseData.data(), responseData.size());
 
-    GInputStream *inputStream = g_memory_input_stream_new();
-    g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), data, responseData.size(), g_free);
+    GInputStream *inputStream = g_memory_input_stream_new_from_data(data, responseData.size(), g_free);
     webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
+    g_object_unref(inputStream);
 }
 
 void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *value, gpointer userData)
@@ -253,6 +253,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
     set_child(*three);
     WebKitSettings *settings = webkit_web_view_get_settings(webview);
     webkit_settings_set_enable_developer_extras(settings, true);
+    webkit_settings_set_enable_page_cache(settings, false);
     webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
 
     ucm =
@@ -274,7 +275,8 @@ Instance::Instance(std::string pId, bool pIsEditor)
     add_controller(controller);
 }
 
-Instance::~Instance(){
+Instance::~Instance()
+{
     webkit_user_content_manager_unregister_script_message_handler(ucm, "bridge", NULL);
     delete[] header;
     webkit_web_view_try_close(webview);
