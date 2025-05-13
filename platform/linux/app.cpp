@@ -20,6 +20,7 @@ void App::onClose(GtkWidget *widget, gpointer user_data)
 {
     auto i = static_cast<Instance *>(user_data);
     App::instance->windows.erase(i->id);
+    delete i;
 };
 
 void App::open(std::string projectId, bool isEditor)
@@ -39,11 +40,10 @@ void App::open(std::string projectId, bool isEditor)
         if(kiosk) {
             win->signal_realize().connect([&]{ 
                 win->fullscreen();
-             });
+            });
         }
         win->show();
         app->add_window(*win);
-        
     }
 }
 

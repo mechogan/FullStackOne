@@ -32,6 +32,7 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
         guchar *payload = g_base64_decode(b64.data(), &size);
         responseType = "application/octet-stream";
         responseData = instance->callLib((char *)payload, size);
+        g_free(payload);
     }
     else
     {
@@ -81,8 +82,7 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
     memcpy(data, responseData.data(), responseData.size());
 
     GInputStream *inputStream = g_memory_input_stream_new();
-    g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), data, responseData.size(), [](void *ptr)
-                                   { delete[] (char *)ptr; });
+    g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(inputStream), data, responseData.size(), g_free);
     webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
 }
 
@@ -136,6 +136,7 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         nullptr,
         nullptr);
 
+    g_free(data);
     delete[] reqId;
     delete[] responseWithId;
 }
@@ -254,7 +255,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
     webkit_settings_set_enable_developer_extras(settings, true);
     webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
 
-    WebKitUserContentManager *ucm =
+    ucm =
         webkit_web_view_get_user_content_manager(webview);
     webkit_user_content_manager_register_script_message_handler(
         ucm,
@@ -271,6 +272,12 @@ Instance::Instance(std::string pId, bool pIsEditor)
     controller->signal_key_pressed().connect(
         sigc::mem_fun(*this, &Instance::on_window_key_pressed), false);
     add_controller(controller);
+}
+
+Instance::~Instance(){
+    webkit_user_content_manager_unregister_script_message_handler(ucm, "bridge", NULL);
+    delete[] header;
+    webkit_web_view_try_close(webview);
 }
 
 bool Instance::on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state)
@@ -311,7 +318,7 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
 
     delete[] tmpHeader;
     delete[] payload;
-    free(libResponseData);
+    freePtr(libResponseData);
 
     return response;
 }

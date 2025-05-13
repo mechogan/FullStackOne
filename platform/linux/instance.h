@@ -11,6 +11,7 @@ private:
     char *header;
     int headerSize;
     bool firstTouch;
+    WebKitUserContentManager *ucm;
 
 public:
     std::string id;
@@ -28,6 +29,7 @@ public:
     bool on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);
 
     Instance(std::string pId, bool pIsEditor);
+    ~Instance();
 
     std::vector<unsigned char> callLib(char *data, int size);
 
