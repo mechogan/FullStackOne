@@ -17,6 +17,7 @@ type Request struct {
 	Cancel func()
 }
 
+var client = &http.Client{}
 var activeRequests = map[float64]Request{}
 
 func FetchSerialized(
@@ -42,8 +43,6 @@ func FetchSerialized(
 		}
 	}
 
-	client := &http.Client{}
-
 	client.Timeout = time.Duration(timeout) * time.Second
 
 	response, err := client.Do(request)
@@ -58,6 +57,7 @@ func FetchSerialized(
 		setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 		return
 	}
+	defer response.Body.Close()
 
 	headersJSON, _ := json.Marshal(response.Header)
 
@@ -74,6 +74,8 @@ func FetchSerialized(
 	}
 
 	setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
+
+	responseBody = nil
 }
 
 var chunkSize = 2048
@@ -117,8 +119,6 @@ func Fetch2(
 		}
 	}
 
-	client := &http.Client{}
-
 	// infinite timeout
 	client.Timeout = time.Duration(0)
 
@@ -151,6 +151,7 @@ func Fetch2(
 
 	go func() {
 		defer res.Body.Close()
+		defer delete(activeRequests, id)
 
 		for {
 			_, ok := activeRequests[id]
