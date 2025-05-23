@@ -4,7 +4,7 @@
 App::App()
 {
     App::instance = this;
-    app = Gtk::Application::create("fullstacked");
+    app = Gtk::Application::create("org.fullstacked");
 }
 
 void App::onMessage(char *projectId, char *type, char *message)

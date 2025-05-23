@@ -99,6 +99,7 @@ linux-x86_64-static:
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=amd64 \
+	CC=/usr/bin/gcc \
 	go build -buildmode=c-archive -o $(OUT)/linux-x86_64 -v ..
 
 linux-arm64-static:

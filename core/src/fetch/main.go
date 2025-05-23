@@ -30,6 +30,8 @@ func FetchSerialized(
 	timeout int,
 	asString bool,
 ) {
+	fmt.Println("Fetch Start")
+
 	requestBody := (io.Reader)(http.NoBody)
 	if len(body) > 0 {
 		requestBody = bytes.NewReader(body)
@@ -57,7 +59,6 @@ func FetchSerialized(
 		setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 		return
 	}
-	defer response.Body.Close()
 
 	headersJSON, _ := json.Marshal(response.Header)
 
@@ -75,7 +76,10 @@ func FetchSerialized(
 
 	setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 
-	responseBody = nil
+	response.Body.Close()
+	bytes = nil
+
+	fmt.Println("Fetch End")
 }
 
 var chunkSize = 2048
@@ -149,38 +153,36 @@ func Fetch2(
 
 	setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(response))
 
-	go func() {
-		defer res.Body.Close()
-		defer delete(activeRequests, id)
+	buffer := make([]byte, chunkSize)
 
-		for {
-			_, ok := activeRequests[id]
-			if !ok {
-				break
-			}
-
-			buffer := make([]byte, chunkSize)
-			n, err := res.Body.Read(buffer)
-
-			buffer = buffer[:n]
-
-			done := err == io.EOF
-			// req id
-			chunk := serialize.SerializeNumber(id)
-			// done
-			chunk = append(chunk, serialize.SerializeBoolean(done)...)
-			// body
-			chunk = append(chunk, serialize.SerializeBuffer(buffer)...)
-			setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(chunk))
-
-			if done {
-				break
-			}
-
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
+	for {
+		_, ok := activeRequests[id]
+		if !ok {
+			break
 		}
-	}()
+
+		n, err := res.Body.Read(buffer)
+
+		done := err == io.EOF
+		// req id
+		chunkSerialized := serialize.SerializeNumber(id)
+		// done
+		chunkSerialized = append(chunkSerialized, serialize.SerializeBoolean(done)...)
+		// body
+		chunkSerialized = append(chunkSerialized, serialize.SerializeBuffer(buffer[:n])...)
+		setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(chunkSerialized))
+
+		if done {
+			break
+		}
+
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+	}
+
+	buffer = nil
+	res.Body.Close()
+	CancelRequest(id)
 }

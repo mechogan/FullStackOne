@@ -2,10 +2,15 @@ package main
 
 /*
 #include <stdlib.h>
+#include <string.h>
 
 typedef void (*Callback)(char *projectId, char* type, char *msg);
 static inline void CallMyFunction(void *callback, char *projectId, char * type, char *msg) {
     ((Callback)callback)(projectId, type, msg);
+}
+
+static inline void write_bytes_array(void *data, int size, void *ptr) {
+	memcpy(ptr, data, size);
 }
 */
 import "C"
@@ -14,6 +19,9 @@ import (
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"unsafe"
 )
 
@@ -61,12 +69,27 @@ func callback(cb unsafe.Pointer) {
 		C.free(unsafe.Pointer(messageTypePtr))
 		C.free(unsafe.Pointer(messagePtr))
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
+}
+
+var responses = map[C.int][]byte{}
+
+//export getResponse
+func getResponse(id C.int, ptr unsafe.Pointer) {
+	response := responses[id]
+	bytes := C.CBytes(response)
+	C.write_bytes_array(bytes, C.int(len(response)), ptr)
+	C.free(bytes)
+	delete(responses, id)
 }
 
 //export call
-func call(buffer unsafe.Pointer, length C.int, responsePtr *unsafe.Pointer) C.int {
+func call(id C.int, buffer unsafe.Pointer, length C.int) C.int {
 	response := methods.Call(C.GoBytes(buffer, length))
-	*responsePtr = C.CBytes(response)
+	responses[id] = response
 	return C.int(len(response))
 }
 

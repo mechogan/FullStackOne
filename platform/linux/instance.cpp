@@ -29,9 +29,11 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
         std::string b64Encoded = uri.substr(pos + 1, uri.npos);
         std::string b64 = uri_decode(uri_decode(b64Encoded));
         unsigned long size;
+
         guchar *payload = g_base64_decode(b64.data(), &size);
         responseType = "application/octet-stream";
         responseData = instance->callLib((char *)payload, size);
+
         g_free(payload);
     }
     else
@@ -62,8 +64,8 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
             payloadBodySize,
             payload);
 
-        auto libResponse = instance->callLib(payload, payloadSize);
-        std::vector<DataValue> values = deserializeArgs(libResponse);
+        auto argsData = instance->callLib(payload, payloadSize);
+        std::vector<DataValue> values = deserializeArgs(argsData);
 
         responseType = values.at(0).str;
         responseData = values.at(1).buffer;
@@ -81,7 +83,8 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
     char *data = new char[responseData.size()];
     memcpy(data, responseData.data(), responseData.size());
 
-    GInputStream *inputStream = g_memory_input_stream_new_from_data(data, responseData.size(), g_free);
+    GInputStream *inputStream = g_memory_input_stream_new_from_data(data, responseData.size(), [](gpointer data)
+                                                                    { delete[] (char *)data; });
     webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
     g_object_unref(inputStream);
 }
@@ -109,19 +112,19 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
     size -= 4;
 
     auto libResponse = instance->callLib(
-        reinterpret_cast<char *>(data) + 4,
+        (char *)(data + 4),
         size);
 
     char *responseWithId = new char[libResponse.size() + 4];
     int responseWithIdSize = combineBuffers(
         reqId,
         4,
-        reinterpret_cast<char *>(libResponse.data()),
+        (char *)libResponse.data(),
         libResponse.size(),
         responseWithId);
 
     std::string b64res = g_base64_encode(
-        reinterpret_cast<unsigned char *>(responseWithId),
+        (guchar *)responseWithId,
         responseWithIdSize);
 
     std::string script = "window.respond(`" + b64res + "`);";
@@ -254,6 +257,7 @@ Instance::Instance(std::string pId, bool pIsEditor)
     WebKitSettings *settings = webkit_web_view_get_settings(webview);
     webkit_settings_set_enable_developer_extras(settings, true);
     webkit_settings_set_enable_page_cache(settings, false);
+    webkit_settings_set_hardware_acceleration_policy(settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER);
     webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
 
     ucm =
@@ -299,6 +303,8 @@ bool Instance::on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierT
     return true;
 }
 
+int reqId = 0;
+
 std::vector<unsigned char> Instance::callLib(char *data, int size)
 {
     char *tmpHeader = new char[headerSize];
@@ -312,15 +318,17 @@ std::vector<unsigned char> Instance::callLib(char *data, int size)
         size,
         payload);
 
-    void *libResponseData = new char[0];
+    int libResponseSize = call(reqId, payload, payloadSize);
 
-    int libResponseSize = call(payload, payloadSize, &libResponseData);
+    char *libResponse = new char[libResponseSize];
+    getResponse(reqId, libResponse);
+    reqId++;
 
-    std::vector<unsigned char> response((unsigned char *)libResponseData, (unsigned char *)libResponseData + libResponseSize);
+    std::vector<unsigned char> response((unsigned char *)libResponse, (unsigned char *)libResponse + libResponseSize);
 
     delete[] tmpHeader;
     delete[] payload;
-    freePtr(libResponseData);
+    delete[] libResponse;
 
     return response;
 }

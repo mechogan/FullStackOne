@@ -7,8 +7,9 @@
 #include <cctype>
 #include <functional>
 #include <iostream>
+#include "utils.h"
 
-void numberToCharPtr(int number, char* ptr)
+void numberToCharPtr(int number, char *ptr)
 {
     ptr[0] = ((number & 0xff000000) >> 24);
     ptr[1] = ((number & 0x00ff0000) >> 16);
@@ -53,7 +54,7 @@ void printBuffer(char *buffer, int size)
 {
     for (int i = 0; i < size; i++)
     {
-        std::cout << (int)buffer[i] << " ";
+        std::cout << (unsigned)buffer[i] << " ";
     }
     std::cout << std::endl;
 }
@@ -174,8 +175,8 @@ void URL::parse(const std::string &url_s)
     std::string::const_iterator path_i = std::find(prot_i, url_s.end(), '/');
     host.reserve(distance(prot_i, path_i));
     std::transform(prot_i, path_i,
-              std::back_inserter(host),
-              std::function(tolower)); // host is icase
+                   std::back_inserter(host),
+                   std::function(tolower)); // host is icase
     std::string::const_iterator query_i = find(path_i, url_s.end(), '?');
     path.assign(path_i, query_i);
     if (query_i != url_s.end())
@@ -183,11 +184,12 @@ void URL::parse(const std::string &url_s)
     query.assign(query_i, url_s.end());
 }
 
-
-std::string URL::str(){
+std::string URL::str()
+{
     std::string str = protocol + "://" + host + path;
 
-    if(!query.empty()) {
+    if (!query.empty())
+    {
         str += "?" + query;
     }
 

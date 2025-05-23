@@ -1,5 +1,5 @@
 # ./build.sh [arm64|x86_64]
-cp bin/linux-$1.h bin/linux.h
+cp -f bin/linux-$1.h bin/linux.h
 
 rm -rf out
 
@@ -11,4 +11,4 @@ cp control out/DEBIAN/control
 
 mkdir -p out/usr/bin
 cp -r ../../core/bin .
-g++ utils.cpp instance.cpp app.cpp main.cpp bin/linux-$1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags`
+gcc utils.cpp instance.cpp app.cpp main.cpp bin/linux-$1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags` -lstdc++
