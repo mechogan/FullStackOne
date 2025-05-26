@@ -10,6 +10,7 @@ import (
 	"fullstacked/editor/src/setup"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Request struct {
 }
 
 var client = &http.Client{}
+var activeRequestsMutex = sync.Mutex{}
 var activeRequests = map[float64]Request{}
 
 func FetchSerialized(
@@ -85,13 +87,13 @@ func FetchSerialized(
 var chunkSize = 2048
 
 func CancelRequest(id float64) {
+	activeRequestsMutex.Lock()
 	req, ok := activeRequests[id]
-	if !ok {
-		return
+	if ok {
+		req.Cancel()
 	}
-
-	req.Cancel()
 	delete(activeRequests, id)
+	activeRequestsMutex.Unlock()
 }
 
 func Fetch2(
@@ -112,9 +114,11 @@ func Fetch2(
 	request, _ := http.NewRequestWithContext(ctx, method, url, requestBody)
 
 	// stash cancel
+	activeRequestsMutex.Lock()
 	activeRequests[id] = Request{
 		Cancel: cancel,
 	}
+	activeRequestsMutex.Unlock()
 
 	// headers
 	if headers != nil {
@@ -153,36 +157,43 @@ func Fetch2(
 
 	setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(response))
 
-	buffer := make([]byte, chunkSize)
+	go func() {
+		defer res.Body.Close()
 
-	for {
-		_, ok := activeRequests[id]
-		if !ok {
-			break
+		for {
+			activeRequestsMutex.Lock()
+			_, ok := activeRequests[id]
+			activeRequestsMutex.Unlock()
+			if !ok {
+				break
+			}
+
+			buffer := make([]byte, chunkSize)
+			n, err := res.Body.Read(buffer)
+
+			buffer = buffer[:n]
+
+			done := err == io.EOF
+			// req id
+			chunk := serialize.SerializeNumber(id)
+			// done
+			chunk = append(chunk, serialize.SerializeBoolean(done)...)
+			// body
+			chunk = append(chunk, serialize.SerializeBuffer(buffer)...)
+			setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(chunk))
+
+			if done {
+				break
+			}
+
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
 		}
 
-		n, err := res.Body.Read(buffer)
-
-		done := err == io.EOF
-		// req id
-		chunkSerialized := serialize.SerializeNumber(id)
-		// done
-		chunkSerialized = append(chunkSerialized, serialize.SerializeBoolean(done)...)
-		// body
-		chunkSerialized = append(chunkSerialized, serialize.SerializeBuffer(buffer[:n])...)
-		setup.Callback(projectId, "fetch2-response", base64.StdEncoding.EncodeToString(chunkSerialized))
-
-		if done {
-			break
-		}
-
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-	}
-
-	buffer = nil
-	res.Body.Close()
-	CancelRequest(id)
+		activeRequestsMutex.Lock()
+		delete(activeRequests, id)
+		activeRequestsMutex.Unlock()
+	}()
 }
