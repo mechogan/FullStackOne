@@ -11,13 +11,6 @@ app.on('window-all-closed', () => app.quit());
 async function init() {
     protocol.handle("http", protocolHandler);
 
-    const root = path.resolve(os.homedir(), "FullStacked");
-    await setDirectories({
-        root,
-        config: path.resolve(os.homedir(), ".config", "fullstacked"),
-        editor: path.resolve(process.cwd(), "..", "..", "out", "editor")
-    });
-
     const cb = (projectId: string, messageType: string, message: string) => {
         if (projectId === "" && messageType === "open") {
             createView(message);
@@ -28,6 +21,13 @@ async function init() {
         window?.webContents?.executeJavaScript(`window.oncoremessage( \`${messageType}\`, \`${message}\` )`);
     };
     await setCallback(cb);
+
+    const root = path.resolve(os.homedir(), "FullStacked");
+    await setDirectories({
+        root,
+        config: path.resolve(os.homedir(), ".config", "fullstacked"),
+        editor: path.resolve(process.cwd(), "..", "..", "out", "editor")
+    });
 
     const kioskFlagIndex = process.argv.findIndex((arg) => arg === "--kiosk");
     if (kioskFlagIndex !== -1) {
