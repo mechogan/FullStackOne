@@ -2,6 +2,7 @@ import "../core_message";
 import platform, { Platform } from "../platform";
 import { BridgeAndroid } from "./platform/android";
 import { BridgeApple, initRespondApple } from "./platform/apple";
+import { BridgeElectron } from "./platform/electron";
 import { BridgeLinux, initRespondLinux } from "./platform/linux";
 import { BridgeNode, initCallbackNode } from "./platform/node";
 import { BridgeWasm } from "./platform/wasm";
@@ -36,6 +37,9 @@ switch (platform) {
     case Platform.LINUX:
         bridge = BridgeLinux;
         initRespondLinux();
+        break;
+    case Platform.ELECTRON:
+        bridge = BridgeElectron;
         break;
     case Platform.DOCKER:
         console.log("Bridge not yet implemented");

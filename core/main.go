@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"sync"
 	"unsafe"
 )
 
@@ -76,20 +77,31 @@ func callback(cb unsafe.Pointer) {
 }
 
 var responses = map[C.int][]byte{}
+var responsesMutex = sync.Mutex{}
 
 //export getResponse
 func getResponse(id C.int, ptr unsafe.Pointer) {
+	responsesMutex.Lock()
 	response := responses[id]
+	responsesMutex.Unlock()
+
 	bytes := C.CBytes(response)
 	C.write_bytes_array(bytes, C.int(len(response)), ptr)
 	C.free(bytes)
+
+	responsesMutex.Lock()
 	delete(responses, id)
+	responsesMutex.Unlock()
 }
 
 //export call
 func call(id C.int, buffer unsafe.Pointer, length C.int) C.int {
 	response := methods.Call(C.GoBytes(buffer, length))
+
+	responsesMutex.Lock()
 	responses[id] = response
+	responsesMutex.Unlock()
+
 	return C.int(len(response))
 }
 
