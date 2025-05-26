@@ -10,6 +10,7 @@ import (
 	"fullstacked/editor/src/setup"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Request struct {
 }
 
 var client = &http.Client{}
+var activeRequestsMutex = sync.Mutex{}
 var activeRequests = map[float64]Request{}
 
 func FetchSerialized(
@@ -81,13 +83,13 @@ func FetchSerialized(
 var chunkSize = 2048
 
 func CancelRequest(id float64) {
+	activeRequestsMutex.Lock()
 	req, ok := activeRequests[id]
-	if !ok {
-		return
+	if ok {
+		req.Cancel()
 	}
-
-	req.Cancel()
 	delete(activeRequests, id)
+	activeRequestsMutex.Unlock()
 }
 
 func Fetch2(
@@ -108,9 +110,11 @@ func Fetch2(
 	request, _ := http.NewRequestWithContext(ctx, method, url, requestBody)
 
 	// stash cancel
+	activeRequestsMutex.Lock()
 	activeRequests[id] = Request{
 		Cancel: cancel,
 	}
+	activeRequestsMutex.Unlock()
 
 	// headers
 	if headers != nil {
@@ -151,10 +155,11 @@ func Fetch2(
 
 	go func() {
 		defer res.Body.Close()
-		defer delete(activeRequests, id)
 
 		for {
+			activeRequestsMutex.Lock()
 			_, ok := activeRequests[id]
+			activeRequestsMutex.Unlock()
 			if !ok {
 				break
 			}
@@ -182,5 +187,9 @@ func Fetch2(
 				break
 			}
 		}
+
+		activeRequestsMutex.Lock()
+		delete(activeRequests, id)
+		activeRequestsMutex.Unlock()
 	}()
 }
