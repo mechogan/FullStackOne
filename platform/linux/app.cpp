@@ -49,6 +49,9 @@ void App::open(std::string projectId, bool isEditor)
 
 int App::run(std::string startupId)
 {
+    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
+    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
+    webkit_network_session_set_memory_pressure_settings(mp);
     app->signal_startup().connect([&]{ open(startupId, startupId == ""); });
     return app->run();
 }

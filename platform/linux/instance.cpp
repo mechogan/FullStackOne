@@ -253,11 +253,14 @@ Instance::Instance(std::string pId, bool pIsEditor)
         this,
         nullptr);
 
+        
     set_child(*three);
     WebKitSettings *settings = webkit_web_view_get_settings(webview);
     webkit_settings_set_enable_developer_extras(settings, true);
     webkit_settings_set_enable_page_cache(settings, false);
     webkit_settings_set_hardware_acceleration_policy(settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER);
+
+
     webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
 
     ucm =
