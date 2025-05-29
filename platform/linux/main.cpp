@@ -6,41 +6,6 @@
 #include "./bin/linux.h"
 #include <filesystem>
 #include <gtkmm/icontheme.h>
-#include <thread>
-
-void printMemory(){
-    int pid = getpid();
-    std::string filename = "/proc/" + std::to_string(pid) + "/status";
-    std::ifstream file(filename);
-
-    if (!file.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
-
-    std::string line;
-    long long vmSizeKb = 0, vmRssKb = 0, vmDataKb = 0;
-
-    while (std::getline(file, line)) {
-        if (line.substr(0, 7) == "VmSize:") {
-            std::istringstream iss(line.substr(7));
-            iss >> vmSizeKb;
-        } else if (line.substr(0, 6) == "VmRSS:") {
-            std::istringstream iss(line.substr(6));
-            iss >> vmRssKb;
-        } else if (line.substr(0, 6) == "VmData:") {
-           std::istringstream iss(line.substr(6));
-           iss >> vmDataKb;
-        }
-    }
-
-    file.close();
-
-    std::cout << "Process ID: " << pid << std::endl;
-    std::cout << "Virtual Memory Size: " << vmSizeKb / 1024.0 << " MB" << std::endl;
-    std::cout << "Resident Set Size: " << vmRssKb / 1024.0 << " MB" << std::endl;
-    std::cout << "Data Segment Size: " << vmDataKb / 1024.0 << " MB" << std::endl;
-}
 
 std::string getExePath()
 {
@@ -127,12 +92,6 @@ int main(int argc, char *argv[])
             }
         }
     }
-
-    // auto exec_run = [](){ while (true) {
-    //     printMemory();
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    // } };
-    // std::thread t(exec_run);
     
     return app->run(startupId);
 }

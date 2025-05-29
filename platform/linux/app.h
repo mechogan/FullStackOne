@@ -1,17 +1,18 @@
 #ifndef APP_H
 #define APP_H
 
-#include <gtkmm/application.h>
 #include "./instance.h"
+#include "gui.h"
+
 
 class App
 {
 private:
-    Glib::RefPtr<Gtk::Application> app;
+    GUI *gui = new GUI();
 
 public:
     inline static App *instance;
-    std::map<std::string, Instance *> windows;
+    std::map<std::string, std::pair<Instance*, Window*>> activeWindows;
     std::string deeplink;
     bool kiosk = false;
 

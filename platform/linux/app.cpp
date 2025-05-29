@@ -4,15 +4,15 @@
 App::App()
 {
     App::instance = this;
-    app = Gtk::Application::create("org.fullstacked");
+    gui->createApp();
 }
 
 void App::onMessage(char *projectId, char *type, char *message)
 {
-    auto exists = windows.find(projectId);
-    if (exists != windows.end())
+    auto exists = activeWindows.find(projectId);
+    if (exists != activeWindows.end())
     {
-        exists->second->onMessage(type, message);
+        exists->second.second->onMessage(type, message);
     }
 }
 
@@ -25,7 +25,7 @@ void App::onClose(GtkWidget *widget, gpointer user_data)
 
 void App::open(std::string projectId, bool isEditor)
 {
-    auto exists = windows.find(projectId);
+    auto exists = activeWindows.find(projectId);
     if (exists != windows.end())
     {
         exists->second->show();
@@ -35,23 +35,19 @@ void App::open(std::string projectId, bool isEditor)
     }
     else
     {
-        auto win = new Instance(projectId, isEditor);
-        windows[projectId] = win;
+        Instance *instance = new Instance(projectId, isEditor);
+        Window *window = gui->createWindow();
+
+        windows[projectId] = std::pair(instance, window);
         if(kiosk) {
-            win->signal_realize().connect([&]{ 
-                win->fullscreen();
-            });
+            window->setFullscreen();
         }
-        win->show();
-        app->add_window(*win);
     }
 }
 
 int App::run(std::string startupId)
 {
-    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
-    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
-    webkit_network_session_set_memory_pressure_settings(mp);
+   
     app->signal_startup().connect([&]{ open(startupId, startupId == ""); });
     return app->run();
 }

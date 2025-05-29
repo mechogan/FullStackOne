@@ -238,8 +238,6 @@ Instance::Instance(std::string pId, bool pIsEditor)
         delete[] idSize;
     }
 
-    set_default_size(800, 600);
-
     auto webviewGtk = webkit_web_view_new();
     webview = WEBKIT_WEB_VIEW(webviewGtk);
     Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview));
