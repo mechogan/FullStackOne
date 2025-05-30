@@ -2,25 +2,42 @@
 #define GUI_H_
 
 #include <string>
+#include <functional>
+
+struct Response
+{
+    std::string type;
+    std::vector<unsigned char> data;
+};
 
 class Window
 {
 public:
-    virtual void onMessage(std::string type, std::string message);
+    virtual ~Window() = default;
 
-    virtual void close();
+    std::function<Response(std::string)> onRequest = nullptr;
+    std::function<std::string(std::string)> onBridge = nullptr;
 
-    virtual void setFullscreen();
+    virtual void onMessage(std::string type, std::string message) {};
+
+    virtual void close() {};
+
+    virtual void bringToFront(bool reload) {};
+
+    virtual void setFullscreen() {};
 };
 
 class GUI
 {
 public:
-    virtual void createApp();
+    virtual ~GUI() = default;
 
-    virtual Window* createWindow();
+    virtual void createApp() {};
+
+    virtual int run(std::function<void()> onReady) { return 0; };
+
+    virtual Window *createWindow(std::function<Response(std::string)> onRequest,
+                                 std::function<std::string(std::string)> onBridge) { return nullptr; };
 };
-
-
 
 #endif

@@ -37,8 +37,10 @@ export const BridgeLinux: Bridge = (
 
 export function initRespondLinux() {
     globalThis.respond = (base64: string) => {
+        console.log(base64)
         const data = toByteArray(base64);
         const id = bytesToNumber(data.slice(0, 4));
+        console.log(id);
         const resolver = requests.get(id);
         resolver(data.slice(4));
         requests.delete(id);

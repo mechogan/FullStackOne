@@ -11,4 +11,10 @@ cp control out/DEBIAN/control
 
 mkdir -p out/usr/bin
 cp -r ../../core/bin .
-gcc utils.cpp instance.cpp app.cpp main.cpp bin/linux-$1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags` -lstdc++
+gcc utils.cpp \
+    gtk/gtk.cpp \
+    instance.cpp \
+    app.cpp \
+    main.cpp \
+    base64.cpp \
+    bin/linux-$1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags` -lstdc++

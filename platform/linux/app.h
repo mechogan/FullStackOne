@@ -2,17 +2,18 @@
 #define APP_H
 
 #include "./instance.h"
-#include "gui.h"
+#include <map>
+#include "./gtk/gtk.h"
 
 
 class App
 {
 private:
-    GUI *gui = new GUI();
+    GUI *gui = new WebkitGTKGUI();
 
 public:
     inline static App *instance;
-    std::map<std::string, std::pair<Instance*, Window*>> activeWindows;
+    std::map<std::string, Instance*> activeWindows;
     std::string deeplink;
     bool kiosk = false;
 
@@ -21,8 +22,6 @@ public:
     void onMessage(char *projectId, char* type, char* message);
 
     void open(std::string projectId, bool isEditor);
-
-    static void onClose(GtkWidget* widget, gpointer user_data);
 
     int run(std::string startupId);
 };
