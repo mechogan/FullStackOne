@@ -6,6 +6,9 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QWebEngineView>
+#include <QWebEngineUrlScheme>
+#include <QWebEngineUrlSchemeHandler>
+#include <QWebEngineUrlRequestJob>
 
 class QtWindow : public Window
 {
@@ -24,6 +27,16 @@ public:
 
     void setFullscreen();
 };
+
+class SchemeHandler : public QWebEngineUrlSchemeHandler
+{
+public:
+    static SchemeHandler* singleton;
+    std::map<std::string, QtWindow*> activeHosts;
+    SchemeHandler(QObject *parent = nullptr);
+    void requestStarted(QWebEngineUrlRequestJob *job);
+};
+
 
 class QtGUI : public GUI
 {
