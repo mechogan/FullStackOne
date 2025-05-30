@@ -34,7 +34,7 @@ public:
 
     virtual void createApp() {};
 
-    virtual int run(std::function<void()> onReady) { return 0; };
+    virtual int run(int &argc, char **argv, std::function<void()> onReady) { return 0; };
 
     virtual Window *createWindow(std::function<Response(std::string)> onRequest,
                                  std::function<std::string(std::string)> onBridge) { return nullptr; };

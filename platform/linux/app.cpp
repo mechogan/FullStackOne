@@ -4,7 +4,6 @@
 App::App()
 {
     App::instance = this;
-    gui->createApp();
 }
 
 void App::onMessage(char *projectId, char *type, char *message)
@@ -39,8 +38,8 @@ void App::open(std::string projectId, bool isEditor)
     }
 }
 
-int App::run(std::string startupId)
+int App::run(int argc, char *argv[], std::string startupId)
 {
-    return gui->run([&]()
+    return gui->run(argc, argv, [&]()
                     { open(startupId, startupId == ""); });
 }

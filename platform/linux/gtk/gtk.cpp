@@ -4,35 +4,33 @@
 #include "../utils.h"
 #include <gtk/gtkwidget.h>
 
-void WebkitGTKGUI::createApp()
-{
-    app = Gtk::Application::create("org.fullstacked");
-    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
-    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
-    webkit_network_session_set_memory_pressure_settings(mp);
-}
-
 Window *WebkitGTKGUI::createWindow(std::function<Response(std::string)> onRequest,
                                    std::function<std::string(std::string)> onBridge)
 {
-    WebkitGTKWindow *window = new WebkitGTKWindow();
+    WebkitGTKWindow *window = new WebkitGTKWindow(app);
     window->onRequest = onRequest;
     window->onBridge = onBridge;
-    app->add_window(*window->windowGTK);
     return window;
 }
 
-int WebkitGTKGUI::run(std::function<void()> onReady)
+int WebkitGTKGUI::run(int &argc, char **argv, std::function<void()> onReady)
 {
+    app = Gtk::Application::create("org.fullstacked");
+    
+    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
+    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
+    webkit_network_session_set_memory_pressure_settings(mp);
+
     app->signal_startup().connect(onReady);
     return app->run();
 }
 
-WebkitGTKWindow::WebkitGTKWindow()
+WebkitGTKWindow::WebkitGTKWindow(Glib::RefPtr<Gtk::Application> app)
 {
     windowGTK = new Gtk::Window();
     windowGTK->set_default_size(800, 600);
     windowGTK->show();
+    app->add_window(*windowGTK);
 
     auto webviewGtk = webkit_web_view_new();
     webview = WEBKIT_WEB_VIEW(webviewGtk);

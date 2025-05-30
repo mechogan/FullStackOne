@@ -3,27 +3,37 @@
 
 #include "./instance.h"
 #include <map>
-#include "./gtk/gtk.h"
 
+#ifdef GTK
+    #include "./gtk/gtk.h"
+#else
+    #include "./qt/qt.h"
+#endif
 
 class App
 {
 private:
-    GUI *gui = new WebkitGTKGUI();
+    #ifdef GTK
+        GUI *gui = new WebkitGTKGUI();
+    #else
+        GUI *gui = new QtGUI();
+    #endif
+
+
 
 public:
     inline static App *instance;
-    std::map<std::string, Instance*> activeWindows;
+    std::map<std::string, Instance *> activeWindows;
     std::string deeplink;
     bool kiosk = false;
 
     App();
 
-    void onMessage(char *projectId, char* type, char* message);
+    void onMessage(char *projectId, char *type, char *message);
 
     void open(std::string projectId, bool isEditor);
 
-    int run(std::string startupId);
+    int run(int argc, char *argv[], std::string startupId);
 };
 
 #endif

@@ -9,6 +9,7 @@
 class WebkitGTKWindow : public Window
 {
 private:
+    Gtk::Window *windowGTK;
     WebKitWebView *webview;
 
     static void webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData);
@@ -19,7 +20,7 @@ private:
                                            gpointer user_data);
 
 public:
-    WebkitGTKWindow();
+    WebkitGTKWindow(Glib::RefPtr<Gtk::Application> app);
 
     void onMessage(std::string type, std::string message);
 
@@ -28,16 +29,12 @@ public:
     void bringToFront(bool reload);
 
     void setFullscreen();
-
-    Gtk::Window *windowGTK;
 };
 
 class WebkitGTKGUI : public GUI
 {
 public:
-    void createApp();
-
-    int run(std::function<void()> onReady);
+    int run(int &argc, char **argv, std::function<void()> onReady);
 
     Window *createWindow(std::function<Response(std::string)> onRequest,
                          std::function<std::string(std::string)> onBridge);

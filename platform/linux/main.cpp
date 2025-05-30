@@ -92,5 +92,5 @@ int main(int argc, char *argv[])
         }
     }
     
-    return app->run(startupId);
+    return app->run(argc, argv, startupId);
 }

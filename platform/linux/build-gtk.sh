@@ -17,4 +17,4 @@ gcc utils.cpp \
     app.cpp \
     main.cpp \
     base64.cpp \
-    bin/linux-$1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags` -lstdc++
+    bin/linux-$1 -DGTK=1 -o out/usr/bin/fullstacked `pkg-config gtkmm-4.0 webkitgtk-6.0 --libs --cflags` -lstdc++
