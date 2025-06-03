@@ -80,7 +80,7 @@ void WebkitGTKWindow::onScriptMessage(WebKitUserContentManager *manager, JSCValu
 {
     WebkitGTKWindow *win = (WebkitGTKWindow *)userData;
     std::string payload(jsc_value_to_string(value));
-    std::string script = win->onBridge(payload);
+    std::string script = "window.respond(`" + win->onBridge(payload) + "`);";
     webkit_web_view_evaluate_javascript(
         win->webview,
         script.data(),

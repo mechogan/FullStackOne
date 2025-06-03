@@ -9,7 +9,7 @@ import {
 
 const requests = new Map<number, (data: Uint8Array) => void>();
 
-export const BridgeLinux: Bridge = (
+export const BridgeLinuxGTK: Bridge = (
     payload: Uint8Array,
     transformer?: (responseArgs: any[]) => any
 ) => {
@@ -35,7 +35,7 @@ export const BridgeLinux: Bridge = (
     });
 };
 
-export function initRespondLinux() {
+export function initRespondLinuxGTK() {
     globalThis.respond = (base64: string) => {
         console.log(base64)
         const data = toByteArray(base64);

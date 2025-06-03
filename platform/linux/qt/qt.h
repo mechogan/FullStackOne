@@ -10,11 +10,14 @@
 #include <QWebEngineUrlSchemeHandler>
 #include <QWebEngineUrlRequestJob>
 
+class Bridge;
+
 class QtWindow : public Window
 {
 private:
     QMainWindow *windowQt;
     QWebEngineView *webEngineView;
+    Bridge *bridge;
 
 public:
     QtWindow();
@@ -28,15 +31,26 @@ public:
     void setFullscreen();
 };
 
+class Bridge : public QObject
+{
+    Q_OBJECT
+public:
+    QtWindow *window;
+
+public slots:
+    QString call(const QString &message);
+signals:
+    void core_message(const QString &type, const QString &message);
+};
+
 class SchemeHandler : public QWebEngineUrlSchemeHandler
 {
 public:
-    static SchemeHandler* singleton;
-    std::map<std::string, QtWindow*> activeHosts;
+    static SchemeHandler *singleton;
+    std::map<std::string, QtWindow *> activeHosts;
     SchemeHandler(QObject *parent = nullptr);
     void requestStarted(QWebEngineUrlRequestJob *job);
 };
-
 
 class QtGUI : public GUI
 {
@@ -45,8 +59,9 @@ public:
 
     Window *createWindow(std::function<Response(std::string)> onRequest,
                          std::function<std::string(std::string)> onBridge);
+
 private:
-    QApplication * app;
+    QApplication *app;
 };
 
 #endif

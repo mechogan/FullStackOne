@@ -7,6 +7,13 @@
 
 std::string notFound = "Not Found";
 
+#ifdef GTK
+std::string platform = "linux-gtk";
+#else
+std::string platform = "linux-qt";
+#endif
+
+
 Response Instance::onRequest(std::string url_str)
 {
     URL url(url_str);
@@ -17,8 +24,7 @@ Response Instance::onRequest(std::string url_str)
 
     if (url.path == "/platform")
     {
-        std::string platformStr = "linux";
-        responseData = std::vector<unsigned char>((unsigned char *)platformStr.data(), (unsigned char *)platformStr.data() + platformStr.size());
+        responseData = std::vector<unsigned char>((unsigned char *)platform.data(), (unsigned char *)platform.data() + platform.size());
     }
     else if (isEditor && url.path == "/call-sync")
     {
@@ -107,8 +113,7 @@ std::string Instance::onBridge(std::string payload)
         libResponse.size(),
         responseWithId);
 
-    std::string b64res = base64_encode(std::string(responseWithId, responseWithIdSize));
-    return "window.respond(`" + b64res + "`);";
+    return base64_encode(std::string(responseWithId, responseWithIdSize));
 }
 
 Instance::Instance(std::string pId, bool pIsEditor)
