@@ -18,15 +18,11 @@ void SchemeHandler::requestStarted(QWebEngineUrlRequestJob *job)
     const QByteArray method = job->requestMethod();
     const QUrl url = job->requestUrl();
     std::string host = url.host().toStdString();
-    std::cout << url.host().toStdString() << std::endl;
-
-    std::cout << url.path().toStdString() << std::endl;
 
     auto win = activeHosts.find(host);
     if (win != activeHosts.end())
     {
         Response res = win->second->onRequest(url.toString().toStdString());
-        std::cout << res.type << std::endl;
         QByteArray result = QByteArray((char *)res.data.data(), res.data.size());
         auto buffer = new QBuffer(job);
         buffer->setData(result);
