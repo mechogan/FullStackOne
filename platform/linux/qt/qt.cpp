@@ -111,4 +111,4 @@ void QtWindow::setFullscreen()
 {
     windowQt->setWindowState(Qt::WindowFullScreen);
     windowQt->show();
-}
+}              

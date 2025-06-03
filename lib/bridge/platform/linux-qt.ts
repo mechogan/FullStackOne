@@ -23,7 +23,11 @@ async function respond(payload: Uint8Array, transformer?: (responseArgs: any[]) 
     const data = toByteArray(response);
     const args = deserializeArgs(data.slice(4));
 
-    return transformer?.(args) ?? args;
+    if(transformer) {
+        return transformer(args)
+    }
+
+    return args;
 }
 
 export const BridgeLinuxQT: Bridge = (
