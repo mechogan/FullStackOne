@@ -6,7 +6,8 @@ export enum Platform {
     WINDOWS = "windows",
     WASM = "wasm",
     LINUX_GTK = "linux-gtk",
-    LINUX_QT = "linux-qt"
+    LINUX_QT = "linux-qt",
+    ELECTRON = "electron"
 }
 
 const platform = await (await fetch("/platform")).text();

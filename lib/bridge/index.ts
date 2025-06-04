@@ -4,6 +4,7 @@ import { BridgeAndroid } from "./platform/android";
 import { BridgeApple, initRespondApple } from "./platform/apple";
 import { BridgeLinuxGTK, initRespondLinuxGTK } from "./platform/linux-gtk";
 import { BridgeLinuxQT, initRespondLinuxQT } from "./platform/linux-qt";
+import { BridgeElectron } from "./platform/electron";
 import { BridgeNode, initCallbackNode } from "./platform/node";
 import { BridgeWasm } from "./platform/wasm";
 import { BridgeWindows, initRespondWindows } from "./platform/windows";
@@ -43,6 +44,9 @@ switch (platform) {
     case Platform.LINUX_QT:
         bridge = BridgeLinuxQT;
         initRespondLinuxQT();
+        break;
+    case Platform.ELECTRON:
+        bridge = BridgeElectron;
         break;
     case Platform.DOCKER:
         console.log("Bridge not yet implemented");
