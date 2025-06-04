@@ -3,38 +3,36 @@
 #include <iostream>
 #include "./bin/linux.h"
 #include "./app.h"
-#include "gtkmm.h"
+#include "./base64.h"
 
 std::string notFound = "Not Found";
 
-void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData)
-{
-    Instance *instance = (Instance *)userData;
+#ifdef GTK
+std::string platform = "linux-gtk";
+#else
+std::string platform = "linux-qt";
+#endif
 
-    std::string pathname = webkit_uri_scheme_request_get_path(request);
-    std::cout << "PATH: " << pathname << std::endl;
+
+Response Instance::onRequest(std::string url_str)
+{
+    URL url(url_str);
+    std::cout << "PATH: " << url.path << std::endl;
 
     std::vector<unsigned char> responseData = std::vector<unsigned char>((unsigned char *)notFound.data(), (unsigned char *)notFound.data() + notFound.size());
     std::string responseType = "text/plain";
 
-    if (pathname == "/platform")
+    if (url.path == "/platform")
     {
-        std::string platformStr = "linux";
-        responseData = std::vector<unsigned char>((unsigned char *)platformStr.data(), (unsigned char *)platformStr.data() + platformStr.size());
+        responseData = std::vector<unsigned char>((unsigned char *)platform.data(), (unsigned char *)platform.data() + platform.size());
     }
-    else if (instance->isEditor && pathname == "/call-sync")
+    else if (isEditor && url.path == "/call-sync")
     {
-        std::string uri = webkit_uri_scheme_request_get_uri(request);
-        int pos = uri.find_last_of("=");
-        std::string b64Encoded = uri.substr(pos + 1, uri.npos);
-        std::string b64 = uri_decode(uri_decode(b64Encoded));
-        unsigned long size;
-
-        guchar *payload = g_base64_decode(b64.data(), &size);
+        int pos = url.query.find_last_of("=");
+        std::string b64Encoded = url.query.substr(pos + 1, url.query.npos);
+        std::string b64 = base64_decode(uri_decode(uri_decode(b64Encoded)));
         responseType = "application/octet-stream";
-        responseData = instance->callLib((char *)payload, size);
-
-        g_free(payload);
+        responseData = callLib(b64.data(), b64.size());
     }
     else
     {
@@ -42,8 +40,8 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
         payloadHeader[0] = 1; // Static File Serving
         payloadHeader[1] = 2; // STRING
 
-        char *pathnameData = pathname.empty() ? new char[0] : pathname.data();
-        int pathnameSize = pathname.size();
+        char *pathnameData = url.path.empty() ? new char[0] : url.path.data();
+        int pathnameSize = url.path.size();
 
         char *pathnameSizeBuffer = new char[4];
         numberToCharPtr(pathnameSize, pathnameSizeBuffer);
@@ -64,14 +62,14 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
             payloadBodySize,
             payload);
 
-        auto argsData = instance->callLib(payload, payloadSize);
+        auto argsData = callLib(payload, payloadSize);
         std::vector<DataValue> values = deserializeArgs(argsData);
 
         responseType = values.at(0).str;
         responseData = values.at(1).buffer;
 
         delete[] payloadHeader;
-        if (pathname.empty())
+        if (url.path.empty())
         {
             delete[] pathnameData;
         }
@@ -80,40 +78,32 @@ void Instance::webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, g
         delete[] payload;
     }
 
-    char *data = new char[responseData.size()];
-    memcpy(data, responseData.data(), responseData.size());
+    Response response;
+    response.data = responseData;
+    response.type = responseType;
 
-    GInputStream *inputStream = g_memory_input_stream_new_from_data(data, responseData.size(), [](gpointer data)
-                                                                    { delete[] (char *)data; });
-    webkit_uri_scheme_request_finish(request, inputStream, responseData.size(), responseType.c_str());
-    g_object_unref(inputStream);
+    return response;
 }
 
-void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *value, gpointer userData)
+std::string Instance::onBridge(std::string payload)
 {
-    Instance *instance = static_cast<Instance *>(userData);
-
-    if (instance->isEditor && !instance->firstTouch && !App::instance->deeplink.empty())
+    if (isEditor && !firstTouch && !App::instance->deeplink.empty())
     {
         std::cout << App::instance->deeplink << std::endl;
-        instance->firstTouch = true;
+        firstTouch = true;
         std::string launchURL("fullstacked://" + App::instance->deeplink);
-        instance->onMessage(std::string("deeplink").data(), launchURL.data());
+        onMessage(std::string("deeplink").data(), launchURL.data());
         App::instance->deeplink = "";
     }
 
-    std::string b64(jsc_value_to_string(value));
-
-    unsigned long size = b64.size();
-    guchar *data = g_base64_decode(b64.data(), &size);
+    std::string b64 = base64_decode(payload);
 
     char *reqId = new char[4];
-    memcpy(reqId, data, 4);
-    size -= 4;
+    memcpy(reqId, b64.data(), 4);
 
-    auto libResponse = instance->callLib(
-        (char *)(data + 4),
-        size);
+    auto libResponse = callLib(
+        (char *)(b64.data() + 4),
+        b64.size() - 4);
 
     char *responseWithId = new char[libResponse.size() + 4];
     int responseWithIdSize = combineBuffers(
@@ -123,68 +113,7 @@ void Instance::onScriptMessage(WebKitUserContentManager *manager, JSCValue *valu
         libResponse.size(),
         responseWithId);
 
-    std::string b64res = g_base64_encode(
-        (guchar *)responseWithId,
-        responseWithIdSize);
-
-    std::string script = "window.respond(`" + b64res + "`);";
-
-    webkit_web_view_evaluate_javascript(
-        instance->webview,
-        script.data(),
-        script.size(),
-        nullptr,
-        "core",
-        nullptr,
-        nullptr,
-        nullptr);
-
-    g_free(data);
-    delete[] reqId;
-    delete[] responseWithId;
-}
-
-gboolean Instance::navigationDecidePolicy(WebKitWebView *view,
-                                          WebKitPolicyDecision *decision,
-                                          WebKitPolicyDecisionType decision_type,
-                                          gpointer user_data)
-{
-    WebKitNavigationPolicyDecision *navigation;
-    WebKitNavigationAction *action;
-    WebKitNavigationType type;
-    WebKitURIRequest *request;
-
-    switch (decision_type)
-    {
-    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
-    case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
-        navigation = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
-        action = webkit_navigation_policy_decision_get_navigation_action(navigation);
-        type = webkit_navigation_action_get_navigation_type(action);
-
-        switch (type)
-        {
-        case WEBKIT_NAVIGATION_TYPE_LINK_CLICKED:
-            request = webkit_navigation_action_get_request(action);
-            std::string uri = webkit_uri_request_get_uri(request);
-
-            URL url(uri);
-
-            if (url.host != "localhost")
-            {
-                system(("xdg-open " + url.str()).c_str());
-                webkit_policy_decision_ignore(decision);
-                return false;
-            }
-
-            break;
-        }
-        break;
-    default:
-        return false;
-    }
-
-    return true;
+    return base64_encode(std::string(responseWithId, responseWithIdSize));
 }
 
 Instance::Instance(std::string pId, bool pIsEditor)
@@ -237,73 +166,6 @@ Instance::Instance(std::string pId, bool pIsEditor)
         delete[] intermediateBuffer;
         delete[] idSize;
     }
-
-    set_default_size(800, 600);
-
-    auto webviewGtk = webkit_web_view_new();
-    webview = WEBKIT_WEB_VIEW(webviewGtk);
-    Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview));
-
-    std::string scheme = gen_random(6);
-
-    webkit_web_context_register_uri_scheme(
-        webkit_web_view_get_context(webview),
-        scheme.c_str(),
-        Instance::webKitURISchemeRequestCallback,
-        this,
-        nullptr);
-
-        
-    set_child(*three);
-    WebKitSettings *settings = webkit_web_view_get_settings(webview);
-    webkit_settings_set_enable_developer_extras(settings, true);
-    webkit_settings_set_enable_page_cache(settings, false);
-    webkit_settings_set_hardware_acceleration_policy(settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER);
-
-
-    webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
-
-    ucm =
-        webkit_web_view_get_user_content_manager(webview);
-    webkit_user_content_manager_register_script_message_handler(
-        ucm,
-        "bridge",
-        NULL);
-    g_signal_connect(ucm, "script-message-received::bridge",
-                     G_CALLBACK(Instance::onScriptMessage), this);
-    g_signal_connect(webviewGtk, "destroy",
-                     G_CALLBACK(App::onClose), this);
-    g_signal_connect(webviewGtk, "decide-policy",
-                     G_CALLBACK(Instance::navigationDecidePolicy), this);
-
-    auto controller = Gtk::EventControllerKey::create();
-    controller->signal_key_pressed().connect(
-        sigc::mem_fun(*this, &Instance::on_window_key_pressed), false);
-    add_controller(controller);
-}
-
-Instance::~Instance()
-{
-    webkit_user_content_manager_unregister_script_message_handler(ucm, "bridge", NULL);
-    delete[] header;
-    webkit_web_view_try_close(webview);
-}
-
-bool Instance::on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state)
-{
-    // F11
-    if (keycode == 95)
-    {
-        if (is_fullscreen())
-        {
-            unfullscreen();
-        }
-        else
-        {
-            fullscreen();
-        }
-    }
-    return true;
 }
 
 int reqId = 0;
@@ -344,15 +206,5 @@ void Instance::onMessage(char *type, char *message)
         return;
     }
 
-    std::string script = "window.oncoremessage(`" + std::string(type) + "`, `" + std::string(message) + "`);";
-
-    webkit_web_view_evaluate_javascript(
-        webview,
-        script.data(),
-        script.size(),
-        nullptr,
-        "core_message",
-        nullptr,
-        nullptr,
-        nullptr);
+    window->onMessage(type, message);
 }

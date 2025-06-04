@@ -4,54 +4,42 @@
 App::App()
 {
     App::instance = this;
-    app = Gtk::Application::create("org.fullstacked");
 }
 
 void App::onMessage(char *projectId, char *type, char *message)
 {
-    auto exists = windows.find(projectId);
-    if (exists != windows.end())
+    auto exists = activeWindows.find(projectId);
+    if (exists != activeWindows.end())
     {
         exists->second->onMessage(type, message);
     }
 }
 
-void App::onClose(GtkWidget *widget, gpointer user_data)
-{
-    auto i = static_cast<Instance *>(user_data);
-    App::instance->windows.erase(i->id);
-    delete i;
-};
-
 void App::open(std::string projectId, bool isEditor)
 {
-    auto exists = windows.find(projectId);
-    if (exists != windows.end())
+    auto exists = activeWindows.find(projectId);
+    if (exists != activeWindows.end())
     {
-        exists->second->show();
-        exists->second->present();
-        exists->second->fullscreen();
-        webkit_web_view_reload(exists->second->webview);
+        exists->second->window->bringToFront(true);
     }
     else
     {
-        auto win = new Instance(projectId, isEditor);
-        windows[projectId] = win;
-        if(kiosk) {
-            win->signal_realize().connect([&]{ 
-                win->fullscreen();
-            });
+        Instance *instance = new Instance(projectId, isEditor);
+        Window *window = gui->createWindow([instance](std::string path)
+                                           { return instance->onRequest(path); },
+                                           [instance](std::string payload)
+                                           { return instance->onBridge(payload); });
+        instance->window = window;
+        activeWindows[projectId] = instance;
+        if (kiosk)
+        {
+            instance->window->setFullscreen();
         }
-        win->show();
-        app->add_window(*win);
     }
 }
 
-int App::run(std::string startupId)
+int App::run(int argc, char *argv[], std::string startupId)
 {
-    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
-    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
-    webkit_network_session_set_memory_pressure_settings(mp);
-    app->signal_startup().connect([&]{ open(startupId, startupId == ""); });
-    return app->run();
+    return gui->run(argc, argv, [&]()
+                    { open(startupId, startupId == ""); });
 }

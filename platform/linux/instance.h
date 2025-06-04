@@ -1,37 +1,27 @@
 #ifndef INSTANCE_H_
 #define INSTANCE_H_
 
-#include <gtkmm/application.h>
-#include <webkit/webkit.h>
+#include "./gui.h"
 
-class Instance : public Gtk::Window
+class Instance
 {
 private:
     bool isEditor;
     char *header;
     int headerSize;
     bool firstTouch;
-    WebKitUserContentManager *ucm;
 
 public:
     std::string id;
-    WebKitWebView *webview;
-
-    static void webKitURISchemeRequestCallback(WebKitURISchemeRequest *request, gpointer userData);
-
-    static void onScriptMessage(WebKitUserContentManager *manager, JSCValue *value, gpointer userData);
-
-    static gboolean navigationDecidePolicy(WebKitWebView *view,
-        WebKitPolicyDecision *decision,
-        WebKitPolicyDecisionType decision_type,
-        gpointer user_data);
-
-    bool on_window_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);
+    Window* window;
 
     Instance(std::string pId, bool pIsEditor);
-    ~Instance();
 
     std::vector<unsigned char> callLib(char *data, int size);
+
+    Response onRequest(std::string path);
+    
+    std::string onBridge(std::string payload);
 
     void onMessage(char* type, char* message);
 };

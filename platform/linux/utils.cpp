@@ -122,9 +122,7 @@ std::vector<DataValue> deserializeArgs(std::vector<unsigned char> data)
 
 std::string gen_random(const int len)
 {
-    static const char alphanum[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
+    static const char alphanum[] = "abcdefghijklmnopqrstuvwxyz";
     std::string tmp_s;
     tmp_s.reserve(len);
 

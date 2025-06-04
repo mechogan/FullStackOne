@@ -2,7 +2,9 @@ import "../core_message";
 import platform, { Platform } from "../platform";
 import { BridgeAndroid } from "./platform/android";
 import { BridgeApple, initRespondApple } from "./platform/apple";
-import { BridgeLinux, initRespondLinux } from "./platform/linux";
+import { BridgeLinuxGTK, initRespondLinuxGTK } from "./platform/linux-gtk";
+import { BridgeLinuxQT, initRespondLinuxQT } from "./platform/linux-qt";
+import { BridgeElectron } from "./platform/electron";
 import { BridgeNode, initCallbackNode } from "./platform/node";
 import { BridgeWasm } from "./platform/wasm";
 import { BridgeWindows, initRespondWindows } from "./platform/windows";
@@ -13,6 +15,8 @@ export type Bridge = (
 ) => Promise<any>;
 
 export let bridge: Bridge;
+
+console.log(platform)
 
 switch (platform) {
     case Platform.NODE:
@@ -33,9 +37,16 @@ switch (platform) {
         bridge = BridgeWindows;
         initRespondWindows();
         break;
-    case Platform.LINUX:
-        bridge = BridgeLinux;
-        initRespondLinux();
+    case Platform.LINUX_GTK:
+        bridge = BridgeLinuxGTK;
+        initRespondLinuxGTK();
+        break;
+    case Platform.LINUX_QT:
+        bridge = BridgeLinuxQT;
+        initRespondLinuxQT();
+        break;
+    case Platform.ELECTRON:
+        bridge = BridgeElectron;
         break;
     case Platform.DOCKER:
         console.log("Bridge not yet implemented");
