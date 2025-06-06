@@ -8,6 +8,8 @@
 import SwiftUI
 
 class Instance {
+    static var callId = 0
+    
     public let isEditor: Bool
     public let id: String
     private var header: Data
@@ -34,12 +36,15 @@ class Instance {
         data.append(self.header)
         data.append(payload)
         
-        var responsePtr = Data().ptr()
-        let size = call(data.ptr(), Int32(data.count), &responsePtr)
-        let responseDataPtr = UnsafeBufferPointer(start: responsePtr!.assumingMemoryBound(to: UInt8.self), count: Int(size))
-        let responseData = Data(responseDataPtr)
-        freePtr(responsePtr)
         
-        return responseData
+        let id = Int32(Instance.callId);
+        let size = call(id, data.ptr(), Int32(data.count))
+        
+        let response = Data(repeating: 0, count: Int(size));
+        getResponse(id, response.ptr())
+        
+        Instance.callId += 1;
+        
+        return response
     }
 }
