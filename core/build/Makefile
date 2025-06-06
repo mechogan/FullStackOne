@@ -2,25 +2,34 @@ OUT = $(CURDIR)/../bin
 
 ###### MacOS #######
 
-macos-x86_64-shared:
+darwin-x64-shared:
 	CGO_ENABLED=1 \
 	GOOS=darwin \
 	GOARCH=amd64 \
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
-	go build -buildmode=c-shared -o $(OUT)/macos-x86_64 -v ..
+	go build -buildmode=c-shared -o $(OUT)/macos-x64.so -v ..
 
-macos-x86_64-static:
+darwin-x64-static:
 	CGO_ENABLED=1 \
 	GOOS=darwin \
 	GOARCH=amd64 \
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
-	go build -buildmode=c-archive -o $(OUT)/macos-x86_64.a -v ..
+	go build -buildmode=c-archive -o $(OUT)/macos-x64.a -v ..
 
-macos-arm64-static:
+darwin-arm64-shared:
+	CGO_ENABLED=1 \
+	GOOS=darwin \
+	GOARCH=arm64 \
+	SDK=macosx \
+	CC=$(CURDIR)/apple-clang.sh \
+	CGO_CFLAGS="-target arm64-apple-darwin" \
+	go build -buildmode=c-shared -o $(OUT)/macos-arm64.so -v ..
+
+darwin-arm64-static:
 	CGO_ENABLED=1 \
 	GOOS=darwin \
 	GOARCH=arm64 \
@@ -29,9 +38,9 @@ macos-arm64-static:
 	CGO_CFLAGS="-target arm64-apple-darwin" \
 	go build -buildmode=c-archive -o $(OUT)/macos-arm64.a -v ..
 
-macos-static: macos-x86_64-static macos-arm64-static
-	lipo $(OUT)/macos-x86_64.a $(OUT)/macos-arm64.a -create -output $(OUT)/macos.a
-	cp $(OUT)/macos-arm64.h $(OUT)/macos.h
+darwin-static: darwin-x64-static darwin-arm64-static
+	lipo $(OUT)/darwin-x64.a $(OUT)/darwin-arm64.a -create -output $(OUT)/darwin.a
+	cp $(OUT)/darwin-arm64.h $(OUT)/darwin.h
 
 ###### iOS/iPadOS #######
 
@@ -78,35 +87,31 @@ android-x86_64:
 
 android: android-arm android-arm64 android-x86_64
 
-###### Windows #######
-
-win-x86_64:
-	CGO_ENABLED=1 \
-	GOOS=windows \
-	GOARCH=amd64 \
-	CC=x86_64-w64-mingw32-gcc \
-	go build -buildmode=c-shared -o $(OUT)/win-x86_64.dll -v ..
-
 ###### Linux #######
 
-linux-x86_64-shared:
+linux-x64-shared:
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=amd64 \
-	go build -buildmode=c-shared -o $(OUT)/linux-x86_64 -v ..
+	go build -buildmode=c-shared -o $(OUT)/linux-x64.so -v ..
 
-linux-x86_64-static:
+linux-arm64-shared:
+	CGO_ENABLED=1 \
+	GOOS=linux \
+	GOARCH=arm64 \
+	go build -buildmode=c-shared -o $(OUT)/linux-arm64.so -v ..
+
+linux-x64-static:
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=amd64 \
-	CC=/usr/bin/gcc \
-	go build -buildmode=c-archive -o $(OUT)/linux-x86_64 -v ..
+	go build -buildmode=c-archive -o $(OUT)/linux-x64.a -v ..
 
 linux-arm64-static:
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=arm64 \
-	go build -buildmode=c-archive -o $(OUT)/linux-arm64 -v ..
+	go build -buildmode=c-archive -o $(OUT)/linux-arm64.a -v ..
 
 
 ###### WebAssembly #######
@@ -118,15 +123,8 @@ wasm:
 	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.js $(OUT)/wasm.js
 
 
-###### All #######
+###### Clean #######
 
 clean: 
 	rm -rf $(OUT) && \
 	go clean -cache
-
-all: macos-static \
-	macos-x86_64-shared \
-	ios-arm64 \
-	android \
-	win-x86_64 \
-	wasm

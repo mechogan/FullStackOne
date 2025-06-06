@@ -19,9 +19,6 @@ import (
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"sync"
 	"unsafe"
 )
@@ -70,10 +67,6 @@ func callback(cb unsafe.Pointer) {
 		C.free(unsafe.Pointer(messageTypePtr))
 		C.free(unsafe.Pointer(messagePtr))
 	}
-
-	go func() {
-		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
-	}()
 }
 
 var responses = map[C.int][]byte{}

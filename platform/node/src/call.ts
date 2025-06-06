@@ -1,23 +1,16 @@
-import ffi, { unwrapPointer } from "ffi-rs";
+import ffi from "ffi-rs";
 import path from "path";
 import os from "os";
+import fs from "node:fs";
 
 const platform = os.platform();
+const libBinary = platform + "-" + os.arch() + "." + (platform === "win32" ? ".dll" : ".so");
 const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
-const libBinary =
-    platform === "darwin"
-        ? "macos-x86_64"
-        : platform === "win32"
-          ? "win-x64.dll"
-          : platform === "linux"
-            ? "linux-x86_64"
-            : null;
+const libPath = path.resolve(binDirectory, libBinary);
 
-if (!libBinary) {
+if (!libBinary || !fs.existsSync(libPath)) {
     throw "unknown platform";
 }
-
-const libPath = path.resolve(binDirectory, libBinary);
 
 const library = "fullstacked";
 ffi.open({
@@ -92,7 +85,7 @@ export async function callLib(payload: Uint8Array) {
         runInNewThread: true,
         freeResultMemory: true
     });
-    
+
     const response = Buffer.alloc(responseLength)
     await ffi.load({
         errno: false,

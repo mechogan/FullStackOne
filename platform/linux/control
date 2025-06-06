@@ -1,5 +1,5 @@
 Package: fullstacked
 Version: 0.1
 Maintainer: cplepage
-Architecture: amd64
+Architecture:
 Description: FullStacked

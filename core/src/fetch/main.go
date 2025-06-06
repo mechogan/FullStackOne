@@ -32,8 +32,6 @@ func FetchSerialized(
 	timeout int,
 	asString bool,
 ) {
-	fmt.Println("Fetch Start")
-
 	requestBody := (io.Reader)(http.NoBody)
 	if len(body) > 0 {
 		requestBody = bytes.NewReader(body)
@@ -80,8 +78,6 @@ func FetchSerialized(
 
 	response.Body.Close()
 	bytes = nil
-
-	fmt.Println("Fetch End")
 }
 
 var chunkSize = 2048
