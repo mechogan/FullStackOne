@@ -17,7 +17,7 @@ child_process.execSync("npm run build -- --production", {
 
 // build core
 
-child_process.execSync("make macos-static ios-arm64 -j4", {
+child_process.execSync("make darwin-static ios-arm64 -j4", {
     cwd: path.resolve(rootDirectory, "core", "build"),
     stdio: "inherit"
 });
