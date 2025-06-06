@@ -1,7 +1,7 @@
 #include "./instance.h"
 #include "./utils.h"
 #include <iostream>
-#include "./bin/linux.h"
+#include "../bin/linux.h"
 #include "./app.h"
 #include "./base64.h"
 

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "./app.h"
-#include "./bin/linux.h"
+#include "../bin/linux.h"
 #include <filesystem>
 #include <unistd.h>
 #include <limits.h>

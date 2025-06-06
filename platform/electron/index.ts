@@ -55,6 +55,7 @@ function createView(id: string) {
             preload: path.join(__dirname, 'preload.js')
         }
     });
+    window.setMenu(null);
     instances.set(id, { window, instance });
     window.loadURL(id ? `http://${id}.localhost` : "http://localhost");
 }

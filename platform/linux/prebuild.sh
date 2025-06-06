@@ -12,8 +12,9 @@ mkdir ./out/DEBIAN
 cp control out/DEBIAN/control
 
 ARCH=$1
-if [ "$ARCH" == "x64" ]; then
+
+if [ "$ARCH" = "x64" ]; then
     ARCH="amd64"
 fi
 
-sed -i "" "s/Architecture:/Architecture: $ARCH/g" out/DEBIAN/control
+sed -i "s/Architecture:/Architecture: $ARCH/g" out/DEBIAN/control
