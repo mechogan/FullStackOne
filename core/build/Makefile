@@ -76,16 +76,16 @@ android-arm64:
 	CC=~/Library/Android/sdk/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android34-clang \
 	go build -buildmode=c-shared -o $(ANDROID_OUT)/arm64-v8a/core.so -v .. 
 
-android-x86_64:
-	mkdir -p $(ANDROID_OUT)/x86_64 && \
+android-x64:
+	mkdir -p $(ANDROID_OUT)/x64 && \
 	CGO_ENABLED=1 \
 	GOOS=android \
 	GOARCH=amd64 \
 	CGO_LDFLAGS="-Wl,-soname,core.so" \
 	CC=~/Library/Android/sdk/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android34-clang \
-	go build -buildmode=c-shared -o $(ANDROID_OUT)/x86_64/core.so -v .. 
+	go build -buildmode=c-shared -o $(ANDROID_OUT)/x64/core.so -v .. 
 
-android: android-arm android-arm64 android-x86_64
+android: android-arm android-arm64 android-x64
 
 ###### Linux #######
 
