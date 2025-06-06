@@ -59,7 +59,6 @@ func FetchSerialized(
 		setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 		return
 	}
-	defer response.Body.Close()
 
 	headersJSON, _ := json.Marshal(response.Header)
 
@@ -77,7 +76,8 @@ func FetchSerialized(
 
 	setup.Callback(projectId, "fetch-response", base64.StdEncoding.EncodeToString(bytes))
 
-	responseBody = nil
+	response.Body.Close()
+	bytes = nil
 }
 
 var chunkSize = 2048

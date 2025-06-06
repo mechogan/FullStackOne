@@ -4,7 +4,7 @@ namespace FullStacked
 {
     unsafe internal class LibX64 : Lib
     {
-        const string dllName = "win-x64.dll";
+        const string dllName = "win32-x64.dll";
 
         [DllImport(dllName)]
         public static extern void directories(void* root, void* config, void* editor);
@@ -12,7 +12,9 @@ namespace FullStacked
         public static extern void callback(CallbackDelegate cb);
 
         [DllImport(dllName)]
-        public static extern int call(byte* payload, int size, byte** response);
+        public static extern int call(int id, byte* payload, int size); 
+        [DllImport(dllName)]
+        public static extern void getResponse(int id, byte* ptr);
         [DllImport(dllName)]
         public static extern void freePtr(void* ptr);
 
@@ -26,9 +28,14 @@ namespace FullStacked
             callback(cb);
         }
 
-        public override unsafe int callLib(byte* payload, int size, byte** response)
+        public override unsafe int callLib(int id, byte* payload, int size)
         {
-            return call(payload, size, response);
+            return call(id, payload, size);
+        }
+
+        public override unsafe void getReponseLib(int id, byte* ptr)
+        {
+            getResponse(id, ptr);
         }
 
         public override unsafe void freePtrLib(void* ptr)

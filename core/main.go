@@ -2,10 +2,15 @@ package main
 
 /*
 #include <stdlib.h>
+#include <string.h>
 
 typedef void (*Callback)(char *projectId, char* type, char *msg);
 static inline void CallMyFunction(void *callback, char *projectId, char * type, char *msg) {
     ((Callback)callback)(projectId, type, msg);
+}
+
+static inline void write_bytes_array(void *data, int size, void *ptr) {
+	memcpy(ptr, data, size);
 }
 */
 import "C"
@@ -14,6 +19,7 @@ import (
 	fs "fullstacked/editor/src/fs"
 	methods "fullstacked/editor/src/methods"
 	setup "fullstacked/editor/src/setup"
+	"sync"
 	"unsafe"
 )
 
@@ -63,10 +69,32 @@ func callback(cb unsafe.Pointer) {
 	}
 }
 
+var responses = map[C.int][]byte{}
+var responsesMutex = sync.Mutex{}
+
+//export getResponse
+func getResponse(id C.int, ptr unsafe.Pointer) {
+	responsesMutex.Lock()
+	response := responses[id]
+	responsesMutex.Unlock()
+
+	bytes := C.CBytes(response)
+	C.write_bytes_array(bytes, C.int(len(response)), ptr)
+	C.free(bytes)
+
+	responsesMutex.Lock()
+	delete(responses, id)
+	responsesMutex.Unlock()
+}
+
 //export call
-func call(buffer unsafe.Pointer, length C.int, responsePtr *unsafe.Pointer) C.int {
+func call(id C.int, buffer unsafe.Pointer, length C.int) C.int {
 	response := methods.Call(C.GoBytes(buffer, length))
-	*responsePtr = C.CBytes(response)
+
+	responsesMutex.Lock()
+	responses[id] = response
+	responsesMutex.Unlock()
+
 	return C.int(len(response))
 }
 

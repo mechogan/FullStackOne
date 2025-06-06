@@ -5,7 +5,7 @@
 #ifdef ANDROID_ABI_arm64
 #include "core/arm64-v8a/core.h"
 #elif ANDROID_ABI_x64
-#include "core/x86_64/core.h"
+#include "core/x64/core.h"
 #else
 #include "core/armeabi-v7a/core.h"
 #endif
@@ -20,7 +20,7 @@ extern "C" {
             (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor);
 
     JNIEXPORT jbyteArray JNICALL Java_org_fullstacked_editor_Instance_call
-        (JNIEnv *env, jobject jobj, jbyteArray buffer);
+        (JNIEnv *env, jobject jobj, jbyteArray payload);
 
     JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved);
 

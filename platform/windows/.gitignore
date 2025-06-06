@@ -4,6 +4,6 @@ obj
 editor
 *.pfx
 Package.StoreAssociation.xml
-win-*.dll
+win32-*.dll
 publish
 AppPackages

@@ -5,7 +5,9 @@ export enum Platform {
     DOCKER = "docker",
     WINDOWS = "windows",
     WASM = "wasm",
-    LINUX = "linux"
+    LINUX_GTK = "linux-gtk",
+    LINUX_QT = "linux-qt",
+    ELECTRON = "electron"
 }
 
 const platform = await (await fetch("/platform")).text();

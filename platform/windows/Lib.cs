@@ -7,7 +7,8 @@
 
         public delegate void CallbackDelegate(string projectId, string messageType, string message);
 
-        public abstract int callLib(byte* payload, int size, byte** response);
+        public abstract int callLib(int id, byte* payload, int size);
+        public abstract void getReponseLib(int id, byte* ptr);
         public abstract void freePtrLib(void* ptr);
     }
 }

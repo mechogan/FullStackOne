@@ -1,30 +1,18 @@
 import ffi from "ffi-rs";
 import path from "path";
 import os from "os";
+import fs from "node:fs";
 
 const platform = os.platform();
+const libBinary = platform + "-" + os.arch() + (platform === "win32" ? ".dll" : ".so");
 const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
-const libBinary =
-    platform === "darwin"
-        ? "macos-x86_64"
-        : platform === "win32"
-          ? "win-x64.dll"
-          : platform === "linux"
-            ? "linux-x86_64"
-            : null;
+const libPath = path.resolve(binDirectory, libBinary);
 
-if (!libBinary) {
+if (!fs.existsSync(libPath)) {
     throw "unknown platform";
 }
 
-const libPath = path.resolve(binDirectory, libBinary);
-
 const library = "fullstacked";
-ffi.open({
-    library: library,
-    path: libPath
-});
-
 ffi.open({
     library: library,
     path: libPath
@@ -79,60 +67,39 @@ export function setCallback(
     });
 }
 
+let id = 0;
 export async function callLib(payload: Uint8Array) {
-    const responsePtr = ffi.createPointer({
-        paramsType: [
-            ffi.arrayConstructor({
-                type: ffi.DataType.U8Array,
-                length: 0
-            })
-        ],
-        paramsValue: [new Uint8Array()]
-    });
+    const callId = id++;
 
     const responseLength = await ffi.load({
         errno: false,
         library,
         funcName: "call",
         paramsType: [
-            ffi.DataType.U8Array,
             ffi.DataType.I32,
-            ffi.DataType.External
+            ffi.DataType.U8Array,
+            ffi.DataType.I32
         ],
         retType: ffi.DataType.I32,
-        paramsValue: [payload, payload.byteLength, responsePtr.at(0)],
+        paramsValue: [callId, payload, payload.byteLength],
         runInNewThread: true,
         freeResultMemory: true
     });
 
-    const uint8arrayConstructor = ffi.arrayConstructor({
-        type: ffi.DataType.U8Array,
-        length: responseLength
-    });
-
-    const data = ffi
-        .restorePointer({
-            retType: [uint8arrayConstructor],
-            paramsValue: responsePtr
-        })
-        .at(0) as unknown as Buffer;
-
-    ffi.load({
+    const response = Buffer.alloc(responseLength)
+    await ffi.load({
         errno: false,
         library,
-        funcName: "freePtr",
-        paramsType: [ffi.DataType.External],
+        funcName: "getResponse",
+        paramsType: [
+            ffi.DataType.I32,
+            ffi.DataType.U8Array
+        ],
         retType: ffi.DataType.Void,
-        paramsValue: [ffi.unwrapPointer(responsePtr).at(0)],
+        paramsValue: [callId, response],
         runInNewThread: true,
         freeResultMemory: true
     });
 
-    ffi.freePointer({
-        paramsType: [uint8arrayConstructor],
-        paramsValue: responsePtr,
-        pointerType: ffi.PointerType.RsPointer
-    });
-
-    return new Uint8Array(data.buffer);
+    return new Uint8Array(response);
 }

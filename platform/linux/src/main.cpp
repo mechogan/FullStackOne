@@ -1,11 +1,10 @@
-#include <gtkmm/window.h>
-#include <gtkmm/button.h>
 #include <iostream>
 #include <fstream>
 #include "./app.h"
-#include "./bin/linux.h"
+#include "../bin/linux.h"
 #include <filesystem>
-#include <gtkmm/icontheme.h>
+#include <unistd.h>
+#include <limits.h>
 
 std::string getExePath()
 {
@@ -93,5 +92,5 @@ int main(int argc, char *argv[])
         }
     }
     
-    return app->run(startupId);
+    return app->run(argc, argv, startupId);
 }
