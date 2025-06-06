@@ -23,17 +23,18 @@ JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories
     );
 }
 
-int id = 0;
+int callId = 0;
 
 JNIEXPORT jbyteArray JNICALL Java_org_fullstacked_editor_Instance_call
         (JNIEnv *env, jobject obj, jbyteArray payload)
 {
+    int id = callId++;
+
     int length = env->GetArrayLength(payload);
     int responseSize = call(id, env->GetByteArrayElements(payload, nullptr), length);
 
-    const signed char* responsePtr = new signed char[responseSize];
+    auto* responsePtr = new signed char[responseSize];
     getResponse(id, (void *)responsePtr);
-    id++;
 
     jbyteArray response = env->NewByteArray(responseSize);
     env->SetByteArrayRegion(response, 0, responseSize, responsePtr);

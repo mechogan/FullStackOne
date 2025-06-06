@@ -4,11 +4,11 @@ import os from "os";
 import fs from "node:fs";
 
 const platform = os.platform();
-const libBinary = platform + "-" + os.arch() + "." + (platform === "win32" ? ".dll" : ".so");
+const libBinary = platform + "-" + os.arch() + (platform === "win32" ? ".dll" : ".so");
 const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
 const libPath = path.resolve(binDirectory, libBinary);
 
-if (!libBinary || !fs.existsSync(libPath)) {
+if (!fs.existsSync(libPath)) {
     throw "unknown platform";
 }
 

@@ -9,7 +9,7 @@ darwin-x64-shared:
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
-	go build -buildmode=c-shared -o $(OUT)/macos-x64.so -v ..
+	go build -buildmode=c-shared -o $(OUT)/darwin-x64.so -v ..
 
 darwin-x64-static:
 	CGO_ENABLED=1 \
@@ -18,7 +18,7 @@ darwin-x64-static:
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target x86_64-apple-darwin" \
-	go build -buildmode=c-archive -o $(OUT)/macos-x64.a -v ..
+	go build -buildmode=c-archive -o $(OUT)/darwin-x64.a -v ..
 
 darwin-arm64-shared:
 	CGO_ENABLED=1 \
@@ -27,7 +27,7 @@ darwin-arm64-shared:
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target arm64-apple-darwin" \
-	go build -buildmode=c-shared -o $(OUT)/macos-arm64.so -v ..
+	go build -buildmode=c-shared -o $(OUT)/darwin-arm64.so -v ..
 
 darwin-arm64-static:
 	CGO_ENABLED=1 \
@@ -36,7 +36,7 @@ darwin-arm64-static:
 	SDK=macosx \
 	CC=$(CURDIR)/apple-clang.sh \
 	CGO_CFLAGS="-target arm64-apple-darwin" \
-	go build -buildmode=c-archive -o $(OUT)/macos-arm64.a -v ..
+	go build -buildmode=c-archive -o $(OUT)/darwin-arm64.a -v ..
 
 darwin-static: darwin-x64-static darwin-arm64-static
 	lipo $(OUT)/darwin-x64.a $(OUT)/darwin-arm64.a -create -output $(OUT)/darwin.a

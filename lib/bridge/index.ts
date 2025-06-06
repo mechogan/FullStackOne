@@ -15,9 +15,6 @@ export type Bridge = (
 ) => Promise<any>;
 
 export let bridge: Bridge;
-
-console.log(platform)
-
 switch (platform) {
     case Platform.NODE:
         bridge = BridgeNode;

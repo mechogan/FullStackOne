@@ -36,7 +36,6 @@ class Instance {
         data.append(self.header)
         data.append(payload)
         
-        
         let id = Int32(Instance.callId);
         let size = call(id, data.ptr(), Int32(data.count))
         
