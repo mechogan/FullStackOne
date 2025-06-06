@@ -4,7 +4,7 @@ namespace FullStacked
 {
     unsafe internal class LibX64 : Lib
     {
-        const string dllName = "win-x64.dll";
+        const string dllName = "win32-x64.dll";
 
         [DllImport(dllName)]
         public static extern void directories(void* root, void* config, void* editor);

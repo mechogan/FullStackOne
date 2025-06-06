@@ -16,9 +16,6 @@ const build = (testFile: string) => {
 // type checking
 child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
 
-// core build
-// child_process.execSync(`node ${build("core.ts")}`, { stdio: "inherit" });
-
 // basic tests
 child_process.execSync(`node ${build("basic.ts")}`, {
     stdio: "inherit"

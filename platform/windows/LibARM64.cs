@@ -5,7 +5,7 @@ namespace FullStacked
     unsafe internal class LibARM64 : Lib
     {
 
-        const string dllName = "win-arm64.dll";
+        const string dllName = "win32-arm64.dll";
 
         [DllImport(dllName)]
         public static extern void directories(void* root, void* config, void* editor);
