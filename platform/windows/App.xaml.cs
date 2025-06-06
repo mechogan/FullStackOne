@@ -21,6 +21,7 @@ namespace FullStacked
     unsafe public partial class App : Application
     {
         static Lib lib;
+        static int callId = 0;
 
         public App()
         {
@@ -211,17 +212,16 @@ namespace FullStacked
 
         public static byte[] call(byte[] payload)
         {
-            byte[] responsePtr;
-
-
-            fixed (byte* p = payload, r = responsePtr)
+            int id = callId++;
+            fixed (byte* p = payload)
             {
-                int responseLength = App.lib.callLib(p, payload.Length, &r);
+                int responseLength = App.lib.callLib(id, p, payload.Length);
 
                 byte[] response = new byte[responseLength];
-                Marshal.Copy((IntPtr)r, response, 0, responseLength);
 
-                App.lib.freePtrLib(r);
+                fixed (byte* r = response) {
+                    App.lib.getReponseLib(id, r);
+                }
 
                 return response;
             }

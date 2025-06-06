@@ -106,14 +106,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="win-arm64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-	<None Update="win-x64.dll">
-		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	<None Update="win32-arm64.dll">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
-	<None Update="win-x86.dll">
-		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	<None Update="win32-ia32.dll">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</None>
+	<None Update="win32-x64.dll">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
   </ItemGroup>
 
