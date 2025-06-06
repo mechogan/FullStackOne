@@ -17,9 +17,10 @@ int WebkitGTKGUI::run(int &argc, char **argv, std::function<void()> onReady)
 {
     app = Gtk::Application::create("org.fullstacked");
     
-    WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
-    webkit_memory_pressure_settings_set_memory_limit(mp, 200);
-    webkit_network_session_set_memory_pressure_settings(mp);
+    // use this setting to help with memory maangement
+    // WebKitMemoryPressureSettings *mp = webkit_memory_pressure_settings_new();
+    // webkit_memory_pressure_settings_set_memory_limit(mp, 200);
+    // webkit_network_session_set_memory_pressure_settings(mp);
 
     app->signal_startup().connect(onReady);
     return app->run();
