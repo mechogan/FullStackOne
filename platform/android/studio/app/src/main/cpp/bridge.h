@@ -5,7 +5,7 @@
 #ifdef ANDROID_ABI_arm64
 #include "core/arm64-v8a/core.h"
 #elif ANDROID_ABI_x64
-#include "core/x64/core.h"
+#include "core/x86_64/core.h"
 #else
 #include "core/armeabi-v7a/core.h"
 #endif
