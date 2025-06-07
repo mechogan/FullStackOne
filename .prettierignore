@@ -17,8 +17,6 @@ platform/android/studio/app/release
 
 platform/docker/package
 
-platform/electron/js
-
 platform/apple/*.xcarchive
 platform/apple/pkg*
 platform/apple/FullStacked.xcodeproj/xcshareddate
