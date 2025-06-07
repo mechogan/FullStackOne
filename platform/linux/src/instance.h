@@ -4,25 +4,25 @@
 #include "./gui.h"
 
 class Instance {
-private:
-  bool isEditor;
-  char *header;
-  int headerSize;
-  bool firstTouch;
+    private:
+        bool isEditor;
+        char *header;
+        int headerSize;
+        bool firstTouch;
 
-public:
-  std::string id;
-  Window *window;
+    public:
+        std::string id;
+        Window *window;
 
-  Instance(std::string pId, bool pIsEditor);
+        Instance(std::string pId, bool pIsEditor);
 
-  std::vector<unsigned char> callLib(char *data, int size);
+        std::vector<unsigned char> callLib(char *data, int size);
 
-  Response onRequest(std::string path);
+        Response onRequest(std::string path);
 
-  std::string onBridge(std::string payload);
+        std::string onBridge(std::string payload);
 
-  void onMessage(char *type, char *message);
+        void onMessage(char *type, char *message);
 };
 
 #endif

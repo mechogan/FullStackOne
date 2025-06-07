@@ -5,41 +5,41 @@
 #include <string>
 
 struct Response {
-  std::string type;
-  std::vector<unsigned char> data;
+        std::string type;
+        std::vector<unsigned char> data;
 };
 
 class Window {
-public:
-  virtual ~Window() = default;
+    public:
+        virtual ~Window() = default;
 
-  std::function<Response(std::string)> onRequest = nullptr;
-  std::function<std::string(std::string)> onBridge = nullptr;
+        std::function<Response(std::string)> onRequest = nullptr;
+        std::function<std::string(std::string)> onBridge = nullptr;
 
-  virtual void onMessage(std::string type, std::string message) {};
+        virtual void onMessage(std::string type, std::string message) {};
 
-  virtual void close() {};
+        virtual void close() {};
 
-  virtual void bringToFront(bool reload) {};
+        virtual void bringToFront(bool reload) {};
 
-  virtual void setFullscreen() {};
+        virtual void setFullscreen() {};
 };
 
 class GUI {
-public:
-  virtual ~GUI() = default;
+    public:
+        virtual ~GUI() = default;
 
-  virtual void createApp() {};
+        virtual void createApp() {};
 
-  virtual int run(int &argc, char **argv, std::function<void()> onReady) {
-    return 0;
-  };
+        virtual int run(int &argc, char **argv, std::function<void()> onReady) {
+            return 0;
+        };
 
-  virtual Window *
-  createWindow(std::function<Response(std::string)> onRequest,
-               std::function<std::string(std::string)> onBridge) {
-    return nullptr;
-  };
+        virtual Window *
+        createWindow(std::function<Response(std::string)> onRequest,
+                     std::function<std::string(std::string)> onBridge) {
+            return nullptr;
+        };
 };
 
 #endif

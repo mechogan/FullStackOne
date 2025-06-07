@@ -11,26 +11,26 @@
 #endif
 
 class App {
-private:
+    private:
 #ifdef GTK
-  GUI *gui = new WebkitGTKGUI();
+        GUI *gui = new WebkitGTKGUI();
 #else
-  GUI *gui = new QtGUI();
+        GUI *gui = new QtGUI();
 #endif
 
-public:
-  inline static App *instance;
-  std::map<std::string, Instance *> activeWindows;
-  std::string deeplink;
-  bool kiosk = false;
+    public:
+        inline static App *instance;
+        std::map<std::string, Instance *> activeWindows;
+        std::string deeplink;
+        bool kiosk = false;
 
-  App();
+        App();
 
-  void onMessage(char *projectId, char *type, char *message);
+        void onMessage(char *projectId, char *type, char *message);
 
-  void open(std::string projectId, bool isEditor);
+        void open(std::string projectId, bool isEditor);
 
-  int run(int argc, char *argv[], std::string startupId);
+        int run(int argc, char *argv[], std::string startupId);
 };
 
 #endif
