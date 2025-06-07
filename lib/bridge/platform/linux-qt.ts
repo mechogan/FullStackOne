@@ -8,23 +8,24 @@ import {
 } from "../serialization";
 
 const pendingRequests: {
-    payload: Uint8Array,
-    transformer: (responseArgs: any[]) => any,
-    resolve: (args: any) => void
+    payload: Uint8Array;
+    transformer: (responseArgs: any[]) => any;
+    resolve: (args: any) => void;
 }[] = [];
 let channel: any;
 
-async function respond(payload: Uint8Array, transformer?: (responseArgs: any[]) => any) {
-    const payloadStr = fromByteArray(
-        new Uint8Array([0, 0, 0, 0, ...payload])
-    );
+async function respond(
+    payload: Uint8Array,
+    transformer?: (responseArgs: any[]) => any
+) {
+    const payloadStr = fromByteArray(new Uint8Array([0, 0, 0, 0, ...payload]));
 
     const response = await channel.objects.bridge.call(payloadStr);
     const data = toByteArray(response);
     const args = deserializeArgs(data.slice(4));
 
-    if(transformer) {
-        return transformer(args)
+    if (transformer) {
+        return transformer(args);
     }
 
     return args;
@@ -35,12 +36,12 @@ export const BridgeLinuxQT: Bridge = (
     transformer?: (responseArgs: any[]) => any
 ) => {
     if (!channel) {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             pendingRequests.push({
                 payload,
                 transformer,
                 resolve
-            })
+            });
         });
     }
 
@@ -52,14 +53,16 @@ export async function initRespondLinuxQT() {
     script.src = "qrc:///qtwebchannel/qwebchannel.js";
     script.onload = () => {
         new globalThis.QWebChannel(globalThis.qt.webChannelTransport, (c) => {
-            channel = c
+            channel = c;
             pendingRequests.forEach(({ payload, transformer, resolve }) => {
-                respond(payload, transformer).then(resolve)
-            })
-            channel.objects.bridge.core_message.connect(function (type, message) {
-                globalThis.oncoremessage(type, message);
+                respond(payload, transformer).then(resolve);
             });
+            channel.objects.bridge.core_message.connect(
+                function (type, message) {
+                    globalThis.oncoremessage(type, message);
+                }
+            );
         });
-    }
+    };
     document.body.append(script);
 }

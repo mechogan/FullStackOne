@@ -37,7 +37,7 @@ export const BridgeLinuxGTK: Bridge = (
 
 export function initRespondLinuxGTK() {
     globalThis.respond = (base64: string) => {
-        console.log(base64)
+        console.log(base64);
         const data = toByteArray(base64);
         const id = bytesToNumber(data.slice(0, 4));
         console.log(id);

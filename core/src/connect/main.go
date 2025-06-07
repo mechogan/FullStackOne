@@ -16,16 +16,16 @@ func Connect(
 	channelId := utils.RandString(6)
 	channel := Channel{
 		ProjectId: projectId,
-        Id: channelId,
-		Name: name,
-		Port: int(port),
-		Host: host,
-		Raw: raw,
+		Id:        channelId,
+		Name:      name,
+		Port:      int(port),
+		Host:      host,
+		Raw:       raw,
 	}
 	channel.connect()
 	channels[channelId] = channel
-    go channel.start()
-    return channelId
+	go channel.start()
+	return channelId
 }
 
 func Send(

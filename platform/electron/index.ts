@@ -1,12 +1,15 @@
 import { app, BrowserWindow, ipcMain, protocol } from "electron";
 import { createInstance } from "../node/src/instance";
-import { deserializeArgs, numberTo4Bytes } from "../../lib/bridge/serialization";
+import {
+    deserializeArgs,
+    numberTo4Bytes
+} from "../../lib/bridge/serialization";
 import { setCallback, setDirectories } from "../node/src/call";
 import path from "path";
 import os from "os";
 
-app.whenReady().then(init)
-app.on('window-all-closed', () => app.quit());
+app.whenReady().then(init);
+app.on("window-all-closed", () => app.quit());
 
 async function init() {
     protocol.handle("http", protocolHandler);
@@ -18,7 +21,9 @@ async function init() {
         }
 
         const window = instances.get(projectId)?.window;
-        window?.webContents?.executeJavaScript(`window.oncoremessage( \`${messageType}\`, \`${message}\` )`);
+        window?.webContents?.executeJavaScript(
+            `window.oncoremessage( \`${messageType}\`, \`${message}\` )`
+        );
     };
     await setCallback(cb);
 
@@ -39,12 +44,15 @@ async function init() {
     }
 }
 
-const instances = new Map<string, {
-    instance: ReturnType<typeof createInstance>
-    window: BrowserWindow
-}>()
+const instances = new Map<
+    string,
+    {
+        instance: ReturnType<typeof createInstance>;
+        window: BrowserWindow;
+    }
+>();
 function getInstance(url: URL) {
-    const host = url.host.slice(0, -(".localhost".length));
+    const host = url.host.slice(0, -".localhost".length);
     return instances.get(host);
 }
 
@@ -52,7 +60,7 @@ function createView(id: string) {
     const instance = createInstance(id, id === "");
     const window = new BrowserWindow({
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, "preload.js")
         }
     });
     window.setMenu(null);
@@ -60,18 +68,18 @@ function createView(id: string) {
     window.loadURL(id ? `http://${id}.localhost` : "http://localhost");
 }
 
-ipcMain.handle('bridge', async (event, payload) => {
-    const webContents = event.sender
-    const { instance } = getInstance(new URL(webContents.getURL()))
+ipcMain.handle("bridge", async (event, payload) => {
+    const webContents = event.sender;
+    const { instance } = getInstance(new URL(webContents.getURL()));
     const response = await instance.call(payload);
     return response;
-})
+});
 
 const te = new TextEncoder();
 const platform = te.encode("electron");
 
 async function protocolHandler(request: Request): Promise<Response> {
-    const url = new URL(request.url)
+    const url = new URL(request.url);
     const { instance } = getInstance(url);
 
     if (url.pathname === "/platform") {
@@ -117,4 +125,3 @@ async function protocolHandler(request: Request): Promise<Response> {
         }
     });
 }
-

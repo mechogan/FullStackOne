@@ -5,7 +5,7 @@ console.log("Listening on 8888");
 
 const channel = server.createChannel("test");
 channel.on((data) => {
-    if(data.at(0) === "ping") {
+    if (data.at(0) === "ping") {
         console.log("pong");
         setTimeout(() => channel.send("ping"), 1000);
     }

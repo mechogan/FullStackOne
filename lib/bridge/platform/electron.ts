@@ -8,7 +8,7 @@ export const BridgeElectron: Bridge = async (
     const response = await (window as any).electronAPI.bridge(payload);
     const args = deserializeArgs(response);
     if (transformer) {
-        return transformer(args)
+        return transformer(args);
     }
     return args;
-}
+};

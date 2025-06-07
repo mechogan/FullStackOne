@@ -3,27 +3,26 @@
 
 #include "./gui.h"
 
-class Instance
-{
+class Instance {
 private:
-    bool isEditor;
-    char *header;
-    int headerSize;
-    bool firstTouch;
+  bool isEditor;
+  char *header;
+  int headerSize;
+  bool firstTouch;
 
 public:
-    std::string id;
-    Window* window;
+  std::string id;
+  Window *window;
 
-    Instance(std::string pId, bool pIsEditor);
+  Instance(std::string pId, bool pIsEditor);
 
-    std::vector<unsigned char> callLib(char *data, int size);
+  std::vector<unsigned char> callLib(char *data, int size);
 
-    Response onRequest(std::string path);
-    
-    std::string onBridge(std::string payload);
+  Response onRequest(std::string path);
 
-    void onMessage(char* type, char* message);
+  std::string onBridge(std::string payload);
+
+  void onMessage(char *type, char *message);
 };
 
 #endif

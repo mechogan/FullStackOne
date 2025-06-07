@@ -4,7 +4,8 @@ import os from "os";
 import fs from "node:fs";
 
 const platform = os.platform();
-const libBinary = platform + "-" + os.arch() + (platform === "win32" ? ".dll" : ".so");
+const libBinary =
+    platform + "-" + os.arch() + (platform === "win32" ? ".dll" : ".so");
 const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
 const libPath = path.resolve(binDirectory, libBinary);
 
@@ -75,26 +76,19 @@ export async function callLib(payload: Uint8Array) {
         errno: false,
         library,
         funcName: "call",
-        paramsType: [
-            ffi.DataType.I32,
-            ffi.DataType.U8Array,
-            ffi.DataType.I32
-        ],
+        paramsType: [ffi.DataType.I32, ffi.DataType.U8Array, ffi.DataType.I32],
         retType: ffi.DataType.I32,
         paramsValue: [callId, payload, payload.byteLength],
         runInNewThread: true,
         freeResultMemory: true
     });
 
-    const response = Buffer.alloc(responseLength)
+    const response = Buffer.alloc(responseLength);
     await ffi.load({
         errno: false,
         library,
         funcName: "getResponse",
-        paramsType: [
-            ffi.DataType.I32,
-            ffi.DataType.U8Array
-        ],
+        paramsType: [ffi.DataType.I32, ffi.DataType.U8Array],
         retType: ffi.DataType.Void,
         paramsValue: [callId, response],
         runInNewThread: true,
