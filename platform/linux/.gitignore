@@ -1,4 +1,4 @@
-fullstacked.deb
+*.deb
 CMakeCache.txt
 cmake_install.cmake
 CMakeFiles
