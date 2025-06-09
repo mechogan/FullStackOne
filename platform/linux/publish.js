@@ -52,7 +52,7 @@ child_process.execSync(`sh ./pkg.sh`, {
     stdio: "inherit"
 });
 
-const debPackageGTK = path.resolve(currentDirectory, `fullstacked-${version.major}.${version.minor}.${version.patch}-linux-${arch}-gtk.deb`)
+const debPackageGTK = path.resolve(currentDirectory, `fullstacked-${version.major}.${version.minor}.${version.patch}-linux-${arch}-gtk-${version.build}.deb`)
 
 fs.renameSync(
     path.resolve(currentDirectory, "fullstacked.deb"),
@@ -73,7 +73,7 @@ child_process.execSync(`make -j4`, {
 
 // pkg Qt
 
-const debPackageQt = path.resolve(currentDirectory, `fullstacked-${version.major}.${version.minor}.${version.patch}-linux-${arch}-qt.deb`)
+const debPackageQt = path.resolve(currentDirectory, `fullstacked-${version.major}.${version.minor}.${version.patch}-linux-${arch}-qt-${version.build}.deb`)
 
 child_process.execSync(`sh ./pkg.sh`, {
     cwd: currentDirectory,
@@ -221,7 +221,7 @@ async function uploadDebToReleaseByTag(options) {
 
         if (assetsResponse.ok) {
             const assets = await assetsResponse.json();
-            const existingAsset = assets.find(asset => asset.name === fileName);
+            const existingAsset = assets.find(asset => asset.name.startsWith(fileName.split("-").slice(0, -1).join("-")));
 
             if (existingAsset) {
                 console.log(`Asset ${fileName} already exists. Deleting it...`);
