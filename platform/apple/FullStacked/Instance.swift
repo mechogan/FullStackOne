@@ -39,8 +39,12 @@ class Instance {
         let id = Int32(Instance.callId);
         let size = call(id, data.ptr(), Int32(data.count))
         
-        let response = Data(repeating: 0, count: Int(size));
-        getResponse(id, response.ptr())
+        let responsePtr = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
+        
+        getResponse(id, responsePtr)
+        
+        let response = Data(bytes: responsePtr, count: Int(size))
+        responsePtr.deallocate()
         
         Instance.callId += 1;
         
