@@ -1,7 +1,3 @@
-.cache
-src
-*.ts
-!*.d.ts
-*.tgz
-!dist
-!Demo.zip
+**/*
+!index.js
+!editor/**/*

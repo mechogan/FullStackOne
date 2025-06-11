@@ -1,5 +1,6 @@
-import path from "path";
-import os from "os";
+#!/usr/bin/env node
+import path from "node:path";
+import os from "node:os";
 import { setCallback, setDirectories } from "./call";
 import { createWebView } from "./webview";
 import { createInstance } from "./instance";
@@ -10,11 +11,22 @@ if (process.argv.at(-1).startsWith("http")) {
     deeplink = process.argv.at(-1);
 }
 
-const root = path.resolve(os.homedir(), "FullStacked");
+function parseArgsForPath(arg: string, fallback: string = process.cwd()) {
+    const indexOfArg = process.argv.indexOf(arg);
+    if (indexOfArg === -1) return fallback;
+    const definedPath = process.argv.at(indexOfArg + 1);
+    if (definedPath.startsWith("~/")) {
+        return path.resolve(os.homedir(), definedPath.slice(2));
+    } else if (definedPath.startsWith("/")) {
+        return definedPath
+    }
+    return path.resolve(process.cwd(), definedPath);
+}
+
 await setDirectories({
-    root,
-    config: path.resolve(os.homedir(), ".config", "fullstacked"),
-    editor: path.resolve(process.cwd(), "..", "..", "out", "editor")
+    root: parseArgsForPath("--root"),
+    config: parseArgsForPath("--config"),
+    editor: parseArgsForPath("--editor", "node_modules/fullstacked/editor")
 });
 
 export const platform = new TextEncoder().encode("node");
@@ -50,13 +62,19 @@ async function openProject(id: string) {
     webViews.set(id, webView);
 }
 
-const instanceEditor = createInstance("", true);
-const instanceWebView = await createWebView(instanceEditor, null, () => {
+const kioskIndex = process.argv.indexOf("--kiosk");
+
+let mainInstanceId = kioskIndex === -1
+    ? ""
+    : process.argv.at(kioskIndex + 1) || ""
+
+const mainInstance = createInstance(mainInstanceId, mainInstanceId === "");
+const mainInstanceWebView = await createWebView(mainInstance, null, () => {
     if (!deeplink || deeplinkMessaged) return;
-    instanceWebView.message("deeplink", "fullstacked://" + deeplink);
+    mainInstanceWebView.message("deeplink", "fullstacked://" + deeplink);
     deeplinkMessaged = true;
 });
-webViews.set("", instanceWebView);
+webViews.set(mainInstanceId, mainInstanceWebView);
 
 ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((signal) =>
     process.on(signal, () => process.exit())

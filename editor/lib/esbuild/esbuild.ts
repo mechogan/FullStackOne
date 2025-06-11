@@ -27,23 +27,23 @@ function buildResponse(buildResult: string) {
     const activeBuild = activeBuilds.get(id);
 
     if (!errorsStr) {
-        return;
-    }
-
-    const errors = JSON.parse(errorsStr);
-    const messages = errors?.map(uncapitalizeKeys).map((error) => ({
-        ...error,
-        location: error.location
-            ? {
-                  ...error.location,
-                  file: error.location.file.includes(activeBuild.project.id)
-                      ? activeBuild.project.id +
+        activeBuild.resolve([]);
+    } else {
+        const errors = JSON.parse(errorsStr);
+        const messages = errors?.map(uncapitalizeKeys).map((error) => ({
+            ...error,
+            location: error.location
+                ? {
+                    ...error.location,
+                    file: error.location.file.includes(activeBuild.project.id)
+                        ? activeBuild.project.id +
                         error.location.file.split(activeBuild.project.id).pop()
-                      : error.location.file
-              }
-            : null
-    }));
-    activeBuild.resolve(messages);
+                        : error.location.file
+                }
+                : null
+        }));
+        activeBuild.resolve(messages);
+    }
 
     activeBuilds.delete(id);
 }
@@ -68,6 +68,16 @@ export function build(project: Project): Promise<Message[]> {
         });
         bridge(payload);
     });
+}
+
+// 57
+export function shouldBuild(project: Project): Promise<boolean> {
+    const payload = new Uint8Array([
+        57,
+        ...serializeArgs([project.id])
+    ]);
+
+    return bridge(payload, ([should]) => should);
 }
 
 function isPlainObject(input: any) {

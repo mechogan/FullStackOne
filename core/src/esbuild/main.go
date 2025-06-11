@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	fs "fullstacked/editor/src/fs"
+	"fullstacked/editor/src/git"
 	serialize "fullstacked/editor/src/serialize"
 	setup "fullstacked/editor/src/setup"
 	utils "fullstacked/editor/src/utils"
@@ -56,6 +57,35 @@ func findEntryPoint(directory string) *string {
 	}
 
 	return entryPoint
+}
+
+func ShouldBuild(projectDirectory string) bool {
+	if !git.HasGit(projectDirectory) {
+		return true
+	}
+
+	lastBuildCommitFilePath := path.Join(projectDirectory, ".build", ".commit")
+	_, isFile := fs.Exists(lastBuildCommitFilePath)
+
+	if !isFile {
+		return true
+	}
+
+	lastBuildCommit, err := fs.ReadFile(lastBuildCommitFilePath)
+
+	if err != nil {
+		return true
+	}
+
+	head, err := git.Head(projectDirectory)
+
+	if err != nil {
+		return true
+	}
+
+	currentCommit := head.Hash().String()
+
+	return string(lastBuildCommit) != currentCommit
 }
 
 func Build(
@@ -164,6 +194,14 @@ func Build(
 
 	for _, file := range result.OutputFiles {
 		fs.WriteFile(file.Path, file.Contents, fileEventOrigin)
+	}
+
+	if len(result.Errors) == 0 && git.HasGit(projectDirectory) {
+		head, err := git.Head(projectDirectory)
+		if err == nil {
+			cacheCommitFile := path.Join(projectDirectory, ".build", ".commit")
+			fs.WriteFile(cacheCommitFile, []byte(head.Hash().String()), fileEventOrigin)
+		}
 	}
 
 	// don't try to directly send JSON string.

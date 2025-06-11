@@ -89,8 +89,6 @@ async function deleteP(project: Project) {
     fs.rmdir(project.id);
 }
 
-const buildHashFile = ".build/.commit";
-
 async function build(project: Project) {
     Store.editor.codeEditor.clearAllBuildErrors();
 
@@ -102,28 +100,16 @@ async function build(project: Project) {
         builds.notify();
     };
 
-    const isUserMode = Store.preferences.isUserMode.check();
-    if (isUserMode && project.gitRepository?.url) {
-        const head = await git.head(project.id);
-        try {
-            const lastBuildHash = await fs.readFile(
-                `${project.id}/${buildHashFile}`,
-                { encoding: "utf8" }
-            );
-            console.log(head.hash, lastBuildHash);
-            if (lastBuildHash === head.hash) {
-                core_open(project.id);
-                removeProjectBuild();
-                return;
-            }
-        } catch (e) {}
-    }
+    Store.editor.codeEditor.clearAllBuildErrors();
 
-    try {
-        await packages.install(project, null, updatePackagesView, true);
-        const rawErrors = await coreBuild(project);
-
-        const buildErrors = rawErrors.map((error) => {
+    const isUserMode = Store.preferences.isUserMode.check()
+    if (!isUserMode || await esbuild.shouldBuild(project)) {
+        const buildErrorsSASS = await buildSASS(project);
+        const buildErrorsEsbuild = await esbuild.build(project);
+        const buildErrors = [buildErrorsSASS, ...(buildErrorsEsbuild || [])]
+            .flat()
+            .filter(Boolean);
+        const errors = buildErrors.map((error) => {
             return {
                 file: error.location?.file,
                 line: error.location?.line,
@@ -133,41 +119,21 @@ async function build(project: Project) {
             };
         });
 
-        if (buildErrors.length) {
+        if (errors.length) {
             if (isUserMode) {
                 SnackBar({
                     message: `Encountered errors while building <b>${project.title}</b>.`,
                     autoDismissTimeout: 4000
                 });
-            }
+            } else {
+                Store.editor.codeEditor.addBuildErrors(errors);
 
-            Store.editor.codeEditor.addBuildErrors(buildErrors);
-        } else {
-            if (project.gitRepository?.url) {
-                const head = await git.head(project.id);
-                fs.writeFile(`${project.id}/.build/.commit`, head.hash);
             }
-
-            core_open(project.id);
         }
-    } catch (e) {
-        SnackBar({
-            message: `Failed to build <b>${project.title}</b>.`,
-            autoDismissTimeout: 4000
-        });
     }
 
+    core_open(project.id);
     removeProjectBuild();
-}
-
-async function coreBuild(project: Project) {
-    Store.editor.codeEditor.clearAllBuildErrors();
-    const buildErrorsSASS = await buildSASS(project);
-    const buildErrorsEsbuild = await esbuild.build(project);
-    const buildErrors = [buildErrorsSASS, ...(buildErrorsEsbuild || [])]
-        .flat()
-        .filter(Boolean);
-    return buildErrors;
 }
 
 async function pull(project: Project) {

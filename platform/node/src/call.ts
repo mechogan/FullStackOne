@@ -1,13 +1,14 @@
 import ffi from "ffi-rs";
-import path from "path";
-import os from "os";
 import fs from "node:fs";
+import { getLibPath } from "./lib";
 
-const platform = os.platform();
-const libBinary =
-    platform + "-" + os.arch() + (platform === "win32" ? ".dll" : ".so");
-const binDirectory = path.resolve(process.cwd(), "..", "..", "core", "bin");
-const libPath = path.resolve(binDirectory, libBinary);
+let definedDirectory = "";
+const libDirArgIndex = process.argv.indexOf("--lib");
+if(libDirArgIndex !== -1) {
+    definedDirectory = process.argv.at(libDirArgIndex + 1);
+}
+
+const libPath = await getLibPath(definedDirectory);
 
 if (!fs.existsSync(libPath)) {
     throw "unknown platform";
