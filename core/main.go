@@ -29,6 +29,7 @@ func main() {}
 func directories(root *C.char,
 	config *C.char,
 	editor *C.char) {
+		
 	setup.SetupDirectories(
 		C.GoString(root),
 		C.GoString(config),
@@ -75,8 +76,12 @@ var responsesMutex = sync.Mutex{}
 //export getResponse
 func getResponse(id C.int, ptr unsafe.Pointer) {
 	responsesMutex.Lock()
-	response := responses[id]
+	response, ok := responses[id]
 	responsesMutex.Unlock()
+
+	if !ok {
+		return
+	}
 
 	bytes := C.CBytes(response)
 	C.write_bytes_array(bytes, C.int(len(response)), ptr)

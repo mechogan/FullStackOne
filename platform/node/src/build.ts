@@ -1,34 +1,35 @@
-import type esbuild from "esbuild";
+import { promises } from "node:fs";
+import { buildSASS } from "../../../editor/lib/esbuild/sass";
+import type { Project } from "../../../editor/types";
+import { createPayloadHeader } from "./instance";
+import { callLib } from "./call";
+import { serializeArgs } from "../../../lib/bridge/serialization";
 
-export function build(
-    buildSync: typeof esbuild.buildSync,
-    input: string,
-    out: string,
-    outdir: string,
-    nodePath: string,
-    sourcemap: esbuild.BuildOptions["sourcemap"] = "inline",
-    splitting = true,
-    minify: esbuild.BuildOptions["minify"] = false
-) {
-    try {
-        buildSync({
-            entryPoints: [
-                {
-                    in: input,
-                    out
-                }
-            ],
-            outdir,
-            splitting,
-            bundle: true,
-            format: "esm",
-            sourcemap,
-            write: true,
-            nodePaths: nodePath ? [nodePath] : undefined,
-            logLevel: "silent",
-            minify
-        });
-    } catch (e) {
-        return { errors: e.errors as esbuild.ResolveResult["errors"] };
-    }
+export async function buildLocalProject() {
+    const editorHeader = createPayloadHeader({
+        id: "",
+        isEditor: true
+    })
+
+    // package install quick
+    callLib(new Uint8Array([
+        ...editorHeader,
+        61,
+        ...serializeArgs([".", 0])
+    ]));
+
+    // build sasss
+    await buildSASS({ id: "." } as Project, {
+        mkdir: async (p) => { await promises.mkdir(p, { recursive: true }); return true },
+        readdir: promises.readdir,
+        writeFile: async (p, d) => { await promises.writeFile(p, d); return true },
+        readFile: promises.readFile
+    });
+
+    // esbuild build
+    callLib(new Uint8Array([
+        ...editorHeader,
+        56,
+        ...serializeArgs([".", 0])
+    ]));
 }

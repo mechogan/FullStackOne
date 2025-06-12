@@ -4,6 +4,7 @@ import os from "node:os";
 import { setCallback, setDirectories } from "./call";
 import { createWebView } from "./webview";
 import { createInstance } from "./instance";
+import { buildLocalProject } from "./build";
 
 let deeplink: string = null,
     deeplinkMessaged = false;
@@ -23,18 +24,6 @@ function parseArgsForPath(arg: string, fallback: string = process.cwd()) {
     return path.resolve(process.cwd(), definedPath);
 }
 
-await setDirectories({
-    root: parseArgsForPath("--root"),
-    config: parseArgsForPath("--config"),
-    editor: parseArgsForPath("--editor", "node_modules/fullstacked/editor")
-});
-
-export const platform = new TextEncoder().encode("node");
-
-type WebView = Awaited<ReturnType<typeof createWebView>>;
-
-const webViews = new Map<string, WebView>();
-
 const cb = (projectId: string, messageType: string, message: string) => {
     if (projectId === "*") {
         for (const w of webViews.values()) {
@@ -51,6 +40,18 @@ const cb = (projectId: string, messageType: string, message: string) => {
 };
 await setCallback(cb);
 
+await setDirectories({
+    root: parseArgsForPath("--root"),
+    config: parseArgsForPath("--config"),
+    editor: parseArgsForPath("--editor", "node_modules/fullstacked/editor")
+});
+
+export const platform = new TextEncoder().encode("node");
+
+type WebView = Awaited<ReturnType<typeof createWebView>>;
+
+const webViews = new Map<string, WebView>();
+
 async function openProject(id: string) {
     let webView = webViews.get(id);
     if (webView) {
@@ -62,11 +63,12 @@ async function openProject(id: string) {
     webViews.set(id, webView);
 }
 
-const kioskIndex = process.argv.indexOf("--kiosk");
 
-let mainInstanceId = kioskIndex === -1
-    ? ""
-    : process.argv.at(kioskIndex + 1) || ""
+const mainInstanceId = process.argv.includes("--editor") ? "" : ".";
+
+if (mainInstanceId === ".") {
+    await buildLocalProject()
+}
 
 const mainInstance = createInstance(mainInstanceId, mainInstanceId === "");
 const mainInstanceWebView = await createWebView(mainInstance, null, () => {

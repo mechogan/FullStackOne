@@ -1,9 +1,13 @@
 import * as sass from "sass";
 import type { Message } from "esbuild";
 import { Project } from "../../types";
-import fs from "../../../lib/fs";
 
-export async function buildSASS(project: Project): Promise<Partial<Message>> {
+export async function buildSASS(project: Project, fs: {
+    mkdir(dir: string): Promise<boolean>,
+    writeFile(path: string, data: string): Promise<boolean>,
+    readdir(dir: string): Promise<string[]>,
+    readFile(path: string, options: any): Promise<string>
+}): Promise<Partial<Message>> {
     const writeOutputCSS = async (css: string) => {
         const buildDirectory = `${project.id}/.build`;
         await fs.mkdir(buildDirectory);
@@ -49,8 +53,8 @@ export async function buildSASS(project: Project): Promise<Partial<Message>> {
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                              ? "scss"
-                              : "css",
+                                ? "scss"
+                                : "css",
                         contents
                     };
                 },

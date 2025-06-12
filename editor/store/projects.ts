@@ -100,11 +100,10 @@ async function build(project: Project) {
         builds.notify();
     };
 
-    Store.editor.codeEditor.clearAllBuildErrors();
-
     const isUserMode = Store.preferences.isUserMode.check()
     if (!isUserMode || await esbuild.shouldBuild(project)) {
-        const buildErrorsSASS = await buildSASS(project);
+        await packages.install(project, null, updatePackagesView, true);
+        const buildErrorsSASS = await buildSASS(project, fs);
         const buildErrorsEsbuild = await esbuild.build(project);
         const buildErrors = [buildErrorsSASS, ...(buildErrorsEsbuild || [])]
             .flat()

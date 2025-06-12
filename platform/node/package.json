@@ -13,13 +13,18 @@
     "dependencies": {
         "cli-progress": "^3.12.0",
         "fast-querystring": "^1.1.2",
-        "ffi-rs": "^1.0.98",
         "open": "^10.1.2",
         "pretty-bytes": "^7.0.0",
+        "sass": "^1.89.2",
         "ws": "^8.18.0"
     },
     "devDependencies": {
         "@types/cli-progress": "^3.11.6",
         "@types/ws": "^8.5.13"
-    }
+    },
+    "main": "index.js",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": ""
 }

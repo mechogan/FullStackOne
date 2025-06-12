@@ -8,8 +8,8 @@ struct FullStackedApp: App {
     init() {
         FullStackedApp.singleton = self;
         
-        setDirectories()
         setCallback()
+        setDirectories()
     }
     
     var body: some Scene {
