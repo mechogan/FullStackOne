@@ -6,7 +6,7 @@ import { createWebView } from "./webview";
 import { createInstance } from "./instance";
 import { buildLocalProject } from "./build";
 
-load("darwin-x64.so");
+load("win32-x64.dll");
 
 let deeplink: string = null,
     deeplinkMessaged = false;

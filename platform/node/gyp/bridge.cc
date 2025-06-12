@@ -2,7 +2,13 @@
 #include <functional>
 #include <iostream>
 #include <map>
+
+#ifdef _MSC_VER
+#include "./win.h"
+#else
 #include "./unix.h"
+#endif
+
 
 using namespace Napi;
 

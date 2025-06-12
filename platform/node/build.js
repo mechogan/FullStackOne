@@ -27,7 +27,7 @@ const binding = {
             target_name: "core",
             sources: [
                 "bridge.cc",
-                "unix.cc"
+                "win.cc"
             ],
             include_dirs: [
                 "<!@(node -p \"require('node-addon-api').include\")"
@@ -40,7 +40,6 @@ const binding = {
 }
 
 const bindingFilePath = path.resolve(currentDirectory, "gyp", "binding.gyp");
-binding.targets[0].libraries = [path.resolve(rootDirectory, "core", "bin", coreBinary)];
 fs.writeFileSync(bindingFilePath, JSON.stringify(binding, null, 4));
 
 child_process.execSync("node-gyp configure build", {
