@@ -5,8 +5,15 @@ import { load, setCallback, setDirectories } from "./call";
 import { createWebView } from "./webview";
 import { createInstance } from "./instance";
 import { buildLocalProject } from "./build";
+import { getLibPath } from "./lib";
 
-load("win32-x64.dll");
+let libDirectory = "";
+const libArgIndex = process.argv.indexOf("--lib");
+if(libArgIndex !== -1) {
+    libDirectory = process.argv.at(libArgIndex + 1);
+}
+
+load(await getLibPath(libDirectory));
 
 let deeplink: string = null,
     deeplinkMessaged = false;

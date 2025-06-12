@@ -1,8 +1,10 @@
+import os from "node:os";
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const core = require('./core.node');
+let core: any;
 
 export function load(libPath: string) {
+    core = require(`./${os.platform()}-${os.arch()}.node`);
     core.load(libPath);
 }
 

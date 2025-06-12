@@ -6,4 +6,4 @@ index.js
 Demo.zip
 gyp/build
 gyp/binding.gyp
-core.node
+*.node

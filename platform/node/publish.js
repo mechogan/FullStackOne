@@ -27,3 +27,4 @@ packageJson.version = isRelease
     : `${version.major}.${version.minor}.${version.patch}-${version.build}`;
 
 fs.writeFileSync(packageJsonFilePath, JSON.stringify(packageJson, null, 4));
+

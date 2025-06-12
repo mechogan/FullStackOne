@@ -19,15 +19,15 @@ esbuild.buildSync({
 
 const platform = os.platform();
 const arch = os.arch();
-const coreBinary = platform + "-" + arch + ".a";
+const target_name = platform + "-" + arch;
 
 const binding = {
     targets: [
         {
-            target_name: "core",
+            target_name,
             sources: [
                 "bridge.cc",
-                "win.cc"
+                platform === "win32" ? "win.cc" : "unix.cc"
             ],
             include_dirs: [
                 "<!@(node -p \"require('node-addon-api').include\")"
@@ -42,9 +42,9 @@ const binding = {
 const bindingFilePath = path.resolve(currentDirectory, "gyp", "binding.gyp");
 fs.writeFileSync(bindingFilePath, JSON.stringify(binding, null, 4));
 
-child_process.execSync("node-gyp configure build", {
+child_process.execSync("node-gyp clean configure build", {
     cwd: path.resolve(currentDirectory, "gyp"),
     stdio: "inherit"
 });
 
-fs.cpSync(path.resolve(currentDirectory, "gyp", "build", "Release", "core.node"), path.resolve(currentDirectory, "core.node"));
+fs.cpSync(path.resolve(currentDirectory, "gyp", "build", "Release", target_name + ".node"), path.resolve(currentDirectory, target_name + ".node"));
