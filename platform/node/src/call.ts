@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const core = require('./gyp/build/Release/core.node');
+const core = require('./core.node');
 
 export function setDirectories(directories: {
     root: string;

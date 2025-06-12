@@ -44,19 +44,20 @@ struct CallbackMessage {
         std::string messageType;
         std::string message;
 };
-
 std::map<int, CallbackMessage> callbackMessages{};
+std::mutex callbackMessagesMutex;
 int callbackId = 0;
 
 void n_callback(char *arg1, char *arg2, char *arg3) {
     CallbackMessage msg = {arg1, arg2, arg3};
     int id = callbackId++;
 
+    callbackMessagesMutex.lock();
     callbackMessages[id] = msg;
-
+    callbackMessagesMutex.unlock();
+    
     int *num = new int(id);
-
-    tsfn.BlockingCall(num);
+    tsfn.NonBlockingCall(num);
 }
 
 void N_Callback(const Napi::CallbackInfo &info) {
@@ -80,30 +81,31 @@ void N_Callback_Value(const Napi::CallbackInfo &info) {
     int id = info[0].As<Napi::Number>().Int32Value();
     Napi::Function cb = info[1].As<Napi::Function>();
 
+    callbackMessagesMutex.lock();
     CallbackMessage msg = callbackMessages[id];
+    callbackMessagesMutex.unlock();
 
     cb.Call(env.Global(), {
-        Napi::String::New(env, msg.projectId),
-        Napi::String::New(env, msg.messageType),
-        Napi::String::New(env, msg.message),
-    });
+                              Napi::String::New(env, msg.projectId),
+                              Napi::String::New(env, msg.messageType),
+                              Napi::String::New(env, msg.message),
+                          });
+
+    callbackMessagesMutex.lock();
+    callbackMessages.erase(id);
+    callbackMessagesMutex.unlock();
 }
 
 int callId = 0;
 Napi::TypedArrayOf<uint8_t> N_Call(const Napi::CallbackInfo &info) {
     Napi::Env env = info.Env();
-
     int id = callId++;
-
     Napi::TypedArray typedArray = info[0].As<Napi::TypedArray>();
     Napi::Uint8Array payload = typedArray.As<Napi::Uint8Array>();
-
     int responseLength = call(id, payload.Data(), payload.ElementLength());
-
     Napi::Uint8Array response =
         Napi::Uint8Array::New(env, responseLength, napi_uint8_array);
     getResponse(id, response.Data());
-
     return response;
 }
 

@@ -2,7 +2,7 @@
     "name": "fullstacked",
     "version": "0.11.2-1066",
     "scripts": {
-        "build": "esbuild build.ts --outfile=.cache/build.js --packages=external && node .cache/build.js",
+        "build": "node build.js",
         "start": "npm run build && node index.js --lib ../../core/bin --root ~/FullStacked --config ~/.config/fullstacked --editor ../../out/editor",
         "prepack": "npm run build"
     },
@@ -20,7 +20,8 @@
     },
     "devDependencies": {
         "@types/cli-progress": "^3.11.6",
-        "@types/ws": "^8.5.13"
+        "@types/ws": "^8.5.13",
+        "node-addon-api": "^8.3.1"
     },
     "main": "index.js",
     "keywords": [],
