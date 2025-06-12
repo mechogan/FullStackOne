@@ -26,7 +26,8 @@ const binding = {
         {
             target_name: "core",
             sources: [
-                "bridge.cc"
+                "bridge.cc",
+                "unix.cc"
             ],
             include_dirs: [
                 "<!@(node -p \"require('node-addon-api').include\")"

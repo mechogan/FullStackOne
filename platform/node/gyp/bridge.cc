@@ -1,16 +1,18 @@
 #include <napi.h>
 #include <functional>
 #include <iostream>
-#include "../../../core/bin/darwin-x64.h"
 #include <map>
+#include "./unix.h"
 
 using namespace Napi;
+
+CoreLib lib;
 
 void N_Directories(const Napi::CallbackInfo &info) {
     Napi::String arg1 = info[0].As<Napi::String>().ToString();
     Napi::String arg2 = info[1].As<Napi::String>().ToString();
     Napi::String arg3 = info[2].As<Napi::String>().ToString();
-    directories((char *)arg1.Utf8Value().c_str(),
+    lib.directories((char *)arg1.Utf8Value().c_str(),
                 (char *)arg2.Utf8Value().c_str(),
                 (char *)arg3.Utf8Value().c_str());
 }
@@ -73,7 +75,7 @@ void N_Callback(const Napi::CallbackInfo &info) {
         context,
         [](Napi::Env, FinalizerDataType *, Context *ctx) { delete ctx; });
 
-    callback((void *)n_callback);
+    lib.callback((void *)n_callback);
 }
 
 void N_Callback_Value(const Napi::CallbackInfo &info) {
@@ -102,14 +104,22 @@ Napi::TypedArrayOf<uint8_t> N_Call(const Napi::CallbackInfo &info) {
     int id = callId++;
     Napi::TypedArray typedArray = info[0].As<Napi::TypedArray>();
     Napi::Uint8Array payload = typedArray.As<Napi::Uint8Array>();
-    int responseLength = call(id, payload.Data(), payload.ElementLength());
+    int responseLength = lib.call(id, payload.Data(), payload.ElementLength());
     Napi::Uint8Array response =
         Napi::Uint8Array::New(env, responseLength, napi_uint8_array);
-    getResponse(id, response.Data());
+    lib.getResponse(id, response.Data());
     return response;
 }
 
+void N_Load(const Napi::CallbackInfo &info){
+    Napi::String libPath = info[0].As<Napi::String>().ToString();
+    lib = loadLibrary(libPath.Utf8Value());
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
+    exports.Set(Napi::String::New(env, "load"),
+                Napi::Function::New(env, N_Load));
+
     exports.Set(Napi::String::New(env, "directories"),
                 Napi::Function::New(env, N_Directories));
 

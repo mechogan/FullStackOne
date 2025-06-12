@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import path from "node:path";
 import os from "node:os";
-import { setCallback, setDirectories } from "./call";
+import { load, setCallback, setDirectories } from "./call";
 import { createWebView } from "./webview";
 import { createInstance } from "./instance";
 import { buildLocalProject } from "./build";
+
+load("darwin-x64.so");
 
 let deeplink: string = null,
     deeplinkMessaged = false;
@@ -38,9 +40,9 @@ const cb = (projectId: string, messageType: string, message: string) => {
     const webview = webViews.get(projectId);
     webview?.message(messageType, message);
 };
-await setCallback(cb);
+setCallback(cb);
 
-await setDirectories({
+setDirectories({
     root: parseArgsForPath("--root"),
     config: parseArgsForPath("--config"),
     editor: parseArgsForPath("--editor", "node_modules/fullstacked/editor")

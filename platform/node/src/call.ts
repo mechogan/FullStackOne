@@ -2,6 +2,10 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const core = require('./core.node');
 
+export function load(libPath: string) {
+    core.load(libPath);
+}
+
 export function setDirectories(directories: {
     root: string;
     config: string;
