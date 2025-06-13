@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import child_process from "node:child_process";
 import os from "node:os";
-import url from "node:url"
+import url from "node:url";
 import dotenv from "dotenv";
 import version from "../../version.js";
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDirectory = path.resolve(currentDirectory, "..", "..");
@@ -33,11 +33,10 @@ const controlFile = path.resolve(currentDirectory, "control");
 const controlFileContent = fs.readFileSync(controlFile, {
     encoding: "utf-8"
 });
-const controlFileContentUpdated = controlFileContent
-    .replace(
-        /Version\:.*\n/g,
-        `Version: ${versionStr}\n`
-    );
+const controlFileContentUpdated = controlFileContent.replace(
+    /Version\:.*\n/g,
+    `Version: ${versionStr}\n`
+);
 fs.writeFileSync(controlFile, controlFileContentUpdated);
 
 // build GTK
@@ -54,12 +53,12 @@ child_process.execSync(`sh ./pkg.sh`, {
     stdio: "inherit"
 });
 
-const debPackageGTK = path.resolve(currentDirectory, `fullstacked-${versionStr}-linux-${arch}-gtk.deb`)
-
-fs.renameSync(
-    path.resolve(currentDirectory, "fullstacked.deb"),
-    debPackageGTK
+const debPackageGTK = path.resolve(
+    currentDirectory,
+    `fullstacked-${versionStr}-linux-${arch}-gtk.deb`
 );
+
+fs.renameSync(path.resolve(currentDirectory, "fullstacked.deb"), debPackageGTK);
 
 // build Qt
 
@@ -75,17 +74,17 @@ child_process.execSync(`make -j4`, {
 
 // pkg Qt
 
-const debPackageQt = path.resolve(currentDirectory, `fullstacked-${versionStr}-linux-${arch}-qt.deb`)
+const debPackageQt = path.resolve(
+    currentDirectory,
+    `fullstacked-${versionStr}-linux-${arch}-qt.deb`
+);
 
 child_process.execSync(`sh ./pkg.sh`, {
     cwd: currentDirectory,
     stdio: "inherit"
 });
 
-fs.renameSync(
-    path.resolve(currentDirectory, "fullstacked.deb"),
-    debPackageQt
-);
+fs.renameSync(path.resolve(currentDirectory, "fullstacked.deb"), debPackageQt);
 
 // Upload to R2
 
@@ -94,12 +93,12 @@ const credentialsCF = dotenv.parse(
 );
 
 const s3Client = new S3Client({
-    region: 'auto', // CloudFlare R2 uses 'auto' as the region
+    region: "auto", // CloudFlare R2 uses 'auto' as the region
     endpoint: `https://${credentialsCF.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     credentials: {
         accessKeyId: credentialsCF.R2_ACCESS_KEY_ID,
-        secretAccessKey: credentialsCF.R2_SECRET_ACCESS_KEY,
-    },
+        secretAccessKey: credentialsCF.R2_SECRET_ACCESS_KEY
+    }
 });
 
 await uploadDebToR2(debPackageGTK);
@@ -113,11 +112,10 @@ const uploadCommand = new PutObjectCommand({
     Bucket: credentialsCF.R2_BUCKET_NAME,
     Key: versionTxtFile,
     Body: new TextEncoder().encode(JSON.stringify(version, null, 2)),
-    ContentType: 'text/plain'
+    ContentType: "text/plain"
 });
 
 await s3Client.send(uploadCommand);
-
 
 async function uploadDebToR2(debFilePath) {
     try {
@@ -133,7 +131,7 @@ async function uploadDebToR2(debFilePath) {
             Bucket: credentialsCF.R2_BUCKET_NAME,
             Key: s3Key,
             Body: fileBuffer,
-            ContentType: 'application/vnd.debian.binary-package'
+            ContentType: "application/vnd.debian.binary-package"
         });
 
         // Execute the upload
@@ -141,7 +139,7 @@ async function uploadDebToR2(debFilePath) {
 
         console.log(`Successfully uploaded ${fileName} to R2 at key: ${s3Key}`);
     } catch (error) {
-        console.error('Error uploading .deb file to R2:', error);
+        console.error("Error uploading .deb file to R2:", error);
         throw new Error(`Failed to upload ${debFilePath}: ${error.message}`);
     }
 }

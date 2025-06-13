@@ -22,16 +22,14 @@ child_process.execSync("npm run build -- --production", {
     stdio: "inherit"
 });
 
-fs.cpSync(path.resolve(rootDirectory, "out", "editor", "lib"), path.resolve(currentDirectory, "editor", "lib"), { recursive: true });
-
 // update version
 
 const versionStr = `${version.major}.${version.minor}.${version.patch}`;
 const packageJsonFilePath = path.resolve(currentDirectory, "package.json");
-const packageJson = JSON.parse(fs.readFileSync(packageJsonFilePath, { encoding: "utf-8" }));
-packageJson.version = isRelease
-    ? versionStr
-    : `${versionStr}-${version.build}`;
+const packageJson = JSON.parse(
+    fs.readFileSync(packageJsonFilePath, { encoding: "utf-8" })
+);
+packageJson.version = isRelease ? versionStr : `${versionStr}-${version.build}`;
 
 fs.writeFileSync(packageJsonFilePath, JSON.stringify(packageJson, null, 4));
 
@@ -39,11 +37,12 @@ fs.writeFileSync(packageJsonFilePath, JSON.stringify(packageJson, null, 4));
 
 const platform = os.platform();
 const currentArch = os.arch();
-let command = platform === "win32"
-    ? "cmd.exe /c windows.bat"
-    : platform === "linux"
-        ? `make ${platform}-${currentArch}-shared -j4`
-        : `make ${platform}-x64-shared ${platform}-arm64-shared -j4`;
+let command =
+    platform === "win32"
+        ? "cmd.exe /c windows.bat"
+        : platform === "linux"
+          ? `make ${platform}-${currentArch}-shared -j4`
+          : `make ${platform}-x64-shared ${platform}-arm64-shared -j4`;
 
 child_process.execSync(command, {
     cwd: path.resolve(rootDirectory, "core", "build"),
@@ -58,12 +57,14 @@ child_process.execSync(`node ./build.js --arch ${currentArch}`, {
 });
 
 if (platform !== "linux") {
-    child_process.execSync(`node ./build.js --arch ${currentArch === "x64" ? "arm64" : "x64"}`, {
-        cwd: currentDirectory,
-        stdio: "inherit"
-    });
+    child_process.execSync(
+        `node ./build.js --arch ${currentArch === "x64" ? "arm64" : "x64"}`,
+        {
+            cwd: currentDirectory,
+            stdio: "inherit"
+        }
+    );
 }
-
 
 // gzip both packages
 
@@ -71,13 +72,21 @@ const libExt = platform === "win32" ? "dll" : "so";
 
 async function packageArch(arch) {
     const files = [
-        path.resolve(rootDirectory, "core", "bin", `${platform}-${arch}.${libExt}`),
-        path.resolve(currentDirectory, `${platform}-${arch}.node`),
+        path.resolve(
+            rootDirectory,
+            "core",
+            "bin",
+            `${platform}-${arch}.${libExt}`
+        ),
+        path.resolve(currentDirectory, `${platform}-${arch}.node`)
     ];
 
     const pack = tar.pack();
     const gzip = zlib.createGzip();
-    const outputPath = path.resolve(currentDirectory, `${platform}-${arch}-${packageJson.version}.tgz`);
+    const outputPath = path.resolve(
+        currentDirectory,
+        `${platform}-${arch}-${packageJson.version}.tgz`
+    );
     const output = fs.createWriteStream(outputPath);
 
     pack.pipe(gzip).pipe(output);
@@ -93,27 +102,23 @@ async function packageArch(arch) {
         fileStream.pipe(stream);
 
         await new Promise((resolve, reject) => {
-            stream.on('finish', resolve);
-            stream.on('error', reject);
+            stream.on("finish", resolve);
+            stream.on("error", reject);
         });
     }
 
     pack.finalize();
 
     return new Promise((resolve, reject) => {
-        output.on('finish', () => resolve([outputPath, arch]));
-        output.on('error', reject);
+        output.on("finish", () => resolve([outputPath, arch]));
+        output.on("error", reject);
     });
 }
 
-const builds = platform === "linux"
-    ? [
-        packageArch(currentArch)
-    ]
-    : [
-        packageArch("x64"),
-        packageArch("arm64")
-    ]
+const builds =
+    platform === "linux"
+        ? [packageArch(currentArch)]
+        : [packageArch("x64"), packageArch("arm64")];
 const buildPackages = await Promise.all(builds);
 
 // upload to R2
@@ -123,19 +128,23 @@ const credentialsCF = dotenv.parse(
 );
 
 const s3Client = new S3Client({
-    region: 'auto',
+    region: "auto",
     endpoint: `https://${credentialsCF.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     credentials: {
         accessKeyId: credentialsCF.R2_ACCESS_KEY_ID,
-        secretAccessKey: credentialsCF.R2_SECRET_ACCESS_KEY,
-    },
+        secretAccessKey: credentialsCF.R2_SECRET_ACCESS_KEY
+    }
 });
 
-await Promise.all(buildPackages.map(([outputPath, arch]) => uploadPackage(outputPath, arch)));
+await Promise.all(
+    buildPackages.map(([outputPath, arch]) => uploadPackage(outputPath, arch))
+);
 
 function uploadPackage(packageFilePath, arch) {
     const packageName = path.basename(packageFilePath);
-    console.log(`Uploading [${packageName}] ${prettyBytes(fs.statSync(packageFilePath).size)}`)
+    console.log(
+        `Uploading [${packageName}] ${prettyBytes(fs.statSync(packageFilePath).size)}`
+    );
     const fileBuffer = fs.readFileSync(packageFilePath);
     const s3Key = `lib/${platform}/${arch}/${versionStr}/${packageName}`;
 
@@ -143,11 +152,10 @@ function uploadPackage(packageFilePath, arch) {
         Bucket: credentialsCF.R2_BUCKET_NAME,
         Key: s3Key,
         Body: fileBuffer,
-        ContentType: 'application/tar+gzip'
+        ContentType: "application/tar+gzip"
     });
 
     return s3Client.send(uploadCommand);
 }
 
 // check if version is already on npmjs
-

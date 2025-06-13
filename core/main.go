@@ -26,20 +26,23 @@ import (
 func main() {}
 
 //export directories
-func directories(root *C.char,
+func directories(
+	root *C.char,
 	config *C.char,
-	editor *C.char) {
-		
+	editor *C.char,
+	tmp *C.char,
+) {
+
 	setup.SetupDirectories(
 		C.GoString(root),
 		C.GoString(config),
 		C.GoString(editor),
+		C.GoString(tmp),
 	)
 
 	fileEventOrigin := "setup"
 	fs.Mkdir(setup.Directories.Root, fileEventOrigin)
 	fs.Mkdir(setup.Directories.Config, fileEventOrigin)
-	fs.Mkdir(setup.Directories.Editor, fileEventOrigin)
 
 	// clean tmp
 	fs.Rmdir(setup.Directories.Tmp, fileEventOrigin)

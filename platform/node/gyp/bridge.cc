@@ -9,7 +9,6 @@
 #include "./unix.h"
 #endif
 
-
 using namespace Napi;
 
 CoreLib lib;
@@ -18,9 +17,10 @@ void N_Directories(const Napi::CallbackInfo &info) {
     Napi::String arg1 = info[0].As<Napi::String>().ToString();
     Napi::String arg2 = info[1].As<Napi::String>().ToString();
     Napi::String arg3 = info[2].As<Napi::String>().ToString();
-    lib.directories((char *)arg1.Utf8Value().c_str(),
-                (char *)arg2.Utf8Value().c_str(),
-                (char *)arg3.Utf8Value().c_str());
+    Napi::String arg4 = info[3].As<Napi::String>().ToString();
+    lib.directories(
+        (char *)arg1.Utf8Value().c_str(), (char *)arg2.Utf8Value().c_str(),
+        (char *)arg3.Utf8Value().c_str(), (char *)arg4.Utf8Value().c_str());
 }
 
 using Context = Reference<Value>;
@@ -63,7 +63,7 @@ void n_callback(char *arg1, char *arg2, char *arg3) {
     callbackMessagesMutex.lock();
     callbackMessages[id] = msg;
     callbackMessagesMutex.unlock();
-    
+
     int *num = new int(id);
     tsfn.NonBlockingCall(num);
 }
@@ -117,7 +117,7 @@ Napi::TypedArrayOf<uint8_t> N_Call(const Napi::CallbackInfo &info) {
     return response;
 }
 
-void N_Load(const Napi::CallbackInfo &info){
+void N_Load(const Napi::CallbackInfo &info) {
     Napi::String libPath = info[0].As<Napi::String>().ToString();
     lib = loadLibrary(libPath.Utf8Value());
 }

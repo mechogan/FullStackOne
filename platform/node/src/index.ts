@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 import path from "node:path";
 import os from "node:os";
+import url from "node:url";
 import { load, setCallback, setDirectories } from "./call";
 import { createWebView } from "./webview";
 import { createInstance } from "./instance";
 import { buildLocalProject } from "./build";
 import { getLibPath } from "./lib";
+import { createRequire } from "node:module";
+import { toByteArray } from "../../../lib/base64";
+import { deserializeArgs } from "../../../lib/bridge/serialization";
+import { setupDevFiles } from "./dev-files";
+globalThis.require = createRequire(import.meta.url);
 
-let libDirectory = "";
+const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
+
+let libDirectory = currentDirectory;
 const libArgIndex = process.argv.indexOf("--lib");
-if(libArgIndex !== -1) {
+if (libArgIndex !== -1) {
     libDirectory = process.argv.at(libArgIndex + 1);
 }
 
@@ -28,12 +36,15 @@ function parseArgsForPath(arg: string, fallback: string = process.cwd()) {
     if (definedPath.startsWith("~/")) {
         return path.resolve(os.homedir(), definedPath.slice(2));
     } else if (definedPath.startsWith("/")) {
-        return definedPath
+        return definedPath;
     }
     return path.resolve(process.cwd(), definedPath);
 }
 
+export const cbListener = new Set<typeof cb>();
 const cb = (projectId: string, messageType: string, message: string) => {
+    cbListener.forEach((c) => c(projectId, messageType, message));
+
     if (projectId === "*") {
         for (const w of webViews.values()) {
             w.message(messageType, message);
@@ -49,10 +60,14 @@ const cb = (projectId: string, messageType: string, message: string) => {
 };
 setCallback(cb);
 
+const root = parseArgsForPath("--root", process.cwd());
 setDirectories({
-    root: parseArgsForPath("--root"),
-    config: parseArgsForPath("--config"),
-    editor: parseArgsForPath("--editor", "node_modules/fullstacked/editor")
+    root,
+    config: parseArgsForPath("--config", currentDirectory),
+    editor: parseArgsForPath("--editor", currentDirectory),
+    tmp: process.argv.includes("--root")
+        ? path.resolve(root, ".tmp")
+        : path.resolve(currentDirectory, ".tmp")
 });
 
 export const platform = new TextEncoder().encode("node");
@@ -72,11 +87,11 @@ async function openProject(id: string) {
     webViews.set(id, webView);
 }
 
-
 const mainInstanceId = process.argv.includes("--editor") ? "" : ".";
 
 if (mainInstanceId === ".") {
-    await buildLocalProject()
+    await buildLocalProject();
+    setupDevFiles();
 }
 
 const mainInstance = createInstance(mainInstanceId, mainInstanceId === "");

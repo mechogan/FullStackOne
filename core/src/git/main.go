@@ -266,7 +266,7 @@ func Clone(into string, url string) {
 
 func HeadSerialized(directory string) []byte {
 	head, err := Head(directory)
-	if(err != nil) {
+	if err != nil {
 		return serialize.SerializeString(errorFmt(err))
 	}
 

@@ -34,12 +34,14 @@ function buildResponse(buildResult: string) {
             ...error,
             location: error.location
                 ? {
-                    ...error.location,
-                    file: error.location.file.includes(activeBuild.project.id)
-                        ? activeBuild.project.id +
-                        error.location.file.split(activeBuild.project.id).pop()
-                        : error.location.file
-                }
+                      ...error.location,
+                      file: error.location.file.includes(activeBuild.project.id)
+                          ? activeBuild.project.id +
+                            error.location.file
+                                .split(activeBuild.project.id)
+                                .pop()
+                          : error.location.file
+                  }
                 : null
         }));
         activeBuild.resolve(messages);
@@ -72,10 +74,7 @@ export function build(project: Project): Promise<Message[]> {
 
 // 57
 export function shouldBuild(project: Project): Promise<boolean> {
-    const payload = new Uint8Array([
-        57,
-        ...serializeArgs([project.id])
-    ]);
+    const payload = new Uint8Array([57, ...serializeArgs([project.id])]);
 
     return bridge(payload, ([should]) => should);
 }

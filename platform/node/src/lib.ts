@@ -1,35 +1,26 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import url from "node:url";
 import zlib from "node:zlib";
 import cliProgress from "cli-progress";
-import prettyBytes from "pretty-bytes";
+// import prettyBytes from "pretty-bytes";
 import tar from "tar-stream";
-
-const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
 
 const platform = os.platform();
 const arch = os.arch();
-const libBinary = platform + "-" + arch + "." + (platform === "win32" ? "dll" : "so");
+const libBinary =
+    platform + "-" + arch + "." + (platform === "win32" ? "dll" : "so");
 
-export async function getLibPath(directory?: string) {
-    if (directory) {
-        const definedLibPath = path.resolve(currentDirectory, directory, libBinary);
-        if (!fs.existsSync(definedLibPath)) {
-            throw `Could not find FullStacked library at [${definedLibPath}]`;
-        }
-
-        return definedLibPath;
-    }
-
-    const libPath = path.resolve(currentDirectory, libBinary);
+export async function getLibPath(directory: string) {
+    const libPath = path.resolve(directory, libBinary);
     if (fs.existsSync(libPath)) {
         return libPath;
     }
 
-    const packageJsonFilePath = path.resolve(currentDirectory, "package.json");
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonFilePath, { encoding: "utf8" }));
+    const packageJsonFilePath = path.resolve(directory, "package.json");
+    const packageJson = JSON.parse(
+        fs.readFileSync(packageJsonFilePath, { encoding: "utf8" })
+    );
     const [version] = packageJson.version.split("-");
     const fileName = `${platform}-${arch}-${packageJson.version}.tgz`;
     const remoteLibUrl = `https://files.fullstacked.org/lib/${platform}/${arch}/${version}/${fileName}`;
@@ -41,19 +32,22 @@ export async function getLibPath(directory?: string) {
 
     const size = parseInt(response.headers.get("content-length"));
 
-    const downloadProgress = new cliProgress.SingleBar({
-        formatValue: (v, _, type) => {
-            if (type === "total" || type === "value") {
-                return prettyBytes(v);
+    const downloadProgress = new cliProgress.SingleBar(
+        {
+            formatValue: (v, _, type) => {
+                // if (type === "total" || type === "value") {
+                //     return prettyBytes(v);
+                // }
+                return v.toString();
             }
-            return v.toString();
-        }
-    }, cliProgress.Presets.shades_classic);
+        },
+        cliProgress.Presets.shades_classic
+    );
     downloadProgress.start(size, 0);
 
     let downloaded = 0;
     const reader = response.body.getReader();
-    const outPath = path.resolve(currentDirectory, fileName);
+    const outPath = path.resolve(directory, fileName);
     const writeStream = fs.createWriteStream(outPath, "binary");
     while (true) {
         const { value, done } = await reader.read();
@@ -64,27 +58,23 @@ export async function getLibPath(directory?: string) {
     }
 
     downloadProgress.stop();
-    await new Promise(res => writeStream.close(res));
+    await new Promise((res) => writeStream.close(res));
 
     const extract = tar.extract();
-    extract.on('entry', (header, stream, next) => {
-        const filePath = path.resolve(currentDirectory, header.name);
+    extract.on("entry", (header, stream, next) => {
+        const filePath = path.resolve(directory, header.name);
         const writeStream = fs.createWriteStream(filePath);
         stream.pipe(writeStream);
-        writeStream.on('close', next);
+        writeStream.on("close", next);
     });
     const readStream = fs.createReadStream(outPath);
     const gunzip = zlib.createGunzip();
 
     await new Promise((res) => {
-        readStream
-            .pipe(gunzip)
-            .pipe(extract)
-            .on('close', res);
+        readStream.pipe(gunzip).pipe(extract).on("close", res);
     });
 
     fs.rmSync(outPath);
 
     return libPath;
 }
-

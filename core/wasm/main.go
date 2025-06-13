@@ -16,6 +16,7 @@ func directories(this js.Value, args []js.Value) interface{} {
 		args[0].String(),
 		args[1].String(),
 		args[2].String(),
+		args[3].String(),
 	)
 	return nil
 }

@@ -17,7 +17,7 @@
 
 extern "C" {
     JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories
-            (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor);
+            (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor, jstring tmp);
 
     JNIEXPORT jbyteArray JNICALL Java_org_fullstacked_editor_Instance_call
         (JNIEnv *env, jobject jobj, jbyteArray payload);

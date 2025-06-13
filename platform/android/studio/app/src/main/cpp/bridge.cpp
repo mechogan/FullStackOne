@@ -10,16 +10,18 @@ extern "C" {
 
 
 JNIEXPORT void JNICALL Java_org_fullstacked_editor_MainActivity_directories
-        (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor) {
+        (JNIEnv *env, jobject jobj, jstring root, jstring config, jstring editor, jstring tmp) {
 
     const char* rootPtr = env->GetStringUTFChars(root, nullptr);
     const char* configPtr = env->GetStringUTFChars(config, nullptr);
     const char* editorPtr = env->GetStringUTFChars(editor, nullptr);
+    const char* tmpPtr = env->GetStringUTFChars(tmp, nullptr);
 
     directories(
         const_cast<char*>(rootPtr),
         const_cast<char*>(configPtr),
-        const_cast<char*>(editorPtr)
+        const_cast<char*>(editorPtr),
+        const_cast<char*>(tmpPtr)
     );
 }
 

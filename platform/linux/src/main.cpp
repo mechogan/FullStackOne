@@ -27,8 +27,9 @@ void setDirectories() {
     std::string root = home + "/FullStacked";
     std::string config = home + "/.config/fullstacked";
     std::string editor = getEditorDir();
+    std::string tmp = root + "/.tmp";
 
-    directories(root.data(), config.data(), editor.data());
+    directories(root.data(), config.data(), editor.data(), tmp.data());
 }
 
 void libCallback(char *projectId, char *type, char *msg) {

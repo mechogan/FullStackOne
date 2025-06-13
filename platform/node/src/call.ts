@@ -1,10 +1,13 @@
 import os from "node:os";
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+import path from "node:path";
 let core: any;
 
-export function load(libPath: string) {
-    core = require(`./${os.platform()}-${os.arch()}.node`);
+export function load(libPath: string, bindingDir?: string) {
+    const bindingFileName = `${os.platform()}-${os.arch()}.node`;
+    const p = bindingDir
+        ? path.resolve(bindingDir, bindingFileName)
+        : `./${bindingFileName}`;
+    core = require(p);
     core.load(libPath);
 }
 
@@ -12,22 +15,24 @@ export function setDirectories(directories: {
     root: string;
     config: string;
     editor: string;
+    tmp: string;
 }) {
     core.directories(
         directories.root,
         directories.config,
-        directories.editor
-    )
+        directories.editor,
+        directories.tmp
+    );
 }
 
 export function setCallback(
     cb: (projectId: string, messageType: string, message: string) => void
 ) {
     core.callback((id: number) => {
-        core.callbackValue(id, cb)
-    })
+        core.callbackValue(id, cb);
+    });
 }
 
 export function callLib(payload: Uint8Array): Uint8Array {
-    return core.call(payload)
+    return core.call(payload);
 }

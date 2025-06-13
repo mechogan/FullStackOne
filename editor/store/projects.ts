@@ -100,8 +100,8 @@ async function build(project: Project) {
         builds.notify();
     };
 
-    const isUserMode = Store.preferences.isUserMode.check()
-    if (!isUserMode || await esbuild.shouldBuild(project)) {
+    const isUserMode = Store.preferences.isUserMode.check();
+    if (!isUserMode || (await esbuild.shouldBuild(project))) {
         await packages.install(project, null, updatePackagesView, true);
         const buildErrorsSASS = await buildSASS(project, fs);
         const buildErrorsEsbuild = await esbuild.build(project);
@@ -126,7 +126,6 @@ async function build(project: Project) {
                 });
             } else {
                 Store.editor.codeEditor.addBuildErrors(errors);
-
             }
         }
     }

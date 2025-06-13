@@ -4,15 +4,23 @@ import {
     deserializeArgs,
     numberTo4Bytes
 } from "../../lib/bridge/serialization";
-import { setCallback, setDirectories } from "../node/src/call";
-import path from "path";
-import os from "os";
+import { load, setCallback, setDirectories } from "../node/src/call";
+import path from "node:path";
+import os from "node:os";
+import { getLibPath } from "../node/src/lib";
 
 app.whenReady().then(init);
 app.on("window-all-closed", () => app.quit());
 
 async function init() {
     protocol.handle("http", protocolHandler);
+
+    load(
+        await getLibPath(
+            path.resolve(process.cwd(), "..", "..", "core", "bin")
+        ),
+        path.resolve(process.cwd(), "..", "node")
+    );
 
     const cb = (projectId: string, messageType: string, message: string) => {
         if (projectId === "" && messageType === "open") {
@@ -25,13 +33,21 @@ async function init() {
             `window.oncoremessage( \`${messageType}\`, \`${message}\` )`
         );
     };
-    await setCallback(cb);
+    setCallback(cb);
 
     const root = path.resolve(os.homedir(), "FullStacked");
-    await setDirectories({
+    const editorDirectory = path.resolve(
+        process.cwd(),
+        "..",
+        "..",
+        "out",
+        "editor"
+    );
+    setDirectories({
         root,
         config: path.resolve(os.homedir(), ".config", "fullstacked"),
-        editor: path.resolve(process.cwd(), "..", "..", "out", "editor")
+        editor: editorDirectory,
+        tmp: path.resolve(root, ".tmp")
     });
 
     const kioskFlagIndex = process.argv.findIndex((arg) => arg === "--kiosk");
