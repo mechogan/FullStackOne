@@ -29,7 +29,7 @@ const xcodeProj = path.resolve(currentDirectory, "FullStacked.xcodeproj");
 const xcodeFile = path.resolve(xcodeProj, "project.pbxproj");
 const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
 const xcodeFileUpdated = xcodeFileContent
-    .replace(/MARKETING_VERSION = .*?;/g, `MARKETING_VERSION = ${version};`)
+    .replace(/MARKETING_VERSION = .*?;/g, `MARKETING_VERSION = ${versionStr};`)
     .replace(
         /CURRENT_PROJECT_VERSION = .*?;/g,
         `CURRENT_PROJECT_VERSION = ${version.build};`
