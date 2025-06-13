@@ -27,7 +27,7 @@ child_process.execSync(`make linux-${arch}-static -j4`, {
 });
 
 // update version
-const versionStr = `${version.major}.${version.minor}.${version.patch}-${version.build}`;
+const versionStr = `${version.major}.${version.minor}.${version.patch}`;
 
 const controlFile = path.resolve(currentDirectory, "control");
 const controlFileContent = fs.readFileSync(controlFile, {
@@ -105,8 +105,8 @@ await uploadDebToR2(debPackageGTK);
 await uploadDebToR2(debPackageQt);
 
 const versionTxtFile = process.argv.includes("--release")
-    ? `/linux-builds/${arch}/release.txt`
-    : `/linux-builds/${arch}/beta.txt`;
+    ? `linux-builds/${arch}/release.txt`
+    : `linux-builds/${arch}/beta.txt`;
 
 const uploadCommand = new PutObjectCommand({
     Bucket: credentialsCF.R2_BUCKET_NAME,
@@ -120,11 +120,11 @@ await s3Client.send(uploadCommand);
 async function uploadDebToR2(debFilePath) {
     try {
         // Read the .deb file
-        const fileBuffer = readFileSync(debFilePath);
-        const fileName = basename(debFilePath);
+        const fileBuffer = fs.readFileSync(debFilePath);
+        const fileName = path.basename(debFilePath)
 
         // Construct the S3 key: /[arch]/[version]/filename
-        const s3Key = `/linux-builds/${arch}/${version}/${fileName}`;
+        const s3Key = `linux-builds/${arch}/${versionStr}/${fileName}`;
 
         // Create the upload command
         const uploadCommand = new PutObjectCommand({
