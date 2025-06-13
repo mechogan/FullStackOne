@@ -10,6 +10,7 @@ class WebkitGTKWindow : public Window {
     private:
         Gtk::Window *windowGTK;
         WebKitWebView *webview;
+        Glib::RefPtr<Gtk::Application> app;
 
         static void
         webKitURISchemeRequestCallback(WebKitURISchemeRequest *request,
@@ -19,6 +20,8 @@ class WebkitGTKWindow : public Window {
         static gboolean navigationDecidePolicy(
             WebKitWebView *view, WebKitPolicyDecision *decision,
             WebKitPolicyDecisionType decision_type, gpointer user_data);
+
+        void initWindow();
 
     public:
         WebkitGTKWindow(Glib::RefPtr<Gtk::Application> app);

@@ -15,11 +15,13 @@ func setDirectories(){
     let root = paths.first!
     let config = root + "/.config"
     let editor = Bundle.main.path(forResource: "editor", ofType: nil)!
+    let tmp = root + "/.tmp"
     
     directories(
         root.ptr(),
         config.ptr(),
-        editor.ptr()
+        editor.ptr(),
+        tmp.ptr()
     )
 }
 

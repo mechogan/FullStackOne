@@ -52,8 +52,9 @@ const (
 	CONFIG_GET  = 50
 	CONFIG_SAVE = 51
 
-	ESBUILD_VERSION = 55
-	ESBUILD_BUILD   = 56
+	ESBUILD_VERSION      = 55
+	ESBUILD_BUILD        = 56
+	ESBUILD_SHOULD_BUILD = 57
 
 	PACKAGE_INSTALL       = 60
 	PACKAGE_INSTALL_QUICK = 61
@@ -222,6 +223,9 @@ func editorSwitch(method int, args []any) []byte {
 	case method == ESBUILD_BUILD:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		go esbuild.Build(projectDirectory, args[1].(float64))
+	case method == ESBUILD_SHOULD_BUILD:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		return serialize.SerializeBoolean(esbuild.ShouldBuild(projectDirectory))
 	case method == PACKAGE_INSTALL:
 		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
 		installationId := args[1].(float64)
@@ -254,7 +258,7 @@ func gitSwitch(method int, args []any) []byte {
 	case GIT_CLONE:
 		go git.Clone(directory, args[1].(string))
 	case GIT_HEAD:
-		return git.Head(directory)
+		return git.HeadSerialized(directory)
 	case GIT_STATUS:
 		return git.Status(directory)
 	case GIT_PULL:

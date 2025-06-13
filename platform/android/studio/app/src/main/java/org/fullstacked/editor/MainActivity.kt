@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
         root: String,
         config: String,
         editor: String,
+        tmp: String,
     )
 
     private external fun addCallback(id: Int)
@@ -97,11 +98,13 @@ class MainActivity : ComponentActivity() {
         val root = this.filesDir.absolutePath + "/projects"
         val config = this.filesDir.absolutePath + "/.config"
         val editor = this.filesDir.absolutePath + "/editor"
+        val tmp = this.filesDir.absolutePath + "/.tmp"
 
         this.directories(
             root,
             config,
-            editor
+            editor,
+            tmp
         )
 
         addCallback(callbackId)

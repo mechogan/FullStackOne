@@ -1,6 +1,9 @@
 .cache
 *.tgz
 js
-editor
+lib
 index.js
 Demo.zip
+gyp/build
+gyp/binding.gyp
+*.node

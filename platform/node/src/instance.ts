@@ -21,7 +21,7 @@ export function createInstance(
 
 const te = new TextEncoder();
 
-function createPayloadHeader(opts: InstanceOpts) {
+export function createPayloadHeader(opts: InstanceOpts) {
     if (opts.isEditor) {
         return new Uint8Array([
             1, // is editor

@@ -1,23 +1,24 @@
 package setup
 
-import (
-	"path"
-)
-
 type DirectoriesStruct struct {
 	Root   string
 	Config string
-	Tmp    string
 	Editor string
+	Tmp    string
 }
 
 var Directories *DirectoriesStruct = nil
 
-func SetupDirectories(root string, config string, editor string) {
+func SetupDirectories(
+	root string,
+	config string,
+	editor string,
+	tmp string,
+) {
 	Directories = &DirectoriesStruct{
 		Root:   root,
 		Config: config,
-		Tmp:    path.Join(root, ".tmp"),
 		Editor: editor,
+		Tmp:    tmp,
 	}
 }

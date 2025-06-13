@@ -16,7 +16,12 @@ declare global {
         importObject: WebAssembly.Imports;
         run: Function;
     }
-    var directories: (root: string, config: string, editor: string) => void;
+    var directories: (
+        root: string,
+        config: string,
+        editor: string,
+        tmp: string
+    ) => void;
     var call: (payload: Uint8Array) => Promise<string>; // base64
 }
 
@@ -148,7 +153,7 @@ const dirs = {
     editor: "editor"
 };
 
-directories(dirs.root, dirs.config, dirs.editor);
+directories(dirs.root, dirs.config, dirs.editor, dirs.root + "/.tmp");
 
 const te = new TextEncoder();
 const editorDir = te.encode(dirs.editor);

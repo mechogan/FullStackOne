@@ -8,7 +8,7 @@ namespace FullStacked
         const string dllName = "win32-x86.dll";
 
         [DllImport(dllName)]
-        public static extern void directories(void* root, void* config, void* editor);
+        public static extern void directories(void* root, void* config, void* editor, void* tmp);
         [DllImport(dllName)]
         public static extern void callback(CallbackDelegate cb);
 
@@ -19,9 +19,9 @@ namespace FullStacked
         [DllImport(dllName)]
         public static extern void freePtr(void* ptr);
 
-        public override unsafe void setDirectories(void* root, void* config, void* editor)
+        public override unsafe void setDirectories(void* root, void* config, void* editor, void* tmp)
         {
-            directories(root, config, editor);
+            directories(root, config, editor, tmp);
         }
 
         public override void setCallback(CallbackDelegate cb)

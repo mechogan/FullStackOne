@@ -193,19 +193,23 @@ namespace FullStacked
             string root = Path.Combine(userDir, "FullStacked");
             string config = Path.Combine(userDir, ".config", "fullstacked");
             string editor = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledPath, "editor");
+            string tmp = Path.Combine(root, ".tmp");
 
             byte[] rootBytes = Encoding.UTF8.GetBytes(root);
             byte[] configBytes = Encoding.UTF8.GetBytes(config);
             byte[] editorBytes = Encoding.UTF8.GetBytes(editor);
+            byte[] tmpBytes = Encoding.UTF8.GetBytes(tmp);
 
             fixed (void* rootPtr = rootBytes,
                 configPtr = configBytes,
-                editorPtr = editorBytes)
+                editorPtr = editorBytes,
+                tmpPtr = tmpBytes)
             {
                 App.lib.setDirectories(
                     rootPtr,
                     configPtr,
-                    editorPtr
+                    editorPtr,
+                    tmpPtr
                     );
             }
         }

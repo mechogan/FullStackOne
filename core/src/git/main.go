@@ -211,6 +211,11 @@ func AuthResponse(id string, canceled bool) {
 	authRequest.WaitGroup.Done()
 }
 
+func HasGit(dir string) bool {
+	exists, isFile := fs.Exists(path.Join(dir, ".git"))
+	return exists && !isFile
+}
+
 func Clone(into string, url string) {
 	progress := GitProgress{
 		Name: "git-clone",
@@ -259,28 +264,36 @@ func Clone(into string, url string) {
 	progress.Write([]byte("done"))
 }
 
-func Head(directory string) []byte {
+func HeadSerialized(directory string) []byte {
+	head, err := Head(directory)
+	if err != nil {
+		return serialize.SerializeString(errorFmt(err))
+	}
+
+	data := []byte{}
+	data = append(data, serialize.SerializeString(head.Name().Short())...)
+	data = append(data, serialize.SerializeString(head.Hash().String())...)
+	return data
+}
+
+func Head(directory string) (*plumbing.Reference, error) {
 	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
 
 	if err != nil {
-		return serialize.SerializeString(errorFmt(err))
+		return nil, err
 	}
 
 	head, err := repo.Head()
 
 	if err != nil {
-		return serialize.SerializeString(errorFmt(err))
+		return nil, err
 	}
 
 	wg.Wait()
 
-	data := []byte{}
-	data = append(data, serialize.SerializeString(head.Name().Short())...)
-	data = append(data, serialize.SerializeString(head.Hash().String())...)
-
-	return data
+	return head, nil
 }
 
 func Status(directory string) []byte {

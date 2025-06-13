@@ -26,19 +26,23 @@ import (
 func main() {}
 
 //export directories
-func directories(root *C.char,
+func directories(
+	root *C.char,
 	config *C.char,
-	editor *C.char) {
+	editor *C.char,
+	tmp *C.char,
+) {
+
 	setup.SetupDirectories(
 		C.GoString(root),
 		C.GoString(config),
 		C.GoString(editor),
+		C.GoString(tmp),
 	)
 
 	fileEventOrigin := "setup"
 	fs.Mkdir(setup.Directories.Root, fileEventOrigin)
 	fs.Mkdir(setup.Directories.Config, fileEventOrigin)
-	fs.Mkdir(setup.Directories.Editor, fileEventOrigin)
 
 	// clean tmp
 	fs.Rmdir(setup.Directories.Tmp, fileEventOrigin)
@@ -75,8 +79,12 @@ var responsesMutex = sync.Mutex{}
 //export getResponse
 func getResponse(id C.int, ptr unsafe.Pointer) {
 	responsesMutex.Lock()
-	response := responses[id]
+	response, ok := responses[id]
 	responsesMutex.Unlock()
+
+	if !ok {
+		return
+	}
 
 	bytes := C.CBytes(response)
 	C.write_bytes_array(bytes, C.int(len(response)), ptr)

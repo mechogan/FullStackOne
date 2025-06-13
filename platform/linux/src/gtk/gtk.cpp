@@ -3,6 +3,8 @@
 #include <gobject/gsignal.h>
 #include <gtk/gtkwidget.h>
 #include <webkit/webkit.h>
+#include <iostream>
+#include "gtk.h"
 
 Window *
 WebkitGTKGUI::createWindow(std::function<Response(std::string)> onRequest,
@@ -25,36 +27,9 @@ int WebkitGTKGUI::run(int &argc, char **argv, std::function<void()> onReady) {
     return app->run();
 }
 
-WebkitGTKWindow::WebkitGTKWindow(Glib::RefPtr<Gtk::Application> app) {
-    windowGTK = new Gtk::Window();
-    windowGTK->set_default_size(800, 600);
-    windowGTK->show();
-    app->add_window(*windowGTK);
-
-    auto webviewGtk = webkit_web_view_new();
-    webview = WEBKIT_WEB_VIEW(webviewGtk);
-    Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview), false);
-    windowGTK->set_child(*three);
-
-    WebKitSettings *settings = webkit_web_view_get_settings(webview);
-    webkit_settings_set_enable_developer_extras(settings, true);
-
-    std::string scheme = gen_random(6);
-
-    webkit_web_context_register_uri_scheme(
-        webkit_web_view_get_context(webview), scheme.c_str(),
-        WebkitGTKWindow::webKitURISchemeRequestCallback, this, nullptr);
-
-    auto ucm = webkit_web_view_get_user_content_manager(webview);
-    webkit_user_content_manager_register_script_message_handler(ucm, "bridge",
-                                                                NULL);
-
-    g_signal_connect(ucm, "script-message-received::bridge",
-                     G_CALLBACK(WebkitGTKWindow::onScriptMessage), this);
-    g_signal_connect(webviewGtk, "decide-policy",
-                     G_CALLBACK(WebkitGTKWindow::navigationDecidePolicy), this);
-
-    webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
+WebkitGTKWindow::WebkitGTKWindow(Glib::RefPtr<Gtk::Application> pApp) {
+    app = pApp;
+    initWindow();
 }
 
 void WebkitGTKWindow::webKitURISchemeRequestCallback(
@@ -121,6 +96,44 @@ gboolean WebkitGTKWindow::navigationDecidePolicy(
     return true;
 }
 
+void WebkitGTKWindow::initWindow() {
+    windowGTK = new Gtk::Window();
+    windowGTK->set_default_size(800, 600);
+    windowGTK->show();
+    windowGTK->signal_close_request().connect(
+        [this]() -> bool {
+            windowGTK = nullptr;
+            return false;
+        },
+        false);
+    app->add_window(*windowGTK);
+
+    auto webviewGtk = webkit_web_view_new();
+    webview = WEBKIT_WEB_VIEW(webviewGtk);
+    Gtk::Widget *three = Glib::wrap(GTK_WIDGET(webview), false);
+    windowGTK->set_child(*three);
+
+    WebKitSettings *settings = webkit_web_view_get_settings(webview);
+    webkit_settings_set_enable_developer_extras(settings, true);
+
+    std::string scheme = gen_random(6);
+
+    webkit_web_context_register_uri_scheme(
+        webkit_web_view_get_context(webview), scheme.c_str(),
+        WebkitGTKWindow::webKitURISchemeRequestCallback, this, nullptr);
+
+    auto ucm = webkit_web_view_get_user_content_manager(webview);
+    webkit_user_content_manager_register_script_message_handler(ucm, "bridge",
+                                                                NULL);
+
+    g_signal_connect(ucm, "script-message-received::bridge",
+                     G_CALLBACK(WebkitGTKWindow::onScriptMessage), this);
+    g_signal_connect(webviewGtk, "decide-policy",
+                     G_CALLBACK(WebkitGTKWindow::navigationDecidePolicy), this);
+
+    webkit_web_view_load_uri(webview, (scheme + "://localhost").c_str());
+}
+
 void WebkitGTKWindow::onMessage(std::string type, std::string message) {
     std::string script =
         "window.oncoremessage(`" + type + "`, `" + message + "`);";
@@ -131,6 +144,17 @@ void WebkitGTKWindow::onMessage(std::string type, std::string message) {
 }
 
 void WebkitGTKWindow::bringToFront(bool reload) {
+    if(windowGTK == nullptr) {
+        initWindow();
+        return;
+    }
+
+    windowGTK->show();
+    windowGTK->activate();
+
+    if(reload) {
+        webkit_web_view_reload(webview);
+    }
 }
 
 void WebkitGTKWindow::setFullscreen() {

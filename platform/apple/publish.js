@@ -23,15 +23,13 @@ child_process.execSync("make darwin-static ios-arm64 -j4", {
 });
 
 // update version
+const versionStr = `${version.major}.${version.minor}.${version.patch}`;
 
 const xcodeProj = path.resolve(currentDirectory, "FullStacked.xcodeproj");
 const xcodeFile = path.resolve(xcodeProj, "project.pbxproj");
 const xcodeFileContent = fs.readFileSync(xcodeFile, { encoding: "utf-8" });
 const xcodeFileUpdated = xcodeFileContent
-    .replace(
-        /MARKETING_VERSION = .*?;/g,
-        `MARKETING_VERSION = ${version.major}.${version.minor}.${version.patch};`
-    )
+    .replace(/MARKETING_VERSION = .*?;/g, `MARKETING_VERSION = ${version};`)
     .replace(
         /CURRENT_PROJECT_VERSION = .*?;/g,
         `CURRENT_PROJECT_VERSION = ${version.build};`
