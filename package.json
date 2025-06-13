@@ -4,7 +4,7 @@
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
         "start": "npm run build -- --no-zip && npm start -w platform/node",
-        "fmt": "prettier . --write && cd core && gofmt -l -w . && cd .. && find platform/linux/src -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i --verbose && find platform/node/gyp -iname '*.h' -o -iname '*.cc' | xargs clang-format -i --verbose",
+        "fmt": "sh ./fmt.sh",
         "typecheck": "tsc --noEmit",
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
     },
