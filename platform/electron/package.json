@@ -4,7 +4,7 @@
     "main": "index.js",
     "scripts": {
         "build": "esbuild --bundle --format=cjs --platform=node --packages=external --outfile=.cache/index.js index.ts && esbuild --bundle --format=cjs --platform=node --packages=external --outfile=.cache/preload.js preload.ts && cd ../node && npm run build",
-        "start": "npm run build && electron .cache/index.js --"
+        "start": "npm run build && electron .cache/index.js"
     },
     "keywords": [],
     "author": "",

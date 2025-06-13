@@ -3,7 +3,7 @@ import os from "node:os";
 import fs from "node:fs";
 import zlib from "node:zlib";
 import cliProgress from "cli-progress";
-// import prettyBytes from "pretty-bytes";
+import prettyBytes from "pretty-bytes";
 import tar from "tar-stream";
 
 const platform = os.platform();
@@ -35,9 +35,9 @@ export async function getLibPath(directory: string) {
     const downloadProgress = new cliProgress.SingleBar(
         {
             formatValue: (v, _, type) => {
-                // if (type === "total" || type === "value") {
-                //     return prettyBytes(v);
-                // }
+                if (type === "total" || type === "value") {
+                    return prettyBytes(v);
+                }
                 return v.toString();
             }
         },
