@@ -5,9 +5,6 @@ import path from "node:path";
 import url from "node:url";
 import fs from "node:fs";
 
-const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
-const rootDirectory = path.resolve(currentDirectory, "..", "..");
-
 esbuild.buildSync({
     entryPoints: ["src/index.ts"],
     outfile: "index.js",
@@ -17,8 +14,13 @@ esbuild.buildSync({
     platform: "node"
 });
 
+const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
+
 const platform = os.platform();
-const arch = os.arch();
+
+const archArgIndex = process.argv.indexOf("--arch");
+const arch = archArgIndex === -1 ? os.arch() : process.argv.at(archArgIndex + 1);
+
 const target_name = platform + "-" + arch;
 
 const binding = {
@@ -42,7 +44,7 @@ const binding = {
 const bindingFilePath = path.resolve(currentDirectory, "gyp", "binding.gyp");
 fs.writeFileSync(bindingFilePath, JSON.stringify(binding, null, 4));
 
-child_process.execSync("node-gyp clean configure build", {
+child_process.execSync(`node-gyp --arch=${arch} clean configure build`, {
     cwd: path.resolve(currentDirectory, "gyp"),
     stdio: "inherit"
 });
