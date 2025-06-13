@@ -39,7 +39,7 @@ fs.writeFileSync(packageJsonFilePath, JSON.stringify(packageJson, null, 4));
 
 const platform = os.platform();
 let command = platform === "win32"
-    ? "./windows.bat"
+    ? "cmd.exe /c windows.bat"
     : `make ${platform}-x64-shared ${platform}-arm64-shared -j4`;
 
 child_process.execSync(command, {
