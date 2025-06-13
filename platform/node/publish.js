@@ -38,9 +38,12 @@ fs.writeFileSync(packageJsonFilePath, JSON.stringify(packageJson, null, 4));
 // build core shared lib for current platform
 
 const platform = os.platform();
+const currentArch = os.arch();
 let command = platform === "win32"
     ? "./windows.bat"
-    : `make ${platform}-x64-shared ${platform}-arm64-shared -j4`;
+    : platform === "linux"
+        ? `make ${platform}-${currentArch}-shared -j4`
+        : `make ${platform}-x64-shared ${platform}-arm64-shared -j4`;
 
 child_process.execSync(command, {
     cwd: path.resolve(rootDirectory, "core", "build"),
@@ -49,14 +52,18 @@ child_process.execSync(command, {
 
 // build node bindings for current platform
 
-child_process.execSync(`node ./build.js --arch x64`, {
+child_process.execSync(`node ./build.js --arch ${currentArch}`, {
     cwd: currentDirectory,
     stdio: "inherit"
 });
-child_process.execSync(`node ./build.js --arch arm64`, {
-    cwd: currentDirectory,
-    stdio: "inherit"
-});
+
+if (platform !== "linux") {
+    child_process.execSync(`node ./build.js --arch ${currentArch === "x64" ? "arm64" : "x64"}`, {
+        cwd: currentDirectory,
+        stdio: "inherit"
+    });
+}
+
 
 // gzip both packages
 
@@ -94,18 +101,20 @@ async function packageArch(arch) {
     pack.finalize();
 
     return new Promise((resolve, reject) => {
-        output.on('finish', () => resolve(outputPath));
+        output.on('finish', () => resolve([outputPath, arch]));
         output.on('error', reject);
     });
 }
 
-const [
-    packageX64,
-    packageArm64
-] = await Promise.all([
-    packageArch("x64"),
-    packageArch("arm64")
-]);
+const builds = platform === "linux"
+    ? [
+        packageArch(currentArch)
+    ]
+    : [
+        packageArch("x64"),
+        packageArch("arm64")
+    ]
+const buildPackages = await Promise.all(builds);
 
 // upload to R2
 
@@ -122,8 +131,7 @@ const s3Client = new S3Client({
     },
 });
 
-await uploadPackage(packageX64, "x64");
-await uploadPackage(packageArm64, "arm64");
+await Promise.all(buildPackages.map(([outputPath, arch]) => uploadPackage(outputPath, arch)));
 
 function uploadPackage(packageFilePath, arch) {
     const packageName = path.basename(packageFilePath);
