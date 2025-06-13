@@ -144,7 +144,7 @@ void WebkitGTKWindow::onMessage(std::string type, std::string message) {
 }
 
 void WebkitGTKWindow::bringToFront(bool reload) {
-    if(windowGTK == nullptr) {
+    if (windowGTK == nullptr) {
         initWindow();
         return;
     }
@@ -152,7 +152,7 @@ void WebkitGTKWindow::bringToFront(bool reload) {
     windowGTK->show();
     windowGTK->activate();
 
-    if(reload) {
+    if (reload) {
         webkit_web_view_reload(webview);
     }
 }

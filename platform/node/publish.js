@@ -160,18 +160,18 @@ function uploadPackage(packageFilePath, arch) {
 
 // check if version is already on npmjs
 
-const packageInfoResponse = await fetch("https://registry.npmjs.org/fullstacked");
+const packageInfoResponse = await fetch(
+    "https://registry.npmjs.org/fullstacked"
+);
 const packageInfo = await packageInfoResponse.json();
 const versions = Object.keys(packageInfo.versions);
 
-if(!versions.includes(packageJson.version)) {
-    const command = isRelease 
-        ? "npm publish" 
-        : "npm publish --tag beta";
+if (!versions.includes(packageJson.version)) {
+    const command = isRelease ? "npm publish" : "npm publish --tag beta";
     child_process.execSync(command, {
         cwd: currentDirectory,
         stdio: "inherit"
     });
 }
 
-console.log("Done")
+console.log("Done");

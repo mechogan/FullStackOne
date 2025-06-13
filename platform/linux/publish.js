@@ -55,7 +55,7 @@ child_process.execSync(`sh ./pkg.sh`, {
 
 const debPackageGTK = path.resolve(
     currentDirectory,
-    `fullstacked-${versionStr}-linux-${arch}-gtk.deb`
+    `fullstacked-${versionStr}-${version.build}-linux-${arch}-gtk.deb`
 );
 
 fs.renameSync(path.resolve(currentDirectory, "fullstacked.deb"), debPackageGTK);
@@ -76,7 +76,7 @@ child_process.execSync(`make -j4`, {
 
 const debPackageQt = path.resolve(
     currentDirectory,
-    `fullstacked-${versionStr}-linux-${arch}-qt.deb`
+    `fullstacked-${versionStr}-${version.build}-linux-${arch}-qt.deb`
 );
 
 child_process.execSync(`sh ./pkg.sh`, {
@@ -121,7 +121,7 @@ async function uploadDebToR2(debFilePath) {
     try {
         // Read the .deb file
         const fileBuffer = fs.readFileSync(debFilePath);
-        const fileName = path.basename(debFilePath)
+        const fileName = path.basename(debFilePath);
 
         // Construct the S3 key: /[arch]/[version]/filename
         const s3Key = `linux-builds/${arch}/${versionStr}/${fileName}`;
