@@ -1,5 +1,4 @@
 {
-    "name": "@fullstacked/fullstacked",
     "version": "0.11.2",
     "scripts": {
         "build": "esbuild build.ts --bundle --outfile=.cache/build.js --platform=node --format=esm --packages=external && node .cache/build.js",
@@ -13,7 +12,7 @@
         "platform/wasm"
     ],
     "author": "FullStacked",
-    "license": "GPL-3.0",
+    "license": "MIT",
     "type": "module",
     "prettier": {
         "tabWidth": 4,
