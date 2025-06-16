@@ -1,8 +1,0 @@
-@use "../../node_modules/@fullstacked/ui/values/colors.scss";
-@use "../../node_modules/@fullstacked/ui/values/spacing.scss";
-
-.winbox {
-    border-radius: spacing.$small;
-    background-color: colors.$gray-dark;
-    overflow: hidden;
-}
