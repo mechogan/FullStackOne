@@ -1,4 +1,4 @@
-<img height=100 width=100 src="editor/assets/dev-icon.png" />
+<img height=100 width=100 src="https://fullstacked.org/images/app-icon-dev.png" />
 
 # FullStacked
 
@@ -33,4 +33,4 @@ You can always find those links and access to the beta apps on FullStacked [down
 
 ## License
 
-[GPL-3.0](https://github.com/fullstackedorg/fullstacked/blob/main/LICENSE)
+[MIT](https://github.com/fullstackedorg/fullstacked/blob/main/LICENSE)
