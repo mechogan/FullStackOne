@@ -1,18 +1,17 @@
-import child_process from "child_process";
+import child_process from "node:child_process";
 import puppeteer, { ElementHandle, KeyInput } from "puppeteer";
 import {
-    BACK_BUTTON_CLASS,
     IMPORT_PROJECT_FILE_INPUT_ID,
     IMPORT_ZIP_ID,
     NEW_FILE_ID,
     NEW_PROJECT_ID,
     PROJECTS_TITLE,
     PROJECTS_VIEW_ID,
-    RUN_PROJECT_ID,
-    SETTINGS_BUTTON_ID,
-    SETTINGS_VIEW_ID
+    RUN_PROJECT_ID
 } from "../editor/constants";
 import { sleep, throwError, waitForStackNavigation } from "./utils";
+import path from "node:path";
+import os from "node:os";
 
 // test build
 await import("../build");
@@ -26,6 +25,27 @@ child_process.execSync("npm run build", {
 // test functionalities with node
 process.chdir(process.cwd() + "/platform/node");
 process.env.NO_OPEN = "1";
+process.env.FULLSTACKED_LIB = path.resolve(
+    process.cwd(),
+    "..",
+    "..",
+    "core",
+    "bin"
+);
+process.env.FULLSTACKED_ROOT = path.resolve(os.homedir(), "FullStacked");
+process.env.FULLSTACKED_CONFIG = path.resolve(
+    os.homedir(),
+    ".config",
+    "fullstacked"
+);
+process.env.FULLSTACKED_EDITOR = path.resolve(
+    process.cwd(),
+    "..",
+    "..",
+    "out",
+    "editor"
+);
+
 await import(process.cwd().replace(/\\/g, "/").split(":").pop() + "/index.js");
 
 // Launch the browser

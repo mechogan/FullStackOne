@@ -8,8 +8,6 @@ import { createInstance } from "./instance";
 import { buildLocalProject } from "./build";
 import { getLibPath } from "./lib";
 import { createRequire } from "node:module";
-import { toByteArray } from "../../../lib/base64";
-import { deserializeArgs } from "../../../lib/bridge/serialization";
 import { setupDevFiles } from "./dev-files";
 globalThis.require = createRequire(import.meta.url);
 
@@ -19,8 +17,9 @@ let libDirectory = currentDirectory;
 const libArgIndex = process.argv.indexOf("--lib");
 if (libArgIndex !== -1) {
     libDirectory = process.argv.at(libArgIndex + 1);
+} else if (typeof process.env.FULLSTACKED_LIB === "string") {
+    libDirectory = process.env.FULLSTACKED_LIB;
 }
-
 load(await getLibPath(libDirectory));
 
 let deeplink: string = null,
@@ -30,7 +29,12 @@ if (process.argv.at(-1).startsWith("http")) {
 }
 
 function parseArgsForPath(arg: string, fallback: string = process.cwd()) {
-    const indexOfArg = process.argv.indexOf(arg);
+    const envFlag = `FULLSTACKED_${arg.toUpperCase()}`;
+    if (typeof process.env[envFlag] === "string") {
+        return process.env[envFlag];
+    }
+
+    const indexOfArg = process.argv.indexOf(`--${arg}`);
     if (indexOfArg === -1) return fallback;
     const definedPath = process.argv.at(indexOfArg + 1);
     if (definedPath.startsWith("~/")) {
@@ -60,14 +64,16 @@ const cb = (projectId: string, messageType: string, message: string) => {
 };
 setCallback(cb);
 
-const root = parseArgsForPath("--root", process.cwd());
+const root = parseArgsForPath("root", process.cwd());
 setDirectories({
     root,
-    config: parseArgsForPath("--config", currentDirectory),
-    editor: parseArgsForPath("--editor", currentDirectory),
-    tmp: process.argv.includes("--root")
-        ? path.resolve(root, ".tmp")
-        : path.resolve(currentDirectory, ".tmp")
+    config: parseArgsForPath("config", currentDirectory),
+    editor: parseArgsForPath("editor", currentDirectory),
+    tmp:
+        process.argv.includes("--root") ||
+        typeof process.env["FULLSTACKED_ROOT"] === "string"
+            ? path.resolve(root, ".tmp")
+            : path.resolve(currentDirectory, ".tmp")
 });
 
 export const platform = new TextEncoder().encode("node");
@@ -87,7 +93,11 @@ async function openProject(id: string) {
     webViews.set(id, webView);
 }
 
-const mainInstanceId = process.argv.includes("--editor") ? "" : ".";
+const mainInstanceId =
+    process.argv.includes("--editor") ||
+    typeof process.env.FULLSTACKED_EDITOR === "string"
+        ? ""
+        : ".";
 
 if (mainInstanceId === ".") {
     await buildLocalProject();

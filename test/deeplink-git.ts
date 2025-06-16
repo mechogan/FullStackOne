@@ -2,6 +2,8 @@ import child_process, { ChildProcess } from "child_process";
 import puppeteer from "puppeteer";
 import { sleep, throwError } from "./utils";
 import { PROJECT_VIEW_ID, RUN_PROJECT_ID } from "../editor/constants";
+import path from "node:path";
+import os from "node:os";
 
 let editorProcess1: ChildProcess, editorProcess2: ChildProcess;
 
@@ -23,7 +25,15 @@ editorProcess1 = child_process.exec("node index.js", {
     cwd: process.cwd() + "/platform/node",
     env: {
         ...process.env,
-        NO_OPEN: "1"
+        NO_OPEN: "1",
+        FULLSTACKED_LIB: path.resolve(process.cwd(), "core", "bin"),
+        FULLSTACKED_ROOT: path.resolve(os.homedir(), "FullStacked"),
+        FULLSTACKED_CONFIG: path.resolve(
+            os.homedir(),
+            ".config",
+            "fullstacked"
+        ),
+        FULLSTACKED_EDITOR: path.resolve(process.cwd(), "out", "editor")
     }
 });
 editorProcess1.stdout.pipe(process.stdout);
@@ -88,7 +98,15 @@ editorProcess2 = child_process.exec(
         cwd: process.cwd() + "/platform/node",
         env: {
             ...process.env,
-            NO_OPEN: "1"
+            NO_OPEN: "1",
+            FULLSTACKED_LIB: path.resolve(process.cwd(), "core", "bin"),
+            FULLSTACKED_ROOT: path.resolve(os.homedir(), "FullStacked"),
+            FULLSTACKED_CONFIG: path.resolve(
+                os.homedir(),
+                ".config",
+                "fullstacked"
+            ),
+            FULLSTACKED_EDITOR: path.resolve(process.cwd(), "out", "editor")
         }
     }
 );

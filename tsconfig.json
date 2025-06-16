@@ -12,6 +12,6 @@
         "platform/apple",
         "platform/docker",
         "platform/linux",
-        "platform/node/editor"
+        "platform/node/lib"
     ]
 }
