@@ -152,19 +152,15 @@ function receivedResponse2(base64Data: string) {
         return { done: false, value: chunk };
     };
 
+    const it = {
+        next: read
+    } as AsyncIterator<Uint8Array>
+
     const responseIterator = {
         [Symbol.asyncIterator]() {
-            return {
-                next: read
-            } as any;
+            return it
         }
     };
-
-    const getReader = () =>
-        ({
-            read,
-            releaseLock() {}
-        }) as any;
 
     const readBody = async () => {
         if (!ok) {
@@ -190,30 +186,7 @@ function receivedResponse2(base64Data: string) {
         statusText,
         headers: objectToHeaders(JSON.parse(headersStr || "{}")),
 
-        body: {
-            getReader,
-            tee() {
-                return [{ getReader }, { getReader }] as any;
-            },
-
-            ...responseIterator,
-            async cancel() {
-                console.log("cancel not implemented");
-            },
-            locked: false,
-            pipeThrough(transform, options) {
-                console.log("pipeThrough not implemented");
-                return null;
-            },
-            pipeTo(destination, options) {
-                console.log("pipeTo not implemented");
-                return null;
-            },
-            values(options) {
-                console.log("values");
-                return null;
-            }
-        },
+        body: iteratorToStream(it),
 
         bytes: readBody,
         arrayBuffer: async () => {
@@ -327,3 +300,19 @@ const headersToObject = (h: Headers) => {
     }
     return obj;
 };
+
+// https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream#convert_an_iterator_or_async_iterator_to_a_stream
+function iteratorToStream(iterator: AsyncIterator<Uint8Array>) {
+    return new ReadableStream({
+        async pull(controller) {
+            const { value, done } = await iterator.next();
+
+            if (value) {
+                controller.enqueue(value);
+            }
+            if (done) {
+                controller.close();
+            }
+        },
+    });
+}

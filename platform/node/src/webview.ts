@@ -32,10 +32,13 @@ export async function createWebView(
     };
 
     let closeTimeout: ReturnType<typeof setTimeout>,
-        connectedOnce = false;
+        connectedOnce = false,
+        messagesQueue: [string, string][] = [];
     const onSocketOpen = () => {
         if (!connectedOnce) {
             connectedOnce = true;
+            messagesQueue.forEach(send);
+            messagesQueue = [];
             onFirstConnection?.();
         }
         if (!closeTimeout) return;
@@ -50,14 +53,21 @@ export async function createWebView(
         onSocketOpen,
         onSocketClose
     });
+    const send = (m: [string, string]) => {
+        const jsonStr = JSON.stringify(m);
+        webSockets.forEach((ws) => ws.send(jsonStr));
+    }
     server.listen(port);
     if (!process.env.NO_OPEN) {
         open(`http://localhost:${port}`);
     }
     return {
         message: (type: string, message: string) => {
-            const jsonStr = JSON.stringify([type, message]);
-            webSockets.forEach((ws) => ws.send(jsonStr));
+            if (!connectedOnce) {
+                messagesQueue.push([type, message]);
+            } else {
+                send([type, message]);
+            }
         }
     };
 }
