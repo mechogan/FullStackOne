@@ -1,3 +1,6 @@
+@REM download this compiler and add to PATH env
+@REM https://github.com/mstorsjo/llvm-mingw
+
 @ECHO off
 SET CGO_ENABLED ="1"
 SET GOOS ="windows"
