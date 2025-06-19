@@ -15,9 +15,16 @@ struct FullStackedApp: App {
     var body: some Scene {
         #if os(macOS)
         Window("FullStacked", id: "Editor"){
-            WebViewsStacked(webViews: self.webViews)
-                .onDisappear {
-                    exit(0)
+            Color(hex: 0x1e293b)
+                .ignoresSafeArea(.all)
+                .overlay {
+                    WebViewsStacked(webViews: self.webViews)
+                        .onDisappear {
+                            exit(0)
+                        }
+                        .padding(1)
+                        .toolbar { }
+                        .toolbarBackground(Color(hex: 0x1e293b))
                 }
         }
         #else
@@ -38,7 +45,15 @@ struct FullStackedApp: App {
         
         if #available(iOS 16.1, *) {
             WindowGroup(id: "window-webview", for: String.self) { $projectId in
-                WebViewSingle(projectId: projectId)
+                Color(hex: 0x1e293b)
+                    .ignoresSafeArea(.all)
+                    .overlay {
+                        WebViewSingle(projectId: projectId)
+                            .padding(1)
+                            .toolbar { }
+                            .toolbarBackground(Color(hex: 0x1e293b))
+                    }
+                
             }
             .commands {
                 CommandGroup(replacing: CommandGroupPlacement.newItem) {
