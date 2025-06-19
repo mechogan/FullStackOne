@@ -80,19 +80,19 @@ const archivePathMacOS = path.resolve(
 const pkgDirectoryMacOS = path.resolve(out, schemeMacOS, "pkg");
 
 child_process.execSync(
-    `xcodebuild -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release clean`,
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release clean`,
     {
         stdio: "inherit"
     }
 );
 child_process.execSync(
-    `xcodebuild -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release archive -archivePath ${archivePathMacOS}`,
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release archive -archivePath ${archivePathMacOS}`,
     {
         stdio: "inherit"
     }
 );
 child_process.execSync(
-    `xcodebuild -exportArchive -archivePath ${archivePathMacOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryMacOS} -allowProvisioningUpdates`,
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -exportArchive -archivePath ${archivePathMacOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryMacOS} -allowProvisioningUpdates`,
     {
         stdio: "inherit"
     }
