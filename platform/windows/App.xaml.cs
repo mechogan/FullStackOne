@@ -129,22 +129,24 @@ namespace FullStacked
             }
 
             Window newWindow = new();
+            webview.window = newWindow;
 
 
             if (webview.instance.isEditor)
             {
                 newWindow.Title = "FullStacked";
-                newWindow.AppWindow.SetIcon("Assets/Icon-16.ico");
             }
             else {
                 newWindow.Title = webview.instance.id;
             }
+
             AppWindowTitleBar titleBar = newWindow.AppWindow.TitleBar;
             Color primarycolor = ColorHelper.FromArgb(1, 30, 41, 59);
             titleBar.BackgroundColor = primarycolor;
             titleBar.ButtonBackgroundColor = primarycolor;
             titleBar.ButtonHoverBackgroundColor = ColorHelper.FromArgb(1, 64, 73, 88);
 
+            newWindow.AppWindow.SetIcon("Assets/Icon-16.ico");
 
             newWindow.Content = webview.webview;
             newWindow.Activate();
