@@ -1,5 +1,7 @@
 import SwiftUI
 
+let EditorColor = 0x1E293B
+
 @main
 struct FullStackedApp: App {
     static var singleton: FullStackedApp?
@@ -15,16 +17,17 @@ struct FullStackedApp: App {
     var body: some Scene {
         #if os(macOS)
         Window("FullStacked", id: "Editor"){
-            Color(hex: 0x1e293b)
+            Color(hex: EditorColor)
                 .ignoresSafeArea(.all)
                 .overlay {
                     WebViewsStacked(webViews: self.webViews)
                         .onDisappear {
                             exit(0)
                         }
-                        .padding(1)
+                        .padding(EdgeInsets(top: 1, leading: 0, bottom: 0, trailing: 0))
                         .toolbar { }
-                        .toolbarBackground(Color(hex: 0x1e293b))
+                        .preferredColorScheme(.dark)
+                        .toolbarBackground(Color(hex: EditorColor))
                 }
         }
         #else
@@ -45,15 +48,16 @@ struct FullStackedApp: App {
         
         if #available(iOS 16.1, *) {
             WindowGroup(id: "window-webview", for: String.self) { $projectId in
-                Color(hex: 0x1e293b)
+                Color(hex: webViews.getColor(projectId: projectId))
                     .ignoresSafeArea(.all)
                     .overlay {
                         WebViewSingle(projectId: projectId)
-                            .padding(1)
+                            .padding(EdgeInsets(top: 1, leading: 0, bottom: 0, trailing: 0))
                             .toolbar { }
-                            .toolbarBackground(Color(hex: 0x1e293b))
+                            .preferredColorScheme(.light)
+                            .navigationTitle(projectId ?? "Project")
+                            .toolbarBackground(Color(hex: webViews.getColor(projectId: projectId)))
                     }
-                
             }
             .commands {
                 CommandGroup(replacing: CommandGroupPlacement.newItem) {

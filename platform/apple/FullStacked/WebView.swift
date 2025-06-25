@@ -87,6 +87,30 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
         }
     }
     
+    func webView(_ webView:WKWebView, didFinish didFinishNavigation: WKNavigation){
+        let wkSnapConfig = WKSnapshotConfiguration()
+        wkSnapConfig.rect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        takeSnapshot(with: wkSnapConfig) { image, err in
+            if(err != nil) {
+                print(err!)
+                return
+            }
+            
+            
+            var imageRect = CGRect(x: 0, y: 0, width: image!.size.width, height: image!.size.height)
+            let imageRef = image!.cgImage(forProposedRect: &imageRect, context: nil, hints: nil)
+            
+            let bitmapRep = NSBitmapImageRep(cgImage: imageRef!)
+            let color = bitmapRep.colorAt(x: 0, y: 0)
+            let r = color!.redComponent * 255
+            let g = color!.greenComponent * 255
+            let b = color!.blueComponent * 255
+            
+            let colorInt = (Int(r) << 16) | (Int(g) << 8) | Int(b);
+            FullStackedApp.singleton?.webViews.setColor(projectId: self.requestHandler.instance.id, color: colorInt)
+        }
+    }
+    
     func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
         download.delegate = self
     }
