@@ -12,8 +12,6 @@ using Windows.UI;
 using Microsoft.Win32;
 using System.Security.Principal;
 using System.Reflection;
-using Microsoft.UI.Xaml.Input;
-using Windows.System;
 
 namespace FullStacked
 {
@@ -29,9 +27,6 @@ namespace FullStacked
             {
                 case Architecture.X64:
                     App.lib = new LibX64();
-                    break;
-                case Architecture.X86:
-                    App.lib = new LibX86();
                     break;
                 case Architecture.Arm64:
                     App.lib = new LibARM64();
