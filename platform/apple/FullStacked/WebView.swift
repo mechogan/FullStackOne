@@ -1,10 +1,3 @@
-//
-//  WebView.swift
-//  FullStacked
-//
-//  Created by Charles-Philippe Lepage on 2024-11-06.
-//
-
 @preconcurrency import WebKit
 
 let platform = "apple"
@@ -50,7 +43,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if(navigationAction.shouldPerformDownload) {
             decisionHandler(.download)
-        }else if navigationAction.navigationType == .linkActivated  {
+        } else if navigationAction.navigationType == .linkActivated  {
             if let url = navigationAction.request.url, "localhost" != url.host {
                 self.openBrowserURL(url)
                 decisionHandler(.cancel)
@@ -95,19 +88,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
                 print(err!)
                 return
             }
-            
-            
-            var imageRect = CGRect(x: 0, y: 0, width: image!.size.width, height: image!.size.height)
-            let imageRef = image!.cgImage(forProposedRect: &imageRect, context: nil, hints: nil)
-            
-            let bitmapRep = NSBitmapImageRep(cgImage: imageRef!)
-            let color = bitmapRep.colorAt(x: 0, y: 0)
-            let r = color!.redComponent * 255
-            let g = color!.greenComponent * 255
-            let b = color!.blueComponent * 255
-            
-            let colorInt = (Int(r) << 16) | (Int(g) << 8) | Int(b);
-            FullStackedApp.singleton?.webViews.setColor(projectId: self.requestHandler.instance.id, color: colorInt)
+            self.snapshotImageToWindowColor(projectId: self.requestHandler.instance.id, image: image!)
         }
     }
     

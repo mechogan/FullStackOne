@@ -222,11 +222,11 @@ struct WebViewsStacked: View {
                             }
                         }
                 }
-                .background(Color.black)
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
                 .opacity(isMacOS || FullStackedApp.singleton!.webViews.isHidden(self.webViews.views[webViewIndex].requestHandler.instance.id) ? 0 : 1)
             }
         }
-        .background(Color(hex: 0x1e293b))
+        .background(Color(hex: EditorColor))
     }
 }
 
@@ -262,10 +262,10 @@ struct WebViewsStackedLegacy: View {
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
                 }
-                .background(Color.black)
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
             }
         }
-        .background(Color(hex: 0x1e293b))
+        .background(Color(hex: EditorColor))
     }
 }
 

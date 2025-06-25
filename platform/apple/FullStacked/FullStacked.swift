@@ -2,6 +2,7 @@ import SwiftUI
 
 let EditorColor = 0x1E293B
 
+// source: https://github.com/scottcorgan/contrast/blob/master/index.js
 func getBestSuitedColorScheme(c: Int) -> ColorScheme {
     let r = ((c >> 16) & 0xff)
     let g = ((c >>  8) & 0xff)
