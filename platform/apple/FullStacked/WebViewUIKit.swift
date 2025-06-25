@@ -1,9 +1,3 @@
-//
-//  ViewRepresentable.swift
-//  FullStacked
-//
-//  Created by Charles-Philippe Lepage on 2024-11-27.
-//
 import SwiftUI
 import WebKit
 
@@ -22,6 +16,20 @@ class WebViewExtended: WKWebView {
     
     func openDownloadDirectory(){
         UIApplication.shared.open(URL(string: "shareddocuments://" + downloadDirectory)!)
+    }
+    
+    // source: https://stackoverflow.com/a/28528496
+    func snapshotImageToWindowColor(projectId: String, image: UIImage){
+        let imageRef = image.cgImage
+        
+        let pixelData = imageRef?.dataProvider?.data
+        let pixelDataPtr = CFDataGetBytePtr(pixelData)!
+        let r = pixelDataPtr[0]
+        let g = pixelDataPtr[1]
+        let b = pixelDataPtr[2]
+        
+        let colorInt = (Int(r) << 16) | (Int(g) << 8) | Int(b);
+        FullStackedApp.singleton?.webViews.setColor(projectId: projectId, color: colorInt)
     }
 }
 

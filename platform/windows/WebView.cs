@@ -1,9 +1,14 @@
-﻿using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Web;
@@ -13,6 +18,7 @@ namespace FullStacked
 {
     internal class WebView
     {
+        public Window window;
         public WebView2 webview;
         public Instance instance;
         private bool firstContact = false;
@@ -133,6 +139,22 @@ namespace FullStacked
             {
                 e.Handled = true;
                 _ = Windows.System.Launcher.LaunchUriAsync(new Uri(e.Uri));
+            };
+
+            this.webview.CoreWebView2.NavigationCompleted += async delegate(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
+            {
+                IRandomAccessStream memoryStream = new MemoryStream().AsRandomAccessStream();
+                await this.webview.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Jpeg, memoryStream);
+                memoryStream.Seek(0);
+                System.Drawing.Image image = System.Drawing.Image.FromStream(memoryStream.AsStream());
+                Bitmap bitmap = new Bitmap(image);
+                Color c = bitmap.GetPixel(0, 0);
+                AppWindowTitleBar titleBar = this.window.AppWindow.TitleBar;
+                Windows.UI.Color color = Windows.UI.Color.FromArgb(1, c.R, c.G, c.B);
+                titleBar.BackgroundColor = color;
+                titleBar.ButtonBackgroundColor = color;
+                titleBar.ButtonHoverBackgroundColor = ColorHelper.FromArgb(1, 64, 73, 88);
+
             };
 
             this.webview.Source = new Uri("http://localhost");

@@ -54,6 +54,7 @@ func setCallback(){
 class WebViews: ObservableObject {
     @Published var views: [WebView] = []
     @Published var hiddenProjectsIds: [String] = []
+    @Published var colors: [String:Int] = [:]
     var ready = false
     private var editor: WebView?
     
@@ -85,6 +86,7 @@ class WebViews: ObservableObject {
         if let viewIndex = self.views.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
             let view = self.views.remove(at: viewIndex)
             view.close()
+            colors.removeValue(forKey: projectId!)
         }
         
         self.hiddenProjectsIds.removeAll(where: {$0 == projectId})
@@ -96,6 +98,18 @@ class WebViews: ObservableObject {
     
     func isHidden(_ projectId: String) -> Bool {
         return self.hiddenProjectsIds.first(where: { $0 == projectId }) != nil
+    }
+    
+    func getColor(projectId: String?) -> Int {
+        if let id = projectId {
+            let c = colors[id]
+            return c ?? EditorColor
+        }
+        return EditorColor
+    }
+    
+    func setColor(projectId: String, color: Int) {
+        colors[projectId] = color
     }
 }
 
@@ -208,11 +222,11 @@ struct WebViewsStacked: View {
                             }
                         }
                 }
-                .background(Color.black)
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
                 .opacity(isMacOS || FullStackedApp.singleton!.webViews.isHidden(self.webViews.views[webViewIndex].requestHandler.instance.id) ? 0 : 1)
             }
         }
-        .background(Color(hex: 0x1e293b))
+        .background(Color(hex: EditorColor))
     }
 }
 
@@ -248,10 +262,10 @@ struct WebViewsStackedLegacy: View {
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
                 }
-                .background(Color.black)
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
             }
         }
-        .background(Color(hex: 0x1e293b))
+        .background(Color(hex: EditorColor))
     }
 }
 

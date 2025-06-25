@@ -1,10 +1,3 @@
-//
-//  Instance.swift
-//  FullStacked
-//
-//  Created by Charles-Philippe Lepage on 2024-11-06.
-//
-
 import SwiftUI
 
 class Instance {

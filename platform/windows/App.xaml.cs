@@ -129,9 +129,17 @@ namespace FullStacked
             }
 
             Window newWindow = new();
+            webview.window = newWindow;
 
-            // TODO: set all of this by project
-            newWindow.Title = "FullStacked";
+
+            if (webview.instance.isEditor)
+            {
+                newWindow.Title = "FullStacked";
+            }
+            else {
+                newWindow.Title = webview.instance.id;
+            }
+
             AppWindowTitleBar titleBar = newWindow.AppWindow.TitleBar;
             Color primarycolor = ColorHelper.FromArgb(1, 30, 41, 59);
             titleBar.BackgroundColor = primarycolor;

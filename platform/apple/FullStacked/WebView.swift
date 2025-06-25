@@ -1,10 +1,3 @@
-//
-//  WebView.swift
-//  FullStacked
-//
-//  Created by Charles-Philippe Lepage on 2024-11-06.
-//
-
 @preconcurrency import WebKit
 
 let platform = "apple"
@@ -50,7 +43,7 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if(navigationAction.shouldPerformDownload) {
             decisionHandler(.download)
-        }else if navigationAction.navigationType == .linkActivated  {
+        } else if navigationAction.navigationType == .linkActivated  {
             if let url = navigationAction.request.url, "localhost" != url.host {
                 self.openBrowserURL(url)
                 decisionHandler(.cancel)
@@ -84,6 +77,18 @@ class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WK
         
         DispatchQueue.main.async() {
             self.evaluateJavaScript("window.oncoremessage(`\(messageType)`,`\(message)`)")
+        }
+    }
+    
+    func webView(_ webView:WKWebView, didFinish didFinishNavigation: WKNavigation){
+        let wkSnapConfig = WKSnapshotConfiguration()
+        wkSnapConfig.rect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        takeSnapshot(with: wkSnapConfig) { image, err in
+            if(err != nil) {
+                print(err!)
+                return
+            }
+            self.snapshotImageToWindowColor(projectId: self.requestHandler.instance.id, image: image!)
         }
     }
     
