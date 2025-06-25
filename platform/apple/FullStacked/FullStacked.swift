@@ -2,6 +2,14 @@ import SwiftUI
 
 let EditorColor = 0x1E293B
 
+func getBestSuitedColorScheme(c: Int) -> ColorScheme {
+    let r = ((c >> 16) & 0xff)
+    let g = ((c >>  8) & 0xff)
+    let b = ((c      ) & 0xff)
+    let o = ((r * 299) + (g * 587) + (b * 114)) / 1000
+    return o >= 180 ? .light : .dark
+}
+
 @main
 struct FullStackedApp: App {
     static var singleton: FullStackedApp?
@@ -54,7 +62,7 @@ struct FullStackedApp: App {
                         WebViewSingle(projectId: projectId)
                             .padding(EdgeInsets(top: 1, leading: 0, bottom: 0, trailing: 0))
                             .toolbar { }
-                            .preferredColorScheme(.light)
+                            .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
                             .navigationTitle(projectId ?? "Project")
                             .toolbarBackground(Color(hex: webViews.getColor(projectId: projectId)))
                     }
