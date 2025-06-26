@@ -154,7 +154,8 @@ namespace FullStacked
                 titleBar.BackgroundColor = color;
                 titleBar.ButtonBackgroundColor = color;
                 titleBar.ButtonHoverBackgroundColor = ColorHelper.FromArgb(1, 64, 73, 88);
-
+                titleBar.InactiveBackgroundColor = color;
+                titleBar.ButtonInactiveBackgroundColor = color;
             };
 
             this.webview.Source = new Uri("http://localhost");
