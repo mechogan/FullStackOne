@@ -33,10 +33,11 @@ struct FullStackedApp: App {
                         .onDisappear {
                             exit(0)
                         }
-                        .padding(EdgeInsets(top: 1, leading: 0, bottom: 0, trailing: 0))
-                        .toolbar { }
+                        .toolbar {
+                            Spacer()
+                        }
+                        .navigationTitle(Text("FullStacked"))
                         .preferredColorScheme(.dark)
-                        .toolbarBackground(Color(hex: EditorColor))
                 }
         }
         #else
@@ -61,11 +62,11 @@ struct FullStackedApp: App {
                     .ignoresSafeArea(.all)
                     .overlay {
                         WebViewSingle(projectId: projectId)
-                            .padding(EdgeInsets(top: 1, leading: 0, bottom: 0, trailing: 0))
-                            .toolbar { }
+                            .toolbar {
+                                Spacer()
+                            }
                             .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
                             .navigationTitle(projectId ?? "Project")
-                            .toolbarBackground(Color(hex: webViews.getColor(projectId: projectId)))
                     }
             }
             .commands {
