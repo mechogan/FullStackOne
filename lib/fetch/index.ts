@@ -154,11 +154,11 @@ function receivedResponse2(base64Data: string) {
 
     const it = {
         next: read
-    } as AsyncIterator<Uint8Array>
+    } as AsyncIterator<Uint8Array>;
 
     const responseIterator = {
         [Symbol.asyncIterator]() {
-            return it
+            return it;
         }
     };
 
@@ -313,6 +313,6 @@ function iteratorToStream(iterator: AsyncIterator<Uint8Array>) {
             if (done) {
                 controller.close();
             }
-        },
+        }
     });
 }

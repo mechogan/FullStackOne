@@ -74,7 +74,19 @@ class WebViews: ObservableObject {
     func addWebView(projectId: String) {
         if let existingWebView = self.getView(projectId: projectId) {
             existingWebView.reload()
-        } else {
+        }
+        
+        if (
+            self.viewsStacked.first(where: {$0.requestHandler.instance.id == projectId}) == nil
+        ) {
+            
+            // if the view exists in windowed, but we are on iPadOS, dont trigger another openWindow.. it hides other windows. Bug?
+            // 2025-06-27
+            if(isIPadOS && self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) != nil) {
+                return;
+            }
+            
+            
             let webView = WebView(instance: Instance(projectId: projectId))
             self.viewsStacked.append(webView)
         }
@@ -121,7 +133,10 @@ class WebViews: ObservableObject {
         if let viewIndex = self.viewsStacked.firstIndex(where: {$0.requestHandler.instance.id == projectId}) {
         
             let view = self.viewsStacked.remove(at: viewIndex)
-            self.viewsWindowed.append(view)
+            
+            if (self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) == nil){
+                self.viewsWindowed.append(view)
+            }
         }
     }
 }
@@ -219,7 +234,7 @@ struct WebViewsStacked: View {
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
                         .onAppear() {
-                            if(isMacOS || isIPadOS) {
+                            if(isMacOS || self.supportsMultipleWindows) {
                                 let projectId = self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id
                                 self.webViews.setWindowed(projectId: projectId)
                                 self.openWindow(id: "window-webview", value: projectId)

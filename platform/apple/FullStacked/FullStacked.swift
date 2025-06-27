@@ -70,7 +70,7 @@ struct FullStackedApp: App {
         #endif
         
         if #available(iOS 16.1, *) {
-            WindowGroup("Project", id: "window-webview", for: String.self) { $projectId in
+            WindowGroup(id: "window-webview", for: String.self) { $projectId in
                 Color(hex: webViews.getColor(projectId: projectId))
                     .ignoresSafeArea(.all)
                     .overlay {

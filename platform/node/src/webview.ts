@@ -56,7 +56,7 @@ export async function createWebView(
     const send = (m: [string, string]) => {
         const jsonStr = JSON.stringify(m);
         webSockets.forEach((ws) => ws.send(jsonStr));
-    }
+    };
     server.listen(port);
     if (!process.env.NO_OPEN) {
         open(`http://localhost:${port}`);
