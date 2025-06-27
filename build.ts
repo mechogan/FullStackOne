@@ -72,6 +72,7 @@ fs.cpSync("editor/assets", `${outDirEditor}/assets`, {
 });
 
 await processScss("editor/style/windows.scss", `${outDirEditor}/windows.css`);
+await processScss("editor/style/apple.scss", `${outDirEditor}/apple.css`);
 
 fs.cpSync("node_modules/@fullstacked/ui/icons", `${outDirEditor}/icons`, {
     recursive: true

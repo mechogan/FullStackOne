@@ -15,8 +15,8 @@
 		9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9C7E8A622BA9BF1600CE9660 /* PrivacyInfo.xcprivacy */; };
 		9C8C8A2E2D2CEA1400C4B8AD /* FullStacked.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8C8A2D2D2CEA1400C4B8AD /* FullStacked.swift */; };
 		9C8C8A302D2CEAD600C4B8AD /* FullStacked.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8C8A2D2D2CEA1400C4B8AD /* FullStacked.swift */; };
-		9C91B3C02E0CF89200CF54B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C91B3BF2E0CF89200CF54B7 /* Assets.xcassets */; };
-		9C91B3C12E0CF89200CF54B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C91B3BF2E0CF89200CF54B7 /* Assets.xcassets */; };
+		9C91B3C22E0CFAFD00CF54B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C91B3BF2E0CF89200CF54B7 /* Assets.xcassets */; };
+		9C91B3C32E0CFAFD00CF54B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9C91B3BF2E0CF89200CF54B7 /* Assets.xcassets */; };
 		9CA03E522B5715AA002D2D9F /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA03E512B5715AA002D2D9F /* Main.swift */; };
 		9CB389912B863B0A00FB783E /* editor in Resources */ = {isa = PBXBuildFile; fileRef = 9CB389902B863B0A00FB783E /* editor */; };
 		9CDBCDA32CF7F8070035BF46 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */; };
@@ -213,7 +213,7 @@
 			files = (
 				9C2AF0C02E0CD8DD00167E3C /* FullStackedIcon.icon in Resources */,
 				9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */,
-				9C91B3C02E0CF89200CF54B7 /* Assets.xcassets in Resources */,
+				9C91B3C22E0CFAFD00CF54B7 /* Assets.xcassets in Resources */,
 				9CB389912B863B0A00FB783E /* editor in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -224,7 +224,7 @@
 			files = (
 				9C2AF0C12E0CD8DD00167E3C /* FullStackedIcon.icon in Resources */,
 				9CDBCDA92CF7F8070035BF46 /* PrivacyInfo.xcprivacy in Resources */,
-				9C91B3C12E0CF89200CF54B7 /* Assets.xcassets in Resources */,
+				9C91B3C32E0CFAFD00CF54B7 /* Assets.xcassets in Resources */,
 				9CDBCDAA2CF7F8070035BF46 /* editor in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -383,10 +383,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = FullStackedIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1112;
+				CURRENT_PROJECT_VERSION = 1113;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -426,10 +426,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = FullStackedIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1112;
+				CURRENT_PROJECT_VERSION = 1113;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -469,11 +469,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = FullStackedIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1112;
+				CURRENT_PROJECT_VERSION = 1113;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
@@ -521,11 +521,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = FullStackedIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1112;
+				CURRENT_PROJECT_VERSION = 1113;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;

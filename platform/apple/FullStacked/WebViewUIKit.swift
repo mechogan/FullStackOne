@@ -34,6 +34,8 @@ class WebViewExtended: WKWebView {
 }
 
 struct WebViewRepresentable: UIViewRepresentable {
+    static let isIPadOS = UIDevice.current.userInterfaceIdiom == .pad
+    
     private let webView: WebView;
     init(webView: WebView) {
         self.webView = webView

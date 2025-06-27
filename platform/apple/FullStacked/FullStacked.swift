@@ -36,17 +36,30 @@ struct FullStackedApp: App {
                         .toolbar {
                             Spacer()
                         }
-                        .navigationTitle(Text("FullStacked"))
+                        .navigationTitle("FullStacked")
                         .preferredColorScheme(.dark)
                 }
         }
         #else
         WindowGroup("FullStacked"){
             if #available(iOS 16.0, *) {
-                WebViewsStacked(webViews: self.webViews)
-                    .onDisappear {
-                        exit(0)
+                if isIPadOS {
+                    NavigationStack {
+                        WebViewsStacked(webViews: self.webViews)
+                            .onDisappear {
+                                exit(0)
+                            }
+                            .preferredColorScheme(.dark)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .navigationTitle("FullStacked")
                     }
+                } else {
+                    WebViewsStacked(webViews: self.webViews)
+                        .onDisappear {
+                            exit(0)
+                        }
+                }
+                
             } else {
                 WebViewsStackedLegacy(webViews: self.webViews)
                     .onDisappear{
@@ -57,17 +70,27 @@ struct FullStackedApp: App {
         #endif
         
         if #available(iOS 16.1, *) {
-            WindowGroup(id: "window-webview", for: String.self) { $projectId in
+            WindowGroup("Project", id: "window-webview", for: String.self) { $projectId in
                 Color(hex: webViews.getColor(projectId: projectId))
                     .ignoresSafeArea(.all)
                     .overlay {
-                        WebViewSingle(projectId: projectId)
-                            .toolbar {
-                                Spacer()
+                        #if os(macOS)
+                            WebViewSingle(projectId: projectId)
+                                .toolbar {
+                                    Spacer()
+                                }
+                                .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
+                                .navigationTitle(projectId ?? "Project")
+                        #else
+                            NavigationStack {
+                                WebViewSingle(projectId: projectId)
+                                    .navigationBarTitleDisplayMode(.inline)
+                                    .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
+                                    .navigationTitle(projectId ?? "Project")
                             }
-                            .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
-                            .navigationTitle(projectId ?? "Project")
+                        #endif
                     }
+                    .navigationTitle(projectId ?? "Project")
             }
             .commands {
                 CommandGroup(replacing: CommandGroupPlacement.newItem) {

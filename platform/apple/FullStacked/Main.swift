@@ -32,13 +32,19 @@ func CallbackC(projectIdPtr: UnsafeMutablePointer<Int8>, messageTypePtr: UnsafeM
     
     if(projectId == "*") {
         FullStackedApp.singleton?.webViews.getEditor().onMessage(messageType: messageType, message: message)
-        FullStackedApp.singleton?.webViews.views.forEach({$0.onMessage(messageType: messageType, message: message)})
+        
+        FullStackedApp.singleton?.webViews.viewsStacked.forEach({$0.onMessage(messageType: messageType, message: message)})
+        
+        FullStackedApp.singleton?.webViews.viewsWindowed.forEach({$0.onMessage(messageType: messageType, message: message)})
+        
     } else if(projectId == "") {
+        
         if(messageType == "open") {
             FullStackedApp.singleton?.webViews.addWebView(projectId: message)
         } else if(FullStackedApp.singleton!.webViews.ready) {
             FullStackedApp.singleton?.webViews.getEditor().onMessage(messageType: messageType, message: message)
         }
+        
     } else if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
         webview.onMessage(messageType: messageType, message: message)
     }
@@ -52,8 +58,8 @@ func setCallback(){
 
 
 class WebViews: ObservableObject {
-    @Published var views: [WebView] = []
-    @Published var hiddenProjectsIds: [String] = []
+    @Published var viewsStacked: [WebView] = []
+    @Published var viewsWindowed: [WebView] = []
     @Published var colors: [String:Int] = [:]
     var ready = false
     private var editor: WebView?
@@ -70,12 +76,14 @@ class WebViews: ObservableObject {
             existingWebView.reload()
         } else {
             let webView = WebView(instance: Instance(projectId: projectId))
-            self.views.append(webView)
+            self.viewsStacked.append(webView)
         }
     }
     
     func getView(projectId: String?) -> WebView? {
-        if let view = self.views.first(where: {$0.requestHandler.instance.id == projectId}) {
+        if let view = self.viewsStacked.first(where: {$0.requestHandler.instance.id == projectId}) {
+            return view
+        } else if let view = self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) {
             return view
         }
         
@@ -83,21 +91,18 @@ class WebViews: ObservableObject {
     }
     
     func removeView(projectId: String?) {
-        if let viewIndex = self.views.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
-            let view = self.views.remove(at: viewIndex)
-            view.close()
-            colors.removeValue(forKey: projectId!)
+        var view: WebView? = nil
+        
+        if let viewIndex = self.viewsStacked.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
+            view = self.viewsStacked.remove(at: viewIndex)
+        } else if let viewIndex = self.viewsWindowed.firstIndex(where: { $0.requestHandler.instance.id == projectId }) {
+            view = self.viewsWindowed.remove(at: viewIndex)
         }
         
-        self.hiddenProjectsIds.removeAll(where: {$0 == projectId})
-    }
-    
-    func setHidden(projectId: String) {
-        self.hiddenProjectsIds.append(projectId)
-    }
-    
-    func isHidden(_ projectId: String) -> Bool {
-        return self.hiddenProjectsIds.first(where: { $0 == projectId }) != nil
+        if let removedView = view {
+            removedView.close()
+            colors.removeValue(forKey: removedView.requestHandler.instance.id)
+        }
     }
     
     func getColor(projectId: String?) -> Int {
@@ -110,6 +115,14 @@ class WebViews: ObservableObject {
     
     func setColor(projectId: String, color: Int) {
         colors[projectId] = color
+    }
+    
+    func setWindowed(projectId: String) {
+        if let viewIndex = self.viewsStacked.firstIndex(where: {$0.requestHandler.instance.id == projectId}) {
+        
+            let view = self.viewsStacked.remove(at: viewIndex)
+            self.viewsWindowed.append(view)
+        }
     }
 }
 
@@ -163,8 +176,10 @@ struct WebViewEditor: View {
 
 #if os(macOS)
 let isMacOS = true
+let isIPadOS = false
 #else
 let isMacOS = false
+let isIPadOS = WebViewRepresentable.isIPadOS
 #endif
 
 
@@ -185,23 +200,11 @@ struct WebViewsStacked: View {
                 .onAppear{
                     self.webViews.ready = true
                 }
-            ForEach(self.webViews.views.indices, id: \.self) { webViewIndex in
+            ForEach(self.webViews.viewsStacked.indices, id: \.self) { webViewIndex in
                 VStack(spacing: 0) {
                     HStack(alignment: .center) {
-                        if(supportsMultipleWindows) {
-                            Button {
-                                let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
-                                self.openWindow(id: "window-webview", value: projectId)
-                                FullStackedApp.singleton?.webViews.setHidden(projectId: projectId)
-                            } label: {
-                                Image(systemName: "square.fill.on.square.fill")
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
-                        }
-                        
                         Button {
-                            let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                            let projectId = self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id
                             self.webViews.removeView(projectId: projectId)
                         } label: {
                             Image(systemName: "xmark")
@@ -211,19 +214,19 @@ struct WebViewsStacked: View {
                         .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
                     }
                     
-                    WebViewRepresentable(webView: self.webViews.views[webViewIndex])
+                    WebViewRepresentable(webView: self.webViews.viewsStacked[webViewIndex])
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
                         .onAppear() {
-                            if(isMacOS) {
-                                let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                            if(isMacOS || isIPadOS) {
+                                let projectId = self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id
+                                self.webViews.setWindowed(projectId: projectId)
                                 self.openWindow(id: "window-webview", value: projectId)
                             }
                         }
                 }
-                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
-                .opacity(isMacOS || FullStackedApp.singleton!.webViews.isHidden(self.webViews.views[webViewIndex].requestHandler.instance.id) ? 0 : 1)
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id)))
             }
         }
         .background(Color(hex: EditorColor))
@@ -243,11 +246,11 @@ struct WebViewsStackedLegacy: View {
                 .onAppear{
                     self.webViews.ready = true
                 }
-            ForEach(self.webViews.views.indices, id: \.self) { webViewIndex in
+            ForEach(self.webViews.viewsStacked.indices, id: \.self) { webViewIndex in
                 VStack(spacing: 0) {
                     HStack(alignment: .center) {
                         Button {
-                            let projectId = self.webViews.views[webViewIndex].requestHandler.instance.id
+                            let projectId = self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id
                             self.webViews.removeView(projectId: projectId)
                         } label: {
                             Image(systemName: "xmark")
@@ -257,12 +260,12 @@ struct WebViewsStackedLegacy: View {
                         .padding(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
                     }
                     
-                    WebViewRepresentable(webView: self.webViews.views[webViewIndex])
+                    WebViewRepresentable(webView: self.webViews.viewsStacked[webViewIndex])
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.all)
                         .ignoresSafeArea()
                 }
-                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.views[webViewIndex].requestHandler.instance.id)))
+                .background(Color(hex: FullStackedApp.singleton!.webViews.getColor(projectId: self.webViews.viewsStacked[webViewIndex].requestHandler.instance.id)))
             }
         }
         .background(Color(hex: EditorColor))
