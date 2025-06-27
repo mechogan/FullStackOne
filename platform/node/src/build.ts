@@ -16,7 +16,7 @@ function quickInstallPacakge(editorHeader: Uint8Array) {
         const cb = (_: string, messageType: string, message: string) => {
             if (messageType === "packages-installation") {
                 const { duration } = JSON.parse(message);
-                if (duration) {
+                if (typeof duration !== "undefined") {
                     cbListener.delete(cb);
                     resolve();
                 }
