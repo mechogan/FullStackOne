@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9C2AF0C02E0CD8DD00167E3C /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9C2AF0BF2E0CD8DD00167E3C /* AppIcon.icon */; };
-		9C2AF0C12E0CD8DD00167E3C /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9C2AF0BF2E0CD8DD00167E3C /* AppIcon.icon */; };
 		9C5A1EDB2CDB99BB009B4A20 /* ios-arm64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */; };
 		9C5A1EDD2CDB9AB9009B4A20 /* Instance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */; };
 		9C5A1EDF2CDB9ADB009B4A20 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5A1EDE2CDB9AD6009B4A20 /* WebView.swift */; };
@@ -30,7 +28,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9C2AF0BF2E0CD8DD00167E3C /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder; path = AppIcon.icon; sourceTree = "<group>"; };
 		9C5A1ED92CDB99BB009B4A20 /* ios-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "ios-arm64.h"; path = "../../core/bin/ios-arm64.h"; sourceTree = SOURCE_ROOT; };
 		9C5A1EDA2CDB99BB009B4A20 /* ios-arm64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "ios-arm64.a"; path = "../../core/bin/ios-arm64.a"; sourceTree = SOURCE_ROOT; };
 		9C5A1EDC2CDB9AB4009B4A20 /* Instance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instance.swift; sourceTree = "<group>"; };
@@ -112,7 +109,6 @@
 		9CA03E4E2B5715AA002D2D9F /* FullStacked */ = {
 			isa = PBXGroup;
 			children = (
-				9C2AF0BF2E0CD8DD00167E3C /* AppIcon.icon */,
 				9C5A1ED82CDB998F009B4A20 /* bin */,
 				9C7081332BE6CBA100EF0A6B /* FullStacked.entitlements */,
 				9CB389902B863B0A00FB783E /* editor */,
@@ -211,7 +207,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9C2AF0C02E0CD8DD00167E3C /* AppIcon.icon in Resources */,
 				9C7E8A632BAA038500CE9660 /* PrivacyInfo.xcprivacy in Resources */,
 				9C91B3C22E0CFAFD00CF54B7 /* Assets.xcassets in Resources */,
 				9CB389912B863B0A00FB783E /* editor in Resources */,
@@ -222,7 +217,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9C2AF0C12E0CD8DD00167E3C /* AppIcon.icon in Resources */,
 				9CDBCDA92CF7F8070035BF46 /* PrivacyInfo.xcprivacy in Resources */,
 				9C91B3C32E0CFAFD00CF54B7 /* Assets.xcassets in Resources */,
 				9CDBCDAA2CF7F8070035BF46 /* editor in Resources */,
@@ -386,7 +380,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1120;
+				CURRENT_PROJECT_VERSION = 1121;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -429,7 +423,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1120;
+				CURRENT_PROJECT_VERSION = 1121;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
 				ENABLE_PREVIEWS = YES;
@@ -473,7 +467,7 @@
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1120;
+				CURRENT_PROJECT_VERSION = 1121;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
@@ -525,7 +519,7 @@
 				CODE_SIGN_ENTITLEMENTS = FullStacked/FullStacked.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1120;
+				CURRENT_PROJECT_VERSION = 1121;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = QD7Y9DQ5V4;
