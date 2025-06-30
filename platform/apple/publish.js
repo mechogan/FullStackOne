@@ -10,17 +10,17 @@ const rootDirectory = path.resolve(currentDirectory, "..", "..");
 
 // build editor
 
-// child_process.execSync("npm run build -- --production", {
-//     cwd: rootDirectory,
-//     stdio: "inherit"
-// });
+child_process.execSync("npm run build -- --production", {
+    cwd: rootDirectory,
+    stdio: "inherit"
+});
 
 // build core
 
-// child_process.execSync("make darwin-static ios-arm64 -j4", {
-//     cwd: path.resolve(rootDirectory, "core", "build"),
-//     stdio: "inherit"
-// });
+child_process.execSync("make darwin-static ios-arm64 -j4", {
+    cwd: path.resolve(rootDirectory, "core", "build"),
+    stdio: "inherit"
+});
 
 // update version
 const versionStr = `${version.major}.${version.minor}.${version.patch}`;
@@ -34,15 +34,15 @@ const xcodeFileUpdated = xcodeFileContent
         /CURRENT_PROJECT_VERSION = .*?;/g,
         `CURRENT_PROJECT_VERSION = ${version.build};`
     );
-// fs.writeFileSync(xcodeFile, xcodeFileUpdated);
+fs.writeFileSync(xcodeFile, xcodeFileUpdated);
 
 // clean
 
 const out = path.resolve(currentDirectory, "out");
 
-// if (fs.existsSync(out)) {
-//     fs.rmSync(out, { recursive: true });
-// }
+if (fs.existsSync(out)) {
+    fs.rmSync(out, { recursive: true });
+}
 
 // xcode build
 
@@ -52,24 +52,24 @@ const schemeiOS = "FullStacked-iOS";
 const archivePathiOS = path.resolve(out, schemeiOS, "FullStacked.xcarchive");
 const pkgDirectoryiOS = path.resolve(out, schemeiOS, "pkg");
 
-// child_process.execSync(
-//     `xcodebuild -project ${xcodeProj} -scheme ${schemeiOS} -sdk iphoneos -configuration Release clean`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
-// child_process.execSync(
-//     `xcodebuild -project ${xcodeProj} -scheme ${schemeiOS} -sdk iphoneos -configuration Release archive -archivePath ${archivePathiOS}`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
-// child_process.execSync(
-//     `xcodebuild -exportArchive -archivePath ${archivePathiOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryiOS} -allowProvisioningUpdates`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
+child_process.execSync(
+    `xcodebuild -project ${xcodeProj} -scheme ${schemeiOS} -sdk iphoneos -configuration Release clean`,
+    {
+        stdio: "inherit"
+    }
+);
+child_process.execSync(
+    `xcodebuild -project ${xcodeProj} -scheme ${schemeiOS} -sdk iphoneos -configuration Release archive -archivePath ${archivePathiOS}`,
+    {
+        stdio: "inherit"
+    }
+);
+child_process.execSync(
+    `xcodebuild -exportArchive -archivePath ${archivePathiOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryiOS} -allowProvisioningUpdates`,
+    {
+        stdio: "inherit"
+    }
+);
 
 const schemeMacOS = "FullStacked-MacOS";
 const archivePathMacOS = path.resolve(
@@ -79,24 +79,24 @@ const archivePathMacOS = path.resolve(
 );
 const pkgDirectoryMacOS = path.resolve(out, schemeMacOS, "pkg");
 
-// child_process.execSync(
-//     `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release clean`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
-// child_process.execSync(
-//     `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release archive -archivePath ${archivePathMacOS}`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
-// child_process.execSync(
-//     `xcodebuild ONLY_ACTIVE_ARCH=NO -exportArchive -archivePath ${archivePathMacOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryMacOS} -allowProvisioningUpdates`,
-//     {
-//         stdio: "inherit"
-//     }
-// );
+child_process.execSync(
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release clean`,
+    {
+        stdio: "inherit"
+    }
+);
+child_process.execSync(
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -project ${xcodeProj} -scheme ${schemeMacOS} -sdk macosx -configuration Release archive -archivePath ${archivePathMacOS}`,
+    {
+        stdio: "inherit"
+    }
+);
+child_process.execSync(
+    `xcodebuild ONLY_ACTIVE_ARCH=NO -exportArchive -archivePath ${archivePathMacOS} -exportOptionsPlist ${optionsPlist} -exportPath ${pkgDirectoryMacOS} -allowProvisioningUpdates`,
+    {
+        stdio: "inherit"
+    }
+);
 
 // app store upload
 
@@ -104,16 +104,16 @@ const appleKeys = dotenv.parse(
     fs.readFileSync(path.resolve(currentDirectory, "APPLE_KEYS.env"))
 );
 
-// const bundleiOS = path.resolve(pkgDirectoryiOS, "FullStacked.ipa");
-// child_process.execSync(
-//     `xcrun altool --upload-app --file ${bundleiOS} -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
-//     {
-//         stdio: "inherit",
-//         env: {
-//             API_PRIVATE_KEYS_DIR: appleKeys.APPLE_API_KEY_DIRECTORY
-//         }
-//     }
-// );
+const bundleiOS = path.resolve(pkgDirectoryiOS, "FullStacked.ipa");
+child_process.execSync(
+    `xcrun altool --upload-app --file ${bundleiOS} -t ios --apiKey ${appleKeys.APPLE_API_KEY_ID} --apiIssuer ${appleKeys.APPLE_API_ISSUER} --show-progress`,
+    {
+        stdio: "inherit",
+        env: {
+            API_PRIVATE_KEYS_DIR: appleKeys.APPLE_API_KEY_DIRECTORY
+        }
+    }
+);
 
 const bundleMacOS = path.resolve(pkgDirectoryMacOS, "FullStacked.pkg");
 child_process.execSync(
