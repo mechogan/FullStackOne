@@ -18,6 +18,7 @@ struct FullStackedApp: App {
 
     init() {
         FullStackedApp.singleton = self;
+
         setCallback()
         setDirectories()
     }
