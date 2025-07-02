@@ -59,7 +59,7 @@ func setCallback(){
 
 class WebViews: ObservableObject {
     @Published var viewsStacked: [WebView] = []
-    @Published var viewsWindowed: [WebView] = []
+    var viewsWindowed: [WebView] = []
     @Published var colors: [String:Int] = [:]
     var ready = false
     private var editor: WebView?
@@ -71,32 +71,33 @@ class WebViews: ObservableObject {
         return self.editor!
     }
     
-    func addWebView(projectId: String) {
-        if let existingWebView = self.getView(projectId: projectId) {
-            existingWebView.reload()
+    func addWebView(projectId: String, inWindow: Bool = false) {
+        if let existingView = self.getView(projectId: projectId) {
+            existingView.reload()
         }
         
-        if (
-            self.viewsStacked.first(where: {$0.requestHandler.instance.id == projectId}) == nil
-        ) {
-            
-            // if the view exists in windowed, but we are on iPadOS, dont trigger another openWindow.. it hides other windows. Bug?
-            // 2025-06-27
-            if(isIPadOS && self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) != nil) {
-                return;
-            }
-            
-            
-            let webView = WebView(instance: Instance(projectId: projectId))
+        let webView = WebView(instance: Instance(projectId: projectId))
+        if(inWindow) {
+            self.viewsWindowed.append(webView)
+        } else {
             self.viewsStacked.append(webView)
         }
     }
     
-    func getView(projectId: String?) -> WebView? {
-        if let view = self.viewsStacked.first(where: {$0.requestHandler.instance.id == projectId}) {
+    private func getViewWindowed(projectId: String?) -> WebView? {
+        return self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId})
+    }
+    
+    func getView(projectId: String?, windowCreate: Bool = false) -> WebView? {
+        if(projectId == nil) {
+            return nil
+        } else if let view = self.viewsStacked.first(where: {$0.requestHandler.instance.id == projectId}) {
             return view
-        } else if let view = self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) {
+        } else if let view = self.getViewWindowed(projectId: projectId) {
             return view
+        } else if(windowCreate && !self.getEditor().firstContact) {
+            self.addWebView(projectId: projectId!, inWindow: true)
+            return self.getView(projectId: projectId)
         }
         
         return nil
@@ -131,11 +132,13 @@ class WebViews: ObservableObject {
     
     func setWindowed(projectId: String) {
         if let viewIndex = self.viewsStacked.firstIndex(where: {$0.requestHandler.instance.id == projectId}) {
-        
             let view = self.viewsStacked.remove(at: viewIndex)
             
-            if (self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId}) == nil){
+            let viewWindowed = self.viewsWindowed.first(where: {$0.requestHandler.instance.id == projectId})
+            if(viewWindowed == nil) {
                 self.viewsWindowed.append(view)
+            } else {
+                view.close()
             }
         }
     }
@@ -143,7 +146,7 @@ class WebViews: ObservableObject {
 
 
 
-struct WebViewSingle: View {
+struct WebViewInWindow: View {
     @Environment(\.dismiss) private var dismiss
     
     let projectId: String?
@@ -151,7 +154,7 @@ struct WebViewSingle: View {
     
     init(projectId: String?) {
         self.projectId = projectId
-        self.webView = FullStackedApp.singleton?.webViews.getView(projectId: projectId)
+        self.webView = FullStackedApp.singleton?.webViews.getView(projectId: projectId, windowCreate: true)
     }
     
     var body: some View {
@@ -161,11 +164,6 @@ struct WebViewSingle: View {
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                     .edgesIgnoringSafeArea(.all)
                     .ignoresSafeArea()
-            }
-        }
-        .onAppear{
-            if(self.projectId == nil || self.webView == nil) {
-                self.dismiss()
             }
         }
         .onDisappear {

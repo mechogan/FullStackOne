@@ -77,7 +77,7 @@ struct FullStackedApp: App {
                     .ignoresSafeArea(.all)
                     .overlay {
                         #if os(macOS)
-                            WebViewSingle(projectId: projectId)
+                            WebViewInWindow(projectId: projectId)
                                 .toolbar {
                                     Spacer()
                                 }
@@ -87,7 +87,7 @@ struct FullStackedApp: App {
                                 .navigationTitle(projectId ?? "Project")
                         #else
                             NavigationStack {
-                                WebViewSingle(projectId: projectId)
+                                WebViewInWindow(projectId: projectId)
                                     .navigationBarTitleDisplayMode(.inline)
                                     .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
                                     .navigationTitle(projectId ?? "Project")
@@ -96,6 +96,7 @@ struct FullStackedApp: App {
                     }
                     .navigationTitle(projectId ?? "Project")
             }
+            
             .commands {
                 CommandGroup(replacing: CommandGroupPlacement.newItem) {
                     EmptyView()

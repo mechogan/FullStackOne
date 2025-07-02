@@ -5,7 +5,7 @@ let downloadDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, 
 
 class WebView: WebViewExtended, WKNavigationDelegate, WKScriptMessageHandler, WKDownloadDelegate {
     public let requestHandler: RequestHandler
-    private var firstContact = false
+    var firstContact = false
     private var messageToBeSent = [(String, String)]()
     public var mounted = false
     
