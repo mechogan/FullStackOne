@@ -3,7 +3,7 @@
     "version": "0.11.3-1134",
     "scripts": {
         "build": "node build.js",
-        "start": "npm run build && node index.js --lib ../../core/bin --root ~/FullStacked --config ~/.config/fullstacked --editor ../../out/editor",
+        "start": "npm run build; node index.js --lib ../../core/bin --root ~/FullStacked --config ~/.config/fullstacked --editor ../../out/editor",
         "prepack": "npm run build"
     },
     "bin": {
