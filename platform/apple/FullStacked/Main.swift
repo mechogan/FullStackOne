@@ -74,6 +74,12 @@ class WebViews: ObservableObject {
     func addWebView(projectId: String, inWindow: Bool = false) {
         if let existingView = self.getView(projectId: projectId) {
             existingView.reload()
+            
+            // if the view exists (in windowed), but we are on iPadOS, dont trigger another openWindow.. it hides other windows. Bug?
+            // 2025-06-27
+            if isIPadOS {
+                return
+            }
         }
         
         let webView = WebView(instance: Instance(projectId: projectId))
