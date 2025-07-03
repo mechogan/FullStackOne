@@ -5,15 +5,15 @@ plugins {
 
 android {
     namespace = "org.fullstacked.editor"
-    compileSdk = 34
+    compileSdk = 35
 
     ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "org.fullstacked.editor"
         minSdk = 29
-        targetSdk = 34
-        versionCode = 1111
+        targetSdk = 35
+        versionCode = 1134
         versionName = "0.11.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
