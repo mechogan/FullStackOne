@@ -21,13 +21,15 @@ const build = child_process
     .execSync(`git rev-list --count ${branch}`)
     .toString()
     .trim();
+const hash = child_process.execSync("git rev-parse HEAD").toString().trim();
 
 const version = {
     major,
     minor,
     patch,
+    build,
     branch,
-    build
+    hash
 };
 
 export default version;

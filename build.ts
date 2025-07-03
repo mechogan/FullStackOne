@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import * as sass from "sass";
 import esbuild from "esbuild";
-import child_process from "child_process";
 import AdmZip from "adm-zip";
 import path from "node:path";
+import version from "./version";
 
 const production = process.argv.includes("--production");
 
@@ -101,31 +101,14 @@ await processScss(
     `${outDirEditor}/lib/components/snackbar.css`
 );
 
-const { version } = JSON.parse(
-    fs.readFileSync("package.json", { encoding: "utf-8" })
-);
-const branch = child_process
-    .execSync("git rev-parse --abbrev-ref HEAD")
-    .toString()
-    .trim();
-const commit = child_process.execSync("git rev-parse HEAD").toString().trim();
-const commitNumber = child_process
-    .execSync(`git rev-list --count ${branch}`)
-    .toString()
-    .trim();
 fs.writeFileSync(
     `${outDirEditor}/version.json`,
-    JSON.stringify({
-        version,
-        branch,
-        commit,
-        commitNumber
-    })
+    JSON.stringify(version)
 );
 
 if (!process.argv.includes("--no-zip")) {
     const outZipDir = `${outDir}/zip`;
-    const outZip = `${outZipDir}/editor-${production ? commitNumber : Date.now()}.zip`;
+    const outZip = `${outZipDir}/editor-${production ? version.build : Date.now()}.zip`;
     const zip = new AdmZip();
     zip.addLocalFolder(outDirEditor);
     fs.mkdirSync(outZipDir, { recursive: true });

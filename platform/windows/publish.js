@@ -23,10 +23,10 @@ child_process.execSync("cmd.exe /c windows.bat", {
 
 // update version
 
-const winVersion = `${version.major}.${version.minor}.${version.build}.0`
+const versionStr = `${version.major}.${version.minor}.${version.build}.0`
 const packageFile = path.resolve(currentDirectory, "Package.appxmanifest");
 let packageContent = fs.readFileSync(packageFile, { encoding: "utf-8" });
-packageContent = packageContent.replace(/\bVersion="\d+\.\d+\.\d+\.\d+"/g, `Version="${winVersion}"`)
+packageContent = packageContent.replace(/\bVersion="\d+\.\d+\.\d+\.\d+"/g, `Version="${versionStr}"`)
 fs.writeFileSync(packageFile, packageContent);
 
 // clean
