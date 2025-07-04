@@ -61,7 +61,6 @@ await new Promise(res => {
             }
 
             selectionDone = true;
-            console.log(stdout.match(/(> |. )?FullStacked.*/g).slice(-2))
             ptyProcess.write("\r");
         }
 
@@ -73,6 +72,14 @@ await new Promise(res => {
 
     ptyProcess.write('msstore init\r');
 });
+
+packageContent = fs.readFileSync(packageFile, { encoding: "utf-8" });
+if(isRelease && !packageContent.match(/<DisplayName>FullStacked<\/DisplayName>/)) {
+    throw "Failed to init to FullStacked App"
+} 
+if(!isRelease && !packageContent.match(/<DisplayName>FullStacked \(Beta\)<\/DisplayName>/)) {
+    throw "Failed to init to FullStacked (Beta) App"
+}
 
 child_process.execSync("msstore package", {
     cwd: currentDirectory,
