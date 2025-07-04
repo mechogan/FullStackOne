@@ -107,7 +107,12 @@ globalThis.onmessageWASM = function (
     }
 
     const webview = webviews.get(projectId);
-    webview.window.oncoremessage?.(messageType, message);
+
+    if (messageType === "title") {
+        webview.winbox?.setTitle(message);
+    } else {
+        webview.window.oncoremessage?.(messageType, message);
+    }
 };
 
 const expectedWasmSize = parseInt(process.env.wasmSize);
@@ -278,18 +283,11 @@ async function initProjectWindow(projectId: string) {
         child.remove()
     );
 
-    // HEAD (link => style, title => title, script => script)
+    // HEAD (link => style, script => script)
     indexHTML.head
         .querySelectorAll<HTMLElement>(":scope > *")
         .forEach(async (element) => {
-            if (element instanceof HTMLTitleElement) {
-                if (projectId == "") {
-                    webview.window.document.title = element.innerText;
-                } else {
-                    webview.winbox.setTitle(element.innerText);
-                }
-                return;
-            } else if (element instanceof HTMLScriptElement && element.src) {
+            if (element instanceof HTMLScriptElement && element.src) {
                 element = await scriptSrcToBlobURL(element, projectId);
             } else if (
                 element instanceof HTMLLinkElement &&
