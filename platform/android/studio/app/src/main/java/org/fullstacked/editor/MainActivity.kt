@@ -88,7 +88,15 @@ class MainActivity : ComponentActivity() {
         }
         // for stacked project
         else if(stackedProjectWebViewComponent?.instance?.projectId == projectId) {
-            stackedProjectWebViewComponent?.onMessage(messageType, message)
+            if(messageType == "title") {
+                val mainLooper = Looper.getMainLooper()
+                val handler = Handler(mainLooper)
+                handler.post {
+                    this.title = message
+                }
+            } else {
+                stackedProjectWebViewComponent?.onMessage(messageType, message)
+            }
         }
     }
 
