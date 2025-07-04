@@ -163,6 +163,9 @@ void Instance::onMessage(char *type, char *message) {
     if (isEditor && std::string(type) == "open") {
         App::instance->open(std::string(message), false);
         return;
+    } else if (std::string(type) == "title") {
+        window->setTitle(std::string(message));
+        return;
     }
 
     window->onMessage(type, message);

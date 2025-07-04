@@ -23,6 +23,8 @@ class Window {
         virtual void bringToFront(bool reload) {};
 
         virtual void setFullscreen() {};
+
+        virtual void setTitle(std::string title) {};
 };
 
 class GUI {
