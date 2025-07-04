@@ -47,6 +47,8 @@ const (
 	ARCHIVE_ZIP_FILE_TO_FILE = 36
 	ARCHIVE_ZIP_FILE_TO_BIN  = 37
 
+	SET_TITLE = 40
+
 	// EDITOR ONLY
 
 	CONFIG_GET  = 50
@@ -135,6 +137,9 @@ func Call(payload []byte) []byte {
 		return serialize.SerializeString(channelId)
 	case method == CONNECT_SEND:
 		connect.Send(args[0].(string), args[1].([]byte))
+		return nil
+	case method == SET_TITLE:
+		setup.Callback(projectId, "title", args[0].(string))
 		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)

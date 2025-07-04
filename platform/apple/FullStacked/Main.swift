@@ -46,7 +46,12 @@ func CallbackC(projectIdPtr: UnsafeMutablePointer<Int8>, messageTypePtr: UnsafeM
         }
         
     } else if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
-        webview.onMessage(messageType: messageType, message: message)
+        print(messageType, message)
+        if(messageType == "title"){
+            FullStackedApp.singleton?.webViews.titles[projectId] = message
+        } else {
+            webview.onMessage(messageType: messageType, message: message)
+        }
     }
 }
 
@@ -60,6 +65,7 @@ func setCallback(){
 class WebViews: ObservableObject {
     @Published var viewsStacked: [WebView] = []
     var viewsWindowed: [WebView] = []
+    @Published var titles: [String:String] = [:]
     @Published var colors: [String:Int] = [:]
     var ready = false
     private var editor: WebView?
@@ -132,6 +138,13 @@ class WebViews: ObservableObject {
         return EditorColor
     }
     
+    func getTitle(projectId: String?) -> String {
+        if let id = projectId {
+            return titles[id] ?? id
+        }
+        return "FullStacked"
+    }
+ 
     func setColor(projectId: String, color: Int) {
         colors[projectId] = color
     }

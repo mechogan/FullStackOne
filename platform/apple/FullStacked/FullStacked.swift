@@ -31,15 +31,15 @@ struct FullStackedApp: App {
                 .overlay {
                     WebViewsStacked(webViews: self.webViews)
                         .padding(EdgeInsets(top: 1.0, leading: 0, bottom: 0, trailing: 0))
-                        .onDisappear {
-                            exit(0)
-                        }
                         .toolbar {
                             Spacer()
                         }
                         .toolbarBackground(Color(hex: EditorColor))
                         .navigationTitle("FullStacked")
                         .preferredColorScheme(.dark)
+                        .onDisappear {
+                            exit(0)
+                        }
                 }
         }
         #else
@@ -84,17 +84,17 @@ struct FullStackedApp: App {
                                 .padding(EdgeInsets(top: 1.0, leading: 0, bottom: 0, trailing: 0))
                                 .toolbarBackground(Color(hex: webViews.getColor(projectId: projectId)))
                                 .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
-                                .navigationTitle(projectId ?? "Project")
+                                .navigationTitle(webViews.getTitle(projectId: projectId))
                         #else
                             NavigationStack {
                                 WebViewInWindow(projectId: projectId)
                                     .navigationBarTitleDisplayMode(.inline)
                                     .preferredColorScheme(getBestSuitedColorScheme(c: webViews.getColor(projectId: projectId)))
-                                    .navigationTitle(projectId ?? "Project")
+                                    .navigationTitle(webViews.getTitle(projectId: projectId))
                             }
                         #endif
                     }
-                    .navigationTitle(projectId ?? "Project")
+                    .navigationTitle(webViews.getTitle(projectId: projectId))
             }
             
             .commands {
