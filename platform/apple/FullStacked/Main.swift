@@ -127,6 +127,7 @@ class WebViews: ObservableObject {
         if let removedView = view {
             removedView.close()
             colors.removeValue(forKey: removedView.requestHandler.instance.id)
+            titles.removeValue(forKey: removedView.requestHandler.instance.id)
         }
     }
     
