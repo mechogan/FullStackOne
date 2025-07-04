@@ -17,7 +17,7 @@ const rootDirectory = path.resolve(currentDirectory, "..", "..");
 
 // build editor
 
-child_process.execSync("npm run build -- -- --production", {
+child_process.execSync("npm run build -- --production", {
     cwd: rootDirectory,
     stdio: "inherit"
 });
