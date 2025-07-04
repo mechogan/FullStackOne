@@ -182,6 +182,12 @@ namespace FullStacked
             }
             else if (webviews.ContainsKey(projectId))
             {
+                if (messageType == "title") {
+                    Window window = webviews[projectId].Item1;
+                    window.Title = message;
+                    return;
+                }
+
                 WebView webview = webviews[projectId].Item2;
                 webview.onMessage(messageType, message);
             }

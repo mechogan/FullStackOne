@@ -1,8 +1,10 @@
 {
     "version": "0.11.3",
     "scripts": {
-        "build": "node -e \"$(esbuild build.ts --bundle --platform=node --format=esm --packages=external)\"",
-        "start": "npm run build -- -- --no-zip; npm start -w platform/node",
+        "prebuild": "esbuild --bundle --platform=node --format=esm --packages=external --outfile=build.js build.ts",
+        "build": "node build.js",
+        "postbuild": "node -e \"require('node:fs').rmSync('build.js')\"",
+        "start": "npm run build -- -- --no-zip && npm start -w platform/node",
         "fmt": "sh ./fmt.sh",
         "typecheck": "tsc --noEmit",
         "test": "esbuild test/index.ts --bundle --outfile=.cache/test.js --platform=node --format=esm --packages=external && node .cache/test.js "
