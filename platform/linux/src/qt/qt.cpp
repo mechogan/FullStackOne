@@ -65,8 +65,9 @@ QtWindow::QtWindow() {
     std::string id = gen_random(6);
     windowQt = new QMainWindow;
     SchemeHandler::singleton->activeHosts[id] = this;
+    windowQt->setWindowTitle("FullStacked");
     windowQt->show();
-    windowQt->resize(600, 400);
+    windowQt->resize(800, 600);
     webEngineView = new QWebEngineView(windowQt);
 
     QWebEnginePage *page = webEngineView->page();
@@ -101,4 +102,8 @@ void QtWindow::bringToFront(bool reload) {
 void QtWindow::setFullscreen() {
     windowQt->setWindowState(Qt::WindowFullScreen);
     windowQt->show();
+}
+
+void QtWindow::setTitle(std::string title) {
+    this->windowQt->setWindowTitle(QString::fromStdString(title));
 }

@@ -98,6 +98,7 @@ gboolean WebkitGTKWindow::navigationDecidePolicy(
 
 void WebkitGTKWindow::initWindow() {
     windowGTK = new Gtk::Window();
+    windowGTK->set_title("FullStacked");
     windowGTK->set_default_size(800, 600);
     windowGTK->show();
     windowGTK->signal_close_request().connect(
@@ -161,4 +162,8 @@ void WebkitGTKWindow::setFullscreen() {
 }
 
 void WebkitGTKWindow::close() {
+}
+
+void WebkitGTKWindow::setTitle(std::string title) {
+    this->windowGTK->set_title(title);
 }
