@@ -3,6 +3,7 @@ package serialize
 import (
 	"encoding/binary"
 	"math"
+	"reflect"
 )
 
 const (
@@ -73,18 +74,35 @@ func SerializeError(err error) []byte {
 	return bytes
 }
 
+func SerializeArgs(args []any) []byte {
+	payload := []byte{}
+
+	for _, arg := range args {
+		t := reflect.TypeOf(arg).Kind()
+
+		switch t {
+		case reflect.Bool:
+			payload = append(payload, SerializeBoolean(arg.(bool))...)
+		case reflect.String:
+			payload = append(payload, SerializeString(arg.(string))...)
+		case reflect.Float64:
+			payload = append(payload, SerializeNumber(arg.(float64))...)
+		case reflect.Slice:
+			payload = append(payload, SerializeBuffer(arg.([]byte))...)
+		}
+	}
+
+	return payload
+}
+
 func DeserializeNumber(bytes []byte) float64 {
 	bits := binary.BigEndian.Uint64(bytes)
 	float := math.Float64frombits(bits)
 	return float
 }
 
-func DeserializeArgs(data []byte) (int, []any) {
+func DeserializeArgs(data []byte) []any {
 	cursor := 0
-
-	method := int(data[cursor])
-	cursor++
-
 	var args []any
 
 	for cursor < len(data) {
@@ -107,8 +125,7 @@ func DeserializeArgs(data []byte) (int, []any) {
 		case BUFFER:
 			args = append(args, argData)
 		}
-
 	}
 
-	return method, args
+	return args
 }

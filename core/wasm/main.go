@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	fs "fullstacked/editor/src/fs"
-	methods "fullstacked/editor/src/methods"
-	setup "fullstacked/editor/src/setup"
+	fs "fullstackedorg/fullstacked/src/fs"
+	methods "fullstackedorg/fullstacked/src/methods"
+	setup "fullstackedorg/fullstacked/src/setup"
 	"strings"
 
 	"syscall/js"

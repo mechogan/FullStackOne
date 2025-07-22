@@ -1,9 +1,9 @@
 package config
 
 import (
-	fs "fullstacked/editor/src/fs"
-	serialize "fullstacked/editor/src/serialize"
-	setup "fullstacked/editor/src/setup"
+	fs "fullstackedorg/fullstacked/src/fs"
+	serialize "fullstackedorg/fullstacked/src/serialize"
+	setup "fullstackedorg/fullstacked/src/setup"
 	"path"
 )
 
