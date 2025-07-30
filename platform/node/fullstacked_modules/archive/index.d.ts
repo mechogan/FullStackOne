@@ -1,2 +1,0 @@
-import ".";
-declare module "archive" { }

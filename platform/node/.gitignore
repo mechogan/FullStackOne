@@ -7,3 +7,4 @@ Demo.zip
 gyp/build
 gyp/binding.gyp
 *.node
+fullstacked_modules
