@@ -3,9 +3,9 @@ package packages
 import (
 	"encoding/json"
 	"fmt"
-	fs "fullstacked/editor/src/fs"
-	"fullstacked/editor/src/git"
-	setup "fullstacked/editor/src/setup"
+	fs "fullstackedorg/fullstacked/src/fs"
+	"fullstackedorg/fullstacked/src/git"
+	setup "fullstackedorg/fullstacked/src/setup"
 	"net/http"
 	"net/url"
 	"path"

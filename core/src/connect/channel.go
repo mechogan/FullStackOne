@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"encoding/base64"
 	"fmt"
-	"fullstacked/editor/src/serialize"
-	"fullstacked/editor/src/setup"
+	"fullstackedorg/fullstacked/src/serialize"
+	"fullstackedorg/fullstacked/src/setup"
 	"net"
 	"strconv"
 )

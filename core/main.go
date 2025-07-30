@@ -16,9 +16,9 @@ static inline void write_bytes_array(void *data, int size, void *ptr) {
 import "C"
 
 import (
-	fs "fullstacked/editor/src/fs"
-	methods "fullstacked/editor/src/methods"
-	setup "fullstacked/editor/src/setup"
+	fs "fullstackedorg/fullstacked/src/fs"
+	methods "fullstackedorg/fullstacked/src/methods"
+	setup "fullstackedorg/fullstacked/src/setup"
 	"sync"
 	"unsafe"
 )

@@ -1,7 +1,7 @@
 package connect
 
 import (
-	"fullstacked/editor/src/utils"
+	"fullstackedorg/fullstacked/src/utils"
 )
 
 var channels = map[string]Channel{}

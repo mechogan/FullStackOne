@@ -8,8 +8,8 @@ import (
 	"path"
 	"strings"
 
-	fs "fullstacked/editor/src/fs"
-	serialize "fullstacked/editor/src/serialize"
+	fs "fullstackedorg/fullstacked/src/fs"
+	serialize "fullstackedorg/fullstacked/src/serialize"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"

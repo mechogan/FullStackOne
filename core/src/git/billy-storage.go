@@ -3,8 +3,8 @@ package git
 import (
 	"errors"
 	"fmt"
-	fs "fullstacked/editor/src/fs"
-	utils "fullstacked/editor/src/utils"
+	fs "fullstackedorg/fullstacked/src/fs"
+	utils "fullstackedorg/fullstacked/src/utils"
 	"io"
 	ioFs "io/fs"
 	"os"

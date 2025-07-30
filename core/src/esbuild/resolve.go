@@ -3,8 +3,8 @@ package esbuild
 
 import (
 	"encoding/json"
-	fs "fullstacked/editor/src/fs"
-	setup "fullstacked/editor/src/setup"
+	fs "fullstackedorg/fullstacked/src/fs"
+	setup "fullstackedorg/fullstacked/src/setup"
 	"path"
 	"strings"
 

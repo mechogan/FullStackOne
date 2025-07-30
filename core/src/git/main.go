@@ -21,11 +21,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
-	config "fullstacked/editor/src/config"
-	fs "fullstacked/editor/src/fs"
-	serialize "fullstacked/editor/src/serialize"
-	setup "fullstacked/editor/src/setup"
-	utils "fullstacked/editor/src/utils"
+	config "fullstackedorg/fullstacked/src/config"
+	fs "fullstackedorg/fullstacked/src/fs"
+	serialize "fullstackedorg/fullstacked/src/serialize"
+	setup "fullstackedorg/fullstacked/src/setup"
+	utils "fullstackedorg/fullstacked/src/utils"
 )
 
 var ignoredDirectories = []string{

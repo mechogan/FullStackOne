@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"path"
 
-	archive "fullstacked/editor/src/archive"
-	config "fullstacked/editor/src/config"
-	"fullstacked/editor/src/connect"
-	esbuild "fullstacked/editor/src/esbuild"
-	fetch "fullstacked/editor/src/fetch"
-	fs "fullstacked/editor/src/fs"
-	git "fullstacked/editor/src/git"
-	packages "fullstacked/editor/src/packages"
-	serialize "fullstacked/editor/src/serialize"
-	setup "fullstacked/editor/src/setup"
-	staticFiles "fullstacked/editor/src/staticFiles"
+	archive "fullstackedorg/fullstacked/src/archive"
+	config "fullstackedorg/fullstacked/src/config"
+	"fullstackedorg/fullstacked/src/connect"
+	esbuild "fullstackedorg/fullstacked/src/esbuild"
+	fetch "fullstackedorg/fullstacked/src/fetch"
+	fs "fullstackedorg/fullstacked/src/fs"
+	git "fullstackedorg/fullstacked/src/git"
+	packages "fullstackedorg/fullstacked/src/packages"
+	serialize "fullstackedorg/fullstacked/src/serialize"
+	setup "fullstackedorg/fullstacked/src/setup"
+	staticFiles "fullstackedorg/fullstacked/src/staticFiles"
 )
 
 const (
@@ -79,13 +79,20 @@ const (
 
 func Call(payload []byte) []byte {
 	cursor := 0
+
 	isEditor := payload[cursor] == 1
 	cursor++
+
 	projectIdLength := serialize.DeserializeBytesToInt(payload[cursor : cursor+4])
 	cursor += 4
+
 	projectId := string(payload[cursor : cursor+projectIdLength])
 	cursor += projectIdLength
-	method, args := serialize.DeserializeArgs(payload[cursor:])
+
+	method := int(payload[cursor])
+	cursor++
+
+	args := serialize.DeserializeArgs(payload[cursor:])
 
 	baseDir := setup.Directories.Root + "/" + projectId
 	if isEditor {

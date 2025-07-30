@@ -2,9 +2,10 @@ import net from "net";
 import {
     bytesToNumber,
     deserializeArgs,
+    numberTo4Bytes,
     serializeArgs
 } from "../../lib/bridge/serialization";
-import { Data, DataListener } from ".";
+import { Data, DataListener } from "./server";
 
 type DataSocketClient = {
     socket: net.Socket;
@@ -14,13 +15,13 @@ type DataSocketClient = {
 
 function trySend(dataSocketClient: DataSocketClient) {
     if (dataSocketClient.buffer.byteLength < 5) return false;
-    const dataLength = bytesToNumber(dataSocketClient.buffer.slice(1, 5));
-    if (dataLength > dataSocketClient.buffer.byteLength - 5) return false;
+    const dataLength = bytesToNumber(dataSocketClient.buffer.slice(0, 4));
+    if (dataLength > dataSocketClient.buffer.byteLength - 4) return false;
     const data = deserializeArgs(
-        dataSocketClient.buffer.slice(0, 5 + dataLength)
+        dataSocketClient.buffer.slice(4, 4 + dataLength)
     );
-    dataSocketClient.listeners.forEach((cb) => cb(data.at(0)));
-    dataSocketClient.buffer = dataSocketClient.buffer.slice(5 + dataLength);
+    dataSocketClient.listeners.forEach((cb) => cb(data));
+    dataSocketClient.buffer = dataSocketClient.buffer.slice(4 + dataLength);
     return true;
 }
 
@@ -48,11 +49,15 @@ export function connect(channel: string, port: number, host?: string) {
     dataSocketClient.socket.on("data", onData.bind(dataSocketClient));
 
     const methods = {
-        send(data: Data) {
+        send(data: Data | Data[]) {
             const serialized = serializeArgs(
                 Array.isArray(data) ? data : [data]
             );
-            dataSocketClient.socket.write(serialized);
+            const payload = new Uint8Array([
+                ...numberTo4Bytes(serialized.byteLength),
+                ...serialized
+            ])
+            dataSocketClient.socket.write(payload);
             return methods;
         },
         on(callback: DataListener) {
