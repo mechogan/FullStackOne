@@ -3,7 +3,7 @@ import { createInstance } from "../node/src/instance";
 import {
     deserializeArgs,
     numberTo4Bytes
-} from "../../lib/bridge/serialization";
+} from "../../fullstacked_modules/bridge/serialization";
 import { load, setCallback, setDirectories } from "../node/src/call";
 import path from "node:path";
 import os from "node:os";

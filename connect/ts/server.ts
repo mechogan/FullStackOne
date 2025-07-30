@@ -5,7 +5,7 @@ import {
     deserializeArgs,
     numberTo4Bytes,
     serializeArgs
-} from "../../lib/bridge/serialization";
+} from "../../fullstacked_modules/bridge/serialization";
 
 export type Data = string | number | boolean | Uint8Array;
 

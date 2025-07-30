@@ -18,8 +18,8 @@ esbuild.buildSync({
 });
 
 fs.cpSync(
-    path.resolve(rootDirectory, "out", "editor", "lib"),
-    path.resolve(currentDirectory, "lib"),
+    path.resolve(rootDirectory, "out", "editor", "fullstacked_modules"),
+    path.resolve(currentDirectory, "fullstacked_modules"),
     { recursive: true }
 );
 

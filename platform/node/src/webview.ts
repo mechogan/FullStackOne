@@ -9,8 +9,8 @@ import { platform } from ".";
 import {
     deserializeArgs,
     numberTo4Bytes
-} from "../../../lib/bridge/serialization";
-import { toByteArray } from "../../../lib/base64";
+} from "../../../fullstacked_modules/bridge/serialization";
+import { toByteArray } from "../../../fullstacked_modules/base64";
 
 type Instance = ReturnType<typeof createInstance>;
 

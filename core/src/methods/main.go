@@ -3,6 +3,7 @@ package methods
 import (
 	"encoding/json"
 	"path"
+	"strings"
 
 	archive "fullstackedorg/fullstacked/src/archive"
 	config "fullstackedorg/fullstacked/src/config"
@@ -60,6 +61,9 @@ const (
 
 	PACKAGE_INSTALL       = 60
 	PACKAGE_INSTALL_QUICK = 61
+
+	FULLSTACKED_MODULES_FILE = 65
+	FULLSTACKED_MODULES_LIST = 66
 
 	GIT_CLONE         = 70
 	GIT_HEAD          = 71
@@ -258,6 +262,19 @@ func editorSwitch(method int, args []any) []byte {
 		return nil
 	case method >= 70 && method <= 81:
 		return gitSwitch(method, args)
+	case method == FULLSTACKED_MODULES_FILE:
+		filePath := args[0].(string);
+		if(!strings.HasPrefix(filePath, "fullstacked_modules")) {
+			return nil
+		}
+		filePathAbs := path.Join(setup.Directories.Editor, filePath)
+		_, isFile := fs.Exists(filePathAbs)
+		if(!isFile) {
+			return  nil
+		}
+		return fs.ReadFileSerialized(filePathAbs, true)
+	case method == FULLSTACKED_MODULES_LIST:
+		return fs.ReadDirSerialized(path.Join(setup.Directories.Editor, "fullstacked_modules"), true, false, []string{})
 	}
 
 	return nil

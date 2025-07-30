@@ -187,7 +187,7 @@ func Build(
 		Write:          false,
 		Plugins:        plugins,
 		NodePaths: []string{
-			path.Join(setup.Directories.Editor, "lib"),
+			path.Join(setup.Directories.Editor, "fullstacked_modules"),
 			path.Join(projectDirectory, "node_modules"),
 		},
 	})

@@ -4,7 +4,7 @@ import {
     deserializeArgs,
     numberTo4Bytes,
     serializeArgs
-} from "../../lib/bridge/serialization";
+} from "../../fullstacked_modules/bridge/serialization";
 import { Data, DataListener } from "./server";
 
 type DataSocketClient = {
