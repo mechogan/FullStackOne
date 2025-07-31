@@ -98,7 +98,7 @@ esbuild.buildSync({
     outfile: outDirFullStackedModules + "/ai/index.js",
     format: "esm",
     bundle: true,
-    external: ["fetch"]
+    external: ["fetch", "fs"]
 });
 
 const neededModules = ["@fullstacked/ai-agent", "zod"];

@@ -1,6 +1,9 @@
 import { createTool } from "@fullstacked/ai-agent";
 import { z } from "zod";
-import fs from "../../fs";
+import type fsType from "../../fs";
+import _fs from "fs";
+
+const fs: typeof fsType = _fs;
 
 type ToolFSOptions = {
     baseDirectory: string
