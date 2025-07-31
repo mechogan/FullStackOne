@@ -1,6 +1,6 @@
 import "winbox/dist/css/winbox.min.css";
 import wb from "winbox/src/js/winbox";
-import type WinBoxType from "winbox";
+import type * as WinBoxType from "winbox";
 import {
     deserializeArgs,
     numberTo4Bytes

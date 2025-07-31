@@ -9,6 +9,20 @@ import core_message from "../core_message";
 
 const te = new TextEncoder();
 
+type FetchOptions = {
+    method: "GET" | "POST" | "PUT" | "DELETE";
+    headers: Record<string, string>;
+    body: string | Uint8Array;
+    timeout: number;
+    stream: boolean;
+};
+
+type FetchResponse = {
+    statusCode: number;
+    statusMessage: string;
+    headers: Record<string, string>;
+};
+
 type ResponseSimplified = {
     statusCode: number;
     statusMessage: string;
