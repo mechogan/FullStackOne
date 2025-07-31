@@ -6,8 +6,8 @@ import { callLib } from "./call";
 import {
     deserializeArgs,
     serializeArgs
-} from "../../../lib/bridge/serialization";
-import { toByteArray } from "../../../lib/base64";
+} from "../../../fullstacked_modules/bridge/serialization";
+import { toByteArray } from "../../../fullstacked_modules/base64";
 import { cbListener } from ".";
 import type { Message } from "esbuild";
 

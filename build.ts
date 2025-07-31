@@ -9,7 +9,7 @@ const production = process.argv.includes("--production");
 
 const outDir = "out";
 const outDirEditor = `${outDir}/editor`;
-const outTsLib = `${outDirEditor}/tsLib`;
+const outDirFullStackedModules = `${outDirEditor}/fullstacked_modules`;
 
 if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true });
@@ -60,7 +60,7 @@ for (const [input, output] of toBuild) {
         sourcemap: production ? false : "external",
         splitting: false,
         minify: production,
-        nodePaths: ["node_modules", "lib"]
+        nodePaths: ["node_modules", "fullstacked_modules"]
     });
 }
 
@@ -85,26 +85,39 @@ if (fs.existsSync(sampleDemoDir)) {
     zip.writeZip(`${outDirEditor}/Demo.zip`);
 }
 
-fs.cpSync("node_modules/typescript/lib", outTsLib, {
+fs.cpSync("node_modules/typescript/lib", outDirEditor + "/tsLib", {
     recursive: true
 });
-
-fs.cpSync("lib/fullstacked.d.ts", outTsLib + "/fullstacked.d.ts", {
-    recursive: true
-});
-fs.cpSync("lib", outDirEditor + "/lib", {
+fs.cpSync("fullstacked_modules", outDirFullStackedModules, {
     recursive: true,
     filter: (s) => !s.endsWith(".scss")
 });
+
+esbuild.buildSync({
+    entryPoints: [outDirFullStackedModules + "/ai/index.ts"],
+    outfile: outDirFullStackedModules + "/ai/index.js",
+    format: "esm",
+    bundle: true,
+    external: ["fetch"]
+});
+
+const neededModules = ["@fullstacked/ai-agent", "zod"];
+neededModules.forEach((m) => {
+    fs.cpSync("node_modules/" + m, outDirFullStackedModules + "/" + m, {
+        recursive: true,
+        filter: (n) =>
+            !n.endsWith(".js") &&
+            !n.endsWith(".cjs") &&
+            !n.startsWith("node_modules/" + m + "/node_modules")
+    });
+});
+
 await processScss(
-    "lib/components/snackbar.scss",
-    `${outDirEditor}/lib/components/snackbar.css`
+    "fullstacked_modules/components/snackbar.scss",
+    `${outDirEditor}/fullstacked_modules/components/snackbar.css`
 );
 
-fs.writeFileSync(
-    `${outDirEditor}/version.json`,
-    JSON.stringify(version)
-);
+fs.writeFileSync(`${outDirEditor}/version.json`, JSON.stringify(version));
 
 if (!process.argv.includes("--no-zip")) {
     const outZipDir = `${outDir}/zip`;

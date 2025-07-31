@@ -33,7 +33,7 @@ class WebkitGTKWindow : public Window {
         void bringToFront(bool reload);
 
         void setFullscreen();
-        
+
         void setTitle(std::string stitle);
 };
 

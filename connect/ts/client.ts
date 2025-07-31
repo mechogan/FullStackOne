@@ -4,7 +4,7 @@ import {
     deserializeArgs,
     numberTo4Bytes,
     serializeArgs
-} from "../../lib/bridge/serialization";
+} from "../../fullstacked_modules/bridge/serialization";
 import { Data, DataListener } from "./server";
 
 type DataSocketClient = {
@@ -56,7 +56,7 @@ export function connect(channel: string, port: number, host?: string) {
             const payload = new Uint8Array([
                 ...numberTo4Bytes(serialized.byteLength),
                 ...serialized
-            ])
+            ]);
             dataSocketClient.socket.write(payload);
             return methods;
         },

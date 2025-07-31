@@ -1,4 +1,4 @@
-import { numberTo4Bytes } from "../../../lib/bridge/serialization";
+import { numberTo4Bytes } from "../../../fullstacked_modules/bridge/serialization";
 import { callLib } from "./call";
 
 type InstanceOpts = { id: string; isEditor: boolean };

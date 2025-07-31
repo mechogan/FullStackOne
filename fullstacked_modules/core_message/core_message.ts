@@ -60,17 +60,14 @@ addListener("alert", (message) => {
 
 // 40
 function setTitle(title: string) {
-    const payload = new Uint8Array([
-        40,
-        ...serializeArgs([title])
-    ]);
+    const payload = new Uint8Array([40, ...serializeArgs([title])]);
     bridge(payload);
 }
 
 let lastTitleSeen = null;
 setInterval(() => {
-    if(lastTitleSeen !== document.title) {
+    if (lastTitleSeen !== document.title) {
         setTitle(document.title);
     }
     lastTitleSeen = document.title;
-}, 500)
+}, 500);
