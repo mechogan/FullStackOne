@@ -1,2 +1,2 @@
 import ".";
-declare module "fetch" { }
+declare module "fetch" {}

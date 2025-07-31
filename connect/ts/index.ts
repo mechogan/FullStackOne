@@ -17,9 +17,9 @@ channel.on((data) => {
 
 const channelClient = connect("test", 8888);
 channelClient
-    .on(data => {
+    .on((data) => {
         console.log("Client Data", data);
-        if(data.at(0) === "ping") {
+        if (data.at(0) === "ping") {
             console.log("Client pong");
             setTimeout(() => channelClient.send("ping"), 1000);
         }

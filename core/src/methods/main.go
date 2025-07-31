@@ -263,14 +263,14 @@ func editorSwitch(method int, args []any) []byte {
 	case method >= 70 && method <= 81:
 		return gitSwitch(method, args)
 	case method == FULLSTACKED_MODULES_FILE:
-		filePath := args[0].(string);
-		if(!strings.HasPrefix(filePath, "fullstacked_modules")) {
+		filePath := args[0].(string)
+		if !strings.HasPrefix(filePath, "fullstacked_modules") {
 			return nil
 		}
 		filePathAbs := path.Join(setup.Directories.Editor, filePath)
 		_, isFile := fs.Exists(filePathAbs)
-		if(!isFile) {
-			return  nil
+		if !isFile {
+			return nil
 		}
 		return fs.ReadFileSerialized(filePathAbs, true)
 	case method == FULLSTACKED_MODULES_LIST:

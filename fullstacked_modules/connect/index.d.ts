@@ -1,2 +1,2 @@
 import ".";
-declare module "connect" { }
+declare module "connect" {}

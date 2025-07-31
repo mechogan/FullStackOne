@@ -101,26 +101,23 @@ esbuild.buildSync({
     external: ["fetch"]
 });
 
-const neededModules = [
-    "@fullstacked/ai-agent",
-    "zod"
-]
-neededModules.forEach(m => {
+const neededModules = ["@fullstacked/ai-agent", "zod"];
+neededModules.forEach((m) => {
     fs.cpSync("node_modules/" + m, outDirFullStackedModules + "/" + m, {
         recursive: true,
-        filter: (n) => !n.endsWith(".js") && !n.endsWith(".cjs") && !n.startsWith("node_modules/" + m + "/node_modules")
-    })
-})
+        filter: (n) =>
+            !n.endsWith(".js") &&
+            !n.endsWith(".cjs") &&
+            !n.startsWith("node_modules/" + m + "/node_modules")
+    });
+});
 
 await processScss(
     "fullstacked_modules/components/snackbar.scss",
     `${outDirEditor}/fullstacked_modules/components/snackbar.css`
 );
 
-fs.writeFileSync(
-    `${outDirEditor}/version.json`,
-    JSON.stringify(version)
-);
+fs.writeFileSync(`${outDirEditor}/version.json`, JSON.stringify(version));
 
 if (!process.argv.includes("--no-zip")) {
     const outZipDir = `${outDir}/zip`;

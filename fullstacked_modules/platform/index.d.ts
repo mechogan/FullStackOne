@@ -1,2 +1,2 @@
 import ".";
-declare module "platform" { }
+declare module "platform" {}

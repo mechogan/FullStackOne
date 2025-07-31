@@ -56,7 +56,7 @@ export function connect(channel: string, port: number, host?: string) {
             const payload = new Uint8Array([
                 ...numberTo4Bytes(serialized.byteLength),
                 ...serialized
-            ])
+            ]);
             dataSocketClient.socket.write(payload);
             return methods;
         },
