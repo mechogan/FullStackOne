@@ -145,10 +145,10 @@ async function dowloadWASM(): Promise<Uint8Array> {
 }
 
 const go = new Go();
-const result = await WebAssembly.instantiate(
+const result = (await WebAssembly.instantiate(
     await dowloadWASM(),
     go.importObject
-);
+)) as unknown as WebAssembly.WebAssemblyInstantiatedSource;
 go.run(result.instance);
 
 const dirs = {
