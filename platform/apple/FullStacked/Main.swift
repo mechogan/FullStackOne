@@ -46,7 +46,6 @@ func CallbackC(projectIdPtr: UnsafeMutablePointer<Int8>, messageTypePtr: UnsafeM
         }
         
     } else if let webview = FullStackedApp.singleton?.webViews.getView(projectId: projectId) {
-        print(messageType, message)
         if(messageType == "title"){
             FullStackedApp.singleton?.webViews.titles[projectId] = message
         } else {
