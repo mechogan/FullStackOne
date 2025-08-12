@@ -119,7 +119,7 @@ func LOAD_AS_DIR(modulePath string) *string {
 }
 
 func LOAD_FULLSTACKED_LIB_MODULE(module string) *string {
-	libModulePath := path.Join(setup.Directories.Editor, "lib", module)
+	libModulePath := path.Join(setup.Directories.Editor, "fullstacked_modules", module)
 	resolvedPath := LOAD_AS_FILE(libModulePath)
 	if resolvedPath != nil {
 		return resolvedPath

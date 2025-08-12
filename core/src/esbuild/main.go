@@ -89,6 +89,7 @@ func ShouldBuild(projectDirectory string) bool {
 }
 
 func Build(
+	projectId string,
 	projectDirectory string,
 	buildId float64,
 ) {
@@ -213,6 +214,6 @@ func Build(
 	jsonMessageSerialized := serialize.SerializeString(jsonMessagesStr)
 	payload = append(payload, jsonMessageSerialized...)
 
-	setup.Callback("", "build", base64.StdEncoding.EncodeToString(payload))
+	setup.Callback(projectId, "build", base64.StdEncoding.EncodeToString(payload))
 	fs.Unlink(tmpFile, fileEventOrigin)
 }

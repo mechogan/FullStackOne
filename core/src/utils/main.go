@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -42,4 +43,17 @@ func (d *debouncer) reset(fn func()) {
 	}
 
 	d.delay = time.AfterFunc(d.dur, fn)
+}
+
+func IsReacheable(url string) bool {
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: time.Second * 3,
+	}
+
+	_, err := client.Head(url)
+
+	return err == nil;
 }

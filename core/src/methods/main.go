@@ -50,8 +50,6 @@ const (
 
 	SET_TITLE = 40
 
-	// EDITOR ONLY
-
 	CONFIG_GET  = 50
 	CONFIG_SAVE = 51
 
@@ -77,9 +75,43 @@ const (
 	GIT_PUSH          = 79
 	GIT_BRANCH_DELETE = 80
 	GIT_AUTH_RESPONSE = 81
+	GIT_HAS_GIT       = 82
+	GIT_REMOTE_URL    = 83
 
 	OPEN = 100
 )
+
+var EDITOR_ONLY = []int{
+	CONFIG_GET,
+	CONFIG_SAVE,
+
+	ESBUILD_VERSION,
+	// ESBUILD_BUILD,
+	ESBUILD_SHOULD_BUILD,
+
+	PACKAGE_INSTALL,
+	// PACKAGE_INSTALL_QUICK,
+
+	FULLSTACKED_MODULES_FILE,
+	FULLSTACKED_MODULES_LIST,
+
+	GIT_CLONE,
+	GIT_HEAD,
+	GIT_STATUS,
+	// GIT_PULL,
+	GIT_RESTORE,
+	GIT_CHECKOUT,
+	GIT_FETCH,
+	GIT_COMMIT,
+	GIT_BRANCHES,
+	GIT_PUSH,
+	GIT_BRANCH_DELETE,
+	GIT_AUTH_RESPONSE,
+	// GIT_HAS_GIT,
+	// GIT_REMOTE_URL,
+
+	OPEN,
+}
 
 func Call(payload []byte) []byte {
 	cursor := 0
@@ -101,6 +133,12 @@ func Call(payload []byte) []byte {
 	baseDir := setup.Directories.Root + "/" + projectId
 	if isEditor {
 		baseDir = setup.Directories.Root
+	}
+
+	for _, m := range EDITOR_ONLY {
+		if m == method && !isEditor {
+			return nil
+		}
 	}
 
 	switch {
@@ -154,12 +192,68 @@ func Call(payload []byte) []byte {
 		return nil
 	case method >= 30 && method <= 37:
 		return archiveSwitch(isEditor, method, baseDir, args)
-	case method >= 50:
-		if !isEditor {
-			return nil
+	case method == CONFIG_GET:
+		return config.GetSerialized(args[0].(string))
+	case method == CONFIG_SAVE:
+		return config.SaveSerialized(args[0].(string), args[1].(string))
+	case method == ESBUILD_VERSION:
+		return serialize.SerializeString(esbuild.Version())
+	case method == ESBUILD_BUILD:
+		directory := path.Join(setup.Directories.Root, projectId)
+		buildId := 0.0
+
+		if isEditor {
+			directory = path.Join(setup.Directories.Root, args[0].(string))
+			buildId = args[1].(float64)
+		} else {
+			buildId = args[0].(float64)
 		}
 
-		return editorSwitch(method, args)
+		go esbuild.Build(projectId, directory, buildId)
+	case method == ESBUILD_SHOULD_BUILD:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		return serialize.SerializeBoolean(esbuild.ShouldBuild(projectDirectory))
+	case method == PACKAGE_INSTALL:
+		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
+		installationId := args[1].(float64)
+		packagesToInstall := []string{}
+		for i, p := range args {
+			if i < 3 {
+				continue
+			}
+			packagesToInstall = append(packagesToInstall, p.(string))
+		}
+		go packages.Install(installationId, projectDirectory, args[2].(bool), packagesToInstall)
+	case method == PACKAGE_INSTALL_QUICK:
+		projectDirectory := path.Join(setup.Directories.Root, projectId)
+		installationId := 0.0
+
+		if isEditor {
+			projectDirectory = path.Join(setup.Directories.Root, args[0].(string))
+			installationId = args[1].(float64)
+		} else {
+			installationId = args[0].(float64)
+		}
+
+		go packages.InstallQuick(projectId, installationId, projectDirectory)
+	case method == OPEN:
+		setup.Callback("", "open", args[0].(string))
+		return nil
+	case method >= 70 && method <= 83:
+		return gitSwitch(isEditor, projectId, method, args)
+	case method == FULLSTACKED_MODULES_FILE:
+		filePath := args[0].(string)
+		if !strings.HasPrefix(filePath, "fullstacked_modules") {
+			return nil
+		}
+		filePathAbs := path.Join(setup.Directories.Editor, filePath)
+		_, isFile := fs.Exists(filePathAbs)
+		if !isFile {
+			return nil
+		}
+		return fs.ReadFileSerialized(filePathAbs, true)
+	case method == FULLSTACKED_MODULES_LIST:
+		return fs.ReadDirSerialized(path.Join(setup.Directories.Editor, "fullstacked_modules"), true, false, []string{})
 	}
 
 	return nil
@@ -227,61 +321,13 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 	return nil
 }
 
-func editorSwitch(method int, args []any) []byte {
+func gitSwitch(isEditor bool, projectId string, method int, args []any) []byte {
+	directory := path.Join(setup.Directories.Root, projectId)
 
-	switch {
-	case method == CONFIG_GET:
-		return config.GetSerialized(args[0].(string))
-	case method == CONFIG_SAVE:
-		return config.SaveSerialized(args[0].(string), args[1].(string))
-	case method == ESBUILD_VERSION:
-		return serialize.SerializeString(esbuild.Version())
-	case method == ESBUILD_BUILD:
-		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
-		go esbuild.Build(projectDirectory, args[1].(float64))
-	case method == ESBUILD_SHOULD_BUILD:
-		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
-		return serialize.SerializeBoolean(esbuild.ShouldBuild(projectDirectory))
-	case method == PACKAGE_INSTALL:
-		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
-		installationId := args[1].(float64)
-		packagesToInstall := []string{}
-		for i, p := range args {
-			if i < 3 {
-				continue
-			}
-			packagesToInstall = append(packagesToInstall, p.(string))
-		}
-		go packages.Install(installationId, projectDirectory, args[2].(bool), packagesToInstall)
-	case method == PACKAGE_INSTALL_QUICK:
-		projectDirectory := setup.Directories.Root + "/" + args[0].(string)
-		installationId := args[1].(float64)
-		go packages.InstallQuick(installationId, projectDirectory)
-	case method == OPEN:
-		setup.Callback("", "open", args[0].(string))
-		return nil
-	case method >= 70 && method <= 81:
-		return gitSwitch(method, args)
-	case method == FULLSTACKED_MODULES_FILE:
-		filePath := args[0].(string)
-		if !strings.HasPrefix(filePath, "fullstacked_modules") {
-			return nil
-		}
-		filePathAbs := path.Join(setup.Directories.Editor, filePath)
-		_, isFile := fs.Exists(filePathAbs)
-		if !isFile {
-			return nil
-		}
-		return fs.ReadFileSerialized(filePathAbs, true)
-	case method == FULLSTACKED_MODULES_LIST:
-		return fs.ReadDirSerialized(path.Join(setup.Directories.Editor, "fullstacked_modules"), true, false, []string{})
+	// most git methods uses the directory as first argument
+	if isEditor && len(args) > 0 {
+		directory = path.Join(setup.Directories.Root, args[0].(string))
 	}
-
-	return nil
-}
-
-func gitSwitch(method int, args []any) []byte {
-	directory := path.Join(setup.Directories.Root, args[0].(string))
 
 	switch method {
 	case GIT_CLONE:
@@ -291,7 +337,7 @@ func gitSwitch(method int, args []any) []byte {
 	case GIT_STATUS:
 		return git.Status(directory)
 	case GIT_PULL:
-		go git.Pull(directory)
+		go git.Pull(directory, isEditor, projectId)
 	case GIT_PUSH:
 		go git.Push(directory)
 	case GIT_RESTORE:
@@ -312,6 +358,10 @@ func gitSwitch(method int, args []any) []byte {
 		return git.BranchDelete(directory, args[1].(string))
 	case GIT_AUTH_RESPONSE:
 		git.AuthResponse(args[0].(string), args[1].(bool))
+	case GIT_HAS_GIT:
+		return serialize.SerializeBoolean(git.HasGit(directory))
+	case GIT_REMOTE_URL:
+		return serialize.SerializeString(git.RemoteURL(directory))
 	}
 
 	return nil

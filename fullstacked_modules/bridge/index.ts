@@ -8,6 +8,13 @@ import { BridgeElectron } from "./platform/electron";
 import { BridgeNode, initCallbackNode } from "./platform/node";
 import { BridgeWasm } from "./platform/wasm";
 import { BridgeWindows, initRespondWindows } from "./platform/windows";
+import git from "../git";
+import esbuild from "../esbuild";
+import { SnackBar } from "../components/snackbar";
+import { Button } from "@fullstacked/ui";
+import { serializeArgs } from "./serialization";
+import { buildSASS } from "../esbuild/sass";
+import fs from "../fs";
 
 export type Bridge = (
     payload: Uint8Array,
@@ -51,3 +58,69 @@ switch (platform) {
 
 console.log("FullStacked");
 bridge(new Uint8Array([0]));
+
+// git.Pull
+// esbuild.ShouldBuild
+// package.installQuick
+// esbuild.Build
+// buildSASS
+// window.location.reload()
+let lastUpdateCheck = 0;
+const updateCheckDelay = 1000 * 10 // 1min;
+async function checkForUpdates() {
+    window.requestAnimationFrame(checkForUpdates)
+
+    const now = Date.now();
+    if (now - lastUpdateCheck < updateCheckDelay) {
+        return;
+    }
+
+    lastUpdateCheck = now;
+
+    if (await git.pull() !== git.PullResponse.DID_PULL) {
+        return;
+    }
+
+    let preventReload = false;
+    const preventReloadButton = Button({
+        text: "Stop"
+    });
+    preventReloadButton.onclick = () => {
+        preventReload = true;
+        snackbar.dismiss();
+    }
+
+    const snackbar = SnackBar({
+        message: "Project has updated. Rebuilding...",
+        button: preventReloadButton
+    });
+
+    buildSASS(fs)
+        .then(() => {
+            esbuild.build().then(() => {
+                snackbar.dismiss();
+                if (preventReload) return;
+                window.location.reload();
+            });
+        });
+
+}
+if (await git.hasGit()) {
+    checkForUpdates();
+}
+
+// 40
+function setTitle(title: string) {
+    const payload = new Uint8Array([40, ...serializeArgs([title])]);
+    bridge(payload);
+}
+
+let lastTitleSeen = null;
+setInterval(() => {
+    if (!document.title) return;
+
+    if (lastTitleSeen !== document.title) {
+        setTitle(document.title);
+    }
+    lastTitleSeen = document.title;
+}, 500);
