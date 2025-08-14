@@ -14,7 +14,9 @@ import path from "node:path";
 import os from "node:os";
 
 // test build
-await import("../build");
+child_process.execSync("npm run build", {
+    stdio: "inherit"
+});
 
 // test node build
 child_process.execSync("npm run build", {

@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
@@ -36,9 +37,10 @@ var ignoredDirectories = []string{
 }
 
 type GitMessageJSON struct {
-	Url   string `json:"url"`
-	Data  string `json:"data"`
-	Error bool   `json:"Error"`
+	Url      string `json:"url"`
+	Data     string `json:"data"`
+	Error    bool   `json:"error"`
+	Finished bool   `json:"finished"`
 }
 
 func errorFmt(e error) string {
@@ -92,31 +94,45 @@ func getWorktree(repo *git.Repository) (*git.Worktree, error) {
 }
 
 type GitProgress struct {
-	Name string
-	Url  string
+	ProjectId string
+	Name      string
+	Url       string
 }
 
 func (gitProgress *GitProgress) Write(p []byte) (int, error) {
 	n := len(p)
 
 	jsonData, _ := json.Marshal(GitMessageJSON{
-		Url:   gitProgress.Url,
-		Data:  strings.TrimSpace(string(p)),
-		Error: false,
+		Url:      gitProgress.Url,
+		Data:     strings.TrimSpace(string(p)),
+		Error:    false,
+		Finished: false,
 	})
 
-	setup.Callback("", gitProgress.Name, string(jsonData))
+	setup.Callback(gitProgress.ProjectId, gitProgress.Name, string(jsonData))
 	return n, nil
+}
+
+func (gitProgress *GitProgress) End(pullResponse string, isError bool) {
+	jsonData, _ := json.Marshal(GitMessageJSON{
+		Url:      gitProgress.Url,
+		Data:     pullResponse,
+		Error:    isError,
+		Finished: true,
+	})
+
+	setup.Callback(gitProgress.ProjectId, gitProgress.Name, string(jsonData))
 }
 
 func (gitProgress *GitProgress) Error(message string) {
 	jsonData, _ := json.Marshal(GitMessageJSON{
-		Url:   gitProgress.Url,
-		Data:  strings.ReplaceAll(strings.TrimSpace(message), "\"", "\\\""),
-		Error: true,
+		Url:      gitProgress.Url,
+		Data:     strings.ReplaceAll(strings.TrimSpace(message), "\"", "\\\""),
+		Error:    true,
+		Finished: true,
 	})
 
-	setup.Callback("", gitProgress.Name, string(jsonData))
+	setup.Callback(gitProgress.ProjectId, gitProgress.Name, string(jsonData))
 }
 
 // ref: editor/types/index.ts
@@ -216,6 +232,30 @@ func HasGit(dir string) bool {
 	return exists && !isFile
 }
 
+func RemoteURL(dir string) string {
+	if !HasGit(dir) {
+		return ""
+	}
+
+	wg := sync.WaitGroup{}
+
+	repo, err := getRepo(dir, &wg)
+
+	if err != nil {
+		return ""
+	}
+
+	remote, err := repo.Remote("origin")
+
+	if err != nil {
+		return ""
+	}
+
+	wg.Wait()
+
+	return remote.Config().URLs[0]
+}
+
 func Clone(into string, url string) {
 	progress := GitProgress{
 		Name: "git-clone",
@@ -236,11 +276,26 @@ func Clone(into string, url string) {
 	repoStorage := newStorage(into, &wg)
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
 
+	storage := filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault())
+
 	_, err := git.Clone(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs, &git.CloneOptions{
 		Auth:     checkForGitAuth(url),
 		URL:      url,
 		Progress: &progress,
 	})
+
+	if err == transport.ErrEmptyRemoteRepository {
+		fs.Rmdir(into, fileEventOrigin)
+		fs.Mkdir(into, fileEventOrigin)
+		repo, _ := git.InitWithOptions(storage, repoFs, git.InitOptions{
+			DefaultBranch: plumbing.Main,
+		})
+		repo.CreateRemote(&gitConfig.RemoteConfig{
+			Name: "origin",
+			URLs: []string{url},
+		})
+		err = nil
+	}
 
 	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 		if requestGitAuthentication(url) {
@@ -265,14 +320,25 @@ func Clone(into string, url string) {
 }
 
 func HeadSerialized(directory string) []byte {
+	branch := ""
+	hash := ""
+
 	head, err := Head(directory)
 	if err != nil {
-		return serialize.SerializeString(errorFmt(err))
+		if err == plumbing.ErrReferenceNotFound {
+			branch = "main"
+			hash = "-"
+		} else {
+			return serialize.SerializeString(errorFmt(err))
+		}
+	} else {
+		branch = head.Name().Short()
+		hash = head.Hash().String()
 	}
 
 	data := []byte{}
-	data = append(data, serialize.SerializeString(head.Name().Short())...)
-	data = append(data, serialize.SerializeString(head.Hash().String())...)
+	data = append(data, serialize.SerializeString(branch)...)
+	data = append(data, serialize.SerializeString(hash)...)
 	return data
 }
 
@@ -328,13 +394,14 @@ func Status(directory string) []byte {
 	// added: 0, deleted: 1, modified: 2,
 	for file, fileStatus := range status {
 		data = append(data, serialize.SerializeString(file)...)
-		if fileStatus.Staging == git.Added || fileStatus.Staging == git.Copied {
+		switch fileStatus.Staging {
+		case git.Added, git.Copied:
 			// added
 			data = append(data, serialize.SerializeNumber(0)...)
-		} else if fileStatus.Staging == git.Deleted {
+		case git.Deleted:
 			// deleted
 			data = append(data, serialize.SerializeNumber(1)...)
-		} else {
+		default:
 			// modified
 			data = append(data, serialize.SerializeNumber(2)...)
 		}
@@ -343,12 +410,13 @@ func Status(directory string) []byte {
 	return data
 }
 
-func Pull(directory string) {
-	wg := sync.WaitGroup{}
-
+func Pull(directory string, isEditor bool, projectId string) {
 	progress := GitProgress{
-		Name: "git-pull",
+		ProjectId: projectId,
+		Name:      "git-pull",
 	}
+
+	wg := sync.WaitGroup{}
 
 	repo, err := getRepo(directory, &wg)
 
@@ -364,6 +432,26 @@ func Pull(directory string) {
 		return
 	}
 
+	err = worktree.AddGlob(".")
+	if err != nil {
+		progress.Error(err.Error())
+		return
+	}
+
+	wg.Wait()
+
+	status, err := worktree.Status()
+
+	if err != nil {
+		progress.Error(err.Error())
+		return
+	}
+
+	if !status.IsClean() {
+		progress.Error("has changes")
+		return
+	}
+
 	remote, err := repo.Remote("origin")
 
 	if err != nil {
@@ -374,6 +462,11 @@ func Pull(directory string) {
 	wg.Wait()
 
 	progress.Url = remote.Config().URLs[0]
+
+	if !utils.IsReacheable(progress.Url) {
+		progress.Error("unreacheable")
+		return
+	}
 
 	progress.Write([]byte("start"))
 
@@ -400,7 +493,9 @@ func Pull(directory string) {
 		Progress:      &progress,
 	})
 
-	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
+	// request git auth only when Editor,
+	// else, the auth should already be setup
+	if err != nil && strings.HasPrefix(err.Error(), "authentication required") && isEditor {
 		if requestGitAuthentication(progress.Url) {
 			err = worktree.Pull(&git.PullOptions{
 				Auth:          checkForGitAuth(progress.Url),
@@ -410,14 +505,15 @@ func Pull(directory string) {
 		}
 	}
 
-	if err != nil && err.Error() != "already up-to-date" && err.Error() != "reference not found" {
-		progress.Error(err.Error())
-		return
+	pullResponse := ""
+
+	if err != nil {
+		pullResponse = err.Error()
 	}
 
 	wg.Wait()
 
-	progress.Write([]byte("done"))
+	progress.End(pullResponse, err != nil)
 }
 
 func Push(directory string) {
@@ -472,7 +568,7 @@ func Push(directory string) {
 
 	wg.Wait()
 
-	progress.Write([]byte("done"))
+	progress.End("", false)
 }
 
 func Restore(directory string, files []string) []byte {

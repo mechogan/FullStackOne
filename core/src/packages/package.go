@@ -290,7 +290,7 @@ func (p *Package) Install(
 			p.installFromRemote(pDir)
 		}
 	} else if !i.Quick && (p.GitRefType == git.GIT_BRANCH || p.GitRefType == git.GIT_DEFAULT) {
-		git.Pull(pDir)
+		git.Pull(pDir, i.ProjectId == "", i.ProjectId)
 		p.updateNameAndVersionWithPackageJSON(pDir)
 	}
 

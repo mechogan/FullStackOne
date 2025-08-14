@@ -96,7 +96,9 @@ async function openProject(id: string) {
 const mainInstanceId =
     process.argv.includes("--editor") ||
     typeof process.env.FULLSTACKED_EDITOR === "string"
-        ? ""
+        ? process.argv.includes("--kiosk")
+            ? process.argv.at(process.argv.indexOf("--kiosk") + 1)
+            : ""
         : ".";
 
 if (mainInstanceId === ".") {

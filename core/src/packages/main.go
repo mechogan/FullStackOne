@@ -24,6 +24,7 @@ type Installation struct {
 	Id                     float64           `json:"id"`
 	PackagesInstalledCount float64           `json:"packagesInstalledCount"`
 	Duration               float64           `json:"duration"`
+	ProjectId              string            `json:"-"`
 	Packages               []*Package        `json:"-"`
 	LocalPackages          []PackageLockJSON `json:"-"`
 	BaseDirectory          string            `json:"-"`
@@ -39,7 +40,7 @@ func (i *Installation) notify() {
 
 	jsonStr := string(jsonData)
 
-	setup.Callback("", "packages-installation", jsonStr)
+	setup.Callback(i.ProjectId, "packages-installation", jsonStr)
 }
 
 /*	   name       version
@@ -371,6 +372,7 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 	start := time.Now().UnixMilli()
 
 	installation := Installation{
+		ProjectId:              "",
 		Id:                     installationId,
 		BaseDirectory:          directory,
 		PackagesInstalledCount: 0,
@@ -451,10 +453,11 @@ func Install(installationId float64, directory string, devDependencies bool, pac
 	installation.notify()
 }
 
-func InstallQuick(installationId float64, directory string) {
+func InstallQuick(projectId string, installationId float64, directory string) {
 	start := time.Now().UnixMilli()
 
 	installation := Installation{
+		ProjectId:              projectId,
 		Id:                     installationId,
 		BaseDirectory:          directory,
 		PackagesInstalledCount: 0,

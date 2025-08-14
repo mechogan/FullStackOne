@@ -1,6 +1,4 @@
 import { promises } from "node:fs";
-import { buildSASS } from "../../../editor/lib/esbuild/sass";
-import type { Project } from "../../../editor/types";
 import { createPayloadHeader } from "./instance";
 import { callLib } from "./call";
 import {
@@ -10,6 +8,7 @@ import {
 import { toByteArray } from "../../../fullstacked_modules/base64";
 import { cbListener } from ".";
 import type { Message } from "esbuild";
+import { buildSASS } from "../../../fullstacked_modules/esbuild/sass";
 
 function quickInstallPacakge(editorHeader: Uint8Array) {
     return new Promise<void>((resolve) => {
@@ -52,7 +51,7 @@ export async function buildLocalProject() {
                         resolve();
                         return;
                     }
-                } catch (e) {}
+                } catch (e) { }
                 console.log(buildErrors || errorsStr);
                 process.exit(1);
             }
@@ -60,7 +59,7 @@ export async function buildLocalProject() {
         cbListener.add(cb);
 
         // build sasss
-        await buildSASS({ id: "." } as Project, {
+        await buildSASS({
             mkdir: async (p) => {
                 await promises.mkdir(p, { recursive: true });
                 return true;

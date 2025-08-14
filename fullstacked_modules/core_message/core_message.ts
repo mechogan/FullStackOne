@@ -1,5 +1,3 @@
-import { bridge } from "../bridge";
-import { serializeArgs } from "../bridge/serialization";
 import { SnackBar } from "../components/snackbar";
 
 const coreMessageListeners = new Map<string, Set<(message: string) => void>>();
@@ -57,17 +55,3 @@ addListener("alert", (message) => {
         autoDismissTimeout: 4000
     });
 });
-
-// 40
-function setTitle(title: string) {
-    const payload = new Uint8Array([40, ...serializeArgs([title])]);
-    bridge(payload);
-}
-
-let lastTitleSeen = null;
-setInterval(() => {
-    if (lastTitleSeen !== document.title) {
-        setTitle(document.title);
-    }
-    lastTitleSeen = document.title;
-}, 500);

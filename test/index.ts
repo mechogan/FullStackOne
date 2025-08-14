@@ -1,10 +1,17 @@
-import child_process from "child_process";
+import child_process from "node:child_process";
 import esbuild from "esbuild";
+import fs from "node:fs";
+import path from "node:path";
+
+const cacheDirectory = path.resolve("test", ".cache");
+
+if(fs.existsSync(cacheDirectory))
+    fs.rmSync(cacheDirectory, { recursive: true })
 
 const build = (testFile: string) => {
-    const outfile = "test/.cache/test.js";
+    const outfile = path.resolve(cacheDirectory, "test.js");
     esbuild.buildSync({
-        entryPoints: [`test/${testFile}`],
+        entryPoints: [path.resolve("test", testFile)],
         outfile,
         bundle: true,
         packages: "external",
@@ -21,7 +28,12 @@ child_process.execSync(`node ${build("basic.ts")}`, {
     stdio: "inherit"
 });
 
-// deep links and git tests
+// deep links and git clone tests
 child_process.execSync(`node ${build("deeplink-git.ts")}`, {
+    stdio: "inherit"
+});
+
+// git commit and auto-update
+child_process.execSync(`node ${build("commit-auto-update.ts")}`, {
     stdio: "inherit"
 });
