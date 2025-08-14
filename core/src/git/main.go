@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
@@ -275,11 +276,26 @@ func Clone(into string, url string) {
 	repoStorage := newStorage(into, &wg)
 	repoFs := NewBillyFS(repoStorage, ignoredDirectories)
 
+	storage := filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault())
+
 	_, err := git.Clone(filesystem.NewStorage(gitFs, cache.NewObjectLRUDefault()), repoFs, &git.CloneOptions{
 		Auth:     checkForGitAuth(url),
 		URL:      url,
 		Progress: &progress,
 	})
+
+	if err == transport.ErrEmptyRemoteRepository {
+		fs.Rmdir(into, fileEventOrigin)
+		fs.Mkdir(into, fileEventOrigin)
+		repo, _ := git.InitWithOptions(storage, repoFs, git.InitOptions{
+			DefaultBranch: plumbing.Main,
+		})
+		repo.CreateRemote(&gitConfig.RemoteConfig{
+			Name: "origin",
+			URLs: []string{url},
+		})
+		err = nil
+	}
 
 	if err != nil && strings.HasPrefix(err.Error(), "authentication required") {
 		if requestGitAuthentication(url) {
@@ -301,6 +317,8 @@ func Clone(into string, url string) {
 	wg.Wait()
 
 	progress.Write([]byte("done"))
+
+	fmt.Println("ICICI")
 }
 
 func HeadSerialized(directory string) []byte {
@@ -541,7 +559,7 @@ func Push(directory string) {
 
 	wg.Wait()
 
-	progress.Write([]byte("done"))
+	progress.End("", false)
 }
 
 func Restore(directory string, files []string) []byte {

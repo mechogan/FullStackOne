@@ -22,9 +22,6 @@ function setListenerOnce() {
     addedListener = true;
 }
 
-
-
-
 // 81
 export function gitAuthResponse(id: number, success: boolean) {
     console.log(id, success);

@@ -1,5 +1,4 @@
 import { promises } from "node:fs";
-import type { Project } from "../../../editor/types";
 import { createPayloadHeader } from "./instance";
 import { callLib } from "./call";
 import {
