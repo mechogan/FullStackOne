@@ -8,9 +8,11 @@ import { randomUUID } from "node:crypto"
 import fs from "node:fs";
 import assert from "node:assert";
 
+const cacheDirectory = path.resolve("test", ".cache");
+
 const testId = randomUUID();
 
-const testDirectory = path.resolve("test", ".cache", testId);
+const testDirectory = path.resolve(cacheDirectory, testId);
 
 const localGitServerDir = path.resolve("test", "local-git-server");
 const gitHost = "http://localhost:8080"
@@ -31,7 +33,9 @@ for (const cmd of dockerLocalGitServerCommands) {
 }
 
 
-let editorProcess: child_process.ChildProcess;
+let editorProcess: child_process.ChildProcess,
+    editorProcess2: child_process.ChildProcess,
+    kioskProcess: child_process.ChildProcess;
 
 const cleanup = () => {
     child_process.execSync(dockerLocalGitServerCommands.at(0), {
@@ -39,13 +43,15 @@ const cleanup = () => {
         stdio: "inherit"
     })
     editorProcess?.kill();
+    editorProcess2?.kill();
+    kioskProcess?.kill();
 
 };
 
 const onError = (e) => {
     console.log(e);
     cleanup();
-    throwError("Deep Link/git test failed");
+    throwError("git commit/auto-update test failed");
 };
 
 process.on("uncaughtException", onError);
@@ -177,6 +183,110 @@ assert.deepEqual(await getTitleAndColor(appPage), {
 
 await editorPage.bringToFront();
 
+
+const gitWidget = await editorPage.waitForSelector(".git-widget > button");
+await gitWidget.click();
+
+await sleep(1000);
+
+const authorButton = await editorPage.waitForSelector(".git-author-infos button");
+await authorButton.click();
+
+await sleep(1000);
+
+const authorNameInput = await editorPage.waitForSelector(".git-author-form > div:first-child input");
+await authorNameInput.click();
+
+for (let i = 0; i < testId.length; i++) {
+    await sleep(100);
+    await editorPage.keyboard.press(testId[i] as KeyInput);
+}
+
+await editorPage.keyboard.press("Enter");
+
+await sleep(1000);
+
+const commitInput = await editorPage.waitForSelector(".git-form input");
+await commitInput.click();
+
+for (let i = 0; i < testId.length; i++) {
+    await sleep(100);
+    await editorPage.keyboard.press(testId[i] as KeyInput);
+}
+
+await sleep(1000);
+
+const pushButton = await editorPage.waitForSelector(".git-buttons > div > button:last-child");
+await pushButton.click();
+
+
+const testId2 = randomUUID();
+
+const testDirectory2 = path.resolve(cacheDirectory, testId2);
+
+editorProcess2 = child_process.exec(
+    `node index.js ${repo}`,
+    {
+        cwd: process.cwd() + "/platform/node",
+        env: {
+            ...process.env,
+            NO_OPEN: "1",
+            FULLSTACKED_LIB: path.resolve(process.cwd(), "core", "bin"),
+            FULLSTACKED_ROOT: path.resolve(testDirectory2, "root"),
+            FULLSTACKED_CONFIG: path.resolve(
+                testDirectory2,
+                "config"
+            ),
+            FULLSTACKED_EDITOR: path.resolve(process.cwd(), "out", "editor")
+        }
+    }
+);
+editorProcess2.stdout.pipe(process.stdout);
+editorProcess2.stderr.pipe(process.stderr);
+
+await sleep(3000);
+
+const editorPage2 = await browser.newPage();
+await editorPage2.goto("http://localhost:9002");
+await editorPage2.waitForSelector(`#${RUN_PROJECT_ID}`);
+const projectTitle = await (await editorPage2.waitForSelector(`#${PROJECT_VIEW_ID} h1`)).getProperty("textContent");
+
+assert.equal(await projectTitle.jsonValue(), repoName);
+
+await editorPage2.close();
+
+kioskProcess = child_process.exec(
+    `node index.js --kiosk ${repoName}`,
+    {
+        cwd: process.cwd() + "/platform/node",
+        env: {
+            ...process.env,
+            NO_OPEN: "1",
+            FULLSTACKED_LIB: path.resolve(process.cwd(), "core", "bin"),
+            FULLSTACKED_ROOT: path.resolve(testDirectory2, "root"),
+            FULLSTACKED_CONFIG: path.resolve(
+                testDirectory2,
+                "config"
+            ),
+            FULLSTACKED_EDITOR: path.resolve(process.cwd(), "out", "editor")
+        }
+    }
+);
+kioskProcess.stdout.pipe(process.stdout);
+kioskProcess.stderr.pipe(process.stderr);
+
+await sleep(3000);
+
+const kioskPage = await browser.newPage();
+await kioskPage.goto("http://localhost:9003");
+
+assert.deepEqual(await getTitleAndColor(kioskPage), {
+    currentTitle: "Hello World",
+    currentColor: [255, 0, 0]
+});
+
+await editorPage.bringToFront();
+
 await writeFileContent("text.txt", testId);
 await writeFileContent("c.scss", `$color: #00FF00`);
 
@@ -194,24 +304,33 @@ assert.deepEqual(await getTitleAndColor(appPage), {
     currentColor: [0, 255, 0]
 });
 
-await appPage.close();
+await editorPage.bringToFront();
 
-const gitWidget = await editorPage.waitForSelector(".git-widget > button");
-await gitWidget.click();
+const gitWidget2 = await editorPage.waitForSelector(".git-widget > button");
+await gitWidget2.click();
 
 await sleep(1000);
+
+const commitInput2 = await editorPage.waitForSelector(".git-form input");
+await commitInput2.click();
 
 for (let i = 0; i < testId.length; i++) {
     await sleep(100);
     await editorPage.keyboard.press(testId[i] as KeyInput);
 }
 
+await editorPage.keyboard.press("Enter")
+
 await sleep(1000);
 
-const pushButton = await editorPage.waitForSelector(".git-buttons > div > button:last-child");
-await pushButton.click();
+await kioskPage.bringToFront();
 
-await sleep(100000)
+await sleep(1000 * 10);
+
+assert.deepEqual(await getTitleAndColor(kioskPage), {
+    currentTitle: testId,
+    currentColor: [0, 255, 0]
+});
 
 
 cleanup();

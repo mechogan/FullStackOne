@@ -5,7 +5,8 @@ import path from "node:path";
 
 const cacheDirectory = path.resolve("test", ".cache");
 
-fs.rmSync(cacheDirectory, { recursive: true })
+if(fs.existsSync(cacheDirectory))
+    fs.rmSync(cacheDirectory, { recursive: true })
 
 const build = (testFile: string) => {
     const outfile = path.resolve(cacheDirectory, "test.js");
@@ -20,17 +21,17 @@ const build = (testFile: string) => {
 };
 
 // type checking
-// child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
+child_process.execSync(`node ${build("types.ts")}`, { stdio: "inherit" });
 
 // basic tests
-// child_process.execSync(`node ${build("basic.ts")}`, {
-//     stdio: "inherit"
-// });
+child_process.execSync(`node ${build("basic.ts")}`, {
+    stdio: "inherit"
+});
 
 // deep links and git clone tests
-// child_process.execSync(`node ${build("deeplink-git.ts")}`, {
-//     stdio: "inherit"
-// });
+child_process.execSync(`node ${build("deeplink-git.ts")}`, {
+    stdio: "inherit"
+});
 
 // git commit and auto-update
 child_process.execSync(`node ${build("commit-auto-update.ts")}`, {

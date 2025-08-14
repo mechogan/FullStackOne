@@ -317,19 +317,28 @@ func Clone(into string, url string) {
 	wg.Wait()
 
 	progress.Write([]byte("done"))
-
-	fmt.Println("ICICI")
 }
 
 func HeadSerialized(directory string) []byte {
+	branch := ""
+	hash := ""
+
 	head, err := Head(directory)
 	if err != nil {
-		return serialize.SerializeString(errorFmt(err))
+		if err == plumbing.ErrReferenceNotFound {
+			branch = "main"
+			hash = "-"
+		} else {
+			return serialize.SerializeString(errorFmt(err))
+		}
+	} else {
+		branch = head.Name().Short()
+		hash = head.Hash().String()
 	}
 
 	data := []byte{}
-	data = append(data, serialize.SerializeString(head.Name().Short())...)
-	data = append(data, serialize.SerializeString(head.Hash().String())...)
+	data = append(data, serialize.SerializeString(branch)...)
+	data = append(data, serialize.SerializeString(hash)...)
 	return data
 }
 
