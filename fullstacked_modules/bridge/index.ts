@@ -59,14 +59,8 @@ switch (platform) {
 console.log("FullStacked");
 bridge(new Uint8Array([0]));
 
-// git.Pull
-// esbuild.ShouldBuild
-// package.installQuick
-// esbuild.Build
-// buildSASS
-// window.location.reload()
 let lastUpdateCheck = 0;
-const updateCheckDelay = 1000 * 10 // 1min;
+const updateCheckDelay = 1000 * 10 // 10sec;
 async function checkForUpdates() {
     window.requestAnimationFrame(checkForUpdates)
 
