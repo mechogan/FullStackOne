@@ -1,5 +1,5 @@
 # ./build-gtk.sh [ arm64 | x64 ]
-sh ./prebuild.sh $1
+sh ./prebuild.sh $1 gtk
 
 gcc src/utils.cpp \
     src/gtk/gtk.cpp \

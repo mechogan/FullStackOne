@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(fullstacked)
 
 execute_process(
-    COMMAND bash prebuild.sh ${ARCH}
+    COMMAND bash prebuild.sh ${ARCH} qt
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 

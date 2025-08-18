@@ -8,8 +8,10 @@ cp -f bin/linux-$1.h bin/linux.h
 mkdir -p ./out/usr/share/fullstacked
 cp -r ../../out/editor ./out/usr/share/fullstacked
 
+FRAMEWORK=$2
+
 mkdir ./out/DEBIAN
-cp control out/DEBIAN/control
+cp control-$FRAMEWORK out/DEBIAN/control
 
 ARCH=$1
 
