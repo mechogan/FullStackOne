@@ -3,12 +3,17 @@ import url from "node:url";
 import fs from "node:fs";
 import child_process from "node:child_process";
 import version from "../../version.js";
-import pty from "node-pty";
+
+/*
+* TO SELECT RELEASE OR BETA APP, RUN BEFORE PUBLISH
+* 
+* msstore init
+* 
+* IN platform/windows DIRECTORY
+*/
 
 const currentDirectory = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDirectory = path.resolve(currentDirectory, "..", "..");
-
-const isRelease = process.argv.includes("--release");
 
 // build editor
 
@@ -39,47 +44,6 @@ if(fs.existsSync(appPackages))
     fs.rmSync(appPackages, { recursive: true })
 
 // msstore
-
-const ptyProcess = pty.spawn("cmd.exe", [], {
-    name: 'msstore-process',
-    cols: 80,
-    rows: 30,
-    cwd: currentDirectory,
-    env: process.env
-});
-
-let stdout = "";
-let selectionDone = false;
-await new Promise(res => {
-    ptyProcess.onData((data) => {
-        stdout += data.trim();
-
-        if (!selectionDone && stdout.includes("FullStacked (Beta)")) {
-            if (!isRelease && !stdout.includes("> FullStacked (Beta)")) {
-                ptyProcess.write("\u001b[B");
-                return;
-            }
-
-            selectionDone = true;
-            ptyProcess.write("\r");
-        }
-
-        if (selectionDone && stdout.includes("configured to build to the Microsoft Store")) {
-            ptyProcess.kill()
-        }
-    });
-    ptyProcess.onExit(res);
-
-    ptyProcess.write('msstore init\r');
-});
-
-packageContent = fs.readFileSync(packageFile, { encoding: "utf-8" });
-if(isRelease && !packageContent.match(/<DisplayName>FullStacked<\/DisplayName>/)) {
-    throw "Failed to init to FullStacked App"
-} 
-if(!isRelease && !packageContent.match(/<DisplayName>FullStacked \(Beta\)<\/DisplayName>/)) {
-    throw "Failed to init to FullStacked (Beta) App"
-}
 
 child_process.execSync("msstore package", {
     cwd: currentDirectory,
