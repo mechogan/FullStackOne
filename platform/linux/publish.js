@@ -29,17 +29,21 @@ child_process.execSync(`make linux-${arch}-static -j4`, {
 // update version
 const versionStr = `${version.major}.${version.minor}.${version.patch}`;
 
-const controlFile = path.resolve(currentDirectory, "control");
-const controlFileContent = fs.readFileSync(controlFile, {
-    encoding: "utf-8"
-});
-const controlFileContentUpdated = controlFileContent.replace(
-    /Version\:.*\n/g,
-    `Version: ${versionStr}\n`
-);
-fs.writeFileSync(controlFile, controlFileContentUpdated);
+function updateControlFile(framework) {
+    const controlFile = path.resolve(currentDirectory, `control-${framework}`);
+    const controlFileContent = fs.readFileSync(controlFile, {
+        encoding: "utf-8"
+    });
+    const controlFileContentUpdated = controlFileContent.replace(
+        /Version\:.*\n/g,
+        `Version: ${versionStr}\n`
+    );
+    fs.writeFileSync(controlFile, controlFileContentUpdated);
+}
+
 
 // build GTK
+updateControlFile("gtk");
 
 child_process.execSync(`sh ./build-gtk.sh ${arch}`, {
     cwd: currentDirectory,
@@ -61,6 +65,7 @@ const debPackageGTK = path.resolve(
 fs.renameSync(path.resolve(currentDirectory, "fullstacked.deb"), debPackageGTK);
 
 // build Qt
+updateControlFile("qt");
 
 child_process.execSync(`cmake -DARCH=${arch} .`, {
     cwd: currentDirectory,
