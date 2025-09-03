@@ -74,9 +74,8 @@ Response Instance::onRequest(std::string url_str) {
 }
 
 std::string Instance::onBridge(std::string payload) {
-    if (isEditor && !firstTouch && !App::instance->deeplink.empty()) {
+    if (isEditor && !App::instance->deeplink.empty()) {
         std::cout << App::instance->deeplink << std::endl;
-        firstTouch = true;
         std::string launchURL("fullstacked://" + App::instance->deeplink);
         onMessage(std::string("deeplink").data(), launchURL.data());
         App::instance->deeplink = "";

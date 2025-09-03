@@ -25,7 +25,7 @@ export let bridge: Bridge;
 switch (platform) {
     case Platform.NODE:
         bridge = BridgeNode;
-        initCallbackNode();
+        await initCallbackNode();
         break;
     case Platform.APPLE:
         bridge = BridgeApple;
@@ -47,7 +47,7 @@ switch (platform) {
         break;
     case Platform.LINUX_QT:
         bridge = BridgeLinuxQT;
-        initRespondLinuxQT();
+        await initRespondLinuxQT();
         break;
     case Platform.ELECTRON:
         bridge = BridgeElectron;
