@@ -51,18 +51,27 @@ export const BridgeLinuxQT: Bridge = (
 export async function initRespondLinuxQT() {
     const script = document.createElement("script");
     script.src = "qrc:///qtwebchannel/qwebchannel.js";
-    script.onload = () => {
-        new globalThis.QWebChannel(globalThis.qt.webChannelTransport, (c) => {
-            channel = c;
-            pendingRequests.forEach(({ payload, transformer, resolve }) => {
-                respond(payload, transformer).then(resolve);
-            });
-            channel.objects.bridge.core_message.connect(
-                function (type, message) {
-                    globalThis.oncoremessage(type, message);
+    return new Promise<void>((channelReady) => {
+        script.onload = () => {
+            new globalThis.QWebChannel(
+                globalThis.qt.webChannelTransport,
+                (c) => {
+                    channel = c;
+                    pendingRequests.forEach(
+                        ({ payload, transformer, resolve }) => {
+                            respond(payload, transformer).then(resolve);
+                        }
+                    );
+                    channel.objects.bridge.core_message.connect(function (
+                        type: string,
+                        message: string
+                    ) {
+                        globalThis.oncoremessage(type, message);
+                    });
+                    channelReady();
                 }
             );
-        });
-    };
-    document.body.append(script);
+        };
+        document.body.append(script);
+    });
 }

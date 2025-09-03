@@ -8,7 +8,6 @@ class Instance {
         bool isEditor;
         char *header;
         int headerSize;
-        bool firstTouch;
 
     public:
         std::string id;
