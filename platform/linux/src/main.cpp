@@ -78,7 +78,6 @@ int main(int argc, char *argv[]) {
         std::string arg(argv[i]);
 
         if (arg.compare(0, httpPrefix.size(), httpPrefix) == 0) {
-            std::cout << "found deeplink " << arg << std::endl;
             app->deeplink = arg;
         } else if (arg == kioskFlag) {
             app->kiosk = true;
