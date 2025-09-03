@@ -2,7 +2,6 @@ import { CONFIG_DATA_TYPE, CONFIG_TYPE } from "../../editor/types";
 import { bridge } from "../bridge";
 import { serializeArgs } from "../bridge/serialization";
 
-
 export function get<T extends CONFIG_TYPE>(
     configType: T,
     checkExists: boolean = false

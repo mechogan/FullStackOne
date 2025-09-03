@@ -3,7 +3,10 @@ import { serializeArgs } from "../bridge/serialization";
 import core_message from "../core_message";
 import { Project } from "../../editor/types";
 
-const pullPromises = new Map<string, ((pullResponse: PullResponse) => void)[]>();
+const pullPromises = new Map<
+    string,
+    ((pullResponse: PullResponse) => void)[]
+>();
 let addedListener = false;
 function setListenerOnce() {
     if (addedListener) return;
@@ -36,10 +39,10 @@ export function clone(url: string, into: string) {
 }
 
 // 71
-export function head(projectId: string): Promise<{ name: string; hash: string }> {
-    const payload = new Uint8Array([71,
-        ...serializeArgs([projectId])
-    ]);
+export function head(
+    projectId: string
+): Promise<{ name: string; hash: string }> {
+    const payload = new Uint8Array([71, ...serializeArgs([projectId])]);
 
     const transformer = ([name, hash]) => {
         return { name, hash };
@@ -100,9 +103,7 @@ export enum PullResponse {
 export async function pull(project?: Project): Promise<PullResponse> {
     setListenerOnce();
 
-    const args = project
-        ? serializeArgs([project.id])
-        : [];
+    const args = project ? serializeArgs([project.id]) : [];
 
     const payload = new Uint8Array([73, ...args]);
 
@@ -208,31 +209,20 @@ export function branchDelete(project: Project, branch: string) {
     return bridge(payload);
 }
 
-
 // 82
 export function hasGit(project?: Project) {
-    const args = project
-        ? [project.id]
-        : [];
+    const args = project ? [project.id] : [];
 
-    const payload = new Uint8Array([
-        82,
-        ...serializeArgs(args)
-    ]);
+    const payload = new Uint8Array([82, ...serializeArgs(args)]);
 
     return bridge(payload, ([hasGit]) => hasGit);
 }
 
 // 83
 export function remoteUrl(project?: Project) {
-    const args = project
-        ? [project.id]
-        : [];
+    const args = project ? [project.id] : [];
 
-    const payload = new Uint8Array([
-        83,
-        ...serializeArgs(args)
-    ]);
+    const payload = new Uint8Array([83, ...serializeArgs(args)]);
 
     return bridge(payload, ([url]) => url);
 }

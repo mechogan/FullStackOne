@@ -1,6 +1,6 @@
 import * as aiAgent from "@fullstacked/ai-agent";
 import { z as zod } from "zod";
-export * from "./tools/fs"; 
+export * from "./tools/fs";
 import { createToolFS } from "./tools/fs";
 
 export * from "@fullstacked/ai-agent";

@@ -1,8 +1,10 @@
 import { Project } from "../../editor/types";
 import { bridge } from "../bridge";
-import { getLowestKeyIdAvailable, serializeArgs } from "../bridge/serialization";
+import {
+    getLowestKeyIdAvailable,
+    serializeArgs
+} from "../bridge/serialization";
 import core_message from "../core_message";
-
 
 const activeInstallations = new Map<
     number,
@@ -36,7 +38,6 @@ export type PackageInfo = {
 type InstallationProgressCb = (
     packages: [string, PackageInfoProgress][]
 ) => void;
-
 
 function installationsListener(messageStr: string) {
     const message = JSON.parse(messageStr) as { id: number };
@@ -83,10 +84,7 @@ let addedListener = false;
 function setListenerOnce() {
     if (addedListener) return;
 
-    core_message.addListener(
-        "packages-installation",
-        installationsListener
-    );
+    core_message.addListener("packages-installation", installationsListener);
 
     addedListener = true;
 }
@@ -119,14 +117,15 @@ export function install(
 }
 
 //61
-export function installQuick(project?: Project, progress?: InstallationProgressCb) {
+export function installQuick(
+    project?: Project,
+    progress?: InstallationProgressCb
+) {
     setListenerOnce();
 
     const installationId = getLowestKeyIdAvailable(activeInstallations);
 
-    let args: any[] = project
-        ? [project.id, installationId]
-        : [installationId];
+    let args: any[] = project ? [project.id, installationId] : [installationId];
 
     const payload = new Uint8Array([61, ...serializeArgs(args)]);
 

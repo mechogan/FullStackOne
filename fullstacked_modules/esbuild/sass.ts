@@ -18,7 +18,7 @@ export async function buildSASS(
             ? `${baseDirectory}/.build`
             : ".build";
         await fs.mkdir(buildDirectory);
-        console.log(buildDirectory + "/index.css", css)
+        console.log(buildDirectory + "/index.css", css);
         await fs.writeFile(buildDirectory + "/index.css", css);
     };
 
@@ -27,7 +27,7 @@ export async function buildSASS(
         (item) => item === "index.sass" || item === "index.scss"
     );
 
-    console.log(entryPointSASS)
+    console.log(entryPointSASS);
 
     // check for css file and write to output
     // esbuild will pick it up and merge with css in js
@@ -69,8 +69,8 @@ export async function buildSASS(
                         syntax: filePath.endsWith(".sass")
                             ? "indented"
                             : filePath.endsWith(".scss")
-                                ? "scss"
-                                : "css",
+                              ? "scss"
+                              : "css",
                         contents
                     };
                 },

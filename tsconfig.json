@@ -13,6 +13,6 @@
         "platform/apple",
         "platform/docker",
         "platform/linux",
-        "platform/node/fullstacked_modules",
+        "platform/node/fullstacked_modules"
     ]
 }

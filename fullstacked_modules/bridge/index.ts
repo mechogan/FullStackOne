@@ -60,9 +60,9 @@ console.log("FullStacked");
 bridge(new Uint8Array([0]));
 
 let lastUpdateCheck = 0;
-const updateCheckDelay = 1000 * 10 // 10sec;
+const updateCheckDelay = 1000 * 10; // 10sec;
 async function checkForUpdates() {
-    window.requestAnimationFrame(checkForUpdates)
+    window.requestAnimationFrame(checkForUpdates);
 
     const now = Date.now();
     if (now - lastUpdateCheck < updateCheckDelay) {
@@ -71,7 +71,7 @@ async function checkForUpdates() {
 
     lastUpdateCheck = now;
 
-    if (await git.pull() !== git.PullResponse.DID_PULL) {
+    if ((await git.pull()) !== git.PullResponse.DID_PULL) {
         return;
     }
 
@@ -82,22 +82,20 @@ async function checkForUpdates() {
     preventReloadButton.onclick = () => {
         preventReload = true;
         snackbar.dismiss();
-    }
+    };
 
     const snackbar = SnackBar({
         message: "Project has updated. Rebuilding...",
         button: preventReloadButton
     });
 
-    buildSASS(fs)
-        .then(() => {
-            esbuild.build().then(() => {
-                snackbar.dismiss();
-                if (preventReload) return;
-                window.location.reload();
-            });
+    buildSASS(fs).then(() => {
+        esbuild.build().then(() => {
+            snackbar.dismiss();
+            if (preventReload) return;
+            window.location.reload();
         });
-
+    });
 }
 if (await git.hasGit()) {
     checkForUpdates();

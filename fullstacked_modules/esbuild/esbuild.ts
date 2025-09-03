@@ -57,18 +57,12 @@ export function build(project?: Project): Promise<Message[]> {
         addedListener = true;
     }
 
-
-    const args: any[] = project
-        ? [project.id]
-        : []
+    const args: any[] = project ? [project.id] : [];
 
     const buildId = getLowestKeyIdAvailable(activeBuilds);
-    args.push(buildId)
+    args.push(buildId);
 
-    const payload = new Uint8Array([
-        56,
-        ...serializeArgs(args)
-    ]);
+    const payload = new Uint8Array([56, ...serializeArgs(args)]);
 
     return new Promise((resolve) => {
         activeBuilds.set(buildId, {

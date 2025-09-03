@@ -6,13 +6,13 @@ import _fs from "fs";
 const fs: typeof fsType = _fs;
 
 type ToolFSOptions = {
-    baseDirectory: string
-}
+    baseDirectory: string;
+};
 
 export function createToolFS(opts?: Partial<ToolFSOptions>) {
     let basePath = opts?.baseDirectory || "";
 
-    if(basePath !== "" && !basePath.endsWith("/")) {
+    if (basePath !== "" && !basePath.endsWith("/")) {
         basePath += "/";
     }
 

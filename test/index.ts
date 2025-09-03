@@ -5,8 +5,8 @@ import path from "node:path";
 
 const cacheDirectory = path.resolve("test", ".cache");
 
-if(fs.existsSync(cacheDirectory))
-    fs.rmSync(cacheDirectory, { recursive: true })
+if (fs.existsSync(cacheDirectory))
+    fs.rmSync(cacheDirectory, { recursive: true });
 
 const build = (testFile: string) => {
     const outfile = path.resolve(cacheDirectory, "test.js");

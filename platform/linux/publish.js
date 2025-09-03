@@ -41,7 +41,6 @@ function updateControlFile(framework) {
     fs.writeFileSync(controlFile, controlFileContentUpdated);
 }
 
-
 // build GTK
 updateControlFile("gtk");
 

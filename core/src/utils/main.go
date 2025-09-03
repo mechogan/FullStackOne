@@ -55,5 +55,5 @@ func IsReacheable(url string) bool {
 
 	_, err := client.Head(url)
 
-	return err == nil;
+	return err == nil
 }

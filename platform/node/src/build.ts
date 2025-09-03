@@ -51,7 +51,7 @@ export async function buildLocalProject() {
                         resolve();
                         return;
                     }
-                } catch (e) { }
+                } catch (e) {}
                 console.log(buildErrors || errorsStr);
                 process.exit(1);
             }

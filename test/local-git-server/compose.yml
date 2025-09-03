@@ -1,8 +1,8 @@
 services:
-  git-server:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    restart: always
-    ports:
-      - "8080:80"
+    git-server:
+        build:
+            dockerfile: Dockerfile
+            context: .
+        restart: always
+        ports:
+            - "8080:80"
