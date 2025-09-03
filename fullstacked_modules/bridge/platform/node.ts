@@ -24,13 +24,12 @@ export const BridgeNode: Bridge = async (
 export function initCallbackNode() {
     const url = new URL(globalThis.location.href);
     url.protocol = "ws:";
-    return new Promise<void>(wsReady => {
+    return new Promise<void>((wsReady) => {
         const ws = new WebSocket(url.toString());
         ws.onmessage = (e) => {
             const [type, message] = JSON.parse(e.data);
             globalThis.oncoremessage(type, message);
         };
         ws.onopen = () => wsReady();
-    })
-
+    });
 }
