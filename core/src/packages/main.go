@@ -178,6 +178,9 @@ func pseudoGitUrlToUrl(pseudoUrl string) *url.URL {
 		host = strings.Join(urlComponents[1:len(urlComponents)-1], ":")
 	}
 
+	scheme = strings.TrimPrefix(scheme, "git+")
+	host = strings.TrimLeft(host, "/")
+
 	URL, err := url.Parse(scheme + "://" + host + "/" + repo + ".git")
 
 	if err != nil {
