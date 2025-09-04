@@ -437,6 +437,8 @@ func (p *Package) updateNameAndVersionWithPackageJSON(directory string) {
 func (p *Package) cloneAndCheckoutGitPackageToTmp() bool {
 	url := pseudoGitUrlToUrl(p.As[0])
 
+	fmt.Println(url)
+
 	ref := ""
 	if strings.Contains(p.As[0], "#") {
 		repoComponents := strings.Split(p.As[0], "#")
