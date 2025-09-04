@@ -12,22 +12,17 @@ function setListenerOnce() {
     if (addedListener) return;
 
     core_message.addListener("git-pull", (message) => {
-        console.log(message);
         const { url, data, finished } = JSON.parse(message);
         if (!finished) return;
         const promises = pullPromises.get(url);
         promises?.forEach((resolve) => resolve(data));
         pullPromises.delete(url);
     });
-
-    core_message.addListener("git-push", console.log);
-
     addedListener = true;
 }
 
 // 81
 export function gitAuthResponse(id: number, success: boolean) {
-    console.log(id, success);
     const payload = new Uint8Array([81, ...serializeArgs([id, success])]);
     bridge(payload);
 }
