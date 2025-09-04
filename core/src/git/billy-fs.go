@@ -152,7 +152,7 @@ func (fs *Memory) ReadDir(path string) ([]os.FileInfo, error) {
 	filePath := filepath.Join(fs.s.Root, path)
 	exists, isFile := realFs.Exists(filePath)
 	if exists && !isFile {
-		contents, _ := realFs.ReadDir(filePath, false, []string{})
+		contents, _ := realFs.ReadDir(filePath, false, false, []string{})
 		for _, item := range contents {
 			filePath := filepath.Join(path, item.Name)
 

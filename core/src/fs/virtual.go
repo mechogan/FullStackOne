@@ -210,24 +210,26 @@ func pathIsChildOfPath(childPath string, parentPath string) bool {
 //	projects/node_modules/react-dom/index.js
 //
 // path: projects/node_modules/react
-func vReadDir(path string, recursive bool, skip []string) []FileInfo2 {
+func vReadDir(path string, recursive bool, filesOnly bool, skip []string) []FileInfo2 {
 	items := []FileInfo2{}
 
 	pathComponents := splitPath(path)
 
-	for _, dir := range VirtDirs {
-		if pathIsChildOfPath(dir, path) {
-			dirComponents := splitPath(dir)
-			relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
-			if containsStartsWith(skip, relativeName) {
-				continue
-			}
-			if recursive || len(dirComponents)-len(pathComponents) == 1 {
-				items = append(items, FileInfo2{
-					Name:  relativeName,
-					IsDir: true,
-					Mode:  os.ModeDir,
-				})
+	if !filesOnly {
+		for _, dir := range VirtDirs {
+			if pathIsChildOfPath(dir, path) {
+				dirComponents := splitPath(dir)
+				relativeName := filepath.Join(dirComponents[len(pathComponents):]...)
+				if containsStartsWith(skip, relativeName) {
+					continue
+				}
+				if recursive || len(dirComponents)-len(pathComponents) == 1 {
+					items = append(items, FileInfo2{
+						Name:  relativeName,
+						IsDir: true,
+						Mode:  os.ModeDir,
+					})
+				}
 			}
 		}
 	}

@@ -169,7 +169,7 @@ func DirectoryToFileEntries(in string, skip []string) ([]FileEntry, error) {
 		return nil, errors.New("directory to zip is not a directory")
 	}
 
-	files, err := fs.ReadDir(in, true, []string{})
+	files, err := fs.ReadDir(in, true, false, []string{})
 
 	if err != nil {
 		return nil, err

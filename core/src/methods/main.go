@@ -253,7 +253,7 @@ func Call(payload []byte) []byte {
 		}
 		return fs.ReadFileSerialized(filePathAbs, true)
 	case method == FULLSTACKED_MODULES_LIST:
-		return fs.ReadDirSerialized(path.Join(setup.Directories.Editor, "fullstacked_modules"), true, false, []string{})
+		return fs.ReadDirSerialized(path.Join(setup.Directories.Editor, "fullstacked_modules"), true, false, false, []string{})
 	}
 
 	return nil
@@ -284,15 +284,12 @@ func fsSwitch(method int, baseDir string, args []any) []byte {
 		return fs.UnlinkSerialized(filePath, fileEventOrigin)
 	case FS_READDIR:
 		skip := []string{}
-		if len(args) > 2 {
-			for i, arg := range args {
-				if i < 3 {
-					continue
-				}
+		if len(args) > 3 {
+			for _, arg := range args[4:] {
 				skip = append(skip, arg.(string))
 			}
 		}
-		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool), skip)
+		return fs.ReadDirSerialized(filePath, args[1].(bool), args[2].(bool), args[3].(bool), skip)
 	case FS_MKDIR:
 		fileEventOrigin := ""
 		if len(args) > 1 {

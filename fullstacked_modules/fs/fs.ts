@@ -50,19 +50,19 @@ export type FileInfo = {
 // 5
 export function readdir(
     path: string,
-    options?: { recursive?: boolean; withFileTypes?: false }
+    options?: { recursive?: boolean; withFileTypes?: false, filesOnly?: boolean }
 ): Promise<string[]>;
 export function readdir(
     path: string,
-    options?: { recursive?: boolean; withFileTypes: true }
+    options?: { recursive?: boolean; withFileTypes: true, filesOnly?: boolean }
 ): Promise<FileInfo[]>;
 export function readdir(
     path: string,
-    options?: { recursive?: boolean; withFileTypes?: boolean }
+    options?: { recursive?: boolean; withFileTypes?: boolean, filesOnly?: boolean }
 ) {
     const payload = new Uint8Array([
         5,
-        ...serializeArgs([path, !!options?.recursive, !!options?.withFileTypes])
+        ...serializeArgs([path, !!options?.recursive, !!options?.withFileTypes, !!options?.filesOnly])
     ]);
 
     const transformer = (items: string[] | (string | boolean)[]) => {
