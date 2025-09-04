@@ -173,10 +173,13 @@ func pseudoGitUrlToUrl(pseudoUrl string) *url.URL {
 	host := strings.Join(urlComponents[:len(urlComponents)-1], ":")
 
 	scheme := "https"
-	if strings.HasPrefix(urlComponents[0], "http") {
+	if strings.HasPrefix(urlComponents[0], "git+") {
 		scheme = urlComponents[0]
 		host = strings.Join(urlComponents[1:len(urlComponents)-1], ":")
 	}
+
+	scheme = strings.TrimPrefix(scheme, "git+")
+	host = strings.TrimLeft(host, "/")
 
 	URL, err := url.Parse(scheme + "://" + host + "/" + repo + ".git")
 
