@@ -101,7 +101,7 @@ esbuild.buildSync({
     external: ["fetch", "fs"]
 });
 
-const neededModules = ["@fullstacked/ai-agent", "zod"];
+const neededModules = ["@fullstacked/ai-agent", "@fullstacked/ui", "zod"];
 neededModules.forEach((m) => {
     fs.cpSync("node_modules/" + m, outDirFullStackedModules + "/" + m, {
         recursive: true,
@@ -110,6 +110,14 @@ neededModules.forEach((m) => {
             !n.endsWith(".cjs") &&
             !n.startsWith("node_modules/" + m + "/node_modules")
     });
+});
+
+esbuild.buildSync({
+    entryPoints: ["node_modules/sass/sass.js"],
+    outfile: outDirFullStackedModules + "/sass/index.js",
+    format: "esm",
+    bundle: true,
+    platform: "node"
 });
 
 await processScss(
