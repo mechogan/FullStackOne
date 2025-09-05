@@ -8,6 +8,7 @@ editor/views/project/prettier/plugin-liquid.js
 
 **/*.cache
 platform/**/editor
+platform/**/fullstacked_modules
 
 platform/android/studio/.gradle
 platform/android/studio/.idea
