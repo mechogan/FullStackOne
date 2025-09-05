@@ -113,7 +113,7 @@ neededModules.forEach((m) => {
 });
 
 esbuild.buildSync({
-    entryPoints: ["node_modules/sass/sass.js"],
+    entryPoints: ["node_modules/sass/sass.default.js"],
     outfile: outDirFullStackedModules + "/sass/index.js",
     format: "esm",
     bundle: true,
