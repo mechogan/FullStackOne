@@ -513,6 +513,17 @@ func Pull(directory string, isEditor bool, projectId string) {
 
 	wg.Wait()
 
+	headAfter, err := Head(directory)
+
+	if err != nil {
+		progress.Error(err.Error())
+		return
+	}
+
+	if(head.Hash().String() == headAfter.Hash().String()) {
+		pullResponse = "already up-to-date"
+	}
+
 	progress.End(pullResponse, err != nil)
 }
 
