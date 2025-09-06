@@ -8,6 +8,7 @@ import (
 	"fullstackedorg/fullstacked/src/setup"
 	"net"
 	"strconv"
+	"time"
 )
 
 type Channel struct {
@@ -24,7 +25,7 @@ type Channel struct {
 func (c *Channel) connect() {
 	fmt.Println("Connecting to " + c.Host + ":" + strconv.Itoa(c.Port))
 
-	conn, err := net.Dial("tcp", c.Host+":"+strconv.Itoa(c.Port))
+	conn, err := net.DialTimeout("tcp", c.Host+":"+strconv.Itoa(c.Port), time.Second)
 	if err != nil {
 		fmt.Println(err)
 		return
