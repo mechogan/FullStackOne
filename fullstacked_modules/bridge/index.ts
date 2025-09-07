@@ -15,6 +15,7 @@ import { Button } from "@fullstacked/ui";
 import { serializeArgs } from "./serialization";
 import { buildSASS } from "../esbuild/sass";
 import fs from "../fs";
+import packages from "../packages";
 
 export type Bridge = (
     payload: Uint8Array,
@@ -61,11 +62,12 @@ bridge(new Uint8Array([0]));
 
 let lastUpdateCheck = 0;
 const updateCheckDelay = 1000 * 10; // 10sec;
+let updating = false;
 async function checkForUpdates() {
     window.requestAnimationFrame(checkForUpdates);
 
     const now = Date.now();
-    if (now - lastUpdateCheck < updateCheckDelay) {
+    if (now - lastUpdateCheck < updateCheckDelay || updating) {
         return;
     }
 
@@ -89,16 +91,23 @@ async function checkForUpdates() {
         button: preventReloadButton
     });
 
-    buildSASS(fs).then(() => {
-        esbuild.build().then(() => {
-            snackbar.dismiss();
-            if (preventReload) return;
-            window.location.reload();
-        });
+    updating = true;
+    update().then(() => {
+        updating = false;
+        snackbar.dismiss();
+        
+        if (preventReload) return;
+        window.location.reload();
     });
 }
 if (await git.hasGit()) {
     checkForUpdates();
+}
+
+async function update() {
+    await packages.installQuick();
+    await buildSASS(fs);
+    return esbuild.build();
 }
 
 // 40
