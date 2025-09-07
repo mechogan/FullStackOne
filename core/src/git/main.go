@@ -520,7 +520,7 @@ func Pull(directory string, isEditor bool, projectId string) {
 		return
 	}
 
-	if(head.Hash().String() == headAfter.Hash().String()) {
+	if head.Hash().String() == headAfter.Hash().String() {
 		pullResponse = "already up-to-date"
 	}
 

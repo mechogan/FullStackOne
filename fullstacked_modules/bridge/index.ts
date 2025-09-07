@@ -95,7 +95,7 @@ async function checkForUpdates() {
     update().then(() => {
         updating = false;
         snackbar.dismiss();
-        
+
         if (preventReload) return;
         window.location.reload();
     });
