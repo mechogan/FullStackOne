@@ -17,9 +17,18 @@ esbuild.buildSync({
     platform: "node"
 });
 
+const fullstackedModulesDirectory = path.resolve(
+    currentDirectory,
+    "fullstacked_modules"
+);
+
+if (fs.existsSync(fullstackedModulesDirectory)) {
+    fs.rmSync(fullstackedModulesDirectory, { recursive: true });
+}
+
 fs.cpSync(
     path.resolve(rootDirectory, "out", "editor", "fullstacked_modules"),
-    path.resolve(currentDirectory, "fullstacked_modules"),
+    fullstackedModulesDirectory,
     { recursive: true }
 );
 

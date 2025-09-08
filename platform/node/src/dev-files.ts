@@ -14,9 +14,7 @@ const defaultTsConfig = {
         paths: {
             "*": ["./node_modules/fullstacked/fullstacked_modules/*"]
         },
-        typeRoots: [
-            "./node_modules/fullstacked/fullstacked_modules"
-        ],
+        typeRoots: ["./node_modules/fullstacked/fullstacked_modules"]
     }
 };
 

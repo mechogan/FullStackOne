@@ -95,7 +95,7 @@ export function serializeArgs(args: any[]) {
 }
 
 export function deserializeArgs(data: Uint8Array) {
-    const args = [];
+    const args: any[] = [];
 
     let cursor = 0;
     while (cursor < data.byteLength) {

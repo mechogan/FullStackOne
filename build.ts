@@ -120,12 +120,11 @@ esbuild.buildSync({
     platform: "node"
 });
 
-const dummyDts = [
-    "@fullstacked",
-    "sass"
-];
+const dummyDts = ["@fullstacked", "sass"];
 
-dummyDts.forEach(dir => fs.writeFileSync(outDirFullStackedModules + "/" + dir + "/index.d.ts", ""))
+dummyDts.forEach((dir) =>
+    fs.writeFileSync(outDirFullStackedModules + "/" + dir + "/index.d.ts", "")
+);
 
 await processScss(
     "fullstacked_modules/components/snackbar.scss",

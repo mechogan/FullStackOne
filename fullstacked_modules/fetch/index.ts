@@ -43,8 +43,10 @@ function receivedResponse(base64Data: string) {
     const data = toByteArray(base64Data);
     const args = deserializeArgs(data);
 
-    const id = args.at(0);
+    const id: number = args.at(0) || -1;
     const fetchRequest = activeFetchRequests.get(id);
+
+    if (!fetchRequest) return;
 
     const [statusCode, statusMessage, headersStr, body] = args.slice(1);
 
@@ -133,8 +135,10 @@ function receivedResponse2(base64Data: string) {
     const data = toByteArray(base64Data);
     const args = deserializeArgs(data);
 
-    const id = args.at(0);
+    const id: number = args.at(0) || -1;
     const request = activeFetch2Requests.get(id);
+
+    if (!request) return;
 
     if (request.resolveStream) {
         const [done, chunk] = args.slice(1);
@@ -221,8 +225,8 @@ function receivedResponse2(base64Data: string) {
         },
 
         // not implemented
-        clone: () => null,
-        formData: async () => null
+        clone: () => null as unknown as Response,
+        formData: async () => null as unknown as FormData
     };
 
     request.resolveResponse(response);
