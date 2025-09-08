@@ -43,7 +43,7 @@ function receivedResponse(base64Data: string) {
     const data = toByteArray(base64Data);
     const args = deserializeArgs(data);
 
-    const id: number = args.at(0) || -1;
+    const id = args.at(0);
     const fetchRequest = activeFetchRequests.get(id);
 
     if (!fetchRequest) return;
@@ -135,7 +135,7 @@ function receivedResponse2(base64Data: string) {
     const data = toByteArray(base64Data);
     const args = deserializeArgs(data);
 
-    const id: number = args.at(0) || -1;
+    const id = args.at(0);
     const request = activeFetch2Requests.get(id);
 
     if (!request) return;
