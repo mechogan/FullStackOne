@@ -1,2 +1,3 @@
-import ".";
-declare module "connect" {}
+import * as connect from ".";
+export default connect;
+export * from ".";

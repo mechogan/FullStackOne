@@ -10,8 +10,13 @@ const defaultTsConfig = {
         moduleResolution: "Node10",
         allowJs: true,
         lib: ["dom", "dom.iterable", "es2023"],
-        types: ["./node_modules/fullstacked/lib/fullstacked.d.ts"],
-        jsx: "react"
+        jsx: "react",
+        paths: {
+            "*": ["./node_modules/fullstacked/fullstacked_modules/*"]
+        },
+        typeRoots: [
+            "./node_modules/fullstacked/fullstacked_modules"
+        ],
     }
 };
 

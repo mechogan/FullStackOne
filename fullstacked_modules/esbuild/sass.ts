@@ -11,7 +11,7 @@ export async function buildSASS(
     },
     project?: Project
 ): Promise<Partial<Message>> {
-    const baseDirectory = project?.id || "";
+    const baseDirectory = project?.id || ".";
 
     const writeOutputCSS = async (css: string) => {
         const buildDirectory = baseDirectory

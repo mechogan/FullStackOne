@@ -50,7 +50,7 @@ child_process.execSync("msstore package", {
     stdio: "inherit"
 });
 
-child_process.execSync("msstore publish", {
+child_process.execSync("msstore publish -prp 100", {
     cwd: currentDirectory,
     stdio: "inherit"
 });

@@ -1,2 +1,3 @@
-import ".";
-declare module "ai" {}
+import * as ai from ".";
+export default ai;
+export * from ".";
